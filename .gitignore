@@ -1,5 +1,8 @@
 *.py[cod]
 
+# Layer zips
+.layers
+
 # C extensions
 *.so
 
@@ -28,6 +31,7 @@ pip-log.txt
 nosetests.xml
 
 #Misc
+.cache/
 .DS_Store
 .eggs/
 .env/
