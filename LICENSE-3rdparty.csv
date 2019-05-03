@@ -1,0 +1,6 @@
+Component,Origin,License,Copyright
+aws-xray-sdk-python,github.com/aws/aws-xray-sdk-python,Apache-2.0,
+flake8,gitlab.com/pycqa/flake8,MIT,"Copyright (C) 2011-2013 Tarek Ziade <tarek@ziade.org>. Copyright (C) 2012-2016 Ian Cordasco <graffatcolmingov@gmail.com>."
+nose2,github.com/nose-devs/nose2,BSD-2-Clause,"Copyright (c) 2012, Jason Pellerin. All rights reserved."
+requests,github.com/kennethreitz/requests,Apache-2.0,"Copyright 2018 Kenneth Reitz"
+wrapt,github.com/GrahamDumpleton/wrapt,BSD-2-Clause,"Copyright (c) 2013-2019, Graham Dumpleton"
