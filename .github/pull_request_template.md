@@ -1,4 +1,4 @@
-*Note: Please remember to review the Datadog [Contribution Guidelines](https://github.com/DataDog/dd-agent/blob/master/CONTRIBUTING.md)
+*Note: Please remember to review the [contribution guidelines](https://github.com/DataDog/datadog-lambda-layer-python/blob/master/CONTRIBUTING.md)
 if you have not yet done so.*
 
 ### What does this PR do?
@@ -11,8 +11,7 @@ What inspired you to submit this pull request?
 
 ### Testing Guidelines
 
-An overview on [testing](https://github.com/DataDog/dd-agent/blob/master/tests/README.md)
-is available in our contribution guidelines.
+How did you test this pull request?
 
 ### Additional Notes
 
