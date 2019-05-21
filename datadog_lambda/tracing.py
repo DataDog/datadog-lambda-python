@@ -55,8 +55,7 @@ def get_dd_trace_context():
     Return the Datadog trace context to be propogated on the outgoing requests.
 
     If the Lambda function is invoked by a Datadog-traced service, a Datadog
-    trace
-    context may already exist, and it should be used. Otherwise, use the
+    trace context may already exist, and it should be used. Otherwise, use the
     current X-Ray trace entity.
 
     Most of widely-used HTTP clients are patched to inject the context

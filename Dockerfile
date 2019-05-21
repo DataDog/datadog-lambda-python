@@ -12,7 +12,7 @@ COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt -t ./python/lib/$runtime/site-packages
 
 # Install datadog_lambda
-COPY datadog_lambda ./python/lib/$runtime/site-packages
+COPY datadog_lambda ./python/lib/$runtime/site-packages/datadog_lambda
 
 # Remove *.pyc files
 RUN find ./python/lib/$runtime/site-packages -name \*.pyc -delete

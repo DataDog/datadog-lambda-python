@@ -3,10 +3,10 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
+import os
 import traceback
-from threading import Thread
 
-from datadog_lambda.metric import init_api_client, lambda_stats
+from datadog_lambda.metric import lambda_stats
 from datadog_lambda.tracing import extract_dd_trace_context
 from datadog_lambda.patch import patch_all
 
@@ -33,13 +33,10 @@ class _LambdaDecorator(object):
 
     def __init__(self, func):
         self.func = func
+        self.flush_to_log = os.environ.get('DATADOG_FLUSH_TO_LOG') == 'True'
 
     def _before(self, event, context):
         try:
-            # Async initialization of the TLS connection with Datadog API,
-            # and reduces the overhead to the final metric flush at the end.
-            Thread(target=init_api_client).start()
-
             # Extract Datadog trace context from incoming requests
             extract_dd_trace_context(event)
 
@@ -50,7 +47,8 @@ class _LambdaDecorator(object):
 
     def _after(self, event, context):
         try:
-            lambda_stats.flush(float("inf"))
+            if not self.flush_to_log:
+                lambda_stats.flush(float("inf"))
         except Exception:
             traceback.print_exc()
 
