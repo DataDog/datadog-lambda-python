@@ -12,10 +12,17 @@ arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-Python37:<VERSION>
 
 Replace `<AWS_REGION>` with the region where your Lambda function lives, and `<VERSION>` with the desired (or the latest) version that can be found from [CHANGELOG](CHANGELOG.md).
 
-The following Datadog environment variables must be defined via [AWS CLI](https://docs.aws.amazon.com/lambda/latest/dg/env_variables.html) or [Serverless Framework](https://serverless-stack.com/chapters/serverless-environment-variables.html):
+The Datadog API must be defined as an environment variable via [AWS CLI](https://docs.aws.amazon.com/lambda/latest/dg/env_variables.html) or [Serverless Framework](https://serverless-stack.com/chapters/serverless-environment-variables.html):
 
-* DATADOG_API_KEY
-* DATADOG_APP_KEY
+* DD_API_KEY or DD_KMS_API_KEY (if encrypted by KMS)
+
+Set the following Datadog environment variable to `datadoghq.eu` to send your data to the Datadog EU site.
+
+* DD_SITE
+
+If your Lambda function powers a performance-critical task (e.g., a consumer-facing API). You can avoid the added latencies of metric-submitting API calls, by setting the following Datadog environment variable to `True`. Custom metrics will be submitted asynchronously through CloudWatch Logs and [the Datadog log forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring).
+
+* DATADOG_FLUSH_TO_LOG
 
 ### The Serverless Framework
 
@@ -40,7 +47,6 @@ functions:
       - arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python37:1
     environment:
       DATADOG_API_KEY: xxx
-      DATADOG_APP_KEY: yyy
 ```
 
 

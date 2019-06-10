@@ -3,6 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
+
 # Datadog trace sampling priority
 class SamplingPriority(object):
     USER_REJECT = -1

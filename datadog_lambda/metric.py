@@ -5,7 +5,11 @@
 
 import os
 import sys
+import json
+import time
+import base64
 
+import boto3
 from datadog import api
 from datadog.threadstats import ThreadStats
 from datadog_lambda import __version__
@@ -22,44 +26,58 @@ def _format_dd_lambda_layer_tag():
     return "dd_lambda_layer:datadog-{}_{}".format(runtime, __version__)
 
 
-def _tag_dd_lambda_layer(args, kwargs):
+def _tag_dd_lambda_layer(tags):
     """
     Used by lambda_metric to insert the dd_lambda_layer tag
     """
     dd_lambda_layer_tag = _format_dd_lambda_layer_tag()
-    if 'tags' in kwargs:
-        kwargs['tags'].append(dd_lambda_layer_tag)
-    elif len(args) >= 4:
-        args[3].append(dd_lambda_layer_tag)
+    if tags:
+        return tags + [dd_lambda_layer_tag]
     else:
-        kwargs['tags'] = [dd_lambda_layer_tag]
+        return [dd_lambda_layer_tag]
 
 
-def lambda_metric(*args, **kwargs):
+def lambda_metric(metric_name, value, timestamp=None, tags=None):
     """
     Submit a data point to Datadog distribution metrics.
     https://docs.datadoghq.com/graphing/metrics/distributions/
+
+    When DATADOG_LOG_FORWARDER is True, write metric to log, and
+    wait for the Datadog Log Forwarder Lambda function to submit
+    the metrics asynchronously.
+
+    Otherwise, the metrics will be submitted to the Datadog API
+    periodically and at the end of the function execution in a
+    background thread.
     """
-    _tag_dd_lambda_layer(args, kwargs)
-    lambda_stats.distribution(*args, **kwargs)
+    tags = _tag_dd_lambda_layer(tags)
+    if os.environ.get('DATADOG_FLUSH_TO_LOG') == 'True':
+        print(json.dumps({
+            'metric_name': metric_name,
+            'value': value,
+            'timestamp': timestamp or int(time.time()),
+            'tags': tags
+        }))
+    else:
+        lambda_stats.distribution(
+            metric_name, value, timestamp=timestamp, tags=tags
+        )
 
 
-def init_api_client():
-    """
-    No-op GET to initialize the requests connection with DD's endpoints,
-    to make the final flush faster.
+# Decrypt code should run once and variables stored outside of the function
+# handler so that these are decrypted once per container
+DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY")
+if DD_KMS_API_KEY:
+    DD_KMS_API_KEY = boto3.client("kms").decrypt(
+        CiphertextBlob=base64.b64decode(DD_KMS_API_KEY)
+    )["Plaintext"]
 
-    We keep alive the Requests session, this means that we can re-use
-    the connection. The consequence is that the HTTP Handshake, which
-    can take hundreds of ms, is now made at the beginning of a lambda
-    instead of at the end.
-
-    By making the initial request async, we spare a lot of execution
-    time in the lambdas.
-    """
-    api._api_key = os.environ.get('DATADOG_API_KEY')
-    api._api_host = os.environ.get('DATADOG_HOST', 'https://api.datadoghq.com')
-    try:
-        api.api_client.APIClient.submit('GET', 'validate')
-    except Exception:
-        pass
+# Set API Key and Host in the module, so they only set once per container
+api._api_key = os.environ.get(
+    'DATADOG_API_KEY',
+    os.environ.get('DD_API_KEY', DD_KMS_API_KEY),
+)
+api._api_host = os.environ.get(
+    'DATADOG_HOST',
+    'https://api.' + os.environ.get('DD_SITE', 'datadoghq.com')
+)
