@@ -42,7 +42,7 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
     Submit a data point to Datadog distribution metrics.
     https://docs.datadoghq.com/graphing/metrics/distributions/
 
-    When DATADOG_LOG_FORWARDER is True, write metric to log, and
+    When DD_FLUSH_TO_LOG is True, write metric to log, and
     wait for the Datadog Log Forwarder Lambda function to submit
     the metrics asynchronously.
 
@@ -51,7 +51,7 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
     background thread.
     """
     tags = _tag_dd_lambda_layer(tags)
-    if os.environ.get('DATADOG_FLUSH_TO_LOG') == 'True':
+    if os.environ.get('DD_FLUSH_TO_LOG', '').lower() == 'true':
         print(json.dumps({
             'm': metric_name,
             'v': value,

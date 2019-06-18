@@ -22,7 +22,7 @@ Set the following Datadog environment variable to `datadoghq.eu` to send your da
 
 If your Lambda function powers a performance-critical task (e.g., a consumer-facing API). You can avoid the added latencies of metric-submitting API calls, by setting the following Datadog environment variable to `True`. Custom metrics will be submitted asynchronously through CloudWatch Logs and [the Datadog log forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring).
 
-* DATADOG_FLUSH_TO_LOG
+* DD_FLUSH_TO_LOG
 
 ### The Serverless Framework
 
