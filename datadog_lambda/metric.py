@@ -53,10 +53,10 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
     tags = _tag_dd_lambda_layer(tags)
     if os.environ.get('DATADOG_FLUSH_TO_LOG') == 'True':
         print(json.dumps({
-            'metric_name': metric_name,
-            'value': value,
-            'timestamp': timestamp or int(time.time()),
-            'tags': tags
+            'm': metric_name,
+            'v': value,
+            'e': timestamp or int(time.time()),
+            't': tags
         }))
     else:
         lambda_stats.distribution(
