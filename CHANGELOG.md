@@ -1,5 +1,9 @@
 CHANGELOG
 =========
+# v3 / 2019-06-18
+
+* Log metrics in a compact format
+
 # v2 / 2019-06-10
 
 * Support submitting metrics through CloudWatch Logs

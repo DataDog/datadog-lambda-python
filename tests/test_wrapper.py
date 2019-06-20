@@ -45,7 +45,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_patch_all.assert_called()
 
     def test_datadog_lambda_wrapper_flush_to_log(self):
-        os.environ["DATADOG_FLUSH_TO_LOG"] = 'True'
+        os.environ["DD_FLUSH_TO_LOG"] = 'True'
 
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -60,4 +60,4 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_extract_dd_trace_context.assert_called_with(lambda_event)
         self.mock_patch_all.assert_called()
 
-        del os.environ["DATADOG_FLUSH_TO_LOG"]
+        del os.environ["DD_FLUSH_TO_LOG"]

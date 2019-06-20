@@ -33,7 +33,7 @@ class _LambdaDecorator(object):
 
     def __init__(self, func):
         self.func = func
-        self.flush_to_log = os.environ.get('DATADOG_FLUSH_TO_LOG') == 'True'
+        self.flush_to_log = os.environ.get('DD_FLUSH_TO_LOG', '').lower() == 'true'
 
     def _before(self, event, context):
         try:

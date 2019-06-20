@@ -30,9 +30,9 @@ class TestLambdaMetric(unittest.TestCase):
         ])
 
     def test_lambda_metric_flush_to_log(self):
-        os.environ["DATADOG_FLUSH_TO_LOG"] = 'True'
+        os.environ["DD_FLUSH_TO_LOG"] = 'True'
 
         lambda_metric('test', 1)
         self.mock_metric_lambda_stats.distribution.assert_not_called()
 
-        del os.environ["DATADOG_FLUSH_TO_LOG"]
+        del os.environ["DD_FLUSH_TO_LOG"]
