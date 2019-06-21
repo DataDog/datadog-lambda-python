@@ -7,10 +7,14 @@ Datadog Lambda Layer for Python (2.7, 3.6 and 3.7) enables custom metric submiss
 Datadog Lambda Layer can be added to a Lambda function via AWS Lambda console, [AWS CLI](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html#configuration-layers-using) or [Serverless Framework](https://serverless.com/framework/docs/providers/aws/guide/layers/#using-your-layers) using the following ARN.
 
 ```
-arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-Python37:<VERSION>
+arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-<PYTHON_RUNTIME>:<VERSION>
 ```
 
-Replace `<AWS_REGION>` with the region where your Lambda function lives, and `<VERSION>` with the desired (or the latest) version that can be found from [CHANGELOG](CHANGELOG.md).
+Replace `<AWS_REGION>` with the AWS region where your Lambda function is published to. Replace `<PYTHON_RUNTIME>` with `Datadog-Python27` with `Datadog-Python36` or `Datadog-Python37` that matches your Lambda's Python runtime. Replace `<VERSION>` with the latest layer version that can be found from [CHANGELOG](CHANGELOG.md). For example,
+
+```
+arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python37:1
+```
 
 The Datadog API must be defined as an environment variable via [AWS CLI](https://docs.aws.amazon.com/lambda/latest/dg/env_variables.html) or [Serverless Framework](https://serverless-stack.com/chapters/serverless-environment-variables.html):
 
@@ -44,9 +48,9 @@ functions:
           path: hello
           method: get
     layers:
-      - arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python37:1
+      - arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-<PYTHON_RUNTIME>:<VERSION>
     environment:
-      DATADOG_API_KEY: xxx
+      DD_API_KEY: <DD_API_KEY>
 ```
 
 
