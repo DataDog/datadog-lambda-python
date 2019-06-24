@@ -1,17 +1,17 @@
 CHANGELOG
 =========
-# v3 / 2019-06-18
+# Version: 3 / 2019-06-18
 
 * Log metrics in a compact format
 
-# v2 / 2019-06-10
+# Version: 2 / 2019-06-10
 
 * Support submitting metrics through CloudWatch Logs
 * Support submitting metrics to `datadoghq.eu`
 * Support KMS-encrypted DD API Key
 * Fix a few bugs
 
-# v1 / 2019-05-06
+# Version: 1 / 2019-05-06
 
 * First release
 * Support submitting distribution metrics from Lambda functions
