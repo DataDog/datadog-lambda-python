@@ -70,7 +70,9 @@ def lambda_handler(event, context):
 
 ## Custom Metrics
 
-Custom metrics can be submitted using `lambda_metric` and the Lambda handler function needs to be decorated with `@datadog_lambda_wrapper`. The metrics are submitted as [distribution metrics](https://docs.datadoghq.com/graphing/metrics/distributions/).
+Custom metrics can be submitted using `lambda_metric` and the Lambda handler function needs to be decorated with `@datadog_lambda_wrapper`. The metrics are submitted as [distribution metrics](https://docs.datadoghq.com/graphing/metrics/distributions/). 
+
+**IMPORTANT NOTE:** If you have already been submitting the same custom metric as non-distribution metric (e.g., gauge, count, or histogram) without using the Datadog Lambda Layer, you MUST pick a new metric name to use for `lambda_metric`. Otherwise that existing metric will be converted to a distribution metric and the historical data prior to the conversion will be no longer queryable.
 
 ```python
 from datadog_lambda.metric import lambda_metric
