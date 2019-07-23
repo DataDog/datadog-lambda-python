@@ -88,6 +88,23 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             XraySubsegment.NAMESPACE
         )
 
+    def test_with_complete_datadog_trace_headers_with_mixed_casing(self):
+        extract_dd_trace_context({
+            'headers': {
+                'X-Datadog-Trace-Id': '123',
+                'X-Datadog-Parent-Id': '321',
+                'X-Datadog-Sampling-Priority': '1',
+            }
+        })
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: '123',
+                TraceHeader.PARENT_ID: '65535',
+                TraceHeader.SAMPLING_PRIORITY: '1',
+            }
+        )
+
 
 class TestXRayContextConversion(unittest.TestCase):
 

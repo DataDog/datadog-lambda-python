@@ -27,9 +27,11 @@ def extract_dd_trace_context(event):
     """
     global dd_trace_context
     headers = event.get('headers', {})
-    trace_id = headers.get(TraceHeader.TRACE_ID)
-    parent_id = headers.get(TraceHeader.PARENT_ID)
-    sampling_priority = headers.get(TraceHeader.SAMPLING_PRIORITY)
+    lowercase_headers = {k.lower(): v for k, v in headers.items()}
+
+    trace_id = lowercase_headers.get(TraceHeader.TRACE_ID)
+    parent_id = lowercase_headers.get(TraceHeader.PARENT_ID)
+    sampling_priority = lowercase_headers.get(TraceHeader.SAMPLING_PRIORITY)
     if trace_id and parent_id and sampling_priority:
         dd_trace_context = {
             'trace-id': trace_id,
