@@ -15,7 +15,6 @@ do
     echo "Running tests against python${python_version}"
     docker build -t datadog-lambda-layer-python-test:$python_version \
         -f tests/Dockerfile . \
-        --quiet \
         --build-arg python_version=$python_version
     docker run -v `pwd`:/datadog-lambda-layer-python \
         -w /datadog-lambda-layer-python \

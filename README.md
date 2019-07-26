@@ -16,6 +16,15 @@ Replace `<AWS_REGION>` with the AWS region where your Lambda function is publish
 arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python37:1
 ```
 
+### PyPI
+
+When developing your Lambda function locally where AWS Layer doesn't work, the Datadog Lambda layer can be installed from [PyPI](https://pypi.org/project/datadog-lambda/) by `pip install datadog-lambda` or adding `datadog-lambda` to your project's `requirements.txt`.
+
+The minor version of the `datadog-lambda` package always match the layer version. E.g., datadog-lambda v0.5.0 matches the content in layer version 5.
+
+
+### Environment Variables
+
 The Datadog API must be defined as an environment variable via [AWS CLI](https://docs.aws.amazon.com/lambda/latest/dg/env_variables.html) or [Serverless Framework](https://serverless-stack.com/chapters/serverless-environment-variables.html):
 
 * DD_API_KEY or DD_KMS_API_KEY (if encrypted by KMS)
