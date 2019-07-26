@@ -1,0 +1,43 @@
+version: 2.1
+
+jobs:
+  verify_build:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/python:<< parameters.python >>
+    parameters:
+      python:
+        type: string
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-<< parameters.python >>-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-<< parameters.python >>--
+
+      - run: pip install -r requirements.txt
+      - run: pip install -r requirements-dev.txt
+      - run: nose2 -v
+      - run: flake8
+
+      - save_cache:
+          paths:
+            - /usr/local/lib/python<<parameters.python>>/site-packages
+          key: v1-dependencies-<< parameters.python >>-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+
+workflows:
+  python-v2.7:
+    jobs:
+      - verify_build:
+          python: "2.7"
+
+  python-v3.6:
+    jobs:
+      - verify_build:
+          python: "3.6"
+
+  python-v3.7:
+    jobs:
+      - verify_build:
+          python: "3.7"
