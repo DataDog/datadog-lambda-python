@@ -2,14 +2,16 @@ from setuptools import setup
 from os import path
 from io import open
 
+from datadog_lambda import __version__
+
 here = path.abspath(path.dirname(__file__))
 
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(
-    name='ddlambda',
-    version='0.2.0',
+    name='datadog_lambda',
+    version=__version__,
     description='The Datadog AWS Lambda Layer',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -24,4 +26,18 @@ setup(
     keywords='datadog aws lambda layer',
     packages=['datadog_lambda'],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, <4',
+    install_requires=[
+        'aws-xray-sdk==2.4.2',
+        'datadog==0.28.0',
+        'wrapt==1.11.1',
+        'setuptools==40.8.0',
+        'boto3==1.9.160'
+    ],
+    extras_require={
+        'dev': [
+            'nose2==0.9.1',
+            'flake8==3.7.7',
+            'requests==2.21.0'
+        ]
+    }
 )

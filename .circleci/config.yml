@@ -1,0 +1,55 @@
+version: 2.1
+
+jobs:
+  verify_build:
+    working_directory: ~/repo
+    docker:
+      - image: circleci/python:<< parameters.python >>
+    parameters:
+      python:
+        type: string
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-dependencies-<< parameters.python >>-{{ checksum "setup.py" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-<< parameters.python >>--
+      - run:
+          name: Install Dependencies
+          command: |
+            pip install virtualenv
+            virtualenv venv
+            source venv/bin/activate
+            pip install .[dev]
+      - run:
+          name: Run Unit Tests
+          command: |
+            source venv/bin/activate
+            nose2 -v
+      - run:
+          name: Lint
+          command: |
+            source venv/bin/activate
+            flake8 datadog_lambda/
+
+      - save_cache:
+          paths:
+            - ./venv
+          key: v1-dependencies-<< parameters.python >>-{{ checksum "setup.py" }}
+
+workflows:
+  python-v2.7:
+    jobs:
+      - verify_build:
+          python: "2.7"
+
+  python-v3.6:
+    jobs:
+      - verify_build:
+          python: "3.6"
+
+  python-v3.7:
+    jobs:
+      - verify_build:
+          python: "3.7"
