@@ -18,20 +18,21 @@ jobs:
       - run:
           name: Install Dependencies
           command: |
-            python -m venv venv
-            . venv/bin/activate
+            pip install virtualenv
+            virtualenv env
+            venv/bin/activate
             pip install -r requirements.txt
             pip install -r requirements-dev.txt
       - run:
           name: Run Unit Tests
           command: |
-            . venv/bin/activate
+            venv/bin/activate
             nose2 -v
       - run:
-          name: Run Unit Tests
+          name: Lint
           command: |
-            . venv/bin/activate
-            flake8
+            venv/bin/activate
+            flake8 datadog_lambda/
 
       - save_cache:
           paths:
