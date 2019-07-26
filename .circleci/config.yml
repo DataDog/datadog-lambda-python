@@ -15,15 +15,27 @@ jobs:
             - v1-dependencies-<< parameters.python >>-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-<< parameters.python >>--
-
-      - run: pip install -r requirements.txt
-      - run: pip install -r requirements-dev.txt
-      - run: nose2 -v
-      - run: flake8
+      - run:
+        name: Install Dependencies
+        command: |
+          python3 -m venv venv
+          . venv/bin/activate
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
+      - run:
+        name: Run Unit Tests
+        command: |
+          . venv/bin/activate
+          nose2 -v
+      - run:
+        name: Run Unit Tests
+        command: |
+          . venv/bin/activate
+          flake8
 
       - save_cache:
           paths:
-            - /usr/local/lib/python<<parameters.python>>/site-packages
+            - ./venv
           key: v1-dependencies-<< parameters.python >>-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
 
 workflows:
