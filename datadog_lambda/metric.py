@@ -8,11 +8,14 @@ import sys
 import json
 import time
 import base64
+import logging
 
 import boto3
 from datadog import api
 from datadog.threadstats import ThreadStats
 from datadog_lambda import __version__
+
+logger = logging.getLogger(__name__)
 
 lambda_stats = ThreadStats()
 lambda_stats.start()
@@ -52,6 +55,7 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
     """
     tags = _tag_dd_lambda_layer(tags)
     if os.environ.get('DD_FLUSH_TO_LOG', '').lower() == 'true':
+        logger.debug('Sending metric %s to Datadog via log forwarder', metric_name)
         print(json.dumps({
             'm': metric_name,
             'v': value,
@@ -59,6 +63,7 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
             't': tags
         }))
     else:
+        logger.debug('Sending metric %s to Datadog via lambda layer', metric_name)
         lambda_stats.distribution(
             metric_name, value, timestamp=timestamp, tags=tags
         )
@@ -66,18 +71,22 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
 
 # Decrypt code should run once and variables stored outside of the function
 # handler so that these are decrypted once per container
-DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY")
+DD_KMS_API_KEY = os.environ.get('DD_KMS_API_KEY', '')
 if DD_KMS_API_KEY:
-    DD_KMS_API_KEY = boto3.client("kms").decrypt(
+    DD_KMS_API_KEY = boto3.client('kms').decrypt(
         CiphertextBlob=base64.b64decode(DD_KMS_API_KEY)
-    )["Plaintext"]
+    )['Plaintext']
 
 # Set API Key and Host in the module, so they only set once per container
 api._api_key = os.environ.get(
     'DATADOG_API_KEY',
     os.environ.get('DD_API_KEY', DD_KMS_API_KEY),
 )
+logger.debug('Setting DATADOG_API_KEY of length %d', len(api._api_key))
+
+# Set DATADOG_HOST, to send data to a non-default Datadog datacenter
 api._api_host = os.environ.get(
     'DATADOG_HOST',
     'https://api.' + os.environ.get('DD_SITE', 'datadoghq.com')
 )
+logger.debug('Setting DATADOG_HOST to %s', api._api_host)

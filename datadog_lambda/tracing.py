@@ -3,6 +3,8 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
+import logging
+
 from aws_xray_sdk.core import xray_recorder
 
 from datadog_lambda.constants import (
@@ -10,6 +12,8 @@ from datadog_lambda.constants import (
     TraceHeader,
     XraySubsegment,
 )
+
+logger = logging.getLogger(__name__)
 
 dd_trace_context = {}
 
@@ -33,6 +37,7 @@ def extract_dd_trace_context(event):
     parent_id = lowercase_headers.get(TraceHeader.PARENT_ID)
     sampling_priority = lowercase_headers.get(TraceHeader.SAMPLING_PRIORITY)
     if trace_id and parent_id and sampling_priority:
+        logger.debug('Extracted Datadog trace context from headers')
         dd_trace_context = {
             'trace-id': trace_id,
             'parent-id': parent_id,
