@@ -1,5 +1,10 @@
 # CHANGELOG
 
+# Version: 5 / 2019-07-26
+
+- Publish the layer as a package `datadog_lambda` to PyPI
+- Support environment variable `DD_LOG_LEVEL` for debugging
+
 # Version: 4 / 2019-07-23
 
 - Correctly parse trace headers with mixed casing
