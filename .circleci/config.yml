@@ -12,7 +12,7 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - v1-dependencies-<< parameters.python >>-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+            - v1-dependencies-<< parameters.python >>-{{ checksum "setup.py" }}
             # fallback to using the latest cache if no exact match is found
             - v1-dependencies-<< parameters.python >>--
       - run:
@@ -21,8 +21,7 @@ jobs:
             pip install virtualenv
             virtualenv venv
             source venv/bin/activate
-            pip install -r requirements.txt
-            pip install -r requirements-dev.txt
+            pip install .[dev]
       - run:
           name: Run Unit Tests
           command: |
@@ -37,7 +36,7 @@ jobs:
       - save_cache:
           paths:
             - ./venv
-          key: v1-dependencies-<< parameters.python >>-{{ checksum "requirements.txt" }}-{{ checksum "requirements-dev.txt" }}
+          key: v1-dependencies-<< parameters.python >>-{{ checksum "setup.py" }}
 
 workflows:
   python-v2.7:
