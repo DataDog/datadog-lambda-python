@@ -1,6 +1,6 @@
 # datadog-lambda-layer-python
 
-![CircleCI](https://img.shields.io/circleci/build/github/DataDog/datadog-lambda-layer-python)
+[![CircleCI](https://img.shields.io/circleci/build/github/DataDog/datadog-lambda-layer-python)](https://circleci.com/gh/DataDog/datadog-lambda-layer-python)
 [![PyPI](https://img.shields.io/pypi/v/datadog-lambda)](https://pypi.org/project/datadog-lambda/)
 [![Slack](https://img.shields.io/badge/slack-%23serverless-blueviolet?logo=slack)](https://datadoghq.slack.com/channels/serverless/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DataDog/datadog-lambda-layer-python/blob/master/LICENSE)
@@ -26,7 +26,6 @@ arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python37:1
 When developing your Lambda function locally where AWS Layer doesn't work, the Datadog Lambda layer can be installed from [PyPI](https://pypi.org/project/datadog-lambda/) by `pip install datadog-lambda` or adding `datadog-lambda` to your project's `requirements.txt`.
 
 The minor version of the `datadog-lambda` package always match the layer version. E.g., datadog-lambda v0.5.0 matches the content in layer version 5.
-
 
 ### Environment Variables
 
