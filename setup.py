@@ -31,13 +31,15 @@ setup(
         'datadog==0.28.0',
         'wrapt==1.11.1',
         'setuptools==40.8.0',
-        'boto3==1.9.160'
+        'boto3==1.9.160',
+        'grpcio==1.22.0'
     ],
     extras_require={
         'dev': [
             'nose2==0.9.1',
             'flake8==3.7.7',
-            'requests==2.21.0'
+            'requests==2.21.0',
+            'grpcio-tools=1.22.0'
         ]
     }
 )
