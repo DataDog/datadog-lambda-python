@@ -1,17 +1,32 @@
 from datadog_lambda.pb.span_pb2 import Span
 from datadog_lambda.pb.trace_pb2 import APITrace
 from datadog_lambda.pb.trace_payload_pb2 import TracePayload
+from datadog_lambda import __version__
+import urllib2
 
 
 class TraceConnection:
     def __init__(self, rootURL, apiKey):
         self._traceURL = "https://trace.agent.{}/api/v0.2/traces".format(rootURL)
+        self._apiKey = apiKey
 
-    def send_traces(traces):
-        pass
-
-    def convert_trace(traces):
-        pass
+    def send_traces(self, spans):
+        trace_payload = convert_trace_to_protobuf_payload(spans)
+        data = trace_payload.SerializeToString()
+        user_agent = "aws_lambda/{}/1 (http://localhost)".format(__version__)
+        cont_len = len(data)
+        headers = {
+            "Content-Type": "application/x-protobuf",
+            "Content-Encoding": "identity",
+            "DD-Api-Key": self._apiKey,
+            "User-Agent": user_agent,
+            "Content-Length": cont_len,
+        }
+        try:
+            request = urllib2.Request(self._traceURL, data, headers)
+            response = urllib2.urlopen(request)
+        except urllib2.HTTPError as e:
+            print("request to {} failed with error {}".format(self._traceURL, e))
 
 
 def convert_trace_to_protobuf_payload(trace):
@@ -25,6 +40,10 @@ def convert_trace_to_protobuf_payload(trace):
         else:
             span_groups[trace_id] = span_group
 
+        parent_id = None
+        if parent_id in span:
+            parent_id = int(span["parent_id"])
+
         span_group.append(
             Span(
                 service=span["service"],
@@ -32,7 +51,7 @@ def convert_trace_to_protobuf_payload(trace):
                 resource=span["resource"],
                 traceID=trace_id,
                 spanID=int(span["span_id"]),
-                parentID=int(span["parent_id"]),
+                parentID=parent_id,
                 start=span["start"],
                 duration=span["duration"],
                 error=span["error"],
