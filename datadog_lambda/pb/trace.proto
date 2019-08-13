@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package pb;
 
-import "span.proto";
+import "datadog_lambda/pb/span.proto";
 
 message APITrace {
 	uint64 traceID = 1;

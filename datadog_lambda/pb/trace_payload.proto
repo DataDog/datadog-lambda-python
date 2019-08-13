@@ -2,8 +2,8 @@ syntax = "proto3";
 
 package pb;
 
-import "trace.proto";
-import "span.proto";
+import "datadog_lambda/pb/trace.proto";
+import "datadog_lambda/pb/span.proto";
 
 message TracePayload {
         string hostName = 1;

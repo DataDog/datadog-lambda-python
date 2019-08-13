@@ -37,9 +37,9 @@ setup(
     extras_require={
         'dev': [
             'nose2==0.9.1',
-            'flake8==3.7.7',
+            'flake8==3.7.8',
             'requests==2.21.0',
-            'grpcio-tools=1.22.0'
+            'grpcio-tools==1.22.0'
         ]
     }
 )

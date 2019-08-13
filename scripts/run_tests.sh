@@ -23,5 +23,6 @@ do
     docker run -v `pwd`:/datadog-lambda-layer-python \
         -w /datadog-lambda-layer-python \
         datadog-lambda-layer-python-test:$python_version \
-        flake8
+        flake8 --exclude="./datadog_lambda/pb/"
+
 done
