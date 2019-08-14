@@ -31,7 +31,7 @@ jobs:
           name: Lint
           command: |
             source venv/bin/activate
-            flake8 datadog_lambda/
+            flake8 datadog_lambda/ --exclude="./datadog_lambda/pb/"
 
       - save_cache:
           paths:
