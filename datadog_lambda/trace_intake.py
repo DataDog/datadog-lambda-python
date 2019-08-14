@@ -2,7 +2,13 @@ from datadog_lambda.pb.span_pb2 import Span
 from datadog_lambda.pb.trace_pb2 import APITrace
 from datadog_lambda.pb.trace_payload_pb2 import TracePayload
 from datadog_lambda import __version__
-import urllib2
+from datadog_lambda.config import get_config
+import sys
+
+if sys.version_info >= (3, 0, 0):
+    import urllib.request as urllib
+else:
+    import urllib2 as urllib
 
 
 class TraceConnection:
@@ -10,7 +16,7 @@ class TraceConnection:
         self._traceURL = "https://trace.agent.{}/api/v0.2/traces".format(rootURL)
         self._apiKey = apiKey
 
-    def send_traces(self, spans):
+    def send_spans(self, spans):
         trace_payload = convert_trace_to_protobuf_payload(spans)
         data = trace_payload.SerializeToString()
         user_agent = "aws_lambda/{}/1 (http://localhost)".format(__version__)
@@ -23,9 +29,9 @@ class TraceConnection:
             "Content-Length": cont_len,
         }
         try:
-            request = urllib2.Request(self._traceURL, data, headers)
-            response = urllib2.urlopen(request)
-        except urllib2.HTTPError as e:
+            request = urllib.Request(self._traceURL, data, headers)
+            urllib.urlopen(request)
+        except urllib.HTTPError as e:
             print("request to {} failed with error {}".format(self._traceURL, e))
 
 
@@ -40,26 +46,24 @@ def convert_trace_to_protobuf_payload(trace):
         else:
             span_groups[trace_id] = span_group
 
-        parent_id = None
-        if parent_id in span:
-            parent_id = int(span["parent_id"])
+        args = {
+            "service": span["service"],
+            "name": span["name"],
+            "resource": span["resource"],
+            "traceID": trace_id,
+            "spanID": int(span["span_id"]),
+            "start": span["start"],
+            "duration": span["duration"],
+            "error": span["error"],
+            "meta": span["meta"],
+            "metrics": span["metrics"],
+            "type": "",
+        }
 
-        span_group.append(
-            Span(
-                service=span["service"],
-                name=span["name"],
-                resource=span["resource"],
-                traceID=trace_id,
-                spanID=int(span["span_id"]),
-                parentID=parent_id,
-                start=span["start"],
-                duration=span["duration"],
-                error=span["error"],
-                meta=span["meta"],
-                metrics=span["metrics"],
-                type="",
-            )
-        )
+        if "parent_id" in span:
+            args["parentID"] = int(span["parent_id"])
+
+        span_group.append(Span(**args))
 
     traces = []
     for trace_id, span_group in span_groups.items():
@@ -74,3 +78,9 @@ def convert_trace_to_protobuf_payload(trace):
         )
         trace_payload = TracePayload(hostName="none", env="none", traces=traces)
     return trace_payload
+
+
+def forward_traces(traces):
+    api_key, host = get_config()
+    conn = TraceConnection(host, api_key)
+    conn.send_spans(traces)

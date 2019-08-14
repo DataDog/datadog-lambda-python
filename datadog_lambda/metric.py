@@ -7,12 +7,11 @@ import os
 import sys
 import json
 import time
-import base64
 
-import boto3
-from datadog import api
 from datadog.threadstats import ThreadStats
 from datadog_lambda import __version__
+from datadog import api
+from datadog_lambda.config import get_config
 
 lambda_stats = ThreadStats()
 lambda_stats.start()
@@ -51,33 +50,21 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
     background thread.
     """
     tags = _tag_dd_lambda_layer(tags)
-    if os.environ.get('DD_FLUSH_TO_LOG', '').lower() == 'true':
-        print(json.dumps({
-            'm': metric_name,
-            'v': value,
-            'e': timestamp or int(time.time()),
-            't': tags
-        }))
-    else:
-        lambda_stats.distribution(
-            metric_name, value, timestamp=timestamp, tags=tags
+    if os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true":
+        print(
+            json.dumps(
+                {
+                    "m": metric_name,
+                    "v": value,
+                    "e": timestamp or int(time.time()),
+                    "t": tags,
+                }
+            )
         )
+    else:
+        lambda_stats.distribution(metric_name, value, timestamp=timestamp, tags=tags)
 
 
-# Decrypt code should run once and variables stored outside of the function
-# handler so that these are decrypted once per container
-DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY")
-if DD_KMS_API_KEY:
-    DD_KMS_API_KEY = boto3.client("kms").decrypt(
-        CiphertextBlob=base64.b64decode(DD_KMS_API_KEY)
-    )["Plaintext"]
-
-# Set API Key and Host in the module, so they only set once per container
-api._api_key = os.environ.get(
-    'DATADOG_API_KEY',
-    os.environ.get('DD_API_KEY', DD_KMS_API_KEY),
-)
-api._api_host = os.environ.get(
-    'DATADOG_HOST',
-    'https://api.' + os.environ.get('DD_SITE', 'datadoghq.com')
-)
+api_key, api_host = get_config()
+api._api_key = api_key
+api._api_host = "https://api." + api_host
