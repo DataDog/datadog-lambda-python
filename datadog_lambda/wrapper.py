@@ -4,11 +4,14 @@
 # Copyright 2019 Datadog, Inc.
 
 import os
+import logging
 import traceback
 
 from datadog_lambda.metric import lambda_stats
 from datadog_lambda.tracing import extract_dd_trace_context
 from datadog_lambda.patch import patch_all
+
+logger = logging.getLogger(__name__)
 
 
 """
@@ -34,6 +37,7 @@ class _LambdaDecorator(object):
     def __init__(self, func):
         self.func = func
         self.flush_to_log = os.environ.get('DD_FLUSH_TO_LOG', '').lower() == 'true'
+        logger.debug('datadog_lambda_wrapper initialized')
 
     def _before(self, event, context):
         try:
