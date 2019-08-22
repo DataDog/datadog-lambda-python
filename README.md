@@ -33,6 +33,14 @@ The Datadog API must be defined as an environment variable via [AWS CLI](https:/
 
 - DD_API_KEY or DD_KMS_API_KEY (if encrypted by KMS)
 
+You can also supply or override the API key at runtime:
+
+```python
+# Override DD API Key after importing datadog_lambda packages 
+from datadog import api
+api._api_key = "MY_API_KEY"
+```
+
 Set the following Datadog environment variable to `datadoghq.eu` to send your data to the Datadog EU site.
 
 - DD_SITE
