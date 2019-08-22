@@ -46,12 +46,18 @@ def convert_trace_to_protobuf_payload(trace):
         else:
             span_groups[trace_id] = span_group
 
+        parent_id = 0
+
+        if "parent_id" in span and span["parent_id"]:
+            parent_id = int(span["parent_id"])
+
         args = {
             "service": span["service"],
             "name": span["name"],
             "resource": span["resource"],
             "traceID": trace_id,
             "spanID": int(span["span_id"]),
+            "parentID": parent_id,
             "start": span["start"],
             "duration": span["duration"],
             "error": span["error"],
@@ -59,9 +65,6 @@ def convert_trace_to_protobuf_payload(trace):
             "metrics": span["metrics"],
             "type": "",
         }
-
-        if "parent_id" in span:
-            args["parentID"] = int(span["parent_id"])
 
         span_group.append(Span(**args))
 
@@ -76,7 +79,7 @@ def convert_trace_to_protobuf_payload(trace):
                 endTime=first_span.start + first_span.duration,
             )
         )
-        trace_payload = TracePayload(hostName="none", env="none", traces=traces)
+        trace_payload = TracePayload(hostName=None, env="none", traces=traces)
     return trace_payload
 
 
