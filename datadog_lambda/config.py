@@ -1,9 +1,12 @@
 import os
 import boto3
 import base64
+import logging
 
 API_KEY = None
 API_HOST = None
+
+logger = logging.getLogger(__name__)
 
 
 def get_config():
@@ -26,4 +29,6 @@ def get_config():
     API_HOST = os.environ.get(
         "DATADOG_HOST", os.environ.get("DD_SITE", "datadoghq.com")
     )
+    logger.debug("Setting DATADOG_HOST to %s", API_HOST)
+
     return API_KEY, API_HOST

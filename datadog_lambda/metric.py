@@ -7,11 +7,14 @@ import os
 import sys
 import json
 import time
+import logging
 
 from datadog.threadstats import ThreadStats
 from datadog_lambda import __version__
 from datadog import api
 from datadog_lambda.config import get_config
+
+logger = logging.getLogger(__name__)
 
 lambda_stats = ThreadStats()
 lambda_stats.start()
@@ -51,6 +54,7 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
     """
     tags = _tag_dd_lambda_layer(tags)
     if os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true":
+        logger.debug("Sending metric %s to Datadog via log forwarder", metric_name)
         print(
             json.dumps(
                 {
@@ -62,6 +66,7 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
             )
         )
     else:
+        logger.debug("Sending metric %s to Datadog via lambda layer", metric_name)
         lambda_stats.distribution(metric_name, value, timestamp=timestamp, tags=tags)
 
 
