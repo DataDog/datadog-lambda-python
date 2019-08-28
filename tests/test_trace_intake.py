@@ -56,7 +56,6 @@ class TestConvertTraces(unittest.TestCase):
         self.assertEqual(
             result,
             TracePayload(
-                hostName="none",
                 env="none",
                 traces=[
                     APITrace(
