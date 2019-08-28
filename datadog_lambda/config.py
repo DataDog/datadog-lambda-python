@@ -8,14 +8,8 @@ API_HOST = None
 
 def get_config():
     global API_KEY, API_HOST
-    setup_config()
-    return API_KEY, API_HOST
-
-
-def setup_config():
-    global API_KEY, API_HOST
     if API_KEY:
-        return
+        return API_KEY, API_HOST
     # Decrypt code should run once and variables stored outside of the function
     # handler so that these are decrypted once per container
     DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY")
@@ -32,5 +26,4 @@ def setup_config():
     API_HOST = os.environ.get(
         "DATADOG_HOST", os.environ.get("DD_SITE", "datadoghq.com")
     )
-
-    return
+    return API_KEY, API_HOST
