@@ -49,6 +49,14 @@ If your Lambda function powers a performance-critical task (e.g., a consumer-fac
 
 - DD_FLUSH_TO_LOG
 
+To connect logs and traces, set the environment variable below to `True`. The default format of the AWS provided `LambdaLoggerHandler` will be overridden to inject `dd.trace_id` and `dd.span_id`. The default Datadog lambda log integration pipeline will automatically parse them and map the `dd.trace_id` into the reserved [trace_id attribute](https://docs.datadoghq.com/logs/processing/#trace-id-attribute).
+
+- DD_LOGS_INJECTION
+
+To debug the Datadog Lambda Layer, set the environment variable below to `DEBUG`.
+
+- DD_LOG_LEVEL
+
 ### The Serverless Framework
 
 If your Lambda function is deployed using the Serverless Framework, refer to this sample `serverless.yml`.
@@ -210,6 +218,28 @@ The file content for `datadog-sampling-priority-2.json`:
 If your Lambda function is triggered by API Gateway via [the non-proxy integration](https://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-lambda-non-proxy-integration.html), then you have to [set up a mapping template](https://aws.amazon.com/premiumsupport/knowledge-center/custom-headers-api-gateway-lambda/), which passes the Datadog trace context from the incoming HTTP request headers to the Lambda function via the `event` object.
 
 If your Lambda function is deployed by the Serverless Framework, such a mapping template gets created by default.
+
+## Log and Trace Correlations
+
+To connect logs and traces, set the environment variable `DD_LOGS_INJECTION` to `True`. The log format of the AWS provided `LambdaLoggerHandler` will be overridden to inject `dd.trace_id` and `dd.span_id`. The default Datadog lambda log integration pipeline will automatically parse them and map the `dd.trace_id` into the reserved attribute [trace_id](https://docs.datadoghq.com/logs/processing/#trace-id-attribute).
+
+If you use a custom logger handler to log in json, you can manually inject the ids using the helper function `get_correlation_ids`.
+
+```python
+from datadog_lambda.wrapper import datadog_lambda_wrapper
+from ddtrace.helpers import get_correlation_ids
+
+@datadog_lambda_wrapper
+def lambda_handler(event, context):
+  trace_id, span_id = get_correlation_ids()
+  logger.info({
+    "message": "hello world",
+    "dd": {
+      "trace_id": trace_id,
+      "span_id": span_id
+    }
+  })
+```
 
 ## Opening Issues
 
