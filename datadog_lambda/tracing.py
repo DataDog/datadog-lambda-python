@@ -7,6 +7,7 @@ import logging
 
 from aws_xray_sdk.core import xray_recorder
 
+from ddtrace import patch, tracer
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
@@ -16,6 +17,28 @@ from datadog_lambda.constants import (
 logger = logging.getLogger(__name__)
 
 dd_trace_context = {}
+
+
+def _convert_xray_trace_id(xray_trace_id):
+    """
+    Convert X-Ray trace id (hex)'s last 63 bits to a Datadog trace id (int).
+    """
+    return str(0x7FFFFFFFFFFFFFFF & int(xray_trace_id[-16:], 16))
+
+
+def _convert_xray_entity_id(xray_entity_id):
+    """
+    Convert X-Ray (sub)segement id (hex) to a Datadog span id (int).
+    """
+    return str(int(xray_entity_id, 16))
+
+
+def _convert_xray_sampling(xray_sampled):
+    """
+    Convert X-Ray sampled (True/False) to its Datadog counterpart.
+    """
+    return str(SamplingPriority.USER_KEEP) if xray_sampled \
+        else str(SamplingPriority.USER_REJECT)
 
 
 def extract_dd_trace_context(event):
@@ -56,6 +79,8 @@ def extract_dd_trace_context(event):
         # reset to avoid using the context from the last invocation.
         dd_trace_context = {}
 
+    logger.debug('extracted dd trace context %s', dd_trace_context)
+
 
 def get_dd_trace_context():
     """
@@ -91,23 +116,41 @@ def get_dd_trace_context():
         }
 
 
-def _convert_xray_trace_id(xray_trace_id):
+def set_correlation_ids():
     """
-    Convert X-Ray trace id (hex)'s last 63 bits to a Datadog trace id (int).
+    Create a dummy span, and overrides its trace_id and span_id, to make
+    ddtrace.helpers.get_correlation_ids() return the correct ids for both
+    auto and manual log correlations.
+
+    TODO: Remove me when Datadog tracer is natively supported in Lambda.
     """
-    return str(0x7FFFFFFFFFFFFFFF & int(xray_trace_id[-16:], 16))
+    context = get_dd_trace_context()
+    span = tracer.trace('dummy.span')
+    span.trace_id = context[TraceHeader.TRACE_ID]
+    span.span_id = context[TraceHeader.PARENT_ID]
+
+    logger.debug('correlation ids set')
 
 
-def _convert_xray_entity_id(xray_entity_id):
+def inject_correlation_ids():
     """
-    Convert X-Ray (sub)segement id (hex) to a Datadog span id (int).
-    """
-    return str(int(xray_entity_id, 16))
+    Override the formatter of LambdaLoggerHandler to inject datadog trace and
+    span id for log correlation.
 
+    For manual injections to custom log handlers, use `ddtrace.helpers.get_correlation_ids`
+    to retrieve correlation ids (trace_id, span_id).
+    """
+    # Override the log format of the AWS provided LambdaLoggerHandler
+    root_logger = logging.getLogger()
+    for handler in root_logger.handlers:
+        if handler.__class__.__name__ == 'LambdaLoggerHandler':
+            handler.setFormatter(logging.Formatter(
+                '[%(levelname)s]\t%(asctime)s.%(msecs)dZ\t%(aws_request_id)s\t'
+                '[dd.trace_id=%(dd.trace_id)s dd.span_id=%(dd.span_id)s]\t%(message)s\n',
+                '%Y-%m-%dT%H:%M:%S'
+            ))
 
-def _convert_xray_sampling(xray_sampled):
-    """
-    Convert X-Ray sampled (True/False) to its Datadog counterpart.
-    """
-    return str(SamplingPriority.USER_KEEP) if xray_sampled \
-        else str(SamplingPriority.USER_REJECT)
+    # Patch `logging.Logger.makeRecord` to actually inject correlation ids
+    patch(logging=True)
+
+    logger.debug('logs injection configured')

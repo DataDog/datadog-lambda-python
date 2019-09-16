@@ -8,8 +8,12 @@ import logging
 import traceback
 
 from datadog_lambda.metric import lambda_stats
-from datadog_lambda.tracing import extract_dd_trace_context
 from datadog_lambda.patch import patch_all
+from datadog_lambda.tracing import (
+    extract_dd_trace_context,
+    set_correlation_ids,
+    inject_correlation_ids,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +41,14 @@ class _LambdaDecorator(object):
     def __init__(self, func):
         self.func = func
         self.flush_to_log = os.environ.get('DD_FLUSH_TO_LOG', '').lower() == 'true'
+        self.logs_injection = os.environ.get('DD_LOGS_INJECTION', '').lower() == 'true'
+
+        # Inject trace correlation ids to logs
+        if self.logs_injection:
+            inject_correlation_ids()
+
+        # Patch HTTP clients to propagate Datadog trace context
+        patch_all()
         logger.debug('datadog_lambda_wrapper initialized')
 
     def _before(self, event, context):
@@ -44,8 +56,8 @@ class _LambdaDecorator(object):
             # Extract Datadog trace context from incoming requests
             extract_dd_trace_context(event)
 
-            # Patch HTTP clients to propogate Datadog trace context
-            patch_all()
+            # Set log correlation ids using extracted trace context
+            set_correlation_ids()
         except Exception:
             traceback.print_exc()
 

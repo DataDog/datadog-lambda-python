@@ -29,6 +29,7 @@ setup(
     install_requires=[
         'aws-xray-sdk==2.4.2',
         'datadog==0.28.0',
+        'ddtrace==0.28.0',
         'wrapt==1.11.1',
         'setuptools==40.8.0',
         'boto3==1.9.160'

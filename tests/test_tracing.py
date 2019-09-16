@@ -4,6 +4,7 @@ try:
 except ImportError:
     from mock import MagicMock, patch
 
+from ddtrace.helpers import get_correlation_ids
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
@@ -12,6 +13,7 @@ from datadog_lambda.constants import (
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
     get_dd_trace_context,
+    set_correlation_ids,
     _convert_xray_trace_id,
     _convert_xray_entity_id,
     _convert_xray_sampling,
@@ -150,3 +152,21 @@ class TestXRayContextConversion(unittest.TestCase):
             _convert_xray_sampling(False),
             str(SamplingPriority.USER_REJECT)
         )
+
+
+class TestLogsInjection(unittest.TestCase):
+
+    def setUp(self):
+        patcher = patch('datadog_lambda.tracing.get_dd_trace_context')
+        self.mock_get_dd_trace_context = patcher.start()
+        self.mock_get_dd_trace_context.return_value = {
+            TraceHeader.TRACE_ID: '123',
+            TraceHeader.PARENT_ID: '456',
+        }
+        self.addCleanup(patcher.stop)
+
+    def test_set_correlation_ids(self):
+        set_correlation_ids()
+        trace_id, span_id = get_correlation_ids()
+        self.assertEqual(trace_id, '123')
+        self.assertEqual(span_id, '456')
