@@ -1,5 +1,9 @@
 # CHANGELOG
 
+# Version: 6 / 2019-09-16
+
+- Support `DD_LOGS_INJECTION` for trace and log correlation
+
 # Version: 5 / 2019-07-26
 
 - Publish the layer as a package `datadog_lambda` to PyPI
