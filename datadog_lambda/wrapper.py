@@ -7,13 +7,16 @@ import os
 import logging
 import traceback
 
-from datadog_lambda.metric import lambda_stats
+from datadog_lambda.metric import lambda_stats, lambda_metric
 from datadog_lambda.patch import patch_all
+from datadog_lambda.tags import get_tags_from_context
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
     set_correlation_ids,
     inject_correlation_ids,
 )
+
+ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +34,10 @@ def my_lambda_handle(event, context):
     requests.get("https://www.datadoghq.com")
 """
 
+# On the first run of this Lambda container this variable is set
+# to the str value of the request ID, taken from the Lambda context
+cold_start_request_id = None
+
 
 class _LambdaDecorator(object):
     """
@@ -40,8 +47,8 @@ class _LambdaDecorator(object):
 
     def __init__(self, func):
         self.func = func
-        self.flush_to_log = os.environ.get('DD_FLUSH_TO_LOG', '').lower() == 'true'
-        self.logs_injection = os.environ.get('DD_LOGS_INJECTION', '').lower() == 'true'
+        self.flush_to_log = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
+        self.logs_injection = os.environ.get("DD_LOGS_INJECTION", "").lower() == "true"
 
         # Inject trace correlation ids to logs
         if self.logs_injection:
@@ -49,10 +56,20 @@ class _LambdaDecorator(object):
 
         # Patch HTTP clients to propagate Datadog trace context
         patch_all()
-        logger.debug('datadog_lambda_wrapper initialized')
+        logger.debug("datadog_lambda_wrapper initialized")
 
     def _before(self, event, context):
+        global cold_start_request_id
+        # Assign this request ID as the cold start if there is no value yet
+        if cold_start_request_id is None:
+            cold_start_request_id = context.aws_request_id
+
         try:
+            lambda_metric(
+                "{}.invocations".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
+                1,
+                tags=get_tags_from_context(context, cold_start_request_id),
+            )
             # Extract Datadog trace context from incoming requests
             extract_dd_trace_context(event)
 
@@ -72,6 +89,13 @@ class _LambdaDecorator(object):
         self._before(event, context)
         try:
             return self.func(event, context)
+        except Exception:
+            lambda_metric(
+                "{}.errors".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
+                1,
+                tags=get_tags_from_context(context, cold_start_request_id),
+            )
+            raise
         finally:
             self._after(event, context)
 
