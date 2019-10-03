@@ -35,6 +35,11 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             self.mock_current_subsegment
         self.addCleanup(patcher.stop)
 
+        patcher = patch('datadog_lambda.tracing.is_lambda_context')
+        self.mock_is_lambda_context = patcher.start()
+        self.mock_is_lambda_context.return_value = True
+        self.addCleanup(patcher.stop)
+
     def test_without_datadog_trace_headers(self):
         extract_dd_trace_context({})
         self.assertDictEqual(
@@ -163,6 +168,11 @@ class TestLogsInjection(unittest.TestCase):
             TraceHeader.TRACE_ID: '123',
             TraceHeader.PARENT_ID: '456',
         }
+        self.addCleanup(patcher.stop)
+
+        patcher = patch('datadog_lambda.tracing.is_lambda_context')
+        self.mock_is_lambda_context = patcher.start()
+        self.mock_is_lambda_context.return_value = True
         self.addCleanup(patcher.stop)
 
     def test_set_correlation_ids(self):
