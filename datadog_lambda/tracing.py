@@ -6,6 +6,7 @@
 import logging
 
 from aws_xray_sdk.core import xray_recorder
+from aws_xray_sdk.core.lambda_launcher import LambdaContext
 
 from ddtrace import patch, tracer
 from datadog_lambda.constants import (
@@ -94,6 +95,10 @@ def get_dd_trace_context():
     automatically, but this function can be used to manually inject the trace
     context to an outgoing request.
     """
+    if not is_lambda_context():
+        logger.debug('get_dd_trace_context is only supported in LambdaContext')
+        return {}
+
     global dd_trace_context
     xray_trace_entity = xray_recorder.get_trace_entity()  # xray (sub)segment
     if dd_trace_context:
@@ -124,7 +129,12 @@ def set_correlation_ids():
 
     TODO: Remove me when Datadog tracer is natively supported in Lambda.
     """
+    if not is_lambda_context():
+        logger.debug('set_correlation_ids is only supported in LambdaContext')
+        return
+
     context = get_dd_trace_context()
+
     span = tracer.trace('dummy.span')
     span.trace_id = context[TraceHeader.TRACE_ID]
     span.span_id = context[TraceHeader.PARENT_ID]
@@ -154,3 +164,11 @@ def inject_correlation_ids():
     patch(logging=True)
 
     logger.debug('logs injection configured')
+
+
+def is_lambda_context():
+    """
+    Return True if the X-Ray context is `LambdaContext`, rather than the
+    regular `Context` (e.g., when testing lambda functions locally).
+    """
+    return type(xray_recorder.context) == LambdaContext
