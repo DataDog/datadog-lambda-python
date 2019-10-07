@@ -18,23 +18,3 @@ def parse_lambda_tags_from_arn(arn):
         "account_id:{}".format(account_id),
         "functionname:{}".format(function_name),
     ]
-
-
-def get_tags_from_context(context, cold_start_request_id):
-    """Uses properties of the Lambda context to create the list of tags
-
-    Args:
-        context (dict<str, multiple types>): context this Lambda was invoked with
-        cold_start_request_id (str): the first request ID to execute in this container
-
-    Returns:
-        tag list (str[]): list of string tags in key:value format
-    """
-    tags = parse_lambda_tags_from_arn(context.invoked_function_arn)
-    tags.append("memorysize:{}".format(context.memory_limit_in_mb))
-
-    did_request_cold_start = cold_start_request_id == context.aws_request_id
-    cold_start_tag = "cold_start:{}".format(str(did_request_cold_start).lower())
-    tags.append(cold_start_tag)
-
-    return tags

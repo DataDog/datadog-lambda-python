@@ -14,6 +14,11 @@ import boto3
 from datadog import api
 from datadog.threadstats import ThreadStats
 from datadog_lambda import __version__
+from datadog_lambda.cold_start import get_cold_start_tag
+from datadog_lambda.tags import parse_lambda_tags_from_arn
+
+
+ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
 logger = logging.getLogger(__name__)
 
@@ -54,39 +59,59 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
     background thread.
     """
     tags = _tag_dd_lambda_layer(tags)
-    if os.environ.get('DD_FLUSH_TO_LOG', '').lower() == 'true':
-        logger.debug('Sending metric %s to Datadog via log forwarder', metric_name)
-        print(json.dumps({
-            'm': metric_name,
-            'v': value,
-            'e': timestamp or int(time.time()),
-            't': tags
-        }))
-    else:
-        logger.debug('Sending metric %s to Datadog via lambda layer', metric_name)
-        lambda_stats.distribution(
-            metric_name, value, timestamp=timestamp, tags=tags
+    if os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true":
+        logger.debug("Sending metric %s to Datadog via log forwarder", metric_name)
+        print(
+            json.dumps(
+                {
+                    "m": metric_name,
+                    "v": value,
+                    "e": timestamp or int(time.time()),
+                    "t": tags,
+                }
+            )
         )
+    else:
+        logger.debug("Sending metric %s to Datadog via lambda layer", metric_name)
+        lambda_stats.distribution(metric_name, value, timestamp=timestamp, tags=tags)
+
+
+def submit_invocations_metric(lambda_arn):
+    """Increment aws.lambda.enhanced.invocations by 1
+    """
+    lambda_metric(
+        "{}.invocations".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
+        1,
+        tags=parse_lambda_tags_from_arn(lambda_arn) + [get_cold_start_tag()],
+    )
+
+
+def submit_errors_metric(lambda_arn):
+    """Increment aws.lambda.enhanced.errors by 1
+    """
+    lambda_metric(
+        "{}.errors".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
+        1,
+        tags=parse_lambda_tags_from_arn(lambda_arn) + [get_cold_start_tag()],
+    )
 
 
 # Decrypt code should run once and variables stored outside of the function
 # handler so that these are decrypted once per container
-DD_KMS_API_KEY = os.environ.get('DD_KMS_API_KEY', '')
+DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY", "")
 if DD_KMS_API_KEY:
-    DD_KMS_API_KEY = boto3.client('kms').decrypt(
+    DD_KMS_API_KEY = boto3.client("kms").decrypt(
         CiphertextBlob=base64.b64decode(DD_KMS_API_KEY)
-    )['Plaintext']
+    )["Plaintext"]
 
 # Set API Key and Host in the module, so they only set once per container
 api._api_key = os.environ.get(
-    'DATADOG_API_KEY',
-    os.environ.get('DD_API_KEY', DD_KMS_API_KEY),
+    "DATADOG_API_KEY", os.environ.get("DD_API_KEY", DD_KMS_API_KEY)
 )
-logger.debug('Setting DATADOG_API_KEY of length %d', len(api._api_key))
+logger.debug("Setting DATADOG_API_KEY of length %d", len(api._api_key))
 
 # Set DATADOG_HOST, to send data to a non-default Datadog datacenter
 api._api_host = os.environ.get(
-    'DATADOG_HOST',
-    'https://api.' + os.environ.get('DD_SITE', 'datadoghq.com')
+    "DATADOG_HOST", "https://api." + os.environ.get("DD_SITE", "datadoghq.com")
 )
-logger.debug('Setting DATADOG_HOST to %s', api._api_host)
+logger.debug("Setting DATADOG_HOST to %s", api._api_host)

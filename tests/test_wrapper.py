@@ -6,7 +6,7 @@ try:
 except ImportError:
     from mock import patch, call, ANY, MagicMock
 
-from datadog_lambda.wrapper import datadog_lambda_wrapper, cold_start_request_id
+from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog_lambda.metric import lambda_metric
 
 
@@ -32,7 +32,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_wrapper_lambda_stats = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("datadog_lambda.wrapper.lambda_metric")
+        patcher = patch("datadog_lambda.metric.lambda_metric")
         self.mock_wrapper_lambda_metric = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -50,6 +50,11 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         patcher = patch("datadog_lambda.wrapper.patch_all")
         self.mock_patch_all = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("datadog_lambda.cold_start.is_cold_start")
+        self.mock_is_cold_start = patcher.start()
+        self.mock_is_cold_start.return_value = True
         self.addCleanup(patcher.stop)
 
     def test_datadog_lambda_wrapper(self):
@@ -118,7 +123,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "memorysize:256",
                         "cold_start:true",
                     ],
                 )
@@ -144,7 +148,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "memorysize:256",
                         "cold_start:true",
                     ],
                 ),
@@ -155,21 +158,22 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "memorysize:256",
                         "cold_start:true",
                     ],
                 ),
             ]
         )
 
-    def test_cold_start_tag(self):
+    def test_enhanced_metrics_cold_start_tag(self):
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
 
         lambda_event = {}
-        self.assertIsNone(cold_start_request_id)
+
         lambda_handler(lambda_event, get_mock_context())
+
+        self.mock_is_cold_start.return_value = False
 
         lambda_handler(
             lambda_event, get_mock_context(aws_request_id="second-request-id")
@@ -184,7 +188,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "memorysize:256",
                         "cold_start:true",
                     ],
                 ),
@@ -195,7 +198,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "memorysize:256",
                         "cold_start:false",
                     ],
                 ),

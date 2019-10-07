@@ -7,16 +7,19 @@ import os
 import logging
 import traceback
 
-from datadog_lambda.metric import lambda_stats, lambda_metric
+from datadog_lambda.cold_start import set_cold_start
+from datadog_lambda.metric import (
+    lambda_stats,
+    submit_invocations_metric,
+    submit_errors_metric,
+)
 from datadog_lambda.patch import patch_all
-from datadog_lambda.tags import get_tags_from_context
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
     set_correlation_ids,
     inject_correlation_ids,
 )
 
-ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
 logger = logging.getLogger(__name__)
 
@@ -33,10 +36,6 @@ def my_lambda_handle(event, context):
     lambda_metric("my_metric", 10)
     requests.get("https://www.datadoghq.com")
 """
-
-# On the first run of this Lambda container this variable is set
-# to the str value of the request ID, taken from the Lambda context
-cold_start_request_id = None
 
 
 class _LambdaDecorator(object):
@@ -59,17 +58,10 @@ class _LambdaDecorator(object):
         logger.debug("datadog_lambda_wrapper initialized")
 
     def _before(self, event, context):
-        global cold_start_request_id
-        # Assign this request ID as the cold start if there is no value yet
-        if cold_start_request_id is None:
-            cold_start_request_id = context.aws_request_id
+        set_cold_start()
 
         try:
-            lambda_metric(
-                "{}.invocations".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
-                1,
-                tags=get_tags_from_context(context, cold_start_request_id),
-            )
+            submit_invocations_metric(context.invoked_function_arn)
             # Extract Datadog trace context from incoming requests
             extract_dd_trace_context(event)
 
@@ -90,11 +82,7 @@ class _LambdaDecorator(object):
         try:
             return self.func(event, context)
         except Exception:
-            lambda_metric(
-                "{}.errors".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
-                1,
-                tags=get_tags_from_context(context, cold_start_request_id),
-            )
+            submit_errors_metric(context.invoked_function_arn)
             raise
         finally:
             self._after(event, context)

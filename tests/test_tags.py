@@ -1,7 +1,6 @@
 import unittest
 
-from datadog_lambda.tags import parse_lambda_tags_from_arn, get_tags_from_context
-from tests.test_wrapper import get_mock_context
+from datadog_lambda.tags import parse_lambda_tags_from_arn
 
 
 class TestMetricTags(unittest.TestCase):
@@ -25,36 +24,6 @@ class TestMetricTags(unittest.TestCase):
                 "region:us-west-1",
                 "account_id:1234597598159",
                 "functionname:other-function",
-            ],
-        )
-
-    def test_get_tags_from_context(self):
-        cold_start_request_id = "first-request-id"
-        self.assertListEqual(
-            get_tags_from_context(
-                get_mock_context(aws_request_id=cold_start_request_id),
-                cold_start_request_id,
-            ),
-            [
-                "region:us-west-1",
-                "account_id:123457598159",
-                "functionname:python-layer-test",
-                "memorysize:256",
-                "cold_start:true",
-            ],
-        )
-
-        self.assertListEqual(
-            get_tags_from_context(
-                get_mock_context(aws_request_id="non-cold-start-request-id"),
-                cold_start_request_id,
-            ),
-            [
-                "region:us-west-1",
-                "account_id:123457598159",
-                "functionname:python-layer-test",
-                "memorysize:256",
-                "cold_start:false",
             ],
         )
 
