@@ -106,6 +106,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         del os.environ["DD_LOGS_INJECTION"]
 
     def test_invocations_metric(self):
+        os.environ["DD_ENHANCED_METRICS"] = "True"
+
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
@@ -129,7 +131,11 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             ]
         )
 
+        del os.environ["DD_ENHANCED_METRICS"]
+
     def test_errors_metric(self):
+        os.environ["DD_ENHANCED_METRICS"] = "True"
+
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
             raise RuntimeError()
@@ -164,7 +170,11 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             ]
         )
 
+        del os.environ["DD_ENHANCED_METRICS"]
+
     def test_enhanced_metrics_cold_start_tag(self):
+        os.environ["DD_ENHANCED_METRICS"] = "True"
+
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
@@ -203,3 +213,18 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                 ),
             ]
         )
+
+        del os.environ["DD_ENHANCED_METRICS"]
+
+    def test_no_enhanced_metrics_without_env_var(self):
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            raise RuntimeError()
+
+        lambda_event = {}
+
+        with self.assertRaises(RuntimeError):
+            lambda_handler(lambda_event, get_mock_context())
+
+        self.mock_wrapper_lambda_metric.assert_not_called()
+

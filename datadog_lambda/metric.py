@@ -76,9 +76,18 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
         lambda_stats.distribution(metric_name, value, timestamp=timestamp, tags=tags)
 
 
+def are_enhanced_metrics_enabled():
+    """Check env var to find if enhanced metrics should be submitted
+    """
+    return os.environ.get("DD_ENHANCED_METRICS", "false").lower() == "true"
+
+
 def submit_invocations_metric(lambda_arn):
     """Increment aws.lambda.enhanced.invocations by 1
     """
+    if not are_enhanced_metrics_enabled():
+        return
+
     lambda_metric(
         "{}.invocations".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
         1,
@@ -89,6 +98,9 @@ def submit_invocations_metric(lambda_arn):
 def submit_errors_metric(lambda_arn):
     """Increment aws.lambda.enhanced.errors by 1
     """
+    if not are_enhanced_metrics_enabled():
+        return
+
     lambda_metric(
         "{}.errors".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
         1,
