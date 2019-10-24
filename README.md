@@ -36,7 +36,7 @@ The Datadog API must be defined as an environment variable via [AWS CLI](https:/
 You can also supply or override the API key at runtime:
 
 ```python
-# Override DD API Key after importing datadog_lambda packages 
+# Override DD API Key after importing datadog_lambda packages
 from datadog import api
 api._api_key = "MY_API_KEY"
 ```
@@ -56,6 +56,10 @@ To connect logs and traces, set the environment variable below to `True`. The de
 To debug the Datadog Lambda Layer, set the environment variable below to `DEBUG`.
 
 - DD_LOG_LEVEL
+
+To increment `aws.lambda.enhanced.invocations` and `aws.lambda.enhanced.errors` Datadog Lambda integration metrics set this environment variable to `true`:
+
+- DD_ENHANCED_METRICS
 
 ### The Serverless Framework
 
