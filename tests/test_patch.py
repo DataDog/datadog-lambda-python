@@ -8,7 +8,6 @@ except ImportError:
 from datadog_lambda.patch import (
     _patch_httplib,
     _patch_requests,
-    _patch_botocore_requests,
 )
 from datadog_lambda.constants import TraceHeader
 
@@ -37,15 +36,6 @@ class TestPatchHTTPClients(unittest.TestCase):
     def test_patch_requests(self):
         _patch_requests()
         import requests
-        r = requests.get("https://www.datadoghq.com/")
-        self.mock_get_dd_trace_context.assert_called()
-        self.assertEqual(r.request.headers[TraceHeader.TRACE_ID], '123')
-        self.assertEqual(r.request.headers[TraceHeader.PARENT_ID], '321')
-        self.assertEqual(r.request.headers[TraceHeader.SAMPLING_PRIORITY], '2')
-
-    def test_patch_botocore_requests(self):
-        _patch_botocore_requests()
-        from botocore.vendored import requests
         r = requests.get("https://www.datadoghq.com/")
         self.mock_get_dd_trace_context.assert_called()
         self.assertEqual(r.request.headers[TraceHeader.TRACE_ID], '123')
