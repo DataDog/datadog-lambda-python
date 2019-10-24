@@ -1,5 +1,9 @@
 # CHANGELOG
 
+# Version: 7 / 2019-10-24
+
+- Increment `aws.lambda.enhanced.invocations` and `aws.lambda.enhanced.errors` metrics for each invocation if `DD_ENHANCED_METRICS` env var is set to true.
+
 # Version: 6 / 2019-09-16
 
 - Support `DD_LOGS_INJECTION` for trace and log correlation
