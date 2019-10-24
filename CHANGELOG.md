@@ -1,5 +1,10 @@
 # CHANGELOG
 
+# Version 8 / 2019-10-24
+
+- Remove vendored botocore requests patching since the package has been removed from the latest botocore
+- Update README for enhanced metrics instructions
+
 # Version: 7 / 2019-10-24
 
 - Increment `aws.lambda.enhanced.invocations` and `aws.lambda.enhanced.errors` metrics for each invocation if `DD_ENHANCED_METRICS` env var is set to true.
