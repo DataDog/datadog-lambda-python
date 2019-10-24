@@ -4,10 +4,13 @@
 # Copyright 2019 Datadog, Inc.
 
 import sys
+import logging
 
 from wrapt import wrap_function_wrapper as wrap
 
 from datadog_lambda.tracing import get_dd_trace_context
+
+logger = logging.getLogger(__name__)
 
 if sys.version_info >= (3, 0, 0):
     httplib_module = 'http.client'
@@ -16,7 +19,6 @@ else:
 
 _httplib_patched = False
 _requests_patched = False
-_botocore_requests_patched = False
 
 
 def patch_all():
@@ -26,7 +28,6 @@ def patch_all():
     """
     _patch_httplib()
     _patch_requests()
-    _patch_botocore_requests()
 
 
 def _patch_httplib():
@@ -42,6 +43,7 @@ def _patch_httplib():
             'HTTPConnection.request',
             _wrap_httplib_request
         )
+    logger.debug('Patched %s', httplib_module)
 
 
 def _patch_requests():
@@ -58,26 +60,9 @@ def _patch_requests():
                 'Session.request',
                 _wrap_requests_request
             )
-        except ImportError:
-            pass
-
-
-def _patch_botocore_requests():
-    """
-    Patch the `requests` module that is packaged into `botocore`.
-    https://stackoverflow.com/questions/40741282/cannot-use-requests-module-on-aws-lambda
-    """
-    global _botocore_requests_patched
-    if not _botocore_requests_patched:
-        _botocore_requests_patched = True
-        try:
-            wrap(
-                'botocore.vendored.requests',
-                'Session.request',
-                _wrap_requests_request
-            )
-        except ImportError:
-            pass
+            logger.debug('Patched requests')
+        except Exception:
+            logger.debug('Failed to patch requests', exc_info=True)
 
 
 def _wrap_requests_request(func, instance, args, kwargs):
