@@ -33,7 +33,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
         patcher = patch("datadog_lambda.metric.lambda_metric")
-        self.mock_wrapper_lambda_metric = patcher.start()
+        self.mock_lambda_metric = patcher.start()
         self.addCleanup(patcher.stop)
 
         patcher = patch("datadog_lambda.wrapper.extract_dd_trace_context")
@@ -55,6 +55,11 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         patcher = patch("datadog_lambda.cold_start.is_cold_start")
         self.mock_is_cold_start = patcher.start()
         self.mock_is_cold_start.return_value = True
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("datadog_lambda.tags.python_version_tuple")
+        self.mock_python_version_tuple = patcher.start()
+        self.mock_python_version_tuple.return_value = ("2", "7", "10")
         self.addCleanup(patcher.stop)
 
     def test_datadog_lambda_wrapper(self):
@@ -116,7 +121,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         lambda_handler(lambda_event, get_mock_context())
 
-        self.mock_wrapper_lambda_metric.assert_has_calls(
+        self.mock_lambda_metric.assert_has_calls(
             [
                 call(
                     "aws.lambda.enhanced.invocations",
@@ -126,6 +131,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "account_id:123457598159",
                         "functionname:python-layer-test",
                         "cold_start:true",
+                        "memorysize:256",
+                        "runtime:python2.7",
                     ],
                 )
             ]
@@ -145,7 +152,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             lambda_handler(lambda_event, get_mock_context())
 
-        self.mock_wrapper_lambda_metric.assert_has_calls(
+        self.mock_lambda_metric.assert_has_calls(
             [
                 call(
                     "aws.lambda.enhanced.invocations",
@@ -155,6 +162,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "account_id:123457598159",
                         "functionname:python-layer-test",
                         "cold_start:true",
+                        "memorysize:256",
+                        "runtime:python2.7",
                     ],
                 ),
                 call(
@@ -165,6 +174,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "account_id:123457598159",
                         "functionname:python-layer-test",
                         "cold_start:true",
+                        "memorysize:256",
+                        "runtime:python2.7",
                     ],
                 ),
             ]
@@ -189,7 +200,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             lambda_event, get_mock_context(aws_request_id="second-request-id")
         )
 
-        self.mock_wrapper_lambda_metric.assert_has_calls(
+        self.mock_lambda_metric.assert_has_calls(
             [
                 call(
                     "aws.lambda.enhanced.invocations",
@@ -199,6 +210,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "account_id:123457598159",
                         "functionname:python-layer-test",
                         "cold_start:true",
+                        "memorysize:256",
+                        "runtime:python2.7",
                     ],
                 ),
                 call(
@@ -209,6 +222,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "account_id:123457598159",
                         "functionname:python-layer-test",
                         "cold_start:false",
+                        "memorysize:256",
+                        "runtime:python2.7",
                     ],
                 ),
             ]
@@ -226,5 +241,5 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             lambda_handler(lambda_event, get_mock_context())
 
-        self.mock_wrapper_lambda_metric.assert_not_called()
+        self.mock_lambda_metric.assert_not_called()
 

@@ -1,3 +1,8 @@
+from platform import python_version_tuple
+
+from datadog_lambda.cold_start import get_cold_start_tag
+
+
 def parse_lambda_tags_from_arn(arn):
     """Generate the list of lambda tags based on the data in the arn
     Args:
@@ -17,4 +22,24 @@ def parse_lambda_tags_from_arn(arn):
         "region:{}".format(region),
         "account_id:{}".format(account_id),
         "functionname:{}".format(function_name),
+    ]
+
+
+def get_runtime_tag():
+    """Get the runtime tag from the current Python version
+    """
+    major_version, minor_version, _ = python_version_tuple()
+
+    return "runtime:python{major}.{minor}".format(
+        major=major_version, minor=minor_version
+    )
+
+
+def get_enhanced_metrics_tags(lambda_context):
+    """Get the list of tags to apply to enhanced metrics
+    """
+    return parse_lambda_tags_from_arn(lambda_context.invoked_function_arn) + [
+        get_cold_start_tag(),
+        "memorysize:{}".format(lambda_context.memory_limit_in_mb),
+        get_runtime_tag(),
     ]
