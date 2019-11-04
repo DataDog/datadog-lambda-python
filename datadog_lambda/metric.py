@@ -14,8 +14,7 @@ import boto3
 from datadog import api
 from datadog.threadstats import ThreadStats
 from datadog_lambda import __version__
-from datadog_lambda.cold_start import get_cold_start_tag
-from datadog_lambda.tags import parse_lambda_tags_from_arn
+from datadog_lambda.tags import get_enhanced_metrics_tags
 
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
@@ -82,7 +81,7 @@ def are_enhanced_metrics_enabled():
     return os.environ.get("DD_ENHANCED_METRICS", "false").lower() == "true"
 
 
-def submit_invocations_metric(lambda_arn):
+def submit_invocations_metric(lambda_context):
     """Increment aws.lambda.enhanced.invocations by 1
     """
     if not are_enhanced_metrics_enabled():
@@ -91,11 +90,11 @@ def submit_invocations_metric(lambda_arn):
     lambda_metric(
         "{}.invocations".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
         1,
-        tags=parse_lambda_tags_from_arn(lambda_arn) + [get_cold_start_tag()],
+        tags=get_enhanced_metrics_tags(lambda_context),
     )
 
 
-def submit_errors_metric(lambda_arn):
+def submit_errors_metric(lambda_context):
     """Increment aws.lambda.enhanced.errors by 1
     """
     if not are_enhanced_metrics_enabled():
@@ -104,7 +103,7 @@ def submit_errors_metric(lambda_arn):
     lambda_metric(
         "{}.errors".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
         1,
-        tags=parse_lambda_tags_from_arn(lambda_arn) + [get_cold_start_tag()],
+        tags=get_enhanced_metrics_tags(lambda_context),
     )
 
 

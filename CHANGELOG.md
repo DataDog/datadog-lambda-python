@@ -1,5 +1,9 @@
 # CHANGELOG
 
+# Version 9 / 2019-11-04
+
+- Tag layer-generated `aws.lambda.enhanced.invocations` and `aws.lambda.enhanced.errors` enhanced metrics with `runtime` and `memorysize`
+
 # Version 8 / 2019-10-24
 
 - Remove vendored botocore requests patching since the package has been removed from the latest botocore
