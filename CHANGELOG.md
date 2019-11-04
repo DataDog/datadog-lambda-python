@@ -1,5 +1,9 @@
 # CHANGELOG
 
+# Version 10 / 2019-11-04
+
+- Update dependencies to include ranges so the library is more flexible for consumers.
+
 # Version 9 / 2019-11-04
 
 - Tag layer-generated `aws.lambda.enhanced.invocations` and `aws.lambda.enhanced.errors` enhanced metrics with `runtime` and `memorysize`
