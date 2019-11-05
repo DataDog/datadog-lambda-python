@@ -27,7 +27,34 @@ When developing your Lambda function locally where AWS Layer doesn't work, the D
 
 The minor version of the `datadog-lambda` package always match the layer version. E.g., datadog-lambda v0.5.0 matches the content in layer version 5.
 
-### Environment Variables
+### The Serverless Framework
+
+[The Datadog Serverless Framework Plugin](https://github.com/DataDog/serverless-plugin-datadog) should do the trick, if your Lambda function is deployed using the [Serverless Framework](https://serverless.com).
+
+Of course, you can also use the sample `serverless.yml` below as a reference, to manually include the Lambda Layer, enable tracing and set up environment variables for your Lambda function.
+
+```yaml
+provider:
+  name: aws
+  runtime: python3.7
+  tracing:
+    lambda: true
+    apiGateway: true
+
+functions:
+  hello:
+    handler: handler.hello
+    events:
+      - http:
+          path: hello
+          method: get
+    layers:
+      - arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-<PYTHON_RUNTIME>:<VERSION>
+    environment:
+      DD_API_KEY: <DD_API_KEY>
+```
+
+## Environment Variables
 
 The Datadog API must be defined as an environment variable via [AWS CLI](https://docs.aws.amazon.com/lambda/latest/dg/env_variables.html) or [Serverless Framework](https://serverless-stack.com/chapters/serverless-environment-variables.html):
 
@@ -60,31 +87,6 @@ To debug the Datadog Lambda Layer, set the environment variable below to `DEBUG`
 To increment `aws.lambda.enhanced.invocations` and `aws.lambda.enhanced.errors` Datadog Lambda integration metrics set this environment variable to `true`:
 
 - DD_ENHANCED_METRICS
-
-### The Serverless Framework
-
-If your Lambda function is deployed using the Serverless Framework, refer to this sample `serverless.yml`.
-
-```yaml
-provider:
-  name: aws
-  runtime: python3.7
-  tracing:
-    lambda: true
-    apiGateway: true
-
-functions:
-  hello:
-    handler: handler.hello
-    events:
-      - http:
-          path: hello
-          method: get
-    layers:
-      - arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-<PYTHON_RUNTIME>:<VERSION>
-    environment:
-      DD_API_KEY: <DD_API_KEY>
-```
 
 ## Basic Usage
 
