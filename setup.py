@@ -27,12 +27,12 @@ setup(
     packages=['datadog_lambda'],
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, <4',
     install_requires=[
-        'aws-xray-sdk>=2.4.2',
-        'datadog>=0.28.0',
-        'ddtrace>=0.28.0',
+        'aws-xray-sdk==2.4.2',
+        'datadog==0.31.0',
+        'ddtrace==0.30.2',
         'wrapt==1.11.1',
-        'setuptools>=40.8.0',
-        'boto3>=1.9.160'
+        'setuptools==41.6.0',
+        'boto3==1.10.8'
     ],
     extras_require={
         'dev': [
