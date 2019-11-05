@@ -28,17 +28,17 @@ setup(
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, <4',
     install_requires=[
         'aws-xray-sdk==2.4.2',
-        'datadog==0.28.0',
-        'ddtrace==0.28.0',
+        'datadog==0.32.0',
+        'ddtrace==0.30.2',
         'wrapt==1.11.1',
-        'setuptools==40.8.0',
+        'setuptools==41.6.0',
     ],
     extras_require={
         'dev': [
             'nose2==0.9.1',
             'flake8==3.7.7',
             'requests==2.21.0',
-            'boto3==1.9.160',
+            'boto3==1.10.17',
         ]
     }
 )
