@@ -29,9 +29,9 @@ The minor version of the `datadog-lambda` package always match the layer version
 
 ### The Serverless Framework
 
-[The Datadog Serverless Framework Plugin](https://github.com/DataDog/serverless-plugin-datadog) should do the trick, if your Lambda function is deployed using the [Serverless Framework](https://serverless.com).
+[The Datadog Serverless Framework Plugin](https://github.com/DataDog/serverless-plugin-datadog) makes it easy to manage the Datadog instrumentation for all of your Lambda functions in one place.
 
-Of course, you can also use the sample `serverless.yml` below as a reference, to manually include the Lambda Layer, enable tracing and set up environment variables for your Lambda function.
+Instead of the plugin, you can also use the sample `serverless.yml` below as a reference for manually including the Lambda Layer, enable AWS X-Ray tracing, and set up environment variables.
 
 ```yaml
 provider:
