@@ -56,9 +56,11 @@ functions:
 
 ## Environment Variables
 
-The Datadog API must be defined as an environment variable via [AWS CLI](https://docs.aws.amazon.com/lambda/latest/dg/env_variables.html) or [Serverless Framework](https://serverless-stack.com/chapters/serverless-environment-variables.html):
+The Datadog API Key must be defined as one of the following environment variables via [AWS CLI](https://docs.aws.amazon.com/lambda/latest/dg/env_variables.html) or [Serverless Framework](https://serverless-stack.com/chapters/serverless-environment-variables.html):
 
-- DD_API_KEY or DD_KMS_API_KEY (if encrypted by KMS)
+- DD_API_KEY
+- DD_KMS_API_KEY - the KMS-encrypted API Key, requires the `kms:Decrypt` permission
+- DD_API_KEY_SECRET_ARN - the Secret ARN to fetch API Key from the Secrets Manager, requires the `secretsmanager:GetSecretValue` permission (also requires `kms:Decrypt` if using a custom CMK)
 
 You can also supply or override the API key at runtime:
 
