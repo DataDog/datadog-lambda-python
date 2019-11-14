@@ -107,18 +107,20 @@ def submit_errors_metric(lambda_context):
     )
 
 
-# Decrypt code should run once and variables stored outside of the function
-# handler so that these are decrypted once per container
+# Set API Key and Host in the module, so they only set once per container
+DD_API_KEY_SECRET_ARN = os.environ.get("DD_API_KEY_SECRET_ARN", "")
 DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY", "")
-if DD_KMS_API_KEY:
-    DD_KMS_API_KEY = boto3.client("kms").decrypt(
+DD_API_KEY = os.environ.get("DD_API_KEY", os.environ.get("DATADOG_API_KEY", ""))
+if DD_API_KEY_SECRET_ARN:
+    api._api_key = boto3.client("secretsmanager").get_secret_value(
+        SecretId=DD_API_KEY_SECRET_ARN
+    )["SecretString"]
+elif DD_KMS_API_KEY:
+    api._api_key = boto3.client("kms").decrypt(
         CiphertextBlob=base64.b64decode(DD_KMS_API_KEY)
     )["Plaintext"]
-
-# Set API Key and Host in the module, so they only set once per container
-api._api_key = os.environ.get(
-    "DATADOG_API_KEY", os.environ.get("DD_API_KEY", DD_KMS_API_KEY)
-)
+else:
+    api._api_key = DD_API_KEY
 logger.debug("Setting DATADOG_API_KEY of length %d", len(api._api_key))
 
 # Set DATADOG_HOST, to send data to a non-default Datadog datacenter
