@@ -242,4 +242,3 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             lambda_handler(lambda_event, get_mock_context())
 
         self.mock_lambda_metric.assert_not_called()
-

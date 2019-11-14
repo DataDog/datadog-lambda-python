@@ -13,3 +13,7 @@ RUN pip install . -t ./python/lib/$runtime/site-packages
 
 # Remove *.pyc files
 RUN find ./python/lib/$runtime/site-packages -name \*.pyc -delete
+
+# Remove botocore (40MB) to reduce package size. aws-xray-sdk
+# installs it, while it's already provided by the Lambda Runtime.
+RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
