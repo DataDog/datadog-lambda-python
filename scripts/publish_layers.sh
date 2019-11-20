@@ -6,12 +6,12 @@
 # Copyright 2019 Datadog, Inc.
 
 # Publish the datadog python lambda layer across regions, using the AWS CLI
-# Usage: publish_layer.sh [region]
-# Specifying the region arg will publish the layer for the single specified region
+# Usage: publish_layer.sh [region] [layer]
+# Specifying the region and layer arg will publish the specified layer to the specified region
 
 PYTHON_VERSIONS_FOR_AWS_CLI=("python2.7" "python3.6" "python3.7")
 LAYER_PATHS=(".layers/datadog_lambda_py2.7.zip" ".layers/datadog_lambda_py3.6.zip" ".layers/datadog_lambda_py3.7.zip")
-LAYER_NAMES=("Datadog-Python27" "Datadog-Python36" "Datadog-Python37")
+AVAILABLE_LAYER_NAMES=("Datadog-Python27" "Datadog-Python36" "Datadog-Python37")
 AVAILABLE_REGIONS=(us-east-2 us-east-1 us-west-1 us-west-2 ap-south-1 ap-northeast-2 ap-southeast-1 ap-southeast-2 ap-northeast-1 ca-central-1 eu-north-1 eu-central-1 eu-west-1 eu-west-2 eu-west-3 sa-east-1)
 
 # Check that the layer files exist
@@ -38,7 +38,24 @@ else
     REGIONS=($1)
 fi
 
-echo "Starting publishing layers for regions: ${REGIONS[*]}"
+echo "Publishing layers for regions: ${REGIONS[*]}"
+
+# Check layer_name arg
+if [ -z "$2" ]; then
+    echo "Layer name parameter not specified, running for all layer names."
+    LAYER_NAMES=("${AVAILABLE_LAYER_NAMES[@]}")
+else
+    echo "Layer name parameter specified: $2"
+    if [[ ! " ${AVAILABLE_LAYER_NAMES[@]} " =~ " ${2} " ]]; then
+        echo "Could not find $2 in available layer names: ${AVAILABLE_LAYER_NAMES[@]}"
+        echo ""
+        echo "EXITING SCRIPT."
+        exit 1
+    fi
+    LAYER_NAMES=($2)
+fi
+
+echo "Publishing layers: ${LAYER_NAMES[*]}"
 
 for region in "${REGIONS[@]}"
 do
