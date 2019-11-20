@@ -1,5 +1,11 @@
 # CHANGELOG
 
+# Version 10 / 2019-11-19
+
+- Support fetching API Key from secrets manager using `DD_API_KEY_SECRET_ARN`
+- Remove botocore to reduce package size
+- Update dependencies
+
 # Version 9 / 2019-11-04
 
 - Tag layer-generated `aws.lambda.enhanced.invocations` and `aws.lambda.enhanced.errors` enhanced metrics with `runtime` and `memorysize`
