@@ -8,6 +8,10 @@
 # Publish the datadog python lambda layer across regions, using the AWS CLI
 # Usage: publish_layer.sh [region] [layer]
 # Specifying the region and layer arg will publish the specified layer to the specified region
+set -e
+
+# Makes sure any subprocesses will be terminated with this process
+trap "pkill -P $$; exit 1;" INT
 
 PYTHON_VERSIONS_FOR_AWS_CLI=("python2.7" "python3.6" "python3.7")
 LAYER_PATHS=(".layers/datadog_lambda_py2.7.zip" ".layers/datadog_lambda_py3.6.zip" ".layers/datadog_lambda_py3.7.zip")
@@ -55,7 +59,41 @@ else
     LAYER_NAMES=($2)
 fi
 
+
+
+
 echo "Publishing layers: ${LAYER_NAMES[*]}"
+
+publish_layer() {
+    region=$1
+    layer_name=$2
+    aws_version_key=$3
+    layer_path=$4
+    version_nbr=$(aws lambda publish-layer-version --layer-name $layer_name \
+        --description "Datadog Lambda Layer for Python" \
+        --zip-file "fileb://$layer_path" \
+        --region $region \
+        --compatible-runtimes $aws_version_key \
+                        | jq -r '.Version')
+
+    aws lambda add-layer-version-permission --layer-name $layer_name \
+        --version-number $version_nbr \
+        --statement-id "release-$version_nbr" \
+        --action lambda:GetLayerVersion --principal "*" \
+        --region $region
+
+    echo "Published layer for region $region, python version $aws_version_key, layer_name $layer_name, layer_version $version_nbr"
+}
+
+BATCH_SIZE=60
+PIDS=()
+
+wait_for_processes() {
+    for pid in "${PIDS[@]}"; do
+        wait $pid
+    done
+    PIDS=()
+}
 
 for region in "${REGIONS[@]}"
 do
@@ -67,25 +105,17 @@ do
         aws_version_key="${PYTHON_VERSIONS_FOR_AWS_CLI[$i]}"
         layer_path="${LAYER_PATHS[$i]}"
 
-        version_nbr=$(aws lambda publish-layer-version --layer-name $layer_name \
-            --description "Datadog Lambda Layer for Python" \
-            --zip-file "fileb://$layer_path" \
-            --region $region \
-            --compatible-runtimes $aws_version_key \
-                          | jq -r '.Version')
-
-        aws lambda add-layer-version-permission --layer-name $layer_name \
-            --version-number $version_nbr \
-            --statement-id "release-$version_nbr" \
-            --action lambda:GetLayerVersion --principal "*" \
-            --region $region
-
-        echo "Published layer for region $region, python version $aws_version_key, layer_name $layer_name, layer_version $version_nbr"
+        publish_layer $region $layer_name $aws_version_key $layer_path &
+        PIDS+=($!)
+        if [ ${#PIDS[@]} -eq $BATCH_SIZE ]; then
+            wait_for_processes
+        fi
 
         i=$(expr $i + 1)
 
     done
-
 done
+
+wait_for_processes
 
 echo "Done !"
