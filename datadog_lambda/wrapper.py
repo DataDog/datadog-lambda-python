@@ -57,9 +57,8 @@ class _LambdaDecorator(object):
         patch_all()
         logger.debug("datadog_lambda_wrapper initialized")
 
-    def _before(self, event, context):
+    def _before(self, event, context, **kwargs):
         set_cold_start()
-
         try:
             submit_invocations_metric(context)
             # Extract Datadog trace context from incoming requests
@@ -70,22 +69,22 @@ class _LambdaDecorator(object):
         except Exception:
             traceback.print_exc()
 
-    def _after(self, event, context):
+    def _after(self, event, context, **kwargs):
         try:
             if not self.flush_to_log:
                 lambda_stats.flush(float("inf"))
         except Exception:
             traceback.print_exc()
 
-    def __call__(self, event, context):
-        self._before(event, context)
+    def __call__(self, event, context, **kwargs):
+        self._before(event, context, **kwargs)
         try:
-            return self.func(event, context)
+            return self.func(event, context, **kwargs)
         except Exception:
             submit_errors_metric(context)
             raise
         finally:
-            self._after(event, context)
+            self._after(event, context, **kwargs)
 
 
 datadog_lambda_wrapper = _LambdaDecorator
