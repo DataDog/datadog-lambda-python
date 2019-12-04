@@ -59,7 +59,6 @@ class _LambdaDecorator(object):
 
     def _before(self, event, context):
         set_cold_start()
-
         try:
             submit_invocations_metric(context)
             # Extract Datadog trace context from incoming requests
@@ -77,10 +76,10 @@ class _LambdaDecorator(object):
         except Exception:
             traceback.print_exc()
 
-    def __call__(self, event, context):
+    def __call__(self, event, context, **kwargs):
         self._before(event, context)
         try:
-            return self.func(event, context)
+            return self.func(event, context, **kwargs)
         except Exception:
             submit_errors_metric(context)
             raise
