@@ -1,5 +1,10 @@
 # CHANGELOG
 
+# Version 11 / 2019-12-06
+
+- Add python 3.8 support
+- Upgrade dependencies
+
 # Version 10 / 2019-11-19
 
 - Support fetching API Key from secrets manager using `DD_API_KEY_SECRET_ARN`
