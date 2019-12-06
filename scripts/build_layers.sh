@@ -10,7 +10,7 @@ set -e
 
 LAYER_DIR=".layers"
 LAYER_FILES_PREFIX="datadog_lambda_py"
-PYTHON_VERSIONS=("2.7" "3.6" "3.7")
+PYTHON_VERSIONS=("2.7" "3.6" "3.7" "3.8")
 
 function make_path_absolute {
     echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"

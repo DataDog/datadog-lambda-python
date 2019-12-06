@@ -53,3 +53,8 @@ workflows:
     jobs:
       - verify_build:
           python: "3.7"
+
+  python-v3.8:
+    jobs:
+      - verify_build:
+          python: "3.8"
