@@ -2,10 +2,11 @@
 
 [![CircleCI](https://img.shields.io/circleci/build/github/DataDog/datadog-lambda-layer-python)](https://circleci.com/gh/DataDog/datadog-lambda-layer-python)
 [![PyPI](https://img.shields.io/pypi/v/datadog-lambda)](https://pypi.org/project/datadog-lambda/)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/datadog-lambda)
 [![Slack](https://img.shields.io/badge/slack-%23serverless-blueviolet?logo=slack)](https://datadoghq.slack.com/channels/serverless/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DataDog/datadog-lambda-layer-python/blob/master/LICENSE)
 
-Datadog Lambda Layer for Python (2.7, 3.6 and 3.7) enables custom metric submission from AWS Lambda functions, and distributed tracing between serverful and serverless environments.
+Datadog Lambda Layer for Python (2.7, 3.6, 3.7 and 3.8) enables custom metric submission from AWS Lambda functions, and distributed tracing between serverful and serverless environments.
 
 ## Installation
 
@@ -15,7 +16,13 @@ Datadog Lambda Layer can be added to a Lambda function via AWS Lambda console, [
 arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-<PYTHON_RUNTIME>:<VERSION>
 ```
 
-Replace `<AWS_REGION>` with the AWS region where your Lambda function is published to. Replace `<PYTHON_RUNTIME>` with `Datadog-Python27` with `Datadog-Python36` or `Datadog-Python37` that matches your Lambda's Python runtime. Replace `<VERSION>` with the latest layer version that can be found from [CHANGELOG](CHANGELOG.md). For example,
+Replace `<AWS_REGION>` with the AWS region where your Lambda function is published to. Replace `<PYTHON_RUNTIME>` with one of the following that matches your Lambda's Python runtime:
+- `Datadog-Python27`
+- `Datadog-Python36`
+- `Datadog-Python37`
+- `Datadog-Python38`
+
+Replace `<VERSION>` with the latest layer version that can be found from [CHANGELOG](CHANGELOG.md). For example,
 
 ```
 arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python37:1
