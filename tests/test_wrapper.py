@@ -1,10 +1,6 @@
 import os
 import unittest
-
-try:
-    from unittest.mock import patch, call, ANY, MagicMock
-except ImportError:
-    from mock import patch, call, ANY, MagicMock
+from unittest.mock import patch, call, ANY, MagicMock
 
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog_lambda.metric import lambda_metric
@@ -59,7 +55,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         patcher = patch("datadog_lambda.tags.python_version_tuple")
         self.mock_python_version_tuple = patcher.start()
-        self.mock_python_version_tuple.return_value = ("2", "7", "10")
+        self.mock_python_version_tuple.return_value = ("3", "7", "2")
         self.addCleanup(patcher.stop)
 
     def test_datadog_lambda_wrapper(self):
@@ -132,7 +128,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "functionname:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
-                        "runtime:python2.7",
+                        "runtime:python3.7",
                     ],
                 )
             ]
@@ -163,7 +159,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "functionname:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
-                        "runtime:python2.7",
+                        "runtime:python3.7",
                     ],
                 ),
                 call(
@@ -175,7 +171,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "functionname:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
-                        "runtime:python2.7",
+                        "runtime:python3.7",
                     ],
                 ),
             ]
@@ -211,7 +207,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "functionname:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
-                        "runtime:python2.7",
+                        "runtime:python3.7",
                     ],
                 ),
                 call(
@@ -223,7 +219,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "functionname:python-layer-test",
                         "cold_start:false",
                         "memorysize:256",
-                        "runtime:python2.7",
+                        "runtime:python3.7",
                     ],
                 ),
             ]

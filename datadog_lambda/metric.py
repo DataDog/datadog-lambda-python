@@ -29,8 +29,8 @@ def _format_dd_lambda_layer_tag():
     """
     Formats the dd_lambda_layer tag, e.g., 'dd_lambda_layer:datadog-python27_1'
     """
-    runtime = "python{}{}".format(sys.version_info[0], sys.version_info[1])
-    return "dd_lambda_layer:datadog-{}_{}".format(runtime, __version__)
+    runtime = f"python{sys.version_info[0]}{sys.version_info[1]}"
+    return f"dd_lambda_layer:datadog-{runtime}_{__version__}"
 
 
 def _tag_dd_lambda_layer(tags):
@@ -88,7 +88,7 @@ def submit_invocations_metric(lambda_context):
         return
 
     lambda_metric(
-        "{}.invocations".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.invocations",
         1,
         tags=get_enhanced_metrics_tags(lambda_context),
     )
@@ -101,7 +101,7 @@ def submit_errors_metric(lambda_context):
         return
 
     lambda_metric(
-        "{}.errors".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
+        f"{ENHANCED_METRICS_NAMESPACE_PREFIX}.errors",
         1,
         tags=get_enhanced_metrics_tags(lambda_context),
     )

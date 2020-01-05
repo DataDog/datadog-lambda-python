@@ -6,7 +6,7 @@
 [![Slack](https://img.shields.io/badge/slack-%23serverless-blueviolet?logo=slack)](https://datadoghq.slack.com/channels/serverless/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DataDog/datadog-lambda-layer-python/blob/master/LICENSE)
 
-Datadog Lambda Layer for Python (2.7, 3.6, 3.7 and 3.8) enables custom metric submission from AWS Lambda functions, and distributed tracing between serverful and serverless environments.
+Datadog Lambda Layer for Python (3.6, 3.7 and 3.8) enables custom metric submission from AWS Lambda functions, and distributed tracing between serverful and serverless environments.
 
 ## Installation
 
@@ -17,7 +17,6 @@ arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-<PYTHON_RUNTIME>:<VERSION
 ```
 
 Replace `<AWS_REGION>` with the AWS region where your Lambda function is published to. Replace `<PYTHON_RUNTIME>` with one of the following that matches your Lambda's Python runtime:
-- `Datadog-Python27`
 - `Datadog-Python36`
 - `Datadog-Python37`
 - `Datadog-Python38`
@@ -156,7 +155,7 @@ Note, the Datadog Lambda Layer is only needed to enable _distributed_ tracing be
 
 ### Patching
 
-By default, widely used HTTP client libraries, such as `requests`, `urllib2` and `urllib.request` are patched automatically to inject Datadog trace context into outgoing requests.
+By default, widely used HTTP client libraries, such as `requests`, and `urllib.request` are patched automatically to inject Datadog trace context into outgoing requests.
 
 You can also manually retrieve the Datadog trace context (i.e., http headers in a Python dict) and inject it to request headers when needed.
 

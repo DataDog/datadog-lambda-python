@@ -1,9 +1,5 @@
 import unittest
-
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
+from unittest.mock import patch
 
 from datadog_lambda.tags import parse_lambda_tags_from_arn, get_runtime_tag
 
@@ -38,8 +34,5 @@ class TestMetricTags(unittest.TestCase):
         )
 
     def test_get_runtime_tag(self):
-        self.mock_python_version_tuple.return_value = ("2", "7", "10")
-        self.assertEqual(get_runtime_tag(), "runtime:python2.7")
-
         self.mock_python_version_tuple.return_value = ("3", "7", "2")
         self.assertEqual(get_runtime_tag(), "runtime:python3.7")

@@ -19,20 +19,18 @@ def parse_lambda_tags_from_arn(arn):
     _, _, _, region, account_id, _, function_name = split_arn
 
     return [
-        "region:{}".format(region),
-        "account_id:{}".format(account_id),
-        "functionname:{}".format(function_name),
+        f"region:{region}",
+        f"account_id:{account_id}",
+        f"functionname:{function_name}",
     ]
 
 
 def get_runtime_tag():
     """Get the runtime tag from the current Python version
     """
-    major_version, minor_version, _ = python_version_tuple()
+    major, minor, _ = python_version_tuple()
 
-    return "runtime:python{major}.{minor}".format(
-        major=major_version, minor=minor_version
-    )
+    return f"runtime:python{major}.{minor}"
 
 
 def get_enhanced_metrics_tags(lambda_context):
@@ -40,6 +38,6 @@ def get_enhanced_metrics_tags(lambda_context):
     """
     return parse_lambda_tags_from_arn(lambda_context.invoked_function_arn) + [
         get_cold_start_tag(),
-        "memorysize:{}".format(lambda_context.memory_limit_in_mb),
+        f"memorysize:{lambda_context.memory_limit_in_mb}",
         get_runtime_tag(),
     ]

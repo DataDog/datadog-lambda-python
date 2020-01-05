@@ -1,4 +1,3 @@
-import sys
 import unittest
 try:
     from unittest.mock import patch
@@ -26,10 +25,7 @@ class TestPatchHTTPClients(unittest.TestCase):
 
     def test_patch_httplib(self):
         _patch_httplib()
-        if sys.version_info >= (3, 0, 0):
-            import urllib.request as urllib
-        else:
-            import urllib2 as urllib
+        import urllib.request as urllib
         urllib.urlopen("https://www.datadoghq.com/")
         self.mock_get_dd_trace_context.assert_called()
 

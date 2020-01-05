@@ -1,8 +1,5 @@
 import unittest
-try:
-    from unittest.mock import MagicMock, patch
-except ImportError:
-    from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from ddtrace.helpers import get_correlation_ids
 from datadog_lambda.constants import (

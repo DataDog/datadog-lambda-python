@@ -39,11 +39,6 @@ jobs:
           key: v1-dependencies-<< parameters.python >>-{{ checksum "setup.py" }}
 
 workflows:
-  python-v2.7:
-    jobs:
-      - verify_build:
-          python: "2.7"
-
   python-v3.6:
     jobs:
       - verify_build:

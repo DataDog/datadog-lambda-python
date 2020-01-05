@@ -22,4 +22,4 @@ def is_cold_start():
 def get_cold_start_tag():
     """Returns the cold start tag to be used in metrics
     """
-    return "cold_start:{}".format(str(is_cold_start()).lower())
+    return f"cold_start:{str(is_cold_start()).lower()}"

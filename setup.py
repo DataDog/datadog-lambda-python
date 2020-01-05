@@ -19,14 +19,13 @@ setup(
     author='Datadog, Inc.',
     author_email='dev@datadoghq.com',
     classifiers=[
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
     ],
     keywords='datadog aws lambda layer',
     packages=['datadog_lambda'],
-    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*, <4',
+    python_requires='>=3.6.*, <4',
     install_requires=[
         'aws-xray-sdk==2.4.3',
         'datadog==0.32.0',

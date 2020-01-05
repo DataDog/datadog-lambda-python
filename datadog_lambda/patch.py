@@ -3,7 +3,6 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
-import sys
 import logging
 
 from wrapt import wrap_function_wrapper as wrap
@@ -11,11 +10,6 @@ from wrapt import wrap_function_wrapper as wrap
 from datadog_lambda.tracing import get_dd_trace_context
 
 logger = logging.getLogger(__name__)
-
-if sys.version_info >= (3, 0, 0):
-    httplib_module = 'http.client'
-else:
-    httplib_module = 'httplib'
 
 _httplib_patched = False
 _requests_patched = False
@@ -32,18 +26,17 @@ def patch_all():
 
 def _patch_httplib():
     """
-    Patch the Python built-in `httplib` (Python 2) or
-    `http.client` (Python 3) module.
+    Patch the Python `http.client` module.
     """
     global _httplib_patched
     if not _httplib_patched:
         _httplib_patched = True
         wrap(
-            httplib_module,
+            'http.client',
             'HTTPConnection.request',
             _wrap_httplib_request
         )
-    logger.debug('Patched %s', httplib_module)
+    logger.debug('Patched http.client')
 
 
 def _patch_requests():
@@ -82,8 +75,8 @@ def _wrap_requests_request(func, instance, args, kwargs):
 
 def _wrap_httplib_request(func, instance, args, kwargs):
     """
-    Wrap `httplib` (python2) or `http.client` (python3) to inject
-    the Datadog trace headers into the outgoing requests.
+    Wrap `http.client` to inject the Datadog trace headers
+    into the outgoing requests.
     """
     context = get_dd_trace_context()
     if 'headers' in kwargs:
