@@ -27,7 +27,7 @@ lambda_stats.start()
 
 def _format_dd_lambda_layer_tag():
     """
-    Formats the dd_lambda_layer tag, e.g., 'dd_lambda_layer:datadog-python27_1'
+    Formats the dd_lambda_layer tag, e.g., 'dd_lambda_layer:datadog-python37_1'
     """
     runtime = f"python{sys.version_info[0]}{sys.version_info[1]}"
     return f"dd_lambda_layer:datadog-{runtime}_{__version__}"

@@ -18,7 +18,13 @@ setup(
     url='https://github.com/DataDog/datadog-lambda-layer-python',
     author='Datadog, Inc.',
     author_email='dev@datadoghq.com',
+    license='Apache 2.0',
     classifiers=[
+        'Development Status :: 5 - Production/Stable',
+        'Intended Audience :: Developers',
+        'Natural Language :: English',
+        'License :: OSI Approved :: Apache Software License',
+        'Programming Language :: Python',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
@@ -28,6 +34,7 @@ setup(
     python_requires='>=3.6.*, <4',
     install_requires=[
         'aws-xray-sdk==2.4.3',
+        'boto3==1.10.46',
         'datadog==0.33.0',
         'ddtrace==0.31.0',
         'wrapt==1.11.2',
@@ -37,8 +44,7 @@ setup(
         'dev': [
             'nose2==0.9.1',
             'flake8==3.7.9',
-            'requests==2.22.0',
-            'boto3==1.10.46',
+            'requests==2.22.0'
         ]
     }
 )
