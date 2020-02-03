@@ -1,5 +1,11 @@
 # CHANGELOG
 
+# Version 12 / 2020-02-03
+
+- Defaults the DD_ENHANCED_METRICS option to `true`
+- If DD_ENHANCED_METRICS is enabled, always writes enhanced metrics to stdout
+- Note: if you previously had DD_ENHANCED_METRICS=true and did not set DD_FLUSH_TO_LOG=true, the enhanced metrics will no longer be submitted to Datadog synchonously; the metrics will now be written to logs. If you already have a Datadog Forwarder Lambda configured, that will read the enhanced metrics logs and submit the metrics asynchronously. If you do not have a Datadog Forwarder set up, you'll need to create one to get enhanced metrics into your Datadog account. See [Datadog Forwarder Lambda setup instructions](https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring).
+
 # Version 11 / 2019-12-06
 
 - Add python 3.8 support
