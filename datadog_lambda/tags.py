@@ -1,6 +1,28 @@
+import sys
+
 from platform import python_version_tuple
 
+from datadog_lambda import __version__
 from datadog_lambda.cold_start import get_cold_start_tag
+
+
+def _format_dd_lambda_layer_tag():
+    """
+    Formats the dd_lambda_layer tag, e.g., 'dd_lambda_layer:datadog-python27_1'
+    """
+    runtime = "python{}{}".format(sys.version_info[0], sys.version_info[1])
+    return "dd_lambda_layer:datadog-{}_{}".format(runtime, __version__)
+
+
+def tag_dd_lambda_layer(tags):
+    """
+    Used by lambda_metric to insert the dd_lambda_layer tag
+    """
+    dd_lambda_layer_tag = _format_dd_lambda_layer_tag()
+    if tags:
+        return tags + [dd_lambda_layer_tag]
+    else:
+        return [dd_lambda_layer_tag]
 
 
 def parse_lambda_tags_from_arn(arn):
@@ -42,4 +64,6 @@ def get_enhanced_metrics_tags(lambda_context):
         get_cold_start_tag(),
         "memorysize:{}".format(lambda_context.memory_limit_in_mb),
         get_runtime_tag(),
+        _format_dd_lambda_layer_tag(),
     ]
+
