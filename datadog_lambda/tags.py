@@ -66,4 +66,3 @@ def get_enhanced_metrics_tags(lambda_context):
         get_runtime_tag(),
         _format_dd_lambda_layer_tag(),
     ]
-

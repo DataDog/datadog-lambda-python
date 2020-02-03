@@ -76,7 +76,7 @@ def submit_enhanced_metric(metric_name, lambda_context):
     """Submits the enhanced metric with the given name
 
     Args:
-        metric_name (str): metric name w/o "aws.lambda.enhanced." prefix i.e. "invocations" or "errors"
+        metric_name (str): metric name w/o enhanced prefix i.e. "invocations" or "errors"
         lambda_context (dict): Lambda context dict passed to the function by AWS
     """
     if not are_enhanced_metrics_enabled():
