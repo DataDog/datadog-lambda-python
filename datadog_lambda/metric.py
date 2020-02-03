@@ -81,7 +81,8 @@ def submit_enhanced_metric(metric_name, lambda_context):
     """
     if not are_enhanced_metrics_enabled():
         logger.debug(
-            "Not submitting enhanced metric %s because enhanced metrics are disabled"
+            "Not submitting enhanced metric %s because enhanced metrics are disabled",
+            metric_name,
         )
         return
 
