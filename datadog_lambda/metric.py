@@ -4,7 +4,6 @@
 # Copyright 2019 Datadog, Inc.
 
 import os
-import sys
 import json
 import time
 import base64
@@ -13,8 +12,7 @@ import logging
 import boto3
 from datadog import api
 from datadog.threadstats import ThreadStats
-from datadog_lambda import __version__
-from datadog_lambda.tags import get_enhanced_metrics_tags
+from datadog_lambda.tags import get_enhanced_metrics_tags, tag_dd_lambda_layer
 
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
@@ -23,25 +21,6 @@ logger = logging.getLogger(__name__)
 
 lambda_stats = ThreadStats()
 lambda_stats.start()
-
-
-def _format_dd_lambda_layer_tag():
-    """
-    Formats the dd_lambda_layer tag, e.g., 'dd_lambda_layer:datadog-python27_1'
-    """
-    runtime = "python{}{}".format(sys.version_info[0], sys.version_info[1])
-    return "dd_lambda_layer:datadog-{}_{}".format(runtime, __version__)
-
-
-def _tag_dd_lambda_layer(tags):
-    """
-    Used by lambda_metric to insert the dd_lambda_layer tag
-    """
-    dd_lambda_layer_tag = _format_dd_lambda_layer_tag()
-    if tags:
-        return tags + [dd_lambda_layer_tag]
-    else:
-        return [dd_lambda_layer_tag]
 
 
 def lambda_metric(metric_name, value, timestamp=None, tags=None):
@@ -57,54 +36,80 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
     periodically and at the end of the function execution in a
     background thread.
     """
-    tags = _tag_dd_lambda_layer(tags)
+    tags = tag_dd_lambda_layer(tags)
     if os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true":
-        logger.debug("Sending metric %s to Datadog via log forwarder", metric_name)
-        print(
-            json.dumps(
-                {
-                    "m": metric_name,
-                    "v": value,
-                    "e": timestamp or int(time.time()),
-                    "t": tags,
-                }
-            )
-        )
+        write_metric_point_to_stdout(metric_name, value, timestamp, tags)
     else:
         logger.debug("Sending metric %s to Datadog via lambda layer", metric_name)
         lambda_stats.distribution(metric_name, value, timestamp=timestamp, tags=tags)
 
 
+def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
+    """Writes the specified metric point to standard output
+    """
+    logger.debug(
+        "Sending metric %s value %s to Datadog via log forwarder", metric_name, value
+    )
+    print(
+        json.dumps(
+            {
+                "m": metric_name,
+                "v": value,
+                "e": timestamp or int(time.time()),
+                "t": tags,
+            }
+        )
+    )
+
+
 def are_enhanced_metrics_enabled():
     """Check env var to find if enhanced metrics should be submitted
+
+    Returns:
+        boolean for whether enhanced metrics are enabled
     """
-    return os.environ.get("DD_ENHANCED_METRICS", "false").lower() == "true"
+    # DD_ENHANCED_METRICS defaults to true
+    return os.environ.get("DD_ENHANCED_METRICS", "true").lower() == "true"
+
+
+def submit_enhanced_metric(metric_name, lambda_context):
+    """Submits the enhanced metric with the given name
+
+    Args:
+        metric_name (str): metric name w/o enhanced prefix i.e. "invocations" or "errors"
+        lambda_context (dict): Lambda context dict passed to the function by AWS
+    """
+    if not are_enhanced_metrics_enabled():
+        logger.debug(
+            "Not submitting enhanced metric %s because enhanced metrics are disabled",
+            metric_name,
+        )
+        return
+
+    # Enhanced metrics are always written to logs
+    write_metric_point_to_stdout(
+        "{}.{}".format(ENHANCED_METRICS_NAMESPACE_PREFIX, metric_name),
+        1,
+        tags=get_enhanced_metrics_tags(lambda_context),
+    )
 
 
 def submit_invocations_metric(lambda_context):
-    """Increment aws.lambda.enhanced.invocations by 1
-    """
-    if not are_enhanced_metrics_enabled():
-        return
+    """Increment aws.lambda.enhanced.invocations by 1, applying runtime, layer, and cold_start tags
 
-    lambda_metric(
-        "{}.invocations".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
-        1,
-        tags=get_enhanced_metrics_tags(lambda_context),
-    )
+    Args:
+        lambda_context (dict): Lambda context dict passed to the function by AWS
+    """
+    submit_enhanced_metric("invocations", lambda_context)
 
 
 def submit_errors_metric(lambda_context):
-    """Increment aws.lambda.enhanced.errors by 1
-    """
-    if not are_enhanced_metrics_enabled():
-        return
+    """Increment aws.lambda.enhanced.errors by 1, applying runtime, layer, and cold_start tags
 
-    lambda_metric(
-        "{}.errors".format(ENHANCED_METRICS_NAMESPACE_PREFIX),
-        1,
-        tags=get_enhanced_metrics_tags(lambda_context),
-    )
+    Args:
+        lambda_context (dict): Lambda context dict passed to the function by AWS
+    """
+    submit_enhanced_metric("errors", lambda_context)
 
 
 # Set API Key and Host in the module, so they only set once per container

@@ -62,6 +62,18 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_python_version_tuple.return_value = ("2", "7", "10")
         self.addCleanup(patcher.stop)
 
+        patcher = patch("datadog_lambda.metric.write_metric_point_to_stdout")
+        self.mock_write_metric_point_to_stdout = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("datadog_lambda.tags._format_dd_lambda_layer_tag")
+        self.mock_format_dd_lambda_layer_tag = patcher.start()
+        # Mock the layer version so we don't have to update tests on every version bump
+        self.mock_format_dd_lambda_layer_tag.return_value = (
+            "dd_lambda_layer:datadog-python27_0.1.0"
+        )
+        self.addCleanup(patcher.stop)
+
     def test_datadog_lambda_wrapper(self):
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -111,8 +123,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         del os.environ["DD_LOGS_INJECTION"]
 
     def test_invocations_metric(self):
-        os.environ["DD_ENHANCED_METRICS"] = "True"
-
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
@@ -121,7 +131,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         lambda_handler(lambda_event, get_mock_context())
 
-        self.mock_lambda_metric.assert_has_calls(
+        self.mock_write_metric_point_to_stdout.assert_has_calls(
             [
                 call(
                     "aws.lambda.enhanced.invocations",
@@ -133,16 +143,13 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "cold_start:true",
                         "memorysize:256",
                         "runtime:python2.7",
+                        "dd_lambda_layer:datadog-python27_0.1.0",
                     ],
                 )
             ]
         )
 
-        del os.environ["DD_ENHANCED_METRICS"]
-
     def test_errors_metric(self):
-        os.environ["DD_ENHANCED_METRICS"] = "True"
-
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
             raise RuntimeError()
@@ -152,7 +159,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             lambda_handler(lambda_event, get_mock_context())
 
-        self.mock_lambda_metric.assert_has_calls(
+        self.mock_write_metric_point_to_stdout.assert_has_calls(
             [
                 call(
                     "aws.lambda.enhanced.invocations",
@@ -164,6 +171,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "cold_start:true",
                         "memorysize:256",
                         "runtime:python2.7",
+                        "dd_lambda_layer:datadog-python27_0.1.0",
                     ],
                 ),
                 call(
@@ -176,16 +184,13 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "cold_start:true",
                         "memorysize:256",
                         "runtime:python2.7",
+                        "dd_lambda_layer:datadog-python27_0.1.0",
                     ],
                 ),
             ]
         )
 
-        del os.environ["DD_ENHANCED_METRICS"]
-
     def test_enhanced_metrics_cold_start_tag(self):
-        os.environ["DD_ENHANCED_METRICS"] = "True"
-
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
@@ -200,7 +205,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             lambda_event, get_mock_context(aws_request_id="second-request-id")
         )
 
-        self.mock_lambda_metric.assert_has_calls(
+        self.mock_write_metric_point_to_stdout.assert_has_calls(
             [
                 call(
                     "aws.lambda.enhanced.invocations",
@@ -212,6 +217,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "cold_start:true",
                         "memorysize:256",
                         "runtime:python2.7",
+                        "dd_lambda_layer:datadog-python27_0.1.0",
                     ],
                 ),
                 call(
@@ -224,14 +230,15 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "cold_start:false",
                         "memorysize:256",
                         "runtime:python2.7",
+                        "dd_lambda_layer:datadog-python27_0.1.0",
                     ],
                 ),
             ]
         )
 
-        del os.environ["DD_ENHANCED_METRICS"]
-
     def test_no_enhanced_metrics_without_env_var(self):
+        os.environ["DD_ENHANCED_METRICS"] = "false"
+
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
             raise RuntimeError()
@@ -241,4 +248,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             lambda_handler(lambda_event, get_mock_context())
 
-        self.mock_lambda_metric.assert_not_called()
+        self.mock_write_metric_point_to_stdout.assert_not_called()
+
+        del os.environ["DD_ENHANCED_METRICS"]
