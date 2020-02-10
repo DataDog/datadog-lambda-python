@@ -235,10 +235,11 @@ If your Lambda function is triggered by API Gateway via [the non-proxy integrati
 If your Lambda function is deployed by the Serverless Framework, such a mapping template gets created by default.
 
 ## Log and Trace Correlations
+By default, the Datadog trace id gets automatically injected into the logs for correlation, if using `console` or a logging library supported for [automatic](https://docs.datadoghq.com/tracing/connect_logs_and_traces/?tab=nodejs#automatic-trace-id-injection)  trace id injection.
 
-To connect logs and traces, set the environment variable `DD_LOGS_INJECTION` to `True`. The log format of the AWS provided `LambdaLoggerHandler` will be overridden to inject `dd.trace_id` and `dd.span_id`. The default Datadog lambda log integration pipeline will automatically parse them and map the `dd.trace_id` into the reserved attribute [trace_id](https://docs.datadoghq.com/logs/processing/#trace-id-attribute).
+See instructions for [manual](https://docs.datadoghq.com/tracing/connect_logs_and_traces/?tab=nodejs#manual-trace-id-injection) trace id injection, if using other logging libraries. If you use a custom logger handler to log in json, you can manually inject the ids using the helper function `get_correlation_ids`.
 
-If you use a custom logger handler to log in json, you can manually inject the ids using the helper function `get_correlation_ids`.
+Set the environment variable `DD_LOGS_INJECTION` to `false` to disable this feature.
 
 ```python
 from datadog_lambda.wrapper import datadog_lambda_wrapper
