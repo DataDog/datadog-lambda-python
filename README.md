@@ -237,7 +237,7 @@ If your Lambda function is deployed by the Serverless Framework, such a mapping 
 ## Log and Trace Correlations
 By default, the Datadog trace id gets automatically injected into the logs for correlation, if using the standard python `logging` library.
 
-If you use a custom logger handler to log in json, you can manually inject the ids using the helper function `get_correlation_ids`.
+If you use a custom logger handler to log in json, you can inject the ids using the helper function `get_correlation_ids` [manually](https://docs.datadoghq.com/tracing/connect_logs_and_traces/?tab=python#manual-trace-id-injection).
 
 Set the environment variable `DD_LOGS_INJECTION` to `false` to disable this feature.
 
