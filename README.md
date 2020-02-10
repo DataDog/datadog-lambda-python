@@ -85,7 +85,7 @@ If your Lambda function powers a performance-critical task (e.g., a consumer-fac
 
 - DD_FLUSH_TO_LOG
 
-To connect logs and traces, set the environment variable below to `True`. The default format of the AWS provided `LambdaLoggerHandler` will be overridden to inject `dd.trace_id` and `dd.span_id`. The default Datadog lambda log integration pipeline will automatically parse them and map the `dd.trace_id` into the reserved [trace_id attribute](https://docs.datadoghq.com/logs/processing/#trace-id-attribute). Defaults to true.
+Inject Datadog trace id into logs for [correlation](https://docs.datadoghq.com/tracing/connect_logs_and_traces/?tab=python). Defaults to true.
 
 - DD_LOGS_INJECTION
 
