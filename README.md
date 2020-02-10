@@ -235,7 +235,7 @@ If your Lambda function is triggered by API Gateway via [the non-proxy integrati
 If your Lambda function is deployed by the Serverless Framework, such a mapping template gets created by default.
 
 ## Log and Trace Correlations
-By default, the Datadog trace id gets automatically injected into the logs for correlation, if using the AWS provided `LambdaLoggerHandler`.
+By default, the Datadog trace id gets automatically injected into the logs for correlation, if using the standard python `logging` library.
 
 If you use a custom logger handler to log in json, you can manually inject the ids using the helper function `get_correlation_ids`.
 
