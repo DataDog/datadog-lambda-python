@@ -47,7 +47,9 @@ class _LambdaDecorator(object):
     def __init__(self, func):
         self.func = func
         self.flush_to_log = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
-        self.logs_injection = os.environ.get("DD_LOGS_INJECTION", "").lower() == "true"
+        self.logs_injection = (
+            os.environ.get("DD_LOGS_INJECTION", "true").lower() == "true"
+        )
 
         # Inject trace correlation ids to logs
         if self.logs_injection:
