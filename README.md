@@ -85,7 +85,7 @@ If your Lambda function powers a performance-critical task (e.g., a consumer-fac
 
 - DD_FLUSH_TO_LOG
 
-To connect logs and traces, set the environment variable below to `True`. The default format of the AWS provided `LambdaLoggerHandler` will be overridden to inject `dd.trace_id` and `dd.span_id`. The default Datadog lambda log integration pipeline will automatically parse them and map the `dd.trace_id` into the reserved [trace_id attribute](https://docs.datadoghq.com/logs/processing/#trace-id-attribute).
+Inject Datadog trace id into logs for [correlation](https://docs.datadoghq.com/tracing/connect_logs_and_traces/?tab=python). Defaults to true.
 
 - DD_LOGS_INJECTION
 
@@ -235,10 +235,11 @@ If your Lambda function is triggered by API Gateway via [the non-proxy integrati
 If your Lambda function is deployed by the Serverless Framework, such a mapping template gets created by default.
 
 ## Log and Trace Correlations
+By default, the Datadog trace id gets automatically injected into the logs for correlation, if using the standard python `logging` library.
 
-To connect logs and traces, set the environment variable `DD_LOGS_INJECTION` to `True`. The log format of the AWS provided `LambdaLoggerHandler` will be overridden to inject `dd.trace_id` and `dd.span_id`. The default Datadog lambda log integration pipeline will automatically parse them and map the `dd.trace_id` into the reserved attribute [trace_id](https://docs.datadoghq.com/logs/processing/#trace-id-attribute).
+If you use a custom logger handler to log in json, you can inject the ids using the helper function `get_correlation_ids` [manually](https://docs.datadoghq.com/tracing/connect_logs_and_traces/?tab=python#manual-trace-id-injection).
 
-If you use a custom logger handler to log in json, you can manually inject the ids using the helper function `get_correlation_ids`.
+Set the environment variable `DD_LOGS_INJECTION` to `false` to disable this feature.
 
 ```python
 from datadog_lambda.wrapper import datadog_lambda_wrapper
