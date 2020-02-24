@@ -1,0 +1,20 @@
+service: integration-tester
+
+provider:
+  name: aws
+
+layers:
+  test:
+    package:
+      artifact: ../../.layers/datadog_lambda_py2.7.zip
+
+functions:
+  custom-metric-writer-python27:
+    handler: handler.handle
+    runtime: python2.7
+    events:
+      - http:
+          method: get
+          path: /hello
+    layers:
+      - { Ref: TestLambdaLayer } # Refers to the local lambda created above
