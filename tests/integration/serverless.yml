@@ -2,19 +2,53 @@ service: integration-tester
 
 provider:
   name: aws
+  tracing:
+    lambda: true
+    apiGateway: true
 
 layers:
-  test:
+  python27:
     package:
       artifact: ../../.layers/datadog_lambda_py2.7.zip
+  python36:
+    package:
+      artifact: ../../.layers/datadog_lambda_py3.6.zip
+  python37:
+    package:
+      artifact: ../../.layers/datadog_lambda_py3.7.zip
+  python38:
+    package:
+      artifact: ../../.layers/datadog_lambda_py3.8.zip
 
 functions:
-  custom-metric-writer-python27:
-    handler: handler.handle
+  async-metrics-python27:
+    handler: submit_metrics.handle
     runtime: python2.7
-    events:
-      - http:
-          method: get
-          path: /hello
     layers:
-      - { Ref: TestLambdaLayer } # Refers to the local lambda created above
+      - { Ref: Python27LambdaLayer }
+    environment:
+      DD_FLUSH_TO_LOG: true
+
+  async-metrics-python36:
+    handler: submit_metrics.handle
+    runtime: python3.6
+    layers:
+      - { Ref: Python36LambdaLayer }
+    environment:
+      DD_FLUSH_TO_LOG: true
+
+  async-metrics-python37:
+    handler: submit_metrics.handle
+    runtime: python3.7
+    layers:
+      - { Ref: Python37LambdaLayer }
+    environment:
+      DD_FLUSH_TO_LOG: true
+
+  async-metrics-python38:
+    handler: submit_metrics.handle
+    runtime: python3.8
+    layers:
+      - { Ref: Python38LambdaLayer }
+    environment:
+      DD_FLUSH_TO_LOG: true
