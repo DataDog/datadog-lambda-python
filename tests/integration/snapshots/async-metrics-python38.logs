@@ -1,0 +1,17 @@
+/opt/python/lib/python3.8/site-packages/jmespath/visitor.py:32: SyntaxWarning: "is" with a literal. Did you mean "=="?
+  if x is 0 or x is 1:
+/opt/python/lib/python3.8/site-packages/jmespath/visitor.py:32: SyntaxWarning: "is" with a literal. Did you mean "=="?
+  if x is 0 or x is 1:
+/opt/python/lib/python3.8/site-packages/jmespath/visitor.py:34: SyntaxWarning: "is" with a literal. Did you mean "=="?
+  elif y is 0 or y is 1:
+/opt/python/lib/python3.8/site-packages/jmespath/visitor.py:34: SyntaxWarning: "is" with a literal. Did you mean "=="?
+  elif y is 0 or y is 1:
+/opt/python/lib/python3.8/site-packages/jmespath/visitor.py:260: SyntaxWarning: "is" with a literal. Did you mean "=="?
+  if original_result is 0:
+START RequestId: XXXX Version: $LATEST
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:601427279990", "functionname:integration-tester-dev-async-metrics-python38", "cold_start:true", "memorysize:1024", "runtime:python3.8", "dd_lambda_layer:datadog-python38_2.13.0"]}
+{"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_2.13.0"]}
+{"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_2.13.0"]}
+END RequestId: XXXX
+REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	Init Duration: XXXX ms	
+XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	

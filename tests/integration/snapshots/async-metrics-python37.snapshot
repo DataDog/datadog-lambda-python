@@ -1,7 +1,0 @@
-START RequestId: 23bbb9a2-895e-4961-95c2-f717fcd40132 Version: $LATEST
-{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": 1582672413, "t": ["region:us-east-1", "account_id:601427279990", "functionname:integration-tester-dev-async-metrics-python37", "cold_start:true", "memorysize:1024", "runtime:python3.7", "dd_lambda_layer:datadog-python37_2.13.0"]}
-{"m": "hello.dog", "v": 1, "e": 1582672413, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python37_2.13.0"]}
-{"m": "tests.integration.count", "v": 21, "e": 1582672413, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python37_2.13.0"]}
-END RequestId: 23bbb9a2-895e-4961-95c2-f717fcd40132
-REPORT RequestId: 23bbb9a2-895e-4961-95c2-f717fcd40132	Duration: 2.65 ms	Billed Duration: 100 ms	Memory Size: 1024 MB	Max Memory Used: 86 MB	Init Duration: 868.97 ms
-XRAY TraceId: 1-5e55aa1c-1f23e7c096af044e9c9412fa	SegmentId: 6cb6910b76128a0c	Sampled: true

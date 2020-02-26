@@ -52,3 +52,35 @@ functions:
       - { Ref: Python38LambdaLayer }
     environment:
       DD_FLUSH_TO_LOG: true
+
+  sync-metrics-python27:
+    handler: submit_metrics.handle
+    runtime: python2.7
+    layers:
+      - { Ref: Python27LambdaLayer }
+    environment:
+      DD_API_KEY: "abcdefghijk"
+
+  sync-metrics-python36:
+    handler: submit_metrics.handle
+    runtime: python3.6
+    layers:
+      - { Ref: Python36LambdaLayer }
+    environment:
+      DD_API_KEY: "abcdefghijk"
+
+  sync-metrics-python37:
+    handler: submit_metrics.handle
+    runtime: python3.7
+    layers:
+      - { Ref: Python37LambdaLayer }
+    environment:
+      DD_API_KEY: "abcdefghijk"
+
+  sync-metrics-python38:
+    handler: submit_metrics.handle
+    runtime: python3.8
+    layers:
+      - { Ref: Python38LambdaLayer }
+    environment:
+      DD_API_KEY: "abcdefghijk"
