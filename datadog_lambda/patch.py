@@ -3,7 +3,6 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
-import json
 import os
 import sys
 import logging
@@ -99,4 +98,3 @@ def _wrap_httplib_request(func, instance, args, kwargs):
         print(request_string)
 
     return func(*args, **kwargs)
-
