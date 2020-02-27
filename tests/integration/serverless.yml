@@ -5,6 +5,9 @@ provider:
   tracing:
     lambda: true
     apiGateway: true
+  environment:
+    DD_INTEGRATION_TEST: true
+    DD_API_KEY: ${env:DD_API_KEY}
 
 layers:
   python27:
@@ -21,8 +24,9 @@ layers:
       artifact: ../../.layers/datadog_lambda_py3.8.zip
 
 functions:
+  # async-metrics
   async-metrics-python27:
-    handler: submit_metrics.handle
+    handler: handle.handle
     runtime: python2.7
     layers:
       - { Ref: Python27LambdaLayer }
@@ -30,7 +34,7 @@ functions:
       DD_FLUSH_TO_LOG: true
 
   async-metrics-python36:
-    handler: submit_metrics.handle
+    handler: handle.handle
     runtime: python3.6
     layers:
       - { Ref: Python36LambdaLayer }
@@ -38,7 +42,7 @@ functions:
       DD_FLUSH_TO_LOG: true
 
   async-metrics-python37:
-    handler: submit_metrics.handle
+    handler: handle.handle
     runtime: python3.7
     layers:
       - { Ref: Python37LambdaLayer }
@@ -46,41 +50,34 @@ functions:
       DD_FLUSH_TO_LOG: true
 
   async-metrics-python38:
-    handler: submit_metrics.handle
+    handler: handle.handle
     runtime: python3.8
     layers:
       - { Ref: Python38LambdaLayer }
     environment:
       DD_FLUSH_TO_LOG: true
 
+  # sync-metrics
   sync-metrics-python27:
-    handler: submit_metrics.handle
+    handler: handle.handle
     runtime: python2.7
     layers:
       - { Ref: Python27LambdaLayer }
-    environment:
-      DD_API_KEY: "abcdefghijk"
 
   sync-metrics-python36:
-    handler: submit_metrics.handle
+    handler: handle.handle
     runtime: python3.6
     layers:
       - { Ref: Python36LambdaLayer }
-    environment:
-      DD_API_KEY: "abcdefghijk"
 
   sync-metrics-python37:
-    handler: submit_metrics.handle
+    handler: handle.handle
     runtime: python3.7
     layers:
       - { Ref: Python37LambdaLayer }
-    environment:
-      DD_API_KEY: "abcdefghijk"
 
   sync-metrics-python38:
-    handler: submit_metrics.handle
+    handler: handle.handle
     runtime: python3.8
     layers:
       - { Ref: Python38LambdaLayer }
-    environment:
-      DD_API_KEY: "abcdefghijk"
