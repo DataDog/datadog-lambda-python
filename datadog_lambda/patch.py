@@ -132,4 +132,3 @@ def _print_request_string(args, kwargs):
             method, url, sorted_header_str, sorted_data
         )
     )
-
