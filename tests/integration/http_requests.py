@@ -11,6 +11,8 @@ def handle(event, context):
     lambda_metric(
         "tests.integration.count", 21, tags=["test:integration", "role:hello"]
     )
-    response = requests.get("https://datadoghq.com")
+
+    us_response = requests.get("https://ip-ranges.datadoghq.com/")
+    eu_response = requests.get("https://ip-ranges.datadoghq.eu/")
 
     return {"statusCode": 200, "body": "hello, dog!"}

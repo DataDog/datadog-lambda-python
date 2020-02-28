@@ -81,3 +81,28 @@ functions:
     runtime: python3.8
     layers:
       - { Ref: Python38LambdaLayer }
+
+  # http-requests
+  http-requests-python27:
+    handler: http_requests.handle
+    runtime: python2.7
+    layers:
+      - { Ref: Python27LambdaLayer }
+
+  http-requests-python36:
+    handler: http_requests.handle
+    runtime: python3.6
+    layers:
+      - { Ref: Python36LambdaLayer }
+
+  http-requests-python37:
+    handler: http_requests.handle
+    runtime: python3.7
+    layers:
+      - { Ref: Python37LambdaLayer }
+
+  http-requests-python38:
+    handler: http_requests.handle
+    runtime: python3.8
+    layers:
+      - { Ref: Python38LambdaLayer }

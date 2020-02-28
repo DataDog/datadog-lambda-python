@@ -3,6 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
+import json
 import os
 import sys
 import logging
@@ -74,8 +75,7 @@ def _wrap_requests_request(func, instance, args, kwargs):
 
     # If we're in an integration test, log the HTTP requests made
     if os.environ.get("DD_INTEGRATION_TEST", "false").lower() == "true":
-        request_string = "HTTP {} Kwargs: {}".format(" ".join(args), kwargs)
-        print(request_string)
+        _print_request_string(args, kwargs)
 
     return func(*args, **kwargs)
 
@@ -93,8 +93,43 @@ def _wrap_httplib_request(func, instance, args, kwargs):
     else:
         kwargs["headers"] = context
 
-    if os.environ.get("DD_INTEGRATION_TEST", "false").lower() == "true":
-        request_string = "HTTP {} Kwargs: {}".format(" ".join(args), kwargs)
-        print(request_string)
-
     return func(*args, **kwargs)
+
+
+def _print_request_string(args, kwargs):
+    """Print the request so that it can be checked in integration tests
+
+    Only used by integration tests.
+    """
+    # Normalizes the different ways args can be passed to a request
+    # to prevent test flakiness
+    method = None
+    if len(args) > 0:
+        method = args[0]
+    else:
+        method = kwargs.get("method", "").upper()
+
+    url = None
+    if len(args) > 1:
+        url = args[1]
+    else:
+        url = kwargs.get("url")
+
+    # Sort the datapoints POSTed by their name so that snapshots always align
+    data = kwargs.get("data", "{}")
+    data_dict = json.loads(data)
+    data_dict.get("series", []).sort(key=lambda series: series.get("metric"))
+    sorted_data = json.dumps(data_dict)
+
+    # Sort headers to prevent any differences in ordering
+    headers = kwargs.get("headers", {})
+    sorted_headers = sorted(
+        "{}:{}".format(key, value) for key, value in headers.items()
+    )
+    sorted_header_str = json.dumps(sorted_headers)
+    print(
+        "HTTP {} {} Headers: {} Data: {}".format(
+            method, url, sorted_header_str, sorted_data
+        )
+    )
+
