@@ -63,13 +63,21 @@ functions:
 
 ## Environment Variables
 
-The Datadog API Key must be defined as one of the following environment variables via [AWS CLI](https://docs.aws.amazon.com/lambda/latest/dg/env_variables.html) or [Serverless Framework](https://serverless-stack.com/chapters/serverless-environment-variables.html):
+### DD_FLUSH_TO_LOG
+
+Set to `true` (recommended) to send custom metrics asynchronously (with no added latency to your Lambda function executions) through CloudWatch Logs with the help of [Datadog Forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring).
+
+If set to `false`, you also need to set `DD_API_KEY` and `DD_SITE`.
+
+### DD_API_KEY
+
+If `DD_FLUSH_TO_LOG` is set to false (not recommended), the Datadog API Key must be defined as one of the following environment variables:
 
 - DD_API_KEY - the Datadog API Key in plain-text, NOT recommended
 - DD_KMS_API_KEY - the KMS-encrypted API Key, requires the `kms:Decrypt` permission
 - DD_API_KEY_SECRET_ARN - the Secret ARN to fetch API Key from the Secrets Manager, requires the `secretsmanager:GetSecretValue` permission (and `kms:Decrypt` if using a customer managed CMK)
 
-You can also supply or override the API key at runtime:
+You can also supply or override the API key at runtime (not recommended): 
 
 ```python
 # Override DD API Key after importing datadog_lambda packages
@@ -77,25 +85,21 @@ from datadog import api
 api._api_key = "MY_API_KEY"
 ```
 
-Set the following Datadog environment variable to `datadoghq.eu` to send your data to the Datadog EU site.
+### DD_SITE
 
-- DD_SITE
+If `DD_FLUSH_TO_LOG` is set to false (not recommended), and your data need to be sent to the Datadog EU site, you must set `DD_SITE` to `datadoghq.eu`.
 
-If your Lambda function powers a performance-critical task (e.g., a consumer-facing API). You can avoid the added latencies of metric-submitting API calls, by setting the following Datadog environment variable to `True`. Custom metrics will be submitted asynchronously through CloudWatch Logs and [the Datadog log forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring).
-
-- DD_FLUSH_TO_LOG
+### DD_LOGS_INJECTION
 
 Inject Datadog trace id into logs for [correlation](https://docs.datadoghq.com/tracing/connect_logs_and_traces/?tab=python). Defaults to true.
 
-- DD_LOGS_INJECTION
+### DD_LOG_LEVEL
 
-To debug the Datadog Lambda Layer, set the environment variable below to `DEBUG`.
+Set to `debug` enable debug los from the Datadog Lambda Layer.
 
-- DD_LOG_LEVEL
+### DD_ENHANCED_METRICS
 
-To increment `aws.lambda.enhanced.invocations` and `aws.lambda.enhanced.errors` Datadog Lambda integration metrics set this environment variable to `true`:
-
-- DD_ENHANCED_METRICS
+Generate enhanced Datadog Lambda integration metrics, such as, `aws.lambda.enhanced.invocations` and `aws.lambda.enhanced.errors`. Defaults to true.
 
 ## Basic Usage
 
