@@ -58,7 +58,7 @@ functions:
     layers:
       - arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-<PYTHON_RUNTIME>:<VERSION>
     environment:
-      DD_API_KEY: <DD_API_KEY>
+      DD_FLUSH_TO_LOG: true
 ```
 
 ## Environment Variables
