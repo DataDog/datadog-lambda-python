@@ -38,13 +38,39 @@ def my_lambda_handle(event, context):
 """
 
 
+class _NoopDecorator(object):
+
+    def __init__(self, func):
+        self.func = func
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+
 class _LambdaDecorator(object):
     """
     Decorator to automatically initialize Datadog API client, flush metrics,
     and extracts/injects trace context.
     """
 
+    _instance = None
+    _force_new = False
+
+    def __new__(cls, func):
+        """
+        If the decorator is accidentally applied to multiple functions or
+        the same function multiple times, only the first one takes effect.
+
+        If _force_new, always return a real decorator, useful for unit tests.
+        """
+        if cls._force_new or cls._instance is None:
+            cls._instance = super(_LambdaDecorator, cls).__new__(cls)
+            return cls._instance
+        else:
+            return _NoopDecorator(func)
+
     def __init__(self, func):
+        """Executes when the wrapped function gets wrapped"""
         self.func = func
         self.flush_to_log = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
         self.logs_injection = (
@@ -58,6 +84,17 @@ class _LambdaDecorator(object):
         # Patch HTTP clients to propagate Datadog trace context
         patch_all()
         logger.debug("datadog_lambda_wrapper initialized")
+
+    def __call__(self, event, context, **kwargs):
+        """Executes when the wrapped function gets called"""
+        self._before(event, context)
+        try:
+            return self.func(event, context, **kwargs)
+        except Exception:
+            submit_errors_metric(context)
+            raise
+        finally:
+            self._after(event, context)
 
     def _before(self, event, context):
         set_cold_start()
@@ -77,16 +114,6 @@ class _LambdaDecorator(object):
                 lambda_stats.flush(float("inf"))
         except Exception:
             traceback.print_exc()
-
-    def __call__(self, event, context, **kwargs):
-        self._before(event, context)
-        try:
-            return self.func(event, context, **kwargs)
-        except Exception:
-            submit_errors_metric(context)
-            raise
-        finally:
-            self._after(event, context)
 
 
 datadog_lambda_wrapper = _LambdaDecorator
