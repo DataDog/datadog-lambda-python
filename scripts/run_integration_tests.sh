@@ -50,7 +50,7 @@ echo "Invoking functions"
 set +e # Don't immediately exit this script if an invocation fails or there's a diff
 for handler_name in "${LAMBDA_HANDLERS[@]}"; do
     for runtime in "${RUNTIMES[@]}"; do
-        function_name="$handler_name-$runtime"
+        function_name="${handler_name}_${runtime}"
         function_snapshot_path="./snapshots/$function_name.return_value"
 
         return_value=$(serverless invoke -f $function_name)
@@ -81,7 +81,7 @@ sleep $LOGS_WAIT_SECONDS
 echo "Fetching logs for invocations and comparing to snapshots"
 for handler_name in "${LAMBDA_HANDLERS[@]}"; do
     for runtime in "${RUNTIMES[@]}"; do
-        function_name="$handler_name-$runtime"
+        function_name="${handler_name}_${runtime}"
         function_snapshot_path="./snapshots/$function_name.logs"
 
         # Fetch logs with serverless cli

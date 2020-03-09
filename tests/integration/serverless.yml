@@ -25,7 +25,7 @@ layers:
 
 functions:
   # async-metrics
-  async-metrics-python27:
+  async-metrics_python27:
     handler: handle.handle
     runtime: python2.7
     layers:
@@ -33,7 +33,7 @@ functions:
     environment:
       DD_FLUSH_TO_LOG: true
 
-  async-metrics-python36:
+  async-metrics_python36:
     handler: handle.handle
     runtime: python3.6
     layers:
@@ -41,7 +41,7 @@ functions:
     environment:
       DD_FLUSH_TO_LOG: true
 
-  async-metrics-python37:
+  async-metrics_python37:
     handler: handle.handle
     runtime: python3.7
     layers:
@@ -49,7 +49,7 @@ functions:
     environment:
       DD_FLUSH_TO_LOG: true
 
-  async-metrics-python38:
+  async-metrics_python38:
     handler: handle.handle
     runtime: python3.8
     layers:
@@ -58,50 +58,50 @@ functions:
       DD_FLUSH_TO_LOG: true
 
   # sync-metrics
-  sync-metrics-python27:
+  sync-metrics_python27:
     handler: handle.handle
     runtime: python2.7
     layers:
       - { Ref: Python27LambdaLayer }
 
-  sync-metrics-python36:
+  sync-metrics_python36:
     handler: handle.handle
     runtime: python3.6
     layers:
       - { Ref: Python36LambdaLayer }
 
-  sync-metrics-python37:
+  sync-metrics_python37:
     handler: handle.handle
     runtime: python3.7
     layers:
       - { Ref: Python37LambdaLayer }
 
-  sync-metrics-python38:
+  sync-metrics_python38:
     handler: handle.handle
     runtime: python3.8
     layers:
       - { Ref: Python38LambdaLayer }
 
   # http-requests
-  http-requests-python27:
+  http-requests_python27:
     handler: http_requests.handle
     runtime: python2.7
     layers:
       - { Ref: Python27LambdaLayer }
 
-  http-requests-python36:
+  http-requests_python36:
     handler: http_requests.handle
     runtime: python3.6
     layers:
       - { Ref: Python36LambdaLayer }
 
-  http-requests-python37:
+  http-requests_python37:
     handler: http_requests.handle
     runtime: python3.7
     layers:
       - { Ref: Python37LambdaLayer }
 
-  http-requests-python38:
+  http-requests_python38:
     handler: http_requests.handle
     runtime: python3.8
     layers:
