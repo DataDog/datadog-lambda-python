@@ -24,6 +24,10 @@ def get_mock_context(
 
 class TestDatadogLambdaWrapper(unittest.TestCase):
     def setUp(self):
+        # Force @datadog_lambda_wrapper to always create a real
+        # (not no-op) wrapper.
+        datadog_lambda_wrapper._force_new = True
+
         patcher = patch("datadog_lambda.metric.lambda_stats")
         self.mock_metric_lambda_stats = patcher.start()
         self.addCleanup(patcher.stop)
@@ -251,3 +255,28 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_write_metric_point_to_stdout.assert_not_called()
 
         del os.environ["DD_ENHANCED_METRICS"]
+
+    def test_only_one_wrapper_in_use(self):
+        patcher = patch("datadog_lambda.wrapper.submit_invocations_metric")
+        self.mock_submit_invocations_metric = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            lambda_metric("test.metric", 100)
+
+        # Turn off _force_new to emulate the nested wrapper scenario,
+        # the second @datadog_lambda_wrapper should actually be no-op.
+        datadog_lambda_wrapper._force_new = False
+
+        @datadog_lambda_wrapper
+        def lambda_handler_wrapper(event, context):
+            lambda_handler(event, context)
+
+        lambda_event = {}
+
+        lambda_handler_wrapper(lambda_event, get_mock_context())
+
+        self.mock_patch_all.assert_called_once()
+        self.mock_wrapper_lambda_stats.flush.assert_called_once()
+        self.mock_submit_invocations_metric.assert_called_once()
