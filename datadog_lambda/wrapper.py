@@ -53,19 +53,19 @@ class _LambdaDecorator(object):
     and extracts/injects trace context.
     """
 
-    _instance = None
     _force_new = False
 
     def __new__(cls, func):
         """
-        If the decorator is accidentally applied to multiple functions or
-        the same function multiple times, only the first one takes effect.
+        If the decorator is accidentally applied to the same function multiple times,
+        only the first one takes effect.
 
         If _force_new, always return a real decorator, useful for unit tests.
         """
-        if cls._force_new or cls._instance is None:
-            cls._instance = super(_LambdaDecorator, cls).__new__(cls)
-            return cls._instance
+        if cls._force_new or not getattr(func, "_dd_wrapped", False):
+            wrapped = super(_LambdaDecorator, cls).__new__(cls)
+            wrapped._dd_wrapped = True
+            return wrapped
         else:
             return _NoopDecorator(func)
 

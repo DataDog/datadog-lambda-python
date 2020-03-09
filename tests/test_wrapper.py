@@ -269,13 +269,11 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         # the second @datadog_lambda_wrapper should actually be no-op.
         datadog_lambda_wrapper._force_new = False
 
-        @datadog_lambda_wrapper
-        def lambda_handler_wrapper(event, context):
-            lambda_handler(event, context)
+        lambda_handler_double_wrapped = datadog_lambda_wrapper(lambda_handler)
 
         lambda_event = {}
 
-        lambda_handler_wrapper(lambda_event, get_mock_context())
+        lambda_handler_double_wrapped(lambda_event, get_mock_context())
 
         self.mock_patch_all.assert_called_once()
         self.mock_wrapper_lambda_stats.flush.assert_called_once()
