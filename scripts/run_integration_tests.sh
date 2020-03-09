@@ -1,6 +1,11 @@
 #!/bin/bash
 
-# Stop execution if any command has errors
+# Usage:
+# To check if new changes to the layer cause changes to any snapshots:
+# BUILD_LAYERS=true DD_API_KEY=XXXX aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
+# To regenerate snapshots:
+# UPDATE_SNAPSHOTS=true DD_API_KEY=XXXX aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
+
 set -e
 
 # These values need to be in sync with serverless.yml, where there needs to be a function
@@ -21,13 +26,13 @@ mismatch_found=false
 
 echo "Start time is $script_start_time"
 
-if [ -n "$UPDATE_SNAPSHOTS" ]; then
-    echo "Overwriting snapshots in this execution"
-fi
-
 if [ -z "$DD_API_KEY" ]; then
     echo "No DD_API_KEY env var set, exiting"
     exit 1
+fi
+
+if [ -n "$UPDATE_SNAPSHOTS" ]; then
+    echo "Overwriting snapshots in this execution"
 fi
 
 if [ -n "$BUILD_LAYERS" ]; then
@@ -42,7 +47,7 @@ cd $integration_tests_dir
 serverless deploy
 
 echo "Invoking functions"
-set +e # Don't exit this script if an invocation fails
+set +e # Don't immediately exit this script if an invocation fails or there's a diff
 for handler_name in "${LAMBDA_HANDLERS[@]}"; do
     for runtime in "${RUNTIMES[@]}"; do
         function_name="$handler_name-$runtime"
@@ -52,6 +57,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
 
         if [ -n "$UPDATE_SNAPSHOTS" ] || [ ! -f $function_snapshot_path ]; then
             # If $UPDATE_SNAPSHOTS is set to true, write the new logs over the current snapshot
+            # If the snapshot file doesn't exist yet, we create it
             echo "Writing return value snapshot for $function_name"
             echo "$return_value" >$function_snapshot_path
         else
@@ -67,7 +73,6 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
         fi
     done
 done
-
 set -e
 
 echo "Sleeping $LOGS_WAIT_SECONDS seconds to wait for logs to appear in CloudWatch..."
