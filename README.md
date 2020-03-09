@@ -8,6 +8,10 @@
 
 Datadog Lambda Layer for Python (2.7, 3.6, 3.7 and 3.8) enables custom metric submission from AWS Lambda functions, and distributed tracing between serverful and serverless environments.
 
+## IMPORTANT NOTE
+
+AWS Lambda is expected to recieve a [breaking change](https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/) on **March 30th, 2020**. If you are using Datadog Python Lambda layer version 7 or below, please upgrade to version 11. 
+
 ## Installation
 
 Datadog Lambda Layer can be added to a Lambda function via AWS Lambda console, [AWS CLI](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html#configuration-layers-using) or [Serverless Framework](https://serverless.com/framework/docs/providers/aws/guide/layers/#using-your-layers) using the following ARN.
