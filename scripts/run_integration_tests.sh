@@ -2,9 +2,9 @@
 
 # Usage:
 # To check if new changes to the layer cause changes to any snapshots:
-# BUILD_LAYERS=true DD_API_KEY=XXXX aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
+#   BUILD_LAYERS=true DD_API_KEY=XXXX aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
 # To regenerate snapshots:
-# UPDATE_SNAPSHOTS=true DD_API_KEY=XXXX aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
+#   UPDATE_SNAPSHOTS=true DD_API_KEY=XXXX aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
 
 set -e
 
@@ -85,22 +85,22 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
         function_snapshot_path="./snapshots/$function_name.logs"
 
         # Fetch logs with serverless cli
-        logs=$(serverless logs -f $function_name --startTime $script_start_time)
-
-        # Filter serverless cli errors
-        logs=$(echo "$logs" | sed '/Serverless: Recoverable error occurred/d')
+        raw_logs=$(serverless logs -f $function_name --startTime $script_start_time)
 
         # Replace invocation-specific data like timestamps and IDs with XXXX to normalize logs across executions
-        # Normalize Lambda runtime report logs
-        logs=$(echo "$logs" | sed -E 's/(RequestId|TraceId|SegmentId|Duration|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g')
-        # Normalize DD APM headers
-        logs=$(echo "$logs" | sed -E "s/(x-datadog-parent-id:|x-datadog-trace-id:)[0-9]+/\1XXXX/g")
-        # Normalize timestamps in datapoints POSTed to DD
-        logs=$(echo "$logs" | sed -E 's/"points": \[\[[0-9\.]+,/"points": \[\[XXXX,/g')
-        # # Normalize invocation IDs used in requests to the Lambda runtime
-        # logs=$(echo "$logs" | sed -E 's/\/2018-06-01\/runtime\/invocation\/[a-z0-9-]+/\/2018-06-01\/runtime\/invocation\/XXXX/g')
-        # Strip API key from logged requests
-        logs=$(echo "$logs" | sed -E "s/(api_key=|'api_key': ')[a-z0-9\.\-]+/\1XXXX/g")
+        logs=$(
+            echo "$raw_logs" |
+                # Filter serverless cli errors
+                sed '/Serverless: Recoverable error occurred/d' |
+                # Normalize Lambda runtime report logs
+                sed -E 's/(RequestId|TraceId|SegmentId|Duration|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g' |
+                # Normalize DD APM headers
+                sed -E "s/(x-datadog-parent-id:|x-datadog-trace-id:)[0-9]+/\1XXXX/g" |
+                # Normalize timestamps in datapoints POSTed to DD
+                sed -E 's/"points": \[\[[0-9\.]+,/"points": \[\[XXXX,/g' |
+                # Strip API key from logged requests
+                sed -E "s/(api_key=|'api_key': ')[a-z0-9\.\-]+/\1XXXX/g"
+        )
 
         if [ -n "$UPDATE_SNAPSHOTS" ] || [ ! -f $function_snapshot_path ]; then
             # If $UPDATE_SNAPSHOTS is set to true write the new logs over the current snapshot
