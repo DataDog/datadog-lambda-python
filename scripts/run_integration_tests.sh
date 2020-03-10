@@ -57,8 +57,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
         function_name="${handler_name}_${runtime}"
         # Invoke function once for each input event
         for input_event_file in "${input_event_files[@]}"; do
-            echo "input_event_file=$input_event_file"
-            # Get event name without trailing ".json" so we can build the snapshot name
+            # Get event name without trailing ".json" so we can build the snapshot file name
             input_event_name=$(echo "$input_event_file" | sed "s/.json//")
             # Return value snapshot file format is snapshots/return_values/{handler}_{runtime}_{input-event}
             snapshot_path="./snapshots/return_values/${function_name}_${input_event_name}.json"
@@ -78,7 +77,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                     echo "$diff_output"
                     mismatch_found=true
                 else
-                    echo "Ok: Return value for $function_name matches snapshot"
+                    echo "Ok: Return value for $function_name with $input_event_name event matches snapshot"
                 fi
             fi
         done
@@ -139,7 +138,8 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
 done
 
 if [ "$mismatch_found" = true ]; then
-    echo "FAILURE: A mismatch between new data and a snapshot was found and printed above. If the change is expected, generate new snapshots by running 'UPDATE_SNAPSHOTS=true ./scripts/run_integration_tests.sh'"
+    echo "FAILURE: A mismatch between new data and a snapshot was found and printed above."
+    echo "If the change is expected, generate new snapshots by running 'UPDATE_SNAPSHOTS=true ./scripts/run_integration_tests.sh'"
     exit 1
 fi
 
