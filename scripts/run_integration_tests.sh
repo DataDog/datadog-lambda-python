@@ -37,7 +37,7 @@ if [ -n "$BUILD_LAYERS" ]; then
     echo "Building layers that will be deployed with our test functions"
     source $scripts_dir/build_layers.sh
 else
-    echo "Not building layers, ensure they've already been built or re-run with 'REBUILD_LAYERS=true DD_API_KEY=XXXX ./scripts/run_integration_tests.sh'"
+    echo "Not building layers, ensure they've already been built or re-run with 'BUILD_LAYERS=true DD_API_KEY=XXXX ./scripts/run_integration_tests.sh'"
 fi
 
 cd $integration_tests_dir
@@ -154,4 +154,4 @@ if [ -n "$UPDATE_SNAPSHOTS" ]; then
     exit 0
 fi
 
-echo "SUCCESS: No difference found between new logs and snapshots"
+echo "SUCCESS: No difference found between snapshots and new return values or logs"
