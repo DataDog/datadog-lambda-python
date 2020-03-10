@@ -9,7 +9,7 @@
 set -e
 
 # These values need to be in sync with serverless.yml, where there needs to be a function
-# defined for every handler-runtime combination
+# defined for every handler_runtime combination
 LAMBDA_HANDLERS=("async-metrics" "sync-metrics" "http-requests")
 RUNTIMES=("python27" "python36" "python37" "python38")
 
@@ -44,14 +44,14 @@ fi
 
 cd $integration_tests_dir
 input_event_files=$(ls ./input_events)
-# Sort events by name so that snapshots stay consistent
+# Sort event files by name so that snapshots stay consistent
 input_event_files=($(for file_name in ${input_event_files[@]}; do echo $file_name; done | sort))
 
 echo "Deploying functions"
 serverless deploy
 
 echo "Invoking functions"
-set +e # Don't immediately exit this script if an invocation fails or there's a diff
+set +e # Don't exit this script if an invocation fails or there's a diff
 for handler_name in "${LAMBDA_HANDLERS[@]}"; do
     for runtime in "${RUNTIMES[@]}"; do
         function_name="${handler_name}_${runtime}"
@@ -64,10 +64,13 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
 
             return_value=$(serverless invoke -f $function_name --path "./input_events/$input_event_file")
 
-            if [ -n "$UPDATE_SNAPSHOTS" ] || [ ! -f $snapshot_path ]; then
-                # If $UPDATE_SNAPSHOTS is set to true, write the new logs over the current snapshot
+            if [ ! -f $snapshot_path ]; then
                 # If the snapshot file doesn't exist yet, we create it
-                echo "Writing return value snapshot for $snapshot_path"
+                echo "Writing return value to $snapshot_path because no snapshot exists yet"
+                echo "$return_value" >$snapshot_path
+            elif [ -n "$UPDATE_SNAPSHOTS" ]; then
+                # If $UPDATE_SNAPSHOTS is set to true, write the new logs over the current snapshot
+                echo "Overwriting return value snapshot for $snapshot_path"
                 echo "$return_value" >$snapshot_path
             else
                 # Compare new return value to snapshot
@@ -116,10 +119,13 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(api_key=|'api_key': ')[a-z0-9\.\-]+/\1XXXX/g"
         )
 
-        if [ -n "$UPDATE_SNAPSHOTS" ] || [ ! -f $function_snapshot_path ]; then
+        if [ ! -f $function_snapshot_path ]; then
+            # If no snapshot file exists yet, we create one
+            echo "Writing logs to $function_snapshot_path because no snapshot exists yet"
+            echo "$logs" >$function_snapshot_path
+        elif [ -n "$UPDATE_SNAPSHOTS" ]; then
             # If $UPDATE_SNAPSHOTS is set to true write the new logs over the current snapshot
-            # If no file exists yet, we create one
-            echo "Writing log snapshot for $function_name"
+            echo "Overwriting log snapshot for $function_snapshot_path"
             echo "$logs" >$function_snapshot_path
         else
             # Compare new logs to snapshots
