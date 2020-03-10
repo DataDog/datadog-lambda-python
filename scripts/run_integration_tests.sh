@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Usage:
+# Usage - run commands from repo root:
 # To check if new changes to the layer cause changes to any snapshots:
 #   BUILD_LAYERS=true DD_API_KEY=XXXX aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
 # To regenerate snapshots:
@@ -37,7 +37,7 @@ if [ -n "$BUILD_LAYERS" ]; then
     echo "Building layers that will be deployed with our test functions"
     source $scripts_dir/build_layers.sh
 else
-    echo "Not building layers, ensure they've already been built or re-run with 'REBUILD_LAYERS=true ./scripts/run_integration_tests.sh'"
+    echo "Not building layers, ensure they've already been built or re-run with 'REBUILD_LAYERS=true DD_API_KEY=XXXX ./scripts/run_integration_tests.sh'"
 fi
 
 cd $integration_tests_dir
@@ -143,7 +143,7 @@ done
 
 if [ "$mismatch_found" = true ]; then
     echo "FAILURE: A mismatch between new data and a snapshot was found and printed above."
-    echo "If the change is expected, generate new snapshots by running 'UPDATE_SNAPSHOTS=true ./scripts/run_integration_tests.sh'"
+    echo "If the change is expected, generate new snapshots by running 'UPDATE_SNAPSHOTS=true DD_API_KEY=XXXX ./scripts/run_integration_tests.sh'"
     exit 1
 fi
 
