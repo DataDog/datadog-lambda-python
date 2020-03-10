@@ -1,7 +1,0 @@
-START RequestId: XXXX Version: $LATEST
-{"e": XXXX, "m": "aws.lambda.enhanced.invocations", "t": ["region:us-east-1", "account_id:601427279990", "functionname:integration-tester-dev-async-metrics_python27", "cold_start:true", "memorysize:1024", "runtime:python2.7", "dd_lambda_layer:datadog-python27_2.13.0"], "v": 1}
-{"e": XXXX, "m": "hello.dog", "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python27_2.13.0"], "v": 1}
-{"e": XXXX, "m": "tests.integration.count", "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python27_2.13.0"], "v": 21}
-END RequestId: XXXX
-REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	Init Duration: XXXX ms	
-XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	

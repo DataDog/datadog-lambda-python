@@ -1,0 +1,24 @@
+START RequestId: XXXX Version: $LATEST
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:601427279990", "functionname:integration-tester-dev-http-requests_python36", "cold_start:true", "memorysize:1024", "runtime:python3.6", "dd_lambda_layer:datadog-python36_2.13.0"]}
+HTTP GET https://ip-ranges.datadoghq.com/ Headers: ["x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:2", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://ip-ranges.datadoghq.eu/ Headers: ["x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:2", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Content-Type:application/json", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:2", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_2.13.0"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_2.13.0"], "interval": 10}]}
+END RequestId: XXXX
+REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	Init Duration: XXXX ms	
+XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
+START RequestId: XXXX Version: $LATEST
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:601427279990", "functionname:integration-tester-dev-http-requests_python36", "cold_start:false", "memorysize:1024", "runtime:python3.6", "dd_lambda_layer:datadog-python36_2.13.0"]}
+HTTP GET https://ip-ranges.datadoghq.com/ Headers: ["x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:2", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://ip-ranges.datadoghq.eu/ Headers: ["x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:2", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Content-Type:application/json", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:2", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_2.13.0"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_2.13.0"], "interval": 10}]}
+END RequestId: XXXX
+REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
+XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
+START RequestId: XXXX Version: $LATEST
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:601427279990", "functionname:integration-tester-dev-http-requests_python36", "cold_start:false", "memorysize:1024", "runtime:python3.6", "dd_lambda_layer:datadog-python36_2.13.0"]}
+HTTP GET https://ip-ranges.datadoghq.com/ Headers: ["x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:2", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://ip-ranges.datadoghq.eu/ Headers: ["x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:2", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Content-Type:application/json", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:2", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_2.13.0"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_2.13.0"], "interval": 10}]}
+END RequestId: XXXX
+REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
+XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	

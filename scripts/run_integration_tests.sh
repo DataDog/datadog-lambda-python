@@ -42,8 +42,12 @@ else
     echo "Not building layers, ensure they've already been built or re-run with 'REBUILD_LAYERS=true ./scripts/run_integration_tests.sh'"
 fi
 
-echo "Deploying functions"
 cd $integration_tests_dir
+input_event_files=$(ls ./input_events)
+# Sort events by name so that snapshots stay consistent
+input_event_files=($(for file_name in ${input_event_files[@]}; do echo $file_name; done | sort))
+
+echo "Deploying functions"
 serverless deploy
 
 echo "Invoking functions"
@@ -51,27 +55,36 @@ set +e # Don't immediately exit this script if an invocation fails or there's a 
 for handler_name in "${LAMBDA_HANDLERS[@]}"; do
     for runtime in "${RUNTIMES[@]}"; do
         function_name="${handler_name}_${runtime}"
-        function_snapshot_path="./snapshots/$function_name.return_value"
+        # Invoke function once for each input event
+        for input_event_file in "${input_event_files[@]}"; do
+            echo "input_event_file=$input_event_file"
+            # Get event name without trailing ".json" so we can build the snapshot name
+            input_event_name=$(echo "$input_event_file" | sed "s/.json//")
+            # Return value snapshot file format is snapshots/return_values/{handler}_{runtime}_{input-event}
+            snapshot_path="./snapshots/return_values/${function_name}_${input_event_name}.json"
 
-        return_value=$(serverless invoke -f $function_name)
+            return_value=$(serverless invoke -f $function_name --path "./input_events/$input_event_file")
 
-        if [ -n "$UPDATE_SNAPSHOTS" ] || [ ! -f $function_snapshot_path ]; then
-            # If $UPDATE_SNAPSHOTS is set to true, write the new logs over the current snapshot
-            # If the snapshot file doesn't exist yet, we create it
-            echo "Writing return value snapshot for $function_name"
-            echo "$return_value" >$function_snapshot_path
-        else
-            # Compare new return value to snapshot
-            diff_output=$(echo "$return_value" | diff - $function_snapshot_path)
-            if [ $? -eq 1 ]; then
-                echo "Failed: Return value for $function_name does not match snapshot:"
-                echo "$diff_output"
-                mismatch_found=true
+            if [ -n "$UPDATE_SNAPSHOTS" ] || [ ! -f $snapshot_path ]; then
+                # If $UPDATE_SNAPSHOTS is set to true, write the new logs over the current snapshot
+                # If the snapshot file doesn't exist yet, we create it
+                echo "Writing return value snapshot for $snapshot_path"
+                echo "$return_value" >$snapshot_path
             else
-                echo "Ok: Return value for $function_name matches snapshot"
+                # Compare new return value to snapshot
+                diff_output=$(echo "$return_value" | diff - $snapshot_path)
+                if [ $? -eq 1 ]; then
+                    echo "Failed: Return value for $function_name does not match snapshot:"
+                    echo "$diff_output"
+                    mismatch_found=true
+                else
+                    echo "Ok: Return value for $function_name matches snapshot"
+                fi
             fi
-        fi
+        done
+
     done
+
 done
 set -e
 
@@ -82,7 +95,7 @@ echo "Fetching logs for invocations and comparing to snapshots"
 for handler_name in "${LAMBDA_HANDLERS[@]}"; do
     for runtime in "${RUNTIMES[@]}"; do
         function_name="${handler_name}_${runtime}"
-        function_snapshot_path="./snapshots/$function_name.logs"
+        function_snapshot_path="./snapshots/logs/$function_name.log"
 
         # Fetch logs with serverless cli
         raw_logs=$(serverless logs -f $function_name --startTime $script_start_time)
@@ -92,6 +105,8 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
             echo "$raw_logs" |
                 # Filter serverless cli errors
                 sed '/Serverless: Recoverable error occurred/d' |
+                # Remove blank lines
+                sed '/^$/d' |
                 # Normalize Lambda runtime report logs
                 sed -E 's/(RequestId|TraceId|SegmentId|Duration|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g' |
                 # Normalize DD APM headers
