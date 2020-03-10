@@ -24,8 +24,6 @@ script_start_time=$(date --iso-8601=seconds)
 
 mismatch_found=false
 
-echo "Start time is $script_start_time"
-
 if [ -z "$DD_API_KEY" ]; then
     echo "No DD_API_KEY env var set, exiting"
     exit 1

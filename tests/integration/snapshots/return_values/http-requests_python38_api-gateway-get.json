@@ -1,4 +1,6 @@
 {
     "statusCode": 200,
-    "body": "hello, dog!"
+    "body": {
+        "message": "hello, dog!"
+    }
 }

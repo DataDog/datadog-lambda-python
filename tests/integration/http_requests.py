@@ -15,4 +15,4 @@ def handle(event, context):
     us_response = requests.get("https://ip-ranges.datadoghq.com/")
     eu_response = requests.get("https://ip-ranges.datadoghq.eu/")
 
-    return {"statusCode": 200, "body": "hello, dog!"}
+    return {"statusCode": 200, "body": {"message": "hello, dog!"}}
