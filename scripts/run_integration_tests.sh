@@ -109,8 +109,8 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed '/^$/d' |
                 # Normalize Lambda runtime report logs
                 sed -E 's/(RequestId|TraceId|SegmentId|Duration|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g' |
-                # Normalize DD APM headers
-                sed -E "s/(x-datadog-parent-id:|x-datadog-trace-id:)[0-9]+/\1XXXX/g" |
+                # Normalize DD APM headers and AWS account ID
+                sed -E "s/(x-datadog-parent-id:|x-datadog-trace-id:|account_id:)[0-9]+/\1XXXX/g" |
                 # Normalize timestamps in datapoints POSTed to DD
                 sed -E 's/"points": \[\[[0-9\.]+,/"points": \[\[XXXX,/g' |
                 # Strip API key from logged requests
