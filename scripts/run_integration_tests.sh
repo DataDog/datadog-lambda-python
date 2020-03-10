@@ -114,7 +114,9 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 # Normalize timestamps in datapoints POSTed to DD
                 sed -E 's/"points": \[\[[0-9\.]+,/"points": \[\[XXXX,/g' |
                 # Strip API key from logged requests
-                sed -E "s/(api_key=|'api_key': ')[a-z0-9\.\-]+/\1XXXX/g"
+                sed -E "s/(api_key=|'api_key': ')[a-z0-9\.\-]+/\1XXXX/g" |
+                # Normalize minor package version so that these snapshots aren't broken on version bumps
+                sed -E "s/(dd_lambda_layer:datadog-python[0-9]+_2\.)[0-9]+\.0/\1XX\.0/g"
         )
 
         if [ ! -f $function_snapshot_path ]; then
