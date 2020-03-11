@@ -1,5 +1,5 @@
-*Note: Please remember to review the [contribution guidelines](https://github.com/DataDog/datadog-lambda-layer-python/blob/master/CONTRIBUTING.md)
-if you have not yet done so.*
+_Note: Please remember to review the [contribution guidelines](https://github.com/DataDog/datadog-lambda-layer-python/blob/master/CONTRIBUTING.md)
+if you have not yet done so._
 
 ### What does this PR do?
 
@@ -16,3 +16,7 @@ How did you test this pull request?
 ### Additional Notes
 
 Anything else we should know when reviewing?
+
+### Checklist
+
+- [ ] Member of the Datadog team has run integration tests and updated snapshots if necessary
