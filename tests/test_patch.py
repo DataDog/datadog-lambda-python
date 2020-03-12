@@ -7,7 +7,7 @@ except ImportError:
 
 from datadog_lambda.patch import (
     _patch_httplib,
-    _patch_requests,
+    _ensure_patch_requests,
 )
 from datadog_lambda.constants import TraceHeader
 
@@ -15,12 +15,12 @@ from datadog_lambda.constants import TraceHeader
 class TestPatchHTTPClients(unittest.TestCase):
 
     def setUp(self):
-        patcher = patch('datadog_lambda.patch.get_dd_trace_context')
+        patcher = patch("datadog_lambda.patch.get_dd_trace_context")
         self.mock_get_dd_trace_context = patcher.start()
         self.mock_get_dd_trace_context.return_value = {
-            TraceHeader.TRACE_ID: '123',
-            TraceHeader.PARENT_ID: '321',
-            TraceHeader.SAMPLING_PRIORITY: '2',
+            TraceHeader.TRACE_ID: "123",
+            TraceHeader.PARENT_ID: "321",
+            TraceHeader.SAMPLING_PRIORITY: "2",
         }
         self.addCleanup(patcher.stop)
 
@@ -34,10 +34,29 @@ class TestPatchHTTPClients(unittest.TestCase):
         self.mock_get_dd_trace_context.assert_called()
 
     def test_patch_requests(self):
-        _patch_requests()
+        _ensure_patch_requests()
         import requests
         r = requests.get("https://www.datadoghq.com/")
         self.mock_get_dd_trace_context.assert_called()
-        self.assertEqual(r.request.headers[TraceHeader.TRACE_ID], '123')
-        self.assertEqual(r.request.headers[TraceHeader.PARENT_ID], '321')
-        self.assertEqual(r.request.headers[TraceHeader.SAMPLING_PRIORITY], '2')
+        self.assertEqual(r.request.headers[TraceHeader.TRACE_ID], "123")
+        self.assertEqual(r.request.headers[TraceHeader.PARENT_ID], "321")
+        self.assertEqual(r.request.headers[TraceHeader.SAMPLING_PRIORITY], "2")
+
+    def test_patch_requests_with_headers(self):
+        _ensure_patch_requests()
+        import requests
+        r = requests.get("https://www.datadoghq.com/", headers={"key": "value"})
+        self.mock_get_dd_trace_context.assert_called()
+        self.assertEqual(r.request.headers["key"], "value")
+        self.assertEqual(r.request.headers[TraceHeader.TRACE_ID], "123")
+        self.assertEqual(r.request.headers[TraceHeader.PARENT_ID], "321")
+        self.assertEqual(r.request.headers[TraceHeader.SAMPLING_PRIORITY], "2")
+
+    def test_patch_requests_with_headers_none(self):
+        _ensure_patch_requests()
+        import requests
+        r = requests.get("https://www.datadoghq.com/", headers=None)
+        self.mock_get_dd_trace_context.assert_called()
+        self.assertEqual(r.request.headers[TraceHeader.TRACE_ID], "123")
+        self.assertEqual(r.request.headers[TraceHeader.PARENT_ID], "321")
+        self.assertEqual(r.request.headers[TraceHeader.SAMPLING_PRIORITY], "2")

@@ -1,4 +1,3 @@
-import json
 import requests
 
 from datadog_lambda.metric import lambda_metric
@@ -12,7 +11,7 @@ def handle(event, context):
         "tests.integration.count", 21, tags=["test:integration", "role:hello"]
     )
 
-    us_response = requests.get("https://ip-ranges.datadoghq.com/")
-    eu_response = requests.get("https://ip-ranges.datadoghq.eu/")
+    requests.get("https://ip-ranges.datadoghq.com/")
+    requests.get("https://ip-ranges.datadoghq.eu/")
 
     return {"statusCode": 200, "body": {"message": "hello, dog!"}}
