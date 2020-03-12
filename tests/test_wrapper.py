@@ -26,7 +26,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
     def setUp(self):
         # Force @datadog_lambda_wrapper to always create a real
         # (not no-op) wrapper.
-        datadog_lambda_wrapper._force_new = True
+        datadog_lambda_wrapper._force_wrap = True
 
         patcher = patch("datadog_lambda.metric.lambda_stats")
         self.mock_metric_lambda_stats = patcher.start()
@@ -265,9 +265,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
 
-        # Turn off _force_new to emulate the nested wrapper scenario,
+        # Turn off _force_wrap to emulate the nested wrapper scenario,
         # the second @datadog_lambda_wrapper should actually be no-op.
-        datadog_lambda_wrapper._force_new = False
+        datadog_lambda_wrapper._force_wrap = False
 
         lambda_handler_double_wrapped = datadog_lambda_wrapper(lambda_handler)
 
