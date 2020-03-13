@@ -9,6 +9,7 @@ import sys
 import logging
 
 from wrapt import wrap_function_wrapper as wrap
+from wrapt.importer import when_imported
 
 from datadog_lambda.tracing import get_dd_trace_context
 
@@ -29,7 +30,7 @@ def patch_all():
     Datadog trace context.
     """
     _patch_httplib()
-    _patch_requests()
+    _ensure_patch_requests()
 
 
 def _patch_httplib():
@@ -45,7 +46,20 @@ def _patch_httplib():
     logger.debug("Patched %s", httplib_module)
 
 
-def _patch_requests():
+def _ensure_patch_requests():
+    """
+    `requests` is third-party, may not be installed or used,
+    but ensure it gets patched if installed and used.
+    """
+    if "requests" in sys.modules:
+        # already imported, patch now
+        _patch_requests(sys.modules["requests"])
+    else:
+        # patch when imported
+        when_imported("requests")(_patch_requests)
+
+
+def _patch_requests(module):
     """
     Patch the high-level HTTP client module `requests`
     if it's installed.
@@ -66,9 +80,9 @@ def _wrap_requests_request(func, instance, args, kwargs):
     into the outgoing requests.
     """
     context = get_dd_trace_context()
-    if "headers" in kwargs:
+    if "headers" in kwargs and isinstance(kwargs["headers"], dict):
         kwargs["headers"].update(context)
-    elif len(args) >= 5:
+    elif len(args) >= 5 and isinstance(args[4], dict):
         args[4].update(context)
     else:
         kwargs["headers"] = context
@@ -86,9 +100,9 @@ def _wrap_httplib_request(func, instance, args, kwargs):
     the Datadog trace headers into the outgoing requests.
     """
     context = get_dd_trace_context()
-    if "headers" in kwargs:
+    if "headers" in kwargs and isinstance(kwargs["headers"], dict):
         kwargs["headers"].update(context)
-    elif len(args) >= 4:
+    elif len(args) >= 4 and isinstance(args[3], dict):
         args[3].update(context)
     else:
         kwargs["headers"] = context

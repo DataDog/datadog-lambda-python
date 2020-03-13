@@ -53,37 +53,45 @@ class _LambdaDecorator(object):
     and extracts/injects trace context.
     """
 
-    _force_new = False
+    _force_wrap = False
 
     def __new__(cls, func):
         """
         If the decorator is accidentally applied to the same function multiple times,
-        only the first one takes effect.
+        wrap only once.
 
-        If _force_new, always return a real decorator, useful for unit tests.
+        If _force_wrap, always return a real decorator, useful for unit tests.
         """
-        if cls._force_new or not getattr(func, "_dd_wrapped", False):
-            wrapped = super(_LambdaDecorator, cls).__new__(cls)
-            wrapped._dd_wrapped = True
-            return wrapped
-        else:
-            return _NoopDecorator(func)
+        try:
+            if cls._force_wrap or not isinstance(func, _LambdaDecorator):
+                wrapped = super(_LambdaDecorator, cls).__new__(cls)
+                logger.debug("datadog_lambda_wrapper wrapped")
+                return wrapped
+            else:
+                logger.debug("datadog_lambda_wrapper already wrapped")
+                return _NoopDecorator(func)
+        except Exception:
+            traceback.print_exc()
+            return func
 
     def __init__(self, func):
         """Executes when the wrapped function gets wrapped"""
-        self.func = func
-        self.flush_to_log = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
-        self.logs_injection = (
-            os.environ.get("DD_LOGS_INJECTION", "true").lower() == "true"
-        )
+        try:
+            self.func = func
+            self.flush_to_log = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
+            self.logs_injection = (
+                os.environ.get("DD_LOGS_INJECTION", "true").lower() == "true"
+            )
 
-        # Inject trace correlation ids to logs
-        if self.logs_injection:
-            inject_correlation_ids()
+            # Inject trace correlation ids to logs
+            if self.logs_injection:
+                inject_correlation_ids()
 
-        # Patch HTTP clients to propagate Datadog trace context
-        patch_all()
-        logger.debug("datadog_lambda_wrapper initialized")
+            # Patch HTTP clients to propagate Datadog trace context
+            patch_all()
+            logger.debug("datadog_lambda_wrapper initialized")
+        except Exception:
+            traceback.print_exc()
 
     def __call__(self, event, context, **kwargs):
         """Executes when the wrapped function gets called"""
@@ -97,14 +105,15 @@ class _LambdaDecorator(object):
             self._after(event, context)
 
     def _before(self, event, context):
-        set_cold_start()
         try:
+            set_cold_start()
             submit_invocations_metric(context)
             # Extract Datadog trace context from incoming requests
             extract_dd_trace_context(event)
 
             # Set log correlation ids using extracted trace context
             set_correlation_ids()
+            logger.debug("datadog_lambda_wrapper _before() done")
         except Exception:
             traceback.print_exc()
 
@@ -112,6 +121,7 @@ class _LambdaDecorator(object):
         try:
             if not self.flush_to_log:
                 lambda_stats.flush(float("inf"))
+            logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
             traceback.print_exc()
 
