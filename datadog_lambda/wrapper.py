@@ -7,7 +7,7 @@ import os
 import logging
 import traceback
 
-from datadog_lambda.cold_start import set_cold_start
+from datadog_lambda.cold_start import set_cold_start, is_cold_start
 from datadog_lambda.metric import (
     lambda_stats,
     submit_invocations_metric,
@@ -18,7 +18,10 @@ from datadog_lambda.tracing import (
     extract_dd_trace_context,
     set_correlation_ids,
     inject_correlation_ids,
+    get_dd_trace_context,
 )
+from datadog_lambda.trace_wrapper import trace_wrapper
+from datadog_lambda.constants import Source
 
 
 logger = logging.getLogger(__name__)
@@ -39,7 +42,6 @@ def my_lambda_handle(event, context):
 
 
 class _NoopDecorator(object):
-
     def __init__(self, func):
         self.func = func
 
@@ -82,6 +84,8 @@ class _LambdaDecorator(object):
             self.logs_injection = (
                 os.environ.get("DD_LOGS_INJECTION", "true").lower() == "true"
             )
+            self.handler_name = os.environ.get("_HANDLER", "handler")
+            self.function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "function")
 
             # Inject trace correlation ids to logs
             if self.logs_injection:
@@ -106,10 +110,33 @@ class _LambdaDecorator(object):
 
     def _before(self, event, context):
         try:
+
             set_cold_start()
             submit_invocations_metric(context)
             # Extract Datadog trace context from incoming requests
-            extract_dd_trace_context(event)
+            dd_context = extract_dd_trace_context(event)
+            span_context = None
+            if dd_context["source"] == Source.EVENT:
+                span_context = trace_wrapper.extract(dd_context)
+
+            tags = {}
+            if context:
+                tags = {
+                    "cold_start": is_cold_start(),
+                    "function_arn": context.invoked_function_arn,
+                    "request_id": context.aws_request_id,
+                    "resource_names": context.function_name,
+                }
+            args = {
+                "service": self.function_name,
+                "resource": self.handler_name,
+                "span_type": "serverless",
+                "child_of": span_context,
+            }
+
+            self.span = trace_wrapper.start_span("aws.lambda", **args)
+            if self.span:
+                self.span.set_tags(tags)
 
             # Set log correlation ids using extracted trace context
             set_correlation_ids()
@@ -119,6 +146,8 @@ class _LambdaDecorator(object):
 
     def _after(self, event, context):
         try:
+            if self.span:
+                self.span.finish()
             if not self.flush_to_log:
                 lambda_stats.flush(float("inf"))
             logger.debug("datadog_lambda_wrapper _after() done")
