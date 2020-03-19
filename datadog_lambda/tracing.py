@@ -62,9 +62,9 @@ def _get_xray_trace_context():
 
 def _context_obj_to_headers(obj):
     return {
-        TraceHeader.TRACE_ID: obj.get("trace_id"),
-        TraceHeader.PARENT_ID: obj.get("parent_id"),
-        TraceHeader.SAMPLING_PRIORITY: obj.get("sampling_priority"),
+        TraceHeader.TRACE_ID: str(obj.get("trace_id")),
+        TraceHeader.PARENT_ID: str(obj.get("parent_id")),
+        TraceHeader.SAMPLING_PRIORITY: str(obj.get("sampling_priority")),
     }
 
 
@@ -122,23 +122,26 @@ def get_dd_trace_context():
     """
     global dd_trace_context
 
-    if not dd_trace_context:
-        return None
-    trace_context = _context_obj_to_headers(dd_trace_context)
-    datadog_context = trace_wrapper.trace_context
-    if datadog_context:
-        logger.debug("get_dd_trace_context using dd-trace context")
-        return datadog_context
+    native_trace_context = trace_wrapper.trace_context
+    if native_trace_context:
+        logger.info("get_dd_trace_context using dd-trace context")
+        return _context_obj_to_headers(native_trace_context)
+
     try:
+        trace_headers = _context_obj_to_headers(dd_trace_context)
         xray_context = _get_xray_trace_context()  # xray (sub)segment
-        if xray_context:
-            trace_context[TraceHeader.PARENT_ID] = xray_context["parent_id"]
+        if xray_context and not trace_headers:
+            return _context_obj_to_headers(xray_context)
+        if xray_context and trace_headers:
+            trace_headers[TraceHeader.PARENT_ID] = xray_context["parent-id"]
+            return trace_headers
     except Exception as e:
         logger.debug(
             "get_dd_trace_context couldn't read from segment from x-ray, with error %s"
             % e
         )
-    return trace_context
+
+    return {}
 
 
 def set_correlation_ids():

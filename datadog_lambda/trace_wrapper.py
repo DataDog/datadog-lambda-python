@@ -22,7 +22,7 @@ class TraceWrapper:
         if not tracer:
             return None
 
-        return self._tracer.start_span(name, **kwargs)
+        return tracer.start_span(name, **kwargs)
 
     def _load_tracer(self):
         if not TraceWrapper.tracer_enabled():
@@ -50,8 +50,8 @@ class TraceWrapper:
         parent_id = span.context.span_id
         trace_id = span.context.trace_id
         return {
-            "parent_id": parent_id,
-            "trace_id": trace_id,
+            "parent_id": str(parent_id),
+            "trace_id": str(trace_id),
             "sampling_priority": SamplingPriority.AUTO_KEEP,
             "source": Source.DDTRACE,
         }
