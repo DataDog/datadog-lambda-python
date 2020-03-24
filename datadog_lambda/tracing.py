@@ -71,9 +71,9 @@ def _get_dd_trace_native_context():
     parent_id = span.context.span_id
     trace_id = span.context.trace_id
     return {
-        "parent_id": str(parent_id),
-        "trace_id": str(trace_id),
-        "sampling_priority": SamplingPriority.AUTO_KEEP,
+        "parent-id": str(parent_id),
+        "trace-id": str(trace_id),
+        "sampling-priority": SamplingPriority.AUTO_KEEP,
         "source": Source.DDTRACE,
     }
 
@@ -106,17 +106,17 @@ def extract_dd_trace_context(event):
     sampling_priority = lowercase_headers.get(TraceHeader.SAMPLING_PRIORITY)
     if trace_id and parent_id and sampling_priority:
         logger.debug("Extracted Datadog trace context from headers")
-        dd_trace_context = {
+        metadata = {
             "trace-id": trace_id,
             "parent-id": parent_id,
             "sampling-priority": sampling_priority,
-            "source": Source.EVENT,
         }
         xray_recorder.begin_subsegment(XraySubsegment.NAME)
         subsegment = xray_recorder.current_subsegment()
-        subsegment.put_metadata(
-            XraySubsegment.KEY, dd_trace_context, XraySubsegment.NAMESPACE
-        )
+
+        subsegment.put_metadata(XraySubsegment.KEY, metadata, XraySubsegment.NAMESPACE)
+        dd_trace_context = metadata.copy()
+        dd_trace_context["source"] = Source.EVENT
         xray_recorder.end_subsegment()
     else:
         # AWS Lambda runtime caches global variables between invocations,

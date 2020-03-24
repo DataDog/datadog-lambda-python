@@ -22,7 +22,7 @@ from datadog_lambda.tracing import (
     set_correlation_ids,
 )
 from datadog_lambda.constants import Source
-from ddtrace import tracer, Span
+from ddtrace import tracer
 from ddtrace.propagation.http import HTTPPropagator
 
 
