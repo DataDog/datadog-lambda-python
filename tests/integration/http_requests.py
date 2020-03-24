@@ -2,6 +2,10 @@ import requests
 
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.wrapper import datadog_lambda_wrapper
+from ddtrace import tracer
+from ddtrace.internal.writer import LogWriter
+
+tracer.writer = LogWriter()
 
 
 @datadog_lambda_wrapper
