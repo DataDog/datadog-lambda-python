@@ -39,7 +39,6 @@ def my_lambda_handle(event, context):
 
 
 class _NoopDecorator(object):
-
     def __init__(self, func):
         self.func = func
 
