@@ -1,19 +1,16 @@
 import sys
 import unittest
+
 try:
     from unittest.mock import patch
 except ImportError:
     from mock import patch
 
-from datadog_lambda.patch import (
-    _patch_httplib,
-    _ensure_patch_requests,
-)
+from datadog_lambda.patch import _patch_httplib, _ensure_patch_requests
 from datadog_lambda.constants import TraceHeader
 
 
 class TestPatchHTTPClients(unittest.TestCase):
-
     def setUp(self):
         patcher = patch("datadog_lambda.patch.get_dd_trace_context")
         self.mock_get_dd_trace_context = patcher.start()
@@ -36,6 +33,7 @@ class TestPatchHTTPClients(unittest.TestCase):
     def test_patch_requests(self):
         _ensure_patch_requests()
         import requests
+
         r = requests.get("https://www.datadoghq.com/")
         self.mock_get_dd_trace_context.assert_called()
         self.assertEqual(r.request.headers[TraceHeader.TRACE_ID], "123")
@@ -45,6 +43,7 @@ class TestPatchHTTPClients(unittest.TestCase):
     def test_patch_requests_with_headers(self):
         _ensure_patch_requests()
         import requests
+
         r = requests.get("https://www.datadoghq.com/", headers={"key": "value"})
         self.mock_get_dd_trace_context.assert_called()
         self.assertEqual(r.request.headers["key"], "value")
@@ -55,6 +54,7 @@ class TestPatchHTTPClients(unittest.TestCase):
     def test_patch_requests_with_headers_none(self):
         _ensure_patch_requests()
         import requests
+
         r = requests.get("https://www.datadoghq.com/", headers=None)
         self.mock_get_dd_trace_context.assert_called()
         self.assertEqual(r.request.headers[TraceHeader.TRACE_ID], "123")
