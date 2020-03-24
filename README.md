@@ -10,7 +10,7 @@ Datadog Lambda Layer for Python (2.7, 3.6, 3.7 and 3.8) enables custom metric su
 
 ## IMPORTANT NOTE
 
-AWS Lambda is expected to recieve a [breaking change](https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/) on **March 30th, 2020**. If you are using Datadog Python Lambda layer version 7 or below, please upgrade to version 11. 
+AWS Lambda is expected to recieve a [breaking change](https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/) on **January 30, 2021**. If you are using Datadog Python Lambda layer version 7 or below, please upgrade to version 11. 
 
 ## Installation
 

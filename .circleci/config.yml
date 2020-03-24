@@ -32,6 +32,11 @@ jobs:
           command: |
             source venv/bin/activate
             flake8 datadog_lambda/
+      - run:
+          name: Check Formatting
+          command: |
+            source venv/bin/activate
+            ./scripts/check_format.sh
 
       - save_cache:
           paths:

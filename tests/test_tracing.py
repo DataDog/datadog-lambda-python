@@ -179,7 +179,6 @@ class TestXRayContextConversion(unittest.TestCase):
 
 class TestLogsInjection(unittest.TestCase):
     def setUp(self):
-
         patcher = patch("datadog_lambda.tracing.get_dd_trace_context")
         self.mock_get_dd_trace_context = patcher.start()
         self.mock_get_dd_trace_context.return_value = {
@@ -198,4 +197,3 @@ class TestLogsInjection(unittest.TestCase):
         trace_id, span_id = get_correlation_ids()
         self.assertEqual(trace_id, "123")
         self.assertEqual(span_id, "456")
-
