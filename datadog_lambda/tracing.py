@@ -4,22 +4,25 @@
 # Copyright 2019 Datadog, Inc.
 
 import logging
+import os
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core.lambda_launcher import LambdaContext
 
-from ddtrace import patch, tracer
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
     XraySubsegment,
     Source,
 )
-from datadog_lambda.trace_wrapper import trace_wrapper
+from ddtrace import tracer, patch
 
 logger = logging.getLogger(__name__)
 
 dd_trace_context = {}
+dd_native_tracing_enabled = (
+    os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
+)
 
 
 def _convert_xray_trace_id(xray_trace_id):
@@ -60,11 +63,26 @@ def _get_xray_trace_context():
     }
 
 
+def _get_dd_trace_native_context():
+    span = tracer.current_span()
+    if not span:
+        return None
+
+    parent_id = span.context.span_id
+    trace_id = span.context.trace_id
+    return {
+        "parent_id": str(parent_id),
+        "trace_id": str(trace_id),
+        "sampling_priority": SamplingPriority.AUTO_KEEP,
+        "source": Source.DDTRACE,
+    }
+
+
 def _context_obj_to_headers(obj):
     return {
-        TraceHeader.TRACE_ID: str(obj.get("trace_id")),
-        TraceHeader.PARENT_ID: str(obj.get("parent_id")),
-        TraceHeader.SAMPLING_PRIORITY: str(obj.get("sampling_priority")),
+        TraceHeader.TRACE_ID: str(obj.get("trace-id")),
+        TraceHeader.PARENT_ID: str(obj.get("parent-id")),
+        TraceHeader.SAMPLING_PRIORITY: str(obj.get("sampling-priority")),
     }
 
 
@@ -122,10 +140,11 @@ def get_dd_trace_context():
     """
     global dd_trace_context
 
-    native_trace_context = trace_wrapper.trace_context
-    if native_trace_context:
-        logger.info("get_dd_trace_context using dd-trace context")
-        return _context_obj_to_headers(native_trace_context)
+    if dd_native_tracing_enabled:
+        native_trace_context = _get_dd_trace_native_context()
+        if native_trace_context is not None:
+            logger.info("get_dd_trace_context using dd-trace context")
+            return _context_obj_to_headers(native_trace_context)
 
     try:
         trace_headers = _context_obj_to_headers(dd_trace_context)
@@ -154,6 +173,9 @@ def set_correlation_ids():
     """
     if not is_lambda_context():
         logger.debug("set_correlation_ids is only supported in LambdaContext")
+        return
+    if dd_native_tracing_enabled:
+        logger.debug("using ddtrace implementation for spans")
         return
 
     context = get_dd_trace_context()

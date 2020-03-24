@@ -10,6 +10,7 @@ WORKDIR /build
 # Install datadog_lambda and dependencies from local
 COPY . .
 RUN pip install . -t ./python/lib/$runtime/site-packages
+RUN pip install --find-links=https://s3.amazonaws.com/pypi.datadoghq.com/trace-dev/index.html ddtrace==0.35.1.dev5+g1e11b2dd -t ./python/lib/$runtime/site-packages
 
 # Remove *.pyc files
 RUN find ./python/lib/$runtime/site-packages -name \*.pyc -delete

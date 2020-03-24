@@ -16,12 +16,14 @@ from datadog_lambda.metric import (
 from datadog_lambda.patch import patch_all
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
-    set_correlation_ids,
     inject_correlation_ids,
     get_dd_trace_context,
+    dd_native_tracing_enabled,
+    set_correlation_ids,
 )
-from datadog_lambda.trace_wrapper import trace_wrapper
 from datadog_lambda.constants import Source
+from ddtrace import tracer, Span
+from ddtrace.propagation.http import HTTPPropagator
 
 
 logger = logging.getLogger(__name__)
@@ -84,8 +86,12 @@ class _LambdaDecorator(object):
             self.logs_injection = (
                 os.environ.get("DD_LOGS_INJECTION", "true").lower() == "true"
             )
+            self.merge_xray_traces = (
+                os.environ.get("DD_MERGE_XRAY_TRACES", "false").lower() == "true"
+            )
             self.handler_name = os.environ.get("_HANDLER", "handler")
             self.function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "function")
+            self.propagator = HTTPPropagator()
 
             # Inject trace correlation ids to logs
             if self.logs_injection:
@@ -116,8 +122,9 @@ class _LambdaDecorator(object):
             # Extract Datadog trace context from incoming requests
             dd_context = extract_dd_trace_context(event)
             span_context = None
-            if dd_context["source"] == Source.EVENT:
-                span_context = trace_wrapper.extract(dd_context)
+            if dd_context["source"] == Source.EVENT or self.merge_xray_traces:
+                headers = get_dd_trace_context()
+                span_context = self.propagator.extract(headers)
 
             tags = {}
             if context:
@@ -134,12 +141,14 @@ class _LambdaDecorator(object):
                 "child_of": span_context,
             }
 
-            self.span = trace_wrapper.start_span("aws.lambda", **args)
-            if self.span:
-                self.span.set_tags(tags)
+            self.span = None
+            if dd_native_tracing_enabled:
+                self.span = tracer.start_span("aws.lambda", **args)
+                if self.span:
+                    self.span.set_tags(tags)
+            else:
+                set_correlation_ids()
 
-            # Set log correlation ids using extracted trace context
-            set_correlation_ids()
             logger.debug("datadog_lambda_wrapper _before() done")
         except Exception:
             traceback.print_exc()
