@@ -36,8 +36,7 @@ jobs:
           name: Check Formatting
           command: |
             source venv/bin/activate
-            black --check datadog_lambda/
-            black --check tests
+            ./scripts/check_format.sh
 
       - save_cache:
           paths:
