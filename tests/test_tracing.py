@@ -6,7 +6,6 @@ except ImportError:
     from mock import MagicMock, patch
 
 from ddtrace.helpers import get_correlation_ids
-from ddtrace import tracer
 
 from datadog_lambda.constants import SamplingPriority, TraceHeader, XraySubsegment
 from datadog_lambda.tracing import (
@@ -16,14 +15,13 @@ from datadog_lambda.tracing import (
     _convert_xray_trace_id,
     _convert_xray_entity_id,
     _convert_xray_sampling,
-    dd_native_tracing_enabled,
 )
 
 
 class TestExtractAndGetDDTraceContext(unittest.TestCase):
     def setUp(self):
-        global dd_native_tracing_enabled
-        dd_native_tracing_enabled = False
+        global dd_tracing_enabled
+        dd_tracing_enabled = False
         patcher = patch("datadog_lambda.tracing.xray_recorder")
         self.mock_xray_recorder = patcher.start()
         self.mock_xray_recorder.get_trace_entity.return_value = MagicMock(
@@ -41,8 +39,8 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def tearDown(self):
-        global dd_native_tracing_enabled
-        dd_native_tracing_enabled = False
+        global dd_tracing_enabled
+        dd_tracing_enabled = False
 
     def test_without_datadog_trace_headers(self):
         ctx = extract_dd_trace_context({})

@@ -18,10 +18,10 @@ from datadog_lambda.tracing import (
     extract_dd_trace_context,
     inject_correlation_ids,
     get_dd_trace_context,
-    dd_native_tracing_enabled,
+    dd_tracing_enabled,
     set_correlation_ids,
 )
-from datadog_lambda.constants import Source
+from datadog_lambda.constants import TraceContextSource
 from ddtrace import tracer
 from ddtrace.propagation.http import HTTPPropagator
 
@@ -97,8 +97,10 @@ class _LambdaDecorator(object):
             if self.logs_injection:
                 inject_correlation_ids()
 
-            # Patch HTTP clients to propagate Datadog trace context
-            patch_all()
+            if not dd_tracing_enabled:
+                # When using dd_trace_py it will patch all the http clients for us,
+                # Patch HTTP clients to propagate Datadog trace context
+                patch_all()
             logger.debug("datadog_lambda_wrapper initialized")
         except Exception:
             traceback.print_exc()
@@ -121,31 +123,10 @@ class _LambdaDecorator(object):
             submit_invocations_metric(context)
             # Extract Datadog trace context from incoming requests
             dd_context = extract_dd_trace_context(event)
-            span_context = None
-            if dd_context["source"] == Source.EVENT or self.merge_xray_traces:
-                headers = get_dd_trace_context()
-                span_context = self.propagator.extract(headers)
-
-            tags = {}
-            if context:
-                tags = {
-                    "cold_start": is_cold_start(),
-                    "function_arn": context.invoked_function_arn,
-                    "request_id": context.aws_request_id,
-                    "resource_names": context.function_name,
-                }
-            args = {
-                "service": self.function_name,
-                "resource": self.handler_name,
-                "span_type": "serverless",
-                "child_of": span_context,
-            }
 
             self.span = None
-            if dd_native_tracing_enabled:
-                self.span = tracer.start_span("aws.lambda", **args)
-                if self.span:
-                    self.span.set_tags(tags)
+            if dd_tracing_enabled:
+                self.span = self._create_dd_trace_py_span(context, dd_context)
             else:
                 set_correlation_ids()
 
@@ -162,6 +143,34 @@ class _LambdaDecorator(object):
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
             traceback.print_exc()
+
+    def _create_dd_trace_py_span(self, context, trace_context):
+        span_context = None
+        if (
+            trace_context["source"] == TraceContextSource.EVENT
+            or self.merge_xray_traces
+        ):
+            headers = get_dd_trace_context()
+            span_context = self.propagator.extract(headers)
+
+        tags = {}
+        if context:
+            tags = {
+                "cold_start": is_cold_start(),
+                "function_arn": context.invoked_function_arn,
+                "request_id": context.aws_request_id,
+                "resource_names": context.function_name,
+            }
+        args = {
+            "service": self.function_name,
+            "resource": self.handler_name,
+            "span_type": "serverless",
+            "child_of": span_context,
+        }
+        span = tracer.start_span("aws.lambda", **args)
+        if span:
+            span.set_tags(tags)
+        return span
 
 
 datadog_lambda_wrapper = _LambdaDecorator

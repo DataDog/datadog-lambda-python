@@ -13,16 +13,14 @@ from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
     XraySubsegment,
-    Source,
+    TraceContextSource,
 )
 from ddtrace import tracer, patch
 
 logger = logging.getLogger(__name__)
 
 dd_trace_context = {}
-dd_native_tracing_enabled = (
-    os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
-)
+dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
 
 
 def _convert_xray_trace_id(xray_trace_id):
@@ -59,22 +57,23 @@ def _get_xray_trace_context():
         "trace-id": _convert_xray_trace_id(xray_trace_entity.trace_id),
         "parent-id": _convert_xray_entity_id(xray_trace_entity.id),
         "sampling-priority": _convert_xray_sampling(xray_trace_entity.sampled),
-        "source": Source.XRAY,
+        "source": TraceContextSource.XRAY,
     }
 
 
-def _get_dd_trace_native_context():
+def _get_dd_trace_py_context():
     span = tracer.current_span()
     if not span:
         return None
 
     parent_id = span.context.span_id
     trace_id = span.context.trace_id
+    sampling_priority = span.context.sampling_priority
     return {
         "parent-id": str(parent_id),
         "trace-id": str(trace_id),
-        "sampling-priority": SamplingPriority.AUTO_KEEP,
-        "source": Source.DDTRACE,
+        "sampling-priority": str(sampling_priority),
+        "source": TraceContextSource.DDTRACE,
     }
 
 
@@ -116,7 +115,7 @@ def extract_dd_trace_context(event):
 
         subsegment.put_metadata(XraySubsegment.KEY, metadata, XraySubsegment.NAMESPACE)
         dd_trace_context = metadata.copy()
-        dd_trace_context["source"] = Source.EVENT
+        dd_trace_context["source"] = TraceContextSource.EVENT
         xray_recorder.end_subsegment()
     else:
         # AWS Lambda runtime caches global variables between invocations,
@@ -132,7 +131,7 @@ def get_dd_trace_context():
 
     If the Lambda function is invoked by a Datadog-traced service, a Datadog
     trace context may already exist, and it should be used. Otherwise, use the
-    current X-Ray trace entity.
+    current X-Ray trace entity, or the dd-trace-py context if DD_TRACE_ENABLED is true.
 
     Most of widely-used HTTP clients are patched to inject the context
     automatically, but this function can be used to manually inject the trace
@@ -140,27 +139,30 @@ def get_dd_trace_context():
     """
     global dd_trace_context
 
-    if dd_native_tracing_enabled:
-        native_trace_context = _get_dd_trace_native_context()
-        if native_trace_context is not None:
-            logger.info("get_dd_trace_context using dd-trace context")
-            return _context_obj_to_headers(native_trace_context)
+    context = None
+    xray_context = None
 
     try:
-        trace_headers = _context_obj_to_headers(dd_trace_context)
         xray_context = _get_xray_trace_context()  # xray (sub)segment
-        if xray_context and not trace_headers:
-            return _context_obj_to_headers(xray_context)
-        if xray_context and trace_headers:
-            trace_headers[TraceHeader.PARENT_ID] = xray_context["parent-id"]
-            return trace_headers
     except Exception as e:
         logger.debug(
             "get_dd_trace_context couldn't read from segment from x-ray, with error %s"
             % e
         )
 
-    return {}
+    if xray_context and not dd_trace_context:
+        context = xray_context
+    elif xray_context and dd_trace_context:
+        context = dd_trace_context.copy()
+        context["parent-id"] = xray_context["parent-id"]
+
+    if dd_tracing_enabled:
+        dd_trace_py_context = _get_dd_trace_py_context()
+        if dd_trace_py_context is not None:
+            logger.debug("get_dd_trace_context using dd-trace context")
+            context = dd_trace_py_context
+
+    return _context_obj_to_headers(context) if context is not None else {}
 
 
 def set_correlation_ids():
@@ -174,7 +176,7 @@ def set_correlation_ids():
     if not is_lambda_context():
         logger.debug("set_correlation_ids is only supported in LambdaContext")
         return
-    if dd_native_tracing_enabled:
+    if dd_tracing_enabled:
         logger.debug("using ddtrace implementation for spans")
         return
 
