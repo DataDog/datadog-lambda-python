@@ -226,34 +226,29 @@ def is_lambda_context():
     return type(xray_recorder.context) == LambdaContext
 
 
-def create_function_execution_span(
-    context,
-    function_name,
-    handler_name,
-    is_cold_start,
-    trace_context,
-    merge_xray_traces,
-):
-    span_context = None
+def set_dd_trace_py_root(trace_context, merge_xray_traces):
     if trace_context["source"] == TraceContextSource.EVENT or merge_xray_traces:
         headers = get_dd_trace_context()
         span_context = propagator.extract(headers)
+        tracer.context_provider.activate(span_context)
 
+
+def create_function_execution_span(context, function_name, is_cold_start):
     tags = {}
     if context:
         tags = {
-            "cold_start": is_cold_start,
+            "cold_start": str(is_cold_start).lower(),
             "function_arn": context.invoked_function_arn,
             "request_id": context.aws_request_id,
             "resource_names": context.function_name,
         }
     args = {
-        "service": function_name,
-        "resource": handler_name,
+        "service": "aws.lambda",
+        "resource": function_name,
         "span_type": "serverless",
-        "child_of": span_context,
     }
-    span = tracer.start_span("aws.lambda", **args)
+    tracer.set_tags({"_dd.origin": "lambda"})
+    span = tracer.trace("aws.lambda", **args)
     if span:
         span.set_tags(tags)
     return span

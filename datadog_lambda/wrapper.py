@@ -19,6 +19,7 @@ from datadog_lambda.tracing import (
     inject_correlation_ids,
     dd_tracing_enabled,
     set_correlation_ids,
+    set_dd_trace_py_root,
     create_function_execution_span,
 )
 
@@ -85,7 +86,6 @@ class _LambdaDecorator(object):
             self.merge_xray_traces = (
                 os.environ.get("DD_MERGE_XRAY_TRACES", "false").lower() == "true"
             )
-            self.handler_name = os.environ.get("_HANDLER", "handler")
             self.function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "function")
 
             # Inject trace correlation ids to logs
@@ -120,15 +120,11 @@ class _LambdaDecorator(object):
             dd_context = extract_dd_trace_context(event)
 
             self.span = None
-            if dd_tracing_enabled:
 
+            if dd_tracing_enabled:
+                set_dd_trace_py_root(dd_context, self.merge_xray_traces)
                 self.span = create_function_execution_span(
-                    context,
-                    self.function_name,
-                    self.handler_name,
-                    is_cold_start(),
-                    dd_context,
-                    self.merge_xray_traces,
+                    context, self.function_name, is_cold_start()
                 )
             else:
                 set_correlation_ids()
