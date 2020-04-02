@@ -16,11 +16,14 @@ from datadog_lambda.constants import (
     TraceContextSource,
 )
 from ddtrace import tracer, patch
+from ddtrace.propagation.http import HTTPPropagator
 
 logger = logging.getLogger(__name__)
 
 dd_trace_context = {}
 dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
+
+propagator = HTTPPropagator()
 
 
 def _convert_xray_trace_id(xray_trace_id):
@@ -221,3 +224,36 @@ def is_lambda_context():
     regular `Context` (e.g., when testing lambda functions locally).
     """
     return type(xray_recorder.context) == LambdaContext
+
+
+def create_function_execution_span(
+    context,
+    function_name,
+    handler_name,
+    is_cold_start,
+    trace_context,
+    merge_xray_traces,
+):
+    span_context = None
+    if trace_context["source"] == TraceContextSource.EVENT or merge_xray_traces:
+        headers = get_dd_trace_context()
+        span_context = propagator.extract(headers)
+
+    tags = {}
+    if context:
+        tags = {
+            "cold_start": is_cold_start,
+            "function_arn": context.invoked_function_arn,
+            "request_id": context.aws_request_id,
+            "resource_names": context.function_name,
+        }
+    args = {
+        "service": function_name,
+        "resource": handler_name,
+        "span_type": "serverless",
+        "child_of": span_context,
+    }
+    span = tracer.start_span("aws.lambda", **args)
+    if span:
+        span.set_tags(tags)
+    return span

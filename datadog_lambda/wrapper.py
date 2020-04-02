@@ -17,14 +17,10 @@ from datadog_lambda.patch import patch_all
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
     inject_correlation_ids,
-    get_dd_trace_context,
     dd_tracing_enabled,
     set_correlation_ids,
+    create_function_execution_span,
 )
-from datadog_lambda.constants import TraceContextSource
-from ddtrace import tracer
-from ddtrace.propagation.http import HTTPPropagator
-
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +87,6 @@ class _LambdaDecorator(object):
             )
             self.handler_name = os.environ.get("_HANDLER", "handler")
             self.function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "function")
-            self.propagator = HTTPPropagator()
 
             # Inject trace correlation ids to logs
             if self.logs_injection:
@@ -126,7 +121,15 @@ class _LambdaDecorator(object):
 
             self.span = None
             if dd_tracing_enabled:
-                self.span = self._create_dd_trace_py_span(context, dd_context)
+
+                self.span = create_function_execution_span(
+                    context,
+                    self.function_name,
+                    self.handler_name,
+                    is_cold_start(),
+                    dd_context,
+                    self.merge_xray_traces,
+                )
             else:
                 set_correlation_ids()
 
@@ -143,34 +146,6 @@ class _LambdaDecorator(object):
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
             traceback.print_exc()
-
-    def _create_dd_trace_py_span(self, context, trace_context):
-        span_context = None
-        if (
-            trace_context["source"] == TraceContextSource.EVENT
-            or self.merge_xray_traces
-        ):
-            headers = get_dd_trace_context()
-            span_context = self.propagator.extract(headers)
-
-        tags = {}
-        if context:
-            tags = {
-                "cold_start": is_cold_start(),
-                "function_arn": context.invoked_function_arn,
-                "request_id": context.aws_request_id,
-                "resource_names": context.function_name,
-            }
-        args = {
-            "service": self.function_name,
-            "resource": self.handler_name,
-            "span_type": "serverless",
-            "child_of": span_context,
-        }
-        span = tracer.start_span("aws.lambda", **args)
-        if span:
-            span.set_tags(tags)
-        return span
 
 
 datadog_lambda_wrapper = _LambdaDecorator
