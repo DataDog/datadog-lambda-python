@@ -272,7 +272,7 @@ def lambda_handler(event, context):
 You can now trace Lambda functions using Datadog APM's tracing libraries ([dd-trace-py](https://github.com/DataDog/dd-trace-py)).
 
 1. If you are using the Lambda layer, upgrade it to at least version 15.
-1. If you are using the pip package `datadog-lambda-python`, upgrade it to at least version `v0.X.0`.
+1. If you are using the pip package `datadog-lambda-python`, upgrade it to at least version `v2.15.0`.
 1. Install (or update to) the latest version of [Datadog forwarder Lambda function](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#set-up-the-datadog-lambda-function). Ensure the trace forwarding layer is attached to the forwarder, e.g., ARN for Python 2.7 `arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-Trace-Forwarder-Python27:4`.
 1. Set the environment variable `DD_TRACE_ENABLED` to true on your function.
 1. Instrument your function using `dd-trace`.
@@ -282,6 +282,7 @@ from datadog_lambda.metric import lambda_metric
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 
 from ddtrace import tracer
+
 @datadog_lambda_wrapper
 def hello(event, context):
   return {
