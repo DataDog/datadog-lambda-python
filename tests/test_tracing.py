@@ -6,6 +6,7 @@ except ImportError:
     from mock import MagicMock, patch
 
 from ddtrace.helpers import get_correlation_ids
+
 from datadog_lambda.constants import SamplingPriority, TraceHeader, XraySubsegment
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
@@ -19,6 +20,8 @@ from datadog_lambda.tracing import (
 
 class TestExtractAndGetDDTraceContext(unittest.TestCase):
     def setUp(self):
+        global dd_tracing_enabled
+        dd_tracing_enabled = False
         patcher = patch("datadog_lambda.tracing.xray_recorder")
         self.mock_xray_recorder = patcher.start()
         self.mock_xray_recorder.get_trace_entity.return_value = MagicMock(
@@ -35,8 +38,21 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.mock_is_lambda_context.return_value = True
         self.addCleanup(patcher.stop)
 
+    def tearDown(self):
+        global dd_tracing_enabled
+        dd_tracing_enabled = False
+
     def test_without_datadog_trace_headers(self):
-        extract_dd_trace_context({})
+        ctx = extract_dd_trace_context({})
+        self.assertDictEqual(
+            ctx,
+            {
+                "trace-id": "4369",
+                "parent-id": "65535",
+                "sampling-priority": "2",
+                "source": "xray",
+            },
+        )
         self.assertDictEqual(
             get_dd_trace_context(),
             {
@@ -47,8 +63,17 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     def test_with_incomplete_datadog_trace_headers(self):
-        extract_dd_trace_context(
+        ctx = extract_dd_trace_context(
             {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321"}}
+        )
+        self.assertDictEqual(
+            ctx,
+            {
+                "trace-id": "4369",
+                "parent-id": "65535",
+                "sampling-priority": "2",
+                "source": "xray",
+            },
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -60,7 +85,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     def test_with_complete_datadog_trace_headers(self):
-        extract_dd_trace_context(
+        ctx = extract_dd_trace_context(
             {
                 "headers": {
                     TraceHeader.TRACE_ID: "123",
@@ -68,6 +93,15 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     TraceHeader.SAMPLING_PRIORITY: "1",
                 }
             }
+        )
+        self.assertDictEqual(
+            ctx,
+            {
+                "trace-id": "123",
+                "parent-id": "321",
+                "sampling-priority": "1",
+                "source": "event",
+            },
         )
         self.assertDictEqual(
             get_dd_trace_context(),

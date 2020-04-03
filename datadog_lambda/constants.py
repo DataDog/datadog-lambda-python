@@ -24,3 +24,12 @@ class XraySubsegment(object):
     NAME = "datadog-metadata"
     KEY = "trace"
     NAMESPACE = "datadog"
+
+
+# TraceContextSource of datadog context. The DD_MERGE_XRAY_TRACES
+# feature uses this to determine when to use X-Ray as the parent
+# trace.
+class TraceContextSource(object):
+    XRAY = "xray"
+    EVENT = "event"
+    DDTRACE = "ddtrace"

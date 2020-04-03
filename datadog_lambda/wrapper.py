@@ -7,7 +7,7 @@ import os
 import logging
 import traceback
 
-from datadog_lambda.cold_start import set_cold_start
+from datadog_lambda.cold_start import set_cold_start, is_cold_start
 from datadog_lambda.metric import (
     lambda_stats,
     submit_invocations_metric,
@@ -16,10 +16,13 @@ from datadog_lambda.metric import (
 from datadog_lambda.patch import patch_all
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
-    set_correlation_ids,
     inject_correlation_ids,
+    dd_tracing_enabled,
+    set_correlation_ids,
+    set_dd_trace_py_root,
+    create_function_execution_span,
 )
-
+from ddtrace import patch_all as patch_all_dd
 
 logger = logging.getLogger(__name__)
 
@@ -81,13 +84,21 @@ class _LambdaDecorator(object):
             self.logs_injection = (
                 os.environ.get("DD_LOGS_INJECTION", "true").lower() == "true"
             )
+            self.merge_xray_traces = (
+                os.environ.get("DD_MERGE_XRAY_TRACES", "false").lower() == "true"
+            )
+            self.function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "function")
 
             # Inject trace correlation ids to logs
             if self.logs_injection:
                 inject_correlation_ids()
 
-            # Patch HTTP clients to propagate Datadog trace context
-            patch_all()
+            if not dd_tracing_enabled:
+                # When using dd_trace_py it will patch all the http clients for us,
+                # Patch HTTP clients to propagate Datadog trace context
+                patch_all()
+            else:
+                patch_all_dd()
             logger.debug("datadog_lambda_wrapper initialized")
         except Exception:
             traceback.print_exc()
@@ -105,19 +116,29 @@ class _LambdaDecorator(object):
 
     def _before(self, event, context):
         try:
+
             set_cold_start()
             submit_invocations_metric(context)
             # Extract Datadog trace context from incoming requests
-            extract_dd_trace_context(event)
+            dd_context = extract_dd_trace_context(event)
 
-            # Set log correlation ids using extracted trace context
-            set_correlation_ids()
+            self.span = None
+            if dd_tracing_enabled:
+                set_dd_trace_py_root(dd_context, self.merge_xray_traces)
+                self.span = create_function_execution_span(
+                    context, self.function_name, is_cold_start(), dd_context
+                )
+            else:
+                set_correlation_ids()
+
             logger.debug("datadog_lambda_wrapper _before() done")
         except Exception:
             traceback.print_exc()
 
     def _after(self, event, context):
         try:
+            if self.span:
+                self.span.finish()
             if not self.flush_to_log:
                 lambda_stats.flush(float("inf"))
             logger.debug("datadog_lambda_wrapper _after() done")

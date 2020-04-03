@@ -116,7 +116,15 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 # Strip API key from logged requests
                 sed -E "s/(api_key=|'api_key': ')[a-z0-9\.\-]+/\1XXXX/g" |
                 # Normalize minor package version so that these snapshots aren't broken on version bumps
-                sed -E "s/(dd_lambda_layer:datadog-python[0-9]+_2\.)[0-9]+\.0/\1XX\.0/g"
+                sed -E "s/(dd_lambda_layer:datadog-python[0-9]+_2\.)[0-9]+\.0/\1XX\.0/g" |
+                # Strip out trace/span/parent/timestamps
+                sed -E "s/(\"trace_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"span_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"parent_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"request_id\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"duration\"\: )[0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"start\"\: )[0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"system\.pid\"\: )[0-9\.\-]+/\1XXXX/g"
         )
 
         if [ ! -f $function_snapshot_path ]; then

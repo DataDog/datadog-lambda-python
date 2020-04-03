@@ -10,7 +10,7 @@ Datadog Lambda Layer for Python (2.7, 3.6, 3.7 and 3.8) enables custom metric su
 
 ## IMPORTANT NOTE
 
-AWS Lambda is expected to recieve a [breaking change](https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/) on **January 30, 2021**. If you are using Datadog Python Lambda layer version 7 or below, please upgrade to version 11. 
+AWS Lambda is expected to recieve a [breaking change](https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/) on **January 30, 2021**. If you are using Datadog Python Lambda layer version 7 or below, please upgrade to version 11.
 
 ## Installation
 
@@ -21,6 +21,7 @@ arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-<PYTHON_RUNTIME>:<VERSION
 ```
 
 Replace `<AWS_REGION>` with the AWS region where your Lambda function is published to. Replace `<PYTHON_RUNTIME>` with one of the following that matches your Lambda's Python runtime:
+
 - `Datadog-Python27`
 - `Datadog-Python36`
 - `Datadog-Python37`
@@ -81,7 +82,7 @@ If `DD_FLUSH_TO_LOG` is set to false (not recommended), the Datadog API Key must
 - DD_KMS_API_KEY - the KMS-encrypted API Key, requires the `kms:Decrypt` permission
 - DD_API_KEY_SECRET_ARN - the Secret ARN to fetch API Key from the Secrets Manager, requires the `secretsmanager:GetSecretValue` permission (and `kms:Decrypt` if using a customer managed CMK)
 
-You can also supply or override the API key at runtime (not recommended): 
+You can also supply or override the API key at runtime (not recommended):
 
 ```python
 # Override DD API Key after importing datadog_lambda packages
@@ -243,6 +244,7 @@ If your Lambda function is triggered by API Gateway via [the non-proxy integrati
 If your Lambda function is deployed by the Serverless Framework, such a mapping template gets created by default.
 
 ## Log and Trace Correlations
+
 By default, the Datadog trace id gets automatically injected into the logs for correlation, if using the standard python `logging` library.
 
 If you use a custom logger handler to log in json, you can inject the ids using the helper function `get_correlation_ids` [manually](https://docs.datadoghq.com/tracing/connect_logs_and_traces/?tab=python#manual-trace-id-injection).
@@ -264,6 +266,36 @@ def lambda_handler(event, context):
     }
   })
 ```
+
+## Datadog Tracer (**Experimental**)
+
+You can now trace Lambda functions using Datadog APM's tracing libraries ([dd-trace-py](https://github.com/DataDog/dd-trace-py)).
+
+1. If you are using the Lambda layer, upgrade it to at least version 15.
+1. If you are using the pip package `datadog-lambda-python`, upgrade it to at least version `v2.15.0`.
+1. Install (or update to) the latest version of [Datadog forwarder Lambda function](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#set-up-the-datadog-lambda-function). Ensure the trace forwarding layer is attached to the forwarder, e.g., ARN for Python 2.7 `arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-Trace-Forwarder-Python27:4`.
+1. Set the environment variable `DD_TRACE_ENABLED` to true on your function.
+1. Instrument your function using `dd-trace`.
+
+```py
+from datadog_lambda.metric import lambda_metric
+from datadog_lambda.wrapper import datadog_lambda_wrapper
+
+from ddtrace import tracer
+
+@datadog_lambda_wrapper
+def hello(event, context):
+  return {
+    "statusCode": 200,
+    "body": get_message()
+  }
+
+@tracer.wrap()
+def get_message():
+  return "hello world"
+```
+
+You can also use `dd-trace` and the X-Ray tracer together and merge the traces into one, using the environment variable `DD_MERGE_XRAY_TRACES` to true on your function.
 
 ## Opening Issues
 
