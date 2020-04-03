@@ -123,11 +123,10 @@ class _LambdaDecorator(object):
             dd_context = extract_dd_trace_context(event)
 
             self.span = None
-
             if dd_tracing_enabled:
                 set_dd_trace_py_root(dd_context, self.merge_xray_traces)
                 self.span = create_function_execution_span(
-                    context, self.function_name, is_cold_start()
+                    context, self.function_name, is_cold_start(), dd_context
                 )
             else:
                 set_correlation_ids()
