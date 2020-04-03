@@ -22,6 +22,7 @@ from datadog_lambda.tracing import (
     set_dd_trace_py_root,
     create_function_execution_span,
 )
+from ddtrace import patch_all as patch_all_dd
 
 logger = logging.getLogger(__name__)
 
@@ -96,6 +97,8 @@ class _LambdaDecorator(object):
                 # When using dd_trace_py it will patch all the http clients for us,
                 # Patch HTTP clients to propagate Datadog trace context
                 patch_all()
+            else:
+                patch_all_dd()
             logger.debug("datadog_lambda_wrapper initialized")
         except Exception:
             traceback.print_exc()
