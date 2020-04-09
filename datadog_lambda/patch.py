@@ -17,8 +17,10 @@ logger = logging.getLogger(__name__)
 
 if sys.version_info >= (3, 0, 0):
     httplib_module = "http.client"
+    from collections.abc import MutableMapping
 else:
     httplib_module = "httplib"
+    from collections import MutableMapping
 
 _httplib_patched = False
 _requests_patched = False
@@ -80,9 +82,9 @@ def _wrap_requests_request(func, instance, args, kwargs):
     into the outgoing requests.
     """
     context = get_dd_trace_context()
-    if "headers" in kwargs and isinstance(kwargs["headers"], dict):
+    if "headers" in kwargs and isinstance(kwargs["headers"], MutableMapping):
         kwargs["headers"].update(context)
-    elif len(args) >= 5 and isinstance(args[4], dict):
+    elif len(args) >= 5 and isinstance(args[4], MutableMapping):
         args[4].update(context)
     else:
         kwargs["headers"] = context
@@ -100,9 +102,9 @@ def _wrap_httplib_request(func, instance, args, kwargs):
     the Datadog trace headers into the outgoing requests.
     """
     context = get_dd_trace_context()
-    if "headers" in kwargs and isinstance(kwargs["headers"], dict):
+    if "headers" in kwargs and isinstance(kwargs["headers"], MutableMapping):
         kwargs["headers"].update(context)
-    elif len(args) >= 4 and isinstance(args[3], dict):
+    elif len(args) >= 4 and isinstance(args[3], MutableMapping):
         args[3].update(context)
     else:
         kwargs["headers"] = context
