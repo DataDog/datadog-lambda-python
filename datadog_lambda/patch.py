@@ -10,8 +10,12 @@ import logging
 
 from wrapt import wrap_function_wrapper as wrap
 from wrapt.importer import when_imported
+from ddtrace import patch_all as patch_all_dd
 
-from datadog_lambda.tracing import get_dd_trace_context
+from datadog_lambda.tracing import (
+    get_dd_trace_context,
+    dd_tracing_enabled,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -24,15 +28,31 @@ else:
 
 _httplib_patched = False
 _requests_patched = False
+_integration_tests_patched = False
 
 
 def patch_all():
     """
-    Patch the widely-used HTTP clients to automatically inject
-    Datadog trace context.
+    Patch third-party libraries for tracing.
     """
-    _patch_httplib()
-    _ensure_patch_requests()
+    _patch_for_integration_tests()
+
+    if dd_tracing_enabled:
+        patch_all_dd()
+    else:
+        _patch_httplib()
+        _ensure_patch_requests()
+
+
+def _patch_for_integration_tests():
+    """
+    Patch `requests` to log the outgoing requests for integration tests.
+    """
+    global _integration_tests_patched
+    is_in_tests = os.environ.get("DD_INTEGRATION_TEST", "false").lower() == "true"
+    if not _integration_tests_patched and is_in_tests:
+        wrap("requests", "Session.send", _log_request)
+        _integration_tests_patched = True
 
 
 def _patch_httplib():
@@ -89,10 +109,6 @@ def _wrap_requests_request(func, instance, args, kwargs):
     else:
         kwargs["headers"] = context
 
-    # If we're in an integration test, log the HTTP requests made
-    if os.environ.get("DD_INTEGRATION_TEST", "false").lower() == "true":
-        _print_request_string(args, kwargs)
-
     return func(*args, **kwargs)
 
 
@@ -112,33 +128,28 @@ def _wrap_httplib_request(func, instance, args, kwargs):
     return func(*args, **kwargs)
 
 
-def _print_request_string(args, kwargs):
+def _log_request(func, instance, args, kwargs):
+    request = kwargs.get("request") or args[0]
+    _print_request_string(request)
+    return func(*args, **kwargs)
+
+
+def _print_request_string(request):
     """Print the request so that it can be checked in integration tests
 
     Only used by integration tests.
     """
-    # Normalizes the different ways args can be passed to a request
-    # to prevent test flakiness
-    method = None
-    if len(args) > 0:
-        method = args[0]
-    else:
-        method = kwargs.get("method", "").upper()
-
-    url = None
-    if len(args) > 1:
-        url = args[1]
-    else:
-        url = kwargs.get("url")
+    method = request.method
+    url = request.url
 
     # Sort the datapoints POSTed by their name so that snapshots always align
-    data = kwargs.get("data", "{}")
+    data = request.body or "{}"
     data_dict = json.loads(data)
     data_dict.get("series", []).sort(key=lambda series: series.get("metric"))
     sorted_data = json.dumps(data_dict)
 
     # Sort headers to prevent any differences in ordering
-    headers = kwargs.get("headers", {})
+    headers = request.headers or {}
     sorted_headers = sorted(
         "{}:{}".format(key, value) for key, value in headers.items()
     )
