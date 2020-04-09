@@ -137,10 +137,10 @@ class _LambdaDecorator(object):
 
     def _after(self, event, context):
         try:
-            if self.span:
-                self.span.finish()
             if not self.flush_to_log:
                 lambda_stats.flush(float("inf"))
+            if self.span:
+                self.span.finish()
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
             traceback.print_exc()
