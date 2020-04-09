@@ -2,9 +2,9 @@ import sys
 import unittest
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import patch, MagicMock
 except ImportError:
-    from mock import patch
+    from mock import patch, MagicMock
 
 from datadog_lambda.patch import _patch_httplib, _ensure_patch_requests
 from datadog_lambda.constants import TraceHeader
@@ -24,11 +24,51 @@ class TestPatchHTTPClients(unittest.TestCase):
     def test_patch_httplib(self):
         _patch_httplib()
         if sys.version_info >= (3, 0, 0):
-            import urllib.request as urllib
+            from http.client import HTTPSConnection
         else:
-            import urllib2 as urllib
-        urllib.urlopen("https://www.datadoghq.com/")
+            from httplib import HTTPSConnection
+
+        conn = HTTPSConnection("www.datadoghq.com")
+        conn.request("GET", "/")
+        conn.getresponse()
+
         self.mock_get_dd_trace_context.assert_called()
+
+    def test_patch_httplib_dict_headers(self):
+        _patch_httplib()
+        if sys.version_info >= (3, 0, 0):
+            from http.client import HTTPSConnection
+        else:
+            from httplib import HTTPSConnection
+
+        headers = MagicMock(spec=dict)
+        headers["fake-header"] = "fake-value"
+
+        conn = HTTPSConnection("www.datadoghq.com")
+        conn.request("GET", "/", headers=headers)
+        conn.getresponse()
+
+        self.mock_get_dd_trace_context.assert_called()
+        headers.update.assert_called()
+
+    def test_patch_httplib_dict_like_headers(self):
+        _patch_httplib()
+        if sys.version_info >= (3, 0, 0):
+            from http.client import HTTPSConnection
+            from collections.abc import MutableMapping
+        else:
+            from httplib import HTTPSConnection
+            from collections import MutableMapping
+
+        headers = MagicMock(spec=MutableMapping)
+        headers["fake-header"] = "fake-value"
+
+        conn = HTTPSConnection("www.datadoghq.com")
+        conn.request("GET", "/", headers=headers)
+        conn.getresponse()
+
+        self.mock_get_dd_trace_context.assert_called()
+        headers.update.assert_called()
 
     def test_patch_requests(self):
         _ensure_patch_requests()

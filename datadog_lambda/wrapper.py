@@ -22,7 +22,6 @@ from datadog_lambda.tracing import (
     set_dd_trace_py_root,
     create_function_execution_span,
 )
-from ddtrace import patch_all as patch_all_dd
 
 logger = logging.getLogger(__name__)
 
@@ -93,12 +92,9 @@ class _LambdaDecorator(object):
             if self.logs_injection:
                 inject_correlation_ids()
 
-            if not dd_tracing_enabled:
-                # When using dd_trace_py it will patch all the http clients for us,
-                # Patch HTTP clients to propagate Datadog trace context
-                patch_all()
-            else:
-                patch_all_dd()
+            # Patch third-party libraries for tracing
+            patch_all()
+
             logger.debug("datadog_lambda_wrapper initialized")
         except Exception:
             traceback.print_exc()
@@ -137,10 +133,10 @@ class _LambdaDecorator(object):
 
     def _after(self, event, context):
         try:
-            if self.span:
-                self.span.finish()
             if not self.flush_to_log:
                 lambda_stats.flush(float("inf"))
+            if self.span:
+                self.span.finish()
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
             traceback.print_exc()
