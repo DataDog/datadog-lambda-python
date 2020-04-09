@@ -238,9 +238,10 @@ def create_function_execution_span(
 ):
     tags = {}
     if context:
+        function_arn = (context.invoked_function_arn or "").lower()
         tags = {
             "cold_start": str(is_cold_start).lower(),
-            "function_arn": context.invoked_function_arn,
+            "function_arn": function_arn,
             "request_id": context.aws_request_id,
             "resource_names": context.function_name,
         }
