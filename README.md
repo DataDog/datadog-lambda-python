@@ -27,7 +27,7 @@ Replace `<AWS_REGION>` with the AWS region where your Lambda function is publish
 - `Datadog-Python37`
 - `Datadog-Python38`
 
-Replace `<VERSION>` with the latest layer version that can be found from [CHANGELOG](CHANGELOG.md). For example,
+Replace `<VERSION>` with the latest layer version that can be found from [releases](https://github.com/DataDog/datadog-lambda-layer-python/releases). For example,
 
 ```
 arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python37:1
