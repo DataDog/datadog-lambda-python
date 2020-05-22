@@ -14,14 +14,14 @@ class HandlerError(Exception):
     pass
 
 
-path = os.environ.get("DATADOG_USER_HANDLER", None)
+path = os.environ.get("DD_LAMBDA_HANDLER", None)
 if path is None:
     raise HandlerError(
-        "DATADOG_USER_HANDLER is not defined. Can't use prebuilt datadog handler"
+        "DD_LAMBDA_HANDLER is not defined. Can't use prebuilt datadog handler"
     )
 parts = path.rsplit(".", 1)
 if len(parts) != 2:
-    raise HandlerError("Value %s for DATADOG_USER_HANDLER has invalid format." % path)
+    raise HandlerError("Value %s for DD_LAMBDA_HANDLER has invalid format." % path)
 
 (mod_name, handler_name) = parts
 handler_module = import_module(mod_name)
