@@ -66,6 +66,8 @@ functions:
       DD_FLUSH_TO_LOG: true
 ```
 
+Alternatively, consider using [serverless-plugin-datadog](https://github.com/DataDog/serverless-plugin-datadog). The plugin can take care of adding lambda layers to your functions, and wrapping your handlers.
+
 ## Environment Variables
 
 ### DD_FLUSH_TO_LOG
@@ -106,7 +108,28 @@ Set to `debug` enable debug los from the Datadog Lambda Layer.
 
 Generate enhanced Datadog Lambda integration metrics, such as, `aws.lambda.enhanced.invocations` and `aws.lambda.enhanced.errors`. Defaults to true.
 
+### DD_LAMBDA_HANDLER
+
+For use with the [redirected handler](#Redirected-Handler) method. Location of your original lambda handler.
+
+### DD_TRACE_ENABLED
+
+When used with the [redirected handler](#Redirected-Handler) method, will auto initialize the tracer when set to true.
+
 ## Basic Usage
+
+Datadog needs to be able to read headers from the incoming Lambda event. To do this, you must wrap your handler function with our library. We provide some easy ways of wrapping your handlers.
+
+### Redirected Handler
+
+We provide a swap in replacement handler, with zero required code changes.
+
+1. Set the environment variable `DD_LAMBDA_HANDLER` to the your handler location.
+2. If using the layer, set your handler to `datadog_lambda.handler.handler`.
+
+### Manual Wrap
+
+You might find it more convenient to wrap your handlers manually.
 
 ```python
 import requests
