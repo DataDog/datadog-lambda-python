@@ -16,14 +16,14 @@
 
 <!--- Anything else we should know when reviewing? --->
 
-### Types of changes
+### Types of Changes
 
 - [ ] Bug fix
 - [ ] New feature
 - [ ] Breaking change
 - [ ] Misc (docs, refactoring, dependency upgrade, etc.)
 
-### Checklist
+### Check all that apply
 
 - [ ] This PR's description is comprehensive
 - [ ] This PR contains breaking changes that are documented in the description
