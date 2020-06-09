@@ -8,8 +8,7 @@
 # Lists most recent layers ARNs across regions to STDOUT
 # Optionals args: [layer-name] [region]
 
-LAYER_NAMES=("Datadog-Python27" "Datadog-Python36" "Datadog-Python37" "Datadog-Python38")
-AVAILABLE_REGIONS=(us-east-2 us-east-1 us-west-1 us-west-2 ap-east-1 ap-south-1 ap-northeast-2 ap-southeast-1 ap-southeast-2 ap-northeast-1 ca-central-1 eu-north-1 eu-central-1 eu-west-1 eu-west-2 eu-west-3 sa-east-1)
+source scripts/all_layers.sh
 
 # Check region arg
 if [ -z "$2" ]; then
@@ -29,11 +28,11 @@ fi
 # Check region arg
 if [ -z "$1" ]; then
     >&2 echo "Layer parameter not specified, running for all layers "
-    LAYERS=("${LAYER_NAMES[@]}")
+    LAYERS=("${AVAILABLE_LAYER_NAMES[@]}")
 else
     >&2 echo "Layer parameter specified: $1"
-    if [[ ! " ${LAYER_NAMES[@]} " =~ " ${1} " ]]; then
-        >&2 echo "Could not find $1 in layers: ${LAYER_NAMES[@]}"
+    if [[ ! " ${AVAILABLE_LAYER_NAMES[@]} " =~ " ${1} " ]]; then
+        >&2 echo "Could not find $1 in layers: ${AVAILABLE_LAYER_NAMES[@]}"
         >&2 echo ""
         >&2 echo "EXITING SCRIPT."
         return 1
