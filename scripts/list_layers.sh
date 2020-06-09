@@ -8,6 +8,7 @@
 # Lists most recent layers ARNs across regions to STDOUT
 # Optionals args: [layer-name] [region]
 
+# Source the common list of layers and regions
 source scripts/all_layers.sh
 
 # Check region arg

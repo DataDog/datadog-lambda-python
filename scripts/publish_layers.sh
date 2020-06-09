@@ -16,6 +16,7 @@ trap "pkill -P $$; exit 1;" INT
 PYTHON_VERSIONS_FOR_AWS_CLI=("python2.7" "python3.6" "python3.7" "python3.8")
 LAYER_PATHS=(".layers/datadog_lambda_py2.7.zip" ".layers/datadog_lambda_py3.6.zip" ".layers/datadog_lambda_py3.7.zip" ".layers/datadog_lambda_py3.8.zip")
 
+# Source the common list of layers and regions
 source scripts/all_layers.sh
 
 # Check that the layer files exist
