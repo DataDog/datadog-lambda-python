@@ -14,11 +14,13 @@ def get_mock_context(
     aws_request_id="request-id-1",
     memory_limit_in_mb="256",
     invoked_function_arn="arn:aws:lambda:us-west-1:123457598159:function:python-layer-test",
+    function_version="1",
 ):
     lambda_context = MagicMock()
     lambda_context.aws_request_id = aws_request_id
     lambda_context.memory_limit_in_mb = memory_limit_in_mb
     lambda_context.invoked_function_arn = invoked_function_arn
+    lambda_context.function_version = function_version
     return lambda_context
 
 
@@ -146,6 +148,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "functionname:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
+                        "executedversion:1",
                         "runtime:python2.7",
                         "dd_lambda_layer:datadog-python27_0.1.0",
                     ],
@@ -174,6 +177,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "functionname:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
+                        "executedversion:1",
                         "runtime:python2.7",
                         "dd_lambda_layer:datadog-python27_0.1.0",
                     ],
@@ -187,10 +191,46 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "functionname:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
+                        "executedversion:1",
                         "runtime:python2.7",
                         "dd_lambda_layer:datadog-python27_0.1.0",
                     ],
                 ),
+            ]
+        )
+
+    def test_metric_with_function_alias(self):
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            lambda_metric("test.meetric", 100)
+
+        invoked_function_with_alias = (
+            "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test:foobar"
+        )
+
+        lambda_event = {}
+        lambda_context = get_mock_context()
+        lambda_context.invoked_function_arn = invoked_function_with_alias
+
+        lambda_handler(lambda_event, lambda_context)
+
+        self.mock_write_metric_point_to_stdout.assert_has_calls(
+            [
+                call(
+                    "aws.lambda.enhanced.invocations",
+                    1,
+                    tags=[
+                        "region:us-west-1",
+                        "account_id:123457598159",
+                        "functionname:python-layer-test",
+                        "resource:python-layer-test:foobar",
+                        "cold_start:true",
+                        "memorysize:256",
+                        "executedversion:1",
+                        "runtime:python2.7",
+                        "dd_lambda_layer:datadog-python27_0.1.0",
+                    ],
+                )
             ]
         )
 
@@ -220,6 +260,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "functionname:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
+                        "executedversion:1",
                         "runtime:python2.7",
                         "dd_lambda_layer:datadog-python27_0.1.0",
                     ],
@@ -233,6 +274,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "functionname:python-layer-test",
                         "cold_start:false",
                         "memorysize:256",
+                        "executedversion:1",
                         "runtime:python2.7",
                         "dd_lambda_layer:datadog-python27_0.1.0",
                     ],

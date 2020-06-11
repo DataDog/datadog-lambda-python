@@ -35,16 +35,27 @@ def parse_lambda_tags_from_arn(arn):
     split_arn = arn.split(":")
 
     # If ARN includes version / alias at the end, drop it
-    if len(split_arn) > 7:
-        split_arn = split_arn[:7]
+    if len(split_arn) <= 7:
 
-    _, _, _, region, account_id, _, function_name = split_arn
+        _, _, _, region, account_id, _, function_name = split_arn
 
-    return [
-        "region:{}".format(region),
-        "account_id:{}".format(account_id),
-        "functionname:{}".format(function_name),
-    ]
+        return [
+            "region:{}".format(region),
+            "account_id:{}".format(account_id),
+            "functionname:{}".format(function_name),
+        ]
+
+    else:
+        _, _, _, region, account_id, _, function_name, alias = split_arn
+
+        resource = function_name + ":" + alias
+
+        return [
+            "region:{}".format(region),
+            "account_id:{}".format(account_id),
+            "functionname:{}".format(function_name),
+            "resource:{}".format(resource),
+        ]
 
 
 def get_runtime_tag():
@@ -63,6 +74,7 @@ def get_enhanced_metrics_tags(lambda_context):
     return parse_lambda_tags_from_arn(lambda_context.invoked_function_arn) + [
         get_cold_start_tag(),
         "memorysize:{}".format(lambda_context.memory_limit_in_mb),
+        "executedversion:{}".format(lambda_context.function_version),
         get_runtime_tag(),
         _format_dd_lambda_layer_tag(),
     ]

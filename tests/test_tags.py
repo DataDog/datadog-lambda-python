@@ -34,6 +34,7 @@ class TestMetricTags(unittest.TestCase):
                 "region:us-west-1",
                 "account_id:1234597598159",
                 "functionname:other-function",
+                "resource:other-function:function-alias",
             ],
         )
 
