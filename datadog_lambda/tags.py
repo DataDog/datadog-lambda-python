@@ -34,28 +34,20 @@ def parse_lambda_tags_from_arn(arn):
     # Cap the number of times to split
     split_arn = arn.split(":")
 
-    # If ARN includes version / alias at the end, drop it
-    if len(split_arn) <= 7:
-
-        _, _, _, region, account_id, _, function_name = split_arn
-
-        return [
-            "region:{}".format(region),
-            "account_id:{}".format(account_id),
-            "functionname:{}".format(function_name),
-        ]
+    if len(split_arn) > 7:
+        _, _, _, region, account_id, _, function_name, alias = split_arn
+        resource = function_name + ":" + alias
 
     else:
-        _, _, _, region, account_id, _, function_name, alias = split_arn
+        _, _, _, region, account_id, _, function_name = split_arn
+        resource = function_name
 
-        resource = function_name + "/" + alias
-
-        return [
-            "region:{}".format(region),
-            "account_id:{}".format(account_id),
-            "functionname:{}".format(function_name),
-            "resource:{}".format(resource),
-        ]
+    return [
+        "region:{}".format(region),
+        "account_id:{}".format(account_id),
+        "functionname:{}".format(function_name),
+        "resource:{}".format(resource),
+    ]
 
 
 def get_runtime_tag():
