@@ -48,7 +48,7 @@ def parse_lambda_tags_from_arn(arn):
     else:
         _, _, _, region, account_id, _, function_name, alias = split_arn
 
-        resource = function_name + ":" + alias
+        resource = function_name + "/" + alias
 
         return [
             "region:{}".format(region),

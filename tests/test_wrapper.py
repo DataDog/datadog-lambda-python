@@ -223,7 +223,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "resource:python-layer-test:foobar",
+                        "resource:python-layer-test/foobar",
                         "cold_start:true",
                         "memorysize:256",
                         "executedversion:1",
