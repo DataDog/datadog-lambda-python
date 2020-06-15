@@ -112,6 +112,15 @@ def submit_errors_metric(lambda_context):
     submit_enhanced_metric("errors", lambda_context)
 
 
+def submit_out_of_memory_metric(lambda_context):
+    """Increment aws.lambda.enhanced.out_of_memory by 1, applying runtime, layer, and cold_start tags
+
+    Args:
+        lambda_context (dict): Lambda context dict passed to the function by AWS
+    """
+    submit_enhanced_metric("out_of_memory", lambda_context)
+
+
 # Set API Key and Host in the module, so they only set once per container
 if not api._api_key:
     DD_API_KEY_SECRET_ARN = os.environ.get("DD_API_KEY_SECRET_ARN", "")

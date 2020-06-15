@@ -199,6 +199,63 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             ]
         )
 
+    def test_out_of_memory_metric(self):
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            raise MemoryError()
+
+        lambda_event = {}
+
+        with self.assertRaises(MemoryError):
+            lambda_handler(lambda_event, get_mock_context())
+
+        self.mock_write_metric_point_to_stdout.assert_has_calls(
+            [
+                call(
+                    "aws.lambda.enhanced.invocations",
+                    1,
+                    tags=[
+                        "region:us-west-1",
+                        "account_id:123457598159",
+                        "functionname:python-layer-test",
+                        "resource:python-layer-test:1",
+                        "cold_start:true",
+                        "memorysize:256",
+                        "runtime:python2.7",
+                        "dd_lambda_layer:datadog-python27_0.1.0",
+                    ],
+                ),
+                call(
+                    "aws.lambda.enhanced.out_of_memory",
+                    1,
+                    tags=[
+                        "region:us-west-1",
+                        "account_id:123457598159",
+                        "functionname:python-layer-test",
+                        "resource:python-layer-test:1",
+                        "cold_start:true",
+                        "memorysize:256",
+                        "runtime:python2.7",
+                        "dd_lambda_layer:datadog-python27_0.1.0",
+                    ],
+                ),
+                call(
+                    "aws.lambda.enhanced.errors",
+                    1,
+                    tags=[
+                        "region:us-west-1",
+                        "account_id:123457598159",
+                        "functionname:python-layer-test",
+                        "resource:python-layer-test:1",
+                        "cold_start:true",
+                        "memorysize:256",
+                        "runtime:python2.7",
+                        "dd_lambda_layer:datadog-python27_0.1.0",
+                    ],
+                ),
+            ]
+        )
+
     def test_enhanced_metrics_cold_start_tag(self):
         @datadog_lambda_wrapper
         def lambda_handler(event, context):

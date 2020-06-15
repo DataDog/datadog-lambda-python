@@ -12,6 +12,7 @@ from datadog_lambda.metric import (
     lambda_stats,
     submit_invocations_metric,
     submit_errors_metric,
+    submit_out_of_memory_metric,
 )
 from datadog_lambda.patch import patch_all
 from datadog_lambda.tracing import (
@@ -104,7 +105,9 @@ class _LambdaDecorator(object):
         self._before(event, context)
         try:
             return self.func(event, context, **kwargs)
-        except Exception:
+        except Exception as e:
+            if isinstance(e, MemoryError):
+                submit_out_of_memory_metric(context)
             submit_errors_metric(context)
             raise
         finally:
