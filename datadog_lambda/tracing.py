@@ -247,8 +247,8 @@ def create_function_execution_span(
         }
         tokens = function_arn.split(":")
         if len(tokens) > 7:
-            tags['function_arn'] = ":".join(tokens[0:7])
-            tags['function_version'] = tokens[7]
+            tags["function_arn"] = ":".join(tokens[0:7])
+            tags["function_version"] = tokens[7]
     source = trace_context["source"]
     if source == TraceContextSource.XRAY and merge_xray_traces:
         tags["_dd.parent_source"] = source

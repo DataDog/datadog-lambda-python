@@ -223,19 +223,15 @@ class TestFunctionSpanTags(unittest.TestCase):
     def test_function_with_version(self):
         function_version = "1"
         ctx = get_mock_context(
-            invoked_function_arn=function_arn + ":" + function_version,
+            invoked_function_arn=function_arn + ":" + function_version
         )
         span = create_function_execution_span(ctx, "", False, {"source": ""}, False)
-        self.assertEqual(span.get_tag(
-            "function_arn"), function_arn)
+        self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("function_version"), function_version)
 
     def test_function_with_alias(self):
         function_alias = "alias"
-        ctx = get_mock_context(
-            invoked_function_arn=function_arn + ":" + function_alias
-        )
+        ctx = get_mock_context(invoked_function_arn=function_arn + ":" + function_alias)
         span = create_function_execution_span(ctx, "", False, {"source": ""}, False)
-        self.assertEqual(span.get_tag(
-            "function_arn"), function_arn)
+        self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("function_version"), "alias")
