@@ -10,12 +10,29 @@ from ddtrace.helpers import get_correlation_ids
 from datadog_lambda.constants import SamplingPriority, TraceHeader, XraySubsegment
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
+    create_function_execution_span,
     get_dd_trace_context,
     set_correlation_ids,
     _convert_xray_trace_id,
     _convert_xray_entity_id,
     _convert_xray_sampling,
 )
+
+function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
+
+
+def get_mock_context(
+    aws_request_id="request-id-1",
+    memory_limit_in_mb="256",
+    invoked_function_arn=function_arn,
+    function_version="1",
+):
+    lambda_context = MagicMock()
+    lambda_context.aws_request_id = aws_request_id
+    lambda_context.memory_limit_in_mb = memory_limit_in_mb
+    lambda_context.invoked_function_arn = invoked_function_arn
+    lambda_context.function_version = function_version
+    return lambda_context
 
 
 class TestExtractAndGetDDTraceContext(unittest.TestCase):
@@ -195,3 +212,30 @@ class TestLogsInjection(unittest.TestCase):
         trace_id, span_id = get_correlation_ids()
         self.assertEqual(trace_id, "123")
         self.assertEqual(span_id, "456")
+
+
+class TestFunctionSpanTags(unittest.TestCase):
+    def test_function(self):
+        ctx = get_mock_context()
+        span = create_function_execution_span(ctx, "", False, {"source": ""}, False)
+        self.assertEqual(span.get_tag("function_arn"), function_arn)
+
+    def test_function_with_version(self):
+        function_version = "1"
+        ctx = get_mock_context(
+            invoked_function_arn=function_arn + ":" + function_version,
+        )
+        span = create_function_execution_span(ctx, "", False, {"source": ""}, False)
+        self.assertEqual(span.get_tag(
+            "function_arn"), function_arn)
+        self.assertEqual(span.get_tag("function_version"), function_version)
+
+    def test_function_with_alias(self):
+        function_alias = "alias"
+        ctx = get_mock_context(
+            invoked_function_arn=function_arn + ":" + function_alias
+        )
+        span = create_function_execution_span(ctx, "", False, {"source": ""}, False)
+        self.assertEqual(span.get_tag(
+            "function_arn"), function_arn)
+        self.assertEqual(span.get_tag("function_version"), "alias")
