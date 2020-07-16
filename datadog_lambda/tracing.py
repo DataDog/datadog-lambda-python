@@ -239,16 +239,16 @@ def create_function_execution_span(
     tags = {}
     if context:
         function_arn = (context.invoked_function_arn or "").lower()
+        tk = function_arn.split(":")
+        function_arn = ":".join(tk[0:7]) if len(tk) > 7 else function_arn
+        function_version = tk[7] if len(tk) > 7 else "$Latest"
         tags = {
             "cold_start": str(is_cold_start).lower(),
             "function_arn": function_arn,
+            "function_version": function_version,
             "request_id": context.aws_request_id,
             "resource_names": context.function_name,
         }
-        tokens = function_arn.split(":")
-        if len(tokens) > 7:
-            tags["function_arn"] = ":".join(tokens[0:7])
-            tags["function_version"] = tokens[7]
     source = trace_context["source"]
     if source == TraceContextSource.XRAY and merge_xray_traces:
         tags["_dd.parent_source"] = source
