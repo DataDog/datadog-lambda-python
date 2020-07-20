@@ -219,7 +219,7 @@ class TestFunctionSpanTags(unittest.TestCase):
         ctx = get_mock_context()
         span = create_function_execution_span(ctx, "", False, {"source": ""}, False)
         self.assertEqual(span.get_tag("function_arn"), function_arn)
-        self.assertEqual(span.get_tag("function_version"), "$Latest")
+        self.assertEqual(span.get_tag("function_version"), "$LATEST")
 
     def test_function_with_version(self):
         function_version = "1"
