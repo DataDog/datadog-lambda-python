@@ -241,7 +241,7 @@ def create_function_execution_span(
         function_arn = (context.invoked_function_arn or "").lower()
         tk = function_arn.split(":")
         function_arn = ":".join(tk[0:7]) if len(tk) > 7 else function_arn
-        function_version = tk[7] if len(tk) > 7 else "$Latest"
+        function_version = tk[7] if len(tk) > 7 else "$LATEST"
         tags = {
             "cold_start": str(is_cold_start).lower(),
             "function_arn": function_arn,
