@@ -8,8 +8,8 @@ if [ "$PYTHON_VERSION" = "2" ]; then
 fi
 pip install -Iv black==19.10b0
 
-python -m black --check datadog_lambda/
-python -m black --check tests
+python -m black --check datadog_lambda/ --diff
+python -m black --check tests --diff
 
 
 
