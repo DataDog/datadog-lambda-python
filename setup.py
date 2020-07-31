@@ -15,7 +15,7 @@ setup(
     description="The Datadog AWS Lambda Layer",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/DataDog/datadog-lambda-layer-python",
+    url="https://github.com/DataDog/datadog-lambda-python",
     author="Datadog, Inc.",
     author_email="dev@datadoghq.com",
     classifiers=[
