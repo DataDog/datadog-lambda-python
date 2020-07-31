@@ -1,16 +1,16 @@
 # datadog-lambda-python
 
-[![CircleCI](https://img.shields.io/circleci/build/github/DataDog/datadog-lambda-layer-python)](https://circleci.com/gh/DataDog/datadog-lambda-layer-python)
+[![CircleCI](https://img.shields.io/circleci/build/github/DataDog/datadog-lambda-python)](https://circleci.com/gh/DataDog/datadog-lambda-python)
 [![PyPI](https://img.shields.io/pypi/v/datadog-lambda)](https://pypi.org/project/datadog-lambda/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/datadog-lambda)
 [![Slack](https://img.shields.io/badge/slack-%23serverless-blueviolet?logo=slack)](https://datadoghq.slack.com/channels/serverless/)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DataDog/datadog-lambda-layer-python/blob/master/LICENSE)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DataDog/datadog-lambda-python/blob/master/LICENSE)
 
 Datadog Lambda Library for Python (2.7, 3.6, 3.7 and 3.8) enables enhanced Lambda metrics, distributed tracing, and custom metric submission from AWS Lambda functions.  
 
 ## IMPORTANT NOTE
 
-AWS Lambda is expected to recieve a [breaking change](https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/) on **January 30, 2021**. If you are using Datadog Python Lambda layer version 7 or below, please upgrade to version 11.
+AWS Lambda is expected to recieve a [breaking change](https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/) on **January 30, 2021**. If you are using Datadog Python Lambda layer version 7 or below, please upgrade to the latest.
 
 ## Installation
 
@@ -48,7 +48,7 @@ Inject Datadog trace id into logs for [correlation](https://docs.datadoghq.com/t
 
 ### DD_LOG_LEVEL
 
-Set to `debug` enable debug los from the Datadog Lambda Layer. Defaults to `info`.
+Set to `debug` enable debug los from the Datadog Lambda Library. Defaults to `info`.
 
 ### DD_ENHANCED_METRICS
 
@@ -82,7 +82,7 @@ Check out the official documentation on [Datadog Lambda enhanced metrics](https:
 
 If you encounter a bug with this package, we want to hear about it. Before opening a new issue, search the existing issues to avoid duplicates.
 
-When opening an issue, include the Datadog Lambda Layer version, Python version, and stack trace if available. In addition, include the steps to reproduce when appropriate.
+When opening an issue, include the Datadog Lambda Library version, Python version, and stack trace if available. In addition, include the steps to reproduce when appropriate.
 
 You can also open an issue for a feature request.
 
