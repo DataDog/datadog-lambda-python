@@ -1,4 +1,4 @@
-# datadog-lambda-layer-python
+# datadog-lambda-python
 
 [![CircleCI](https://img.shields.io/circleci/build/github/DataDog/datadog-lambda-layer-python)](https://circleci.com/gh/DataDog/datadog-lambda-layer-python)
 [![PyPI](https://img.shields.io/pypi/v/datadog-lambda)](https://pypi.org/project/datadog-lambda/)
@@ -6,7 +6,7 @@
 [![Slack](https://img.shields.io/badge/slack-%23serverless-blueviolet?logo=slack)](https://datadoghq.slack.com/channels/serverless/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DataDog/datadog-lambda-layer-python/blob/master/LICENSE)
 
-Datadog Lambda Layer for Python (2.7, 3.6, 3.7 and 3.8) enables custom metric submission from AWS Lambda functions, and distributed tracing between serverful and serverless environments.
+Datadog Lambda Library for Python (2.7, 3.6, 3.7 and 3.8) enables enhanced Lambda metrics, distributed tracing, and custom metric submission from AWS Lambda functions.  
 
 ## IMPORTANT NOTE
 
@@ -14,71 +14,17 @@ AWS Lambda is expected to recieve a [breaking change](https://aws.amazon.com/blo
 
 ## Installation
 
-Datadog Lambda Layer can be added to a Lambda function via AWS Lambda console, [AWS CLI](https://docs.aws.amazon.com/lambda/latest/dg/configuration-layers.html#configuration-layers-using) or [Serverless Framework](https://serverless.com/framework/docs/providers/aws/guide/layers/#using-your-layers) using the following ARN.
-
-```
-arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-<PYTHON_RUNTIME>:<VERSION>
-```
-
-Replace `<AWS_REGION>` with the AWS region where your Lambda function is published to. Replace `<PYTHON_RUNTIME>` with one of the following that matches your Lambda's Python runtime:
-
-- `Datadog-Python27`
-- `Datadog-Python36`
-- `Datadog-Python37`
-- `Datadog-Python38`
-
-Replace `<VERSION>` with the latest layer version that can be found from [releases](https://github.com/DataDog/datadog-lambda-layer-python/releases). For example,
-
-```
-arn:aws:lambda:us-east-1:464622532012:layer:Datadog-Python37:1
-```
-
-### PyPI
-
-When developing your Lambda function locally where AWS Layer doesn't work, the Datadog Lambda layer can be installed from [PyPI](https://pypi.org/project/datadog-lambda/) by `pip install datadog-lambda` or adding `datadog-lambda` to your project's `requirements.txt`.
-
-The minor version of the `datadog-lambda` package always match the layer version. E.g., datadog-lambda v0.5.0 matches the content in layer version 5.
-
-### The Serverless Framework
-
-[The Datadog Serverless Framework Plugin](https://github.com/DataDog/serverless-plugin-datadog) makes it easy to manage the Datadog instrumentation for all of your Lambda functions in one place.
-
-Instead of the plugin, you can also use the sample `serverless.yml` below as a reference for manually including the Lambda Layer, enable AWS X-Ray tracing, and set up environment variables.
-
-```yaml
-provider:
-  name: aws
-  runtime: python3.7
-  tracing:
-    lambda: true
-    apiGateway: true
-
-functions:
-  hello:
-    handler: handler.hello
-    events:
-      - http:
-          path: hello
-          method: get
-    layers:
-      - arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-<PYTHON_RUNTIME>:<VERSION>
-    environment:
-      DD_FLUSH_TO_LOG: true
-```
-
-Alternatively, consider using [serverless-plugin-datadog](https://github.com/DataDog/serverless-plugin-datadog). The plugin can take care of adding lambda layers to your functions, and wrapping your handlers.
+Check out our [installation instructions for Python](https://docs.datadoghq.com/serverless/installation/python/).
 
 ## Environment Variables
 
 ### DD_FLUSH_TO_LOG
 
-Set to `true` (recommended) to send custom metrics asynchronously (with no added latency to your Lambda function executions) through CloudWatch Logs with the help of [Datadog Forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring).
-
-If set to `false`, you also need to set `DD_API_KEY` and `DD_SITE`.
+Set to `true` (recommended) to send custom metrics asynchronously (with no added latency to your Lambda function executions) through CloudWatch Logs with the help of [Datadog Forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring). Defaultss to `false`. If set to `false`, you also need to set `DD_API_KEY` and `DD_SITE`.
 
 ### DD_API_KEY
 
-If `DD_FLUSH_TO_LOG` is set to false (not recommended), the Datadog API Key must be defined as one of the following environment variables:
+If `DD_FLUSH_TO_LOG` is set to `false` (not recommended), the Datadog API Key must be defined by setting one of the following environment variables:
 
 - DD_API_KEY - the Datadog API Key in plain-text, NOT recommended
 - DD_KMS_API_KEY - the KMS-encrypted API Key, requires the `kms:Decrypt` permission
@@ -94,19 +40,19 @@ api._api_key = "MY_API_KEY"
 
 ### DD_SITE
 
-If `DD_FLUSH_TO_LOG` is set to false (not recommended), and your data need to be sent to the Datadog EU site, you must set `DD_SITE` to `datadoghq.eu`.
+If `DD_FLUSH_TO_LOG` is set to `false` (not recommended), and your data need to be sent to the Datadog EU site, you must set `DD_SITE` to `datadoghq.eu`. Defaults to `datadoghq.com`.
 
 ### DD_LOGS_INJECTION
 
-Inject Datadog trace id into logs for [correlation](https://docs.datadoghq.com/tracing/connect_logs_and_traces/?tab=python). Defaults to true.
+Inject Datadog trace id into logs for [correlation](https://docs.datadoghq.com/tracing/connect_logs_and_traces/?tab=python). Defaults to `true`.
 
 ### DD_LOG_LEVEL
 
-Set to `debug` enable debug los from the Datadog Lambda Layer.
+Set to `debug` enable debug los from the Datadog Lambda Layer. Defaults to `info`.
 
 ### DD_ENHANCED_METRICS
 
-Generate enhanced Datadog Lambda integration metrics, such as, `aws.lambda.enhanced.invocations` and `aws.lambda.enhanced.errors`. Defaults to true.
+Generate enhanced Datadog Lambda integration metrics, such as, `aws.lambda.enhanced.invocations` and `aws.lambda.enhanced.errors`. Defaults to `true`.
 
 ### DD_LAMBDA_HANDLER
 
@@ -114,211 +60,23 @@ For use with the [redirected handler](#Redirected-Handler) method. Location of y
 
 ### DD_TRACE_ENABLED
 
-When used with the [redirected handler](#Redirected-Handler) method, will auto initialize the tracer when set to true.
+When used with the [redirected handler](#Redirected-Handler) method, will auto initialize the tracer when set to true. Defaults to `false`.
 
-## Basic Usage
+### DD_MERGE_XRAY_TRACES
 
-Datadog needs to be able to read headers from the incoming Lambda event. To do this, you must wrap your handler function with our library. We provide some easy ways of wrapping your handlers.
-
-### Redirected Handler
-
-We provide a swap in replacement handler, with zero required code changes.
-
-1. Set the environment variable `DD_LAMBDA_HANDLER` to your regular handler location, eg. `myfunc.handler`.
-2. Set your handler to `datadog_lambda.handler.handler`.
-
-### Manual Wrap
-
-You might find it more convenient to wrap your handlers manually.
-
-```python
-import requests
-from datadog_lambda.wrapper import datadog_lambda_wrapper
-from datadog_lambda.metric import lambda_metric
-
-@datadog_lambda_wrapper
-def lambda_handler(event, context):
-    lambda_metric("my_metric", 10, tags=['tag:value'])
-    requests.get("https://www.datadoghq.com")
-```
+Set to `true` to merge the X-Ray trace and the Datadog trace, when using both the X-Ray and Datadog tracing. Defaults to `false`.
 
 ## Custom Metrics
 
-Custom metrics can be submitted using `lambda_metric` and the Lambda handler function needs to be decorated with `@datadog_lambda_wrapper`. The metrics are submitted as [distribution metrics](https://docs.datadoghq.com/graphing/metrics/distributions/).
+Check out the instructions for [submitting custom metrics from AWS Lambda functions](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#custom-metrics).
 
-**IMPORTANT NOTE:** If you have already been submitting the same custom metric as non-distribution metric (e.g., gauge, count, or histogram) without using the Datadog Lambda Layer, you MUST pick a new metric name to use for `lambda_metric`. Otherwise that existing metric will be converted to a distribution metric and the historical data prior to the conversion will be no longer queryable.
+## Tracing
 
-```python
-from datadog_lambda.wrapper import datadog_lambda_wrapper
-from datadog_lambda.metric import lambda_metric
+Check out the instructions for [collecting traces from AWS Lambda functions](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#trace-collection), and the [official documentation for Datadog trace client](http://pypi.datadoghq.com/trace/docs/index.html).
 
-@datadog_lambda_wrapper
-def lambda_handler(event, context):
-    lambda_metric(
-        "coffee_house.order_value",  # metric
-        12.45,  # value
-        tags=['product:latte', 'order:online']  # tags
-    )
-```
+## Enhanced Metrics
 
-### VPC
-
-If your Lambda function is associated with a VPC, you need to ensure it has [access to the public internet](https://aws.amazon.com/premiumsupport/knowledge-center/internet-access-lambda-function/).
-
-## Distributed Tracing
-
-[Distributed tracing](https://docs.datadoghq.com/tracing/guide/distributed_tracing/?tab=python) allows you to propagate a trace context from a service running on a host to a service running on AWS Lambda, and vice versa, so you can see performance end-to-end. Linking is implemented by injecting Datadog trace context into the HTTP request headers.
-
-Distributed tracing headers are language agnostic, e.g., a trace can be propagated between a Java service running on a host to a Lambda function written in Python.
-
-Because the trace context is propagated through HTTP request headers, the Lambda function needs to be triggered by AWS API Gateway or AWS Application Load Balancer.
-
-To enable this feature, you simple need to decorate your Lambda handler function with `@datadog_lambda_wrapper`.
-
-```python
-import requests
-from datadog_lambda.wrapper import datadog_lambda_wrapper
-
-@datadog_lambda_wrapper
-def lambda_handler(event, context):
-    requests.get("https://www.datadoghq.com")
-```
-
-Note, the Datadog Lambda Layer is only needed to enable _distributed_ tracing between Lambda and non-Lambda services. For standalone Lambda functions, traces can be found in Datadog APM after configuring [the X-Ray integration](https://docs.datadoghq.com/integrations/amazon_xray/).
-
-### Patching
-
-By default, widely used HTTP client libraries, such as `requests`, `urllib2` and `urllib.request` are patched automatically to inject Datadog trace context into outgoing requests.
-
-You can also manually retrieve the Datadog trace context (i.e., http headers in a Python dict) and inject it to request headers when needed.
-
-```python
-import requests
-from datadog_lambda.wrapper import datadog_lambda_wrapper
-from datadog_lambda.tracing import get_dd_trace_context
-
-@datadog_lambda_wrapper
-def lambda_handler(event, context):
-    headers = get_dd_trace_context()
-    requests.get("https://www.datadoghq.com", headers=headers)
-```
-
-### Sampling
-
-The traces for your Lambda function are converted by Datadog from AWS X-Ray traces. X-Ray needs to sample the traces that the Datadog tracing agent decides to sample, in order to collect as many complete traces as possible. You can create X-Ray sampling rules to ensure requests with header `x-datadog-sampling-priority:1` or `x-datadog-sampling-priority:2` via API Gateway always get sampled by X-Ray.
-
-These rules can be created using the following AWS CLI command.
-
-```bash
-aws xray create-sampling-rule --cli-input-json file://datadog-sampling-priority-1.json
-aws xray create-sampling-rule --cli-input-json file://datadog-sampling-priority-2.json
-```
-
-The file content for `datadog-sampling-priority-1.json`:
-
-```json
-{
-  "SamplingRule": {
-    "RuleName": "Datadog-Sampling-Priority-1",
-    "ResourceARN": "*",
-    "Priority": 9998,
-    "FixedRate": 1,
-    "ReservoirSize": 100,
-    "ServiceName": "*",
-    "ServiceType": "AWS::APIGateway::Stage",
-    "Host": "*",
-    "HTTPMethod": "*",
-    "URLPath": "*",
-    "Version": 1,
-    "Attributes": {
-      "x-datadog-sampling-priority": "1"
-    }
-  }
-}
-```
-
-The file content for `datadog-sampling-priority-2.json`:
-
-```json
-{
-  "SamplingRule": {
-    "RuleName": "Datadog-Sampling-Priority-2",
-    "ResourceARN": "*",
-    "Priority": 9999,
-    "FixedRate": 1,
-    "ReservoirSize": 100,
-    "ServiceName": "*",
-    "ServiceType": "AWS::APIGateway::Stage",
-    "Host": "*",
-    "HTTPMethod": "*",
-    "URLPath": "*",
-    "Version": 1,
-    "Attributes": {
-      "x-datadog-sampling-priority": "2"
-    }
-  }
-}
-```
-
-### Non-proxy integration
-
-If your Lambda function is triggered by API Gateway via [the non-proxy integration](https://docs.aws.amazon.com/apigateway/latest/developerguide/getting-started-lambda-non-proxy-integration.html), then you have to [set up a mapping template](https://aws.amazon.com/premiumsupport/knowledge-center/custom-headers-api-gateway-lambda/), which passes the Datadog trace context from the incoming HTTP request headers to the Lambda function via the `event` object.
-
-If your Lambda function is deployed by the Serverless Framework, such a mapping template gets created by default.
-
-## Log and Trace Correlations
-
-By default, the Datadog trace id gets automatically injected into the logs for correlation, if using the standard python `logging` library.
-
-If you use a custom logger handler to log in json, you can inject the ids using the helper function `get_correlation_ids` [manually](https://docs.datadoghq.com/tracing/connect_logs_and_traces/?tab=python#manual-trace-id-injection).
-
-Set the environment variable `DD_LOGS_INJECTION` to `false` to disable this feature.
-
-```python
-from datadog_lambda.wrapper import datadog_lambda_wrapper
-from ddtrace.helpers import get_correlation_ids
-
-@datadog_lambda_wrapper
-def lambda_handler(event, context):
-  trace_id, span_id = get_correlation_ids()
-  logger.info({
-    "message": "hello world",
-    "dd": {
-      "trace_id": trace_id,
-      "span_id": span_id
-    }
-  })
-```
-
-## Datadog Tracer (**Beta**)
-
-You can now trace Lambda functions using Datadog APM's tracing libraries ([dd-trace-py](https://github.com/DataDog/dd-trace-py)).
-
-1. If you are using the Lambda layer, upgrade it to at least version 15.
-1. If you are using the pip package `datadog-lambda-python`, upgrade it to at least version `v2.15.0`.
-1. Install (or update to) the latest version of [Datadog forwarder Lambda function](https://docs.datadoghq.com/integrations/amazon_web_services/?tab=allpermissions#set-up-the-datadog-lambda-function). Ensure the trace forwarding layer is attached to the forwarder, e.g., ARN for Python 2.7 `arn:aws:lambda:<AWS_REGION>:464622532012:layer:Datadog-Trace-Forwarder-Python27:4`.
-1. Set the environment variable `DD_TRACE_ENABLED` to true on your function.
-1. Instrument your function using `dd-trace`.
-
-```py
-from datadog_lambda.metric import lambda_metric
-from datadog_lambda.wrapper import datadog_lambda_wrapper
-
-from ddtrace import tracer
-
-@datadog_lambda_wrapper
-def hello(event, context):
-  return {
-    "statusCode": 200,
-    "body": get_message()
-  }
-
-@tracer.wrap()
-def get_message():
-  return "hello world"
-```
-
-You can also use `dd-trace` and the X-Ray tracer together and merge the traces into one, using the environment variable `DD_MERGE_XRAY_TRACES` to true on your function.
+Check out the official documentation on [Datadog Lambda enhanced metrics](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#real-time-enhanced-lambda-metrics).
 
 ## Opening Issues
 
