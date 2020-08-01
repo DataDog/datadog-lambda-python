@@ -14,13 +14,35 @@ AWS Lambda is expected to recieve a [breaking change](https://aws.amazon.com/blo
 
 ## Installation
 
-Check out our [installation instructions for Python](https://docs.datadoghq.com/serverless/installation/python/).
+Follow the [installation instructions](https://docs.datadoghq.com/serverless/installation/python/), and view your function's enhanced metrics, traces and logs in Datadog.
+
+## Custom Metrics
+
+Once [installed](#installation), you should be able to submit custom metrics from your Lambda function.
+
+Check out the instructions for [submitting custom metrics from AWS Lambda functions](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#custom-metrics).
+
+## Tracing
+
+Once [installed](#installation), you should be able to view your function's traces in Datadog, and your function's logs should be automatically connected to the traces.
+
+For additional details on trace collection, take a look at [collecting traces from AWS Lambda functions](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#trace-collection). 
+
+For additional details on trace and log connection, see [connecting logs and traces](https://docs.datadoghq.com/tracing/connect_logs_and_traces/python/).
+
+For additional details on the tracer, check out the [official documentation for Datadog trace client](http://pypi.datadoghq.com/trace/docs/index.html).
+
+## Enhanced Metrics
+
+Once [installed](#installation), you should be able to view enhanced metrics for your Lambda function in Datadog.
+
+Check out the official documentation on [Datadog Lambda enhanced metrics](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#real-time-enhanced-lambda-metrics).
 
 ## Environment Variables
 
 ### DD_FLUSH_TO_LOG
 
-Set to `true` (recommended) to send custom metrics asynchronously (with no added latency to your Lambda function executions) through CloudWatch Logs with the help of [Datadog Forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring). Defaultss to `false`. If set to `false`, you also need to set `DD_API_KEY` and `DD_SITE`.
+Set to `true` (recommended) to send custom metrics asynchronously (with no added latency to your Lambda function executions) through CloudWatch Logs with the help of [Datadog Forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring). Defaults to `false`. If set to `false`, you also need to set `DD_API_KEY` and `DD_SITE`.
 
 ### DD_API_KEY
 
@@ -44,7 +66,7 @@ If `DD_FLUSH_TO_LOG` is set to `false` (not recommended), and your data need to 
 
 ### DD_LOGS_INJECTION
 
-Inject Datadog trace id into logs for [correlation](https://docs.datadoghq.com/tracing/connect_logs_and_traces/?tab=python). Defaults to `true`.
+Inject Datadog trace id into logs for [correlation](https://docs.datadoghq.com/tracing/connect_logs_and_traces/python/). Defaults to `true`.
 
 ### DD_LOG_LEVEL
 
@@ -56,27 +78,15 @@ Generate enhanced Datadog Lambda integration metrics, such as, `aws.lambda.enhan
 
 ### DD_LAMBDA_HANDLER
 
-For use with the [redirected handler](#Redirected-Handler) method. Location of your original lambda handler.
+Your original Lambda handler.
 
 ### DD_TRACE_ENABLED
 
-When used with the [redirected handler](#Redirected-Handler) method, will auto initialize the tracer when set to true. Defaults to `false`.
+Initialize the Datadog tracer when set to `true`. Defaults to `false`.
 
 ### DD_MERGE_XRAY_TRACES
 
 Set to `true` to merge the X-Ray trace and the Datadog trace, when using both the X-Ray and Datadog tracing. Defaults to `false`.
-
-## Custom Metrics
-
-Check out the instructions for [submitting custom metrics from AWS Lambda functions](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#custom-metrics).
-
-## Tracing
-
-Check out the instructions for [collecting traces from AWS Lambda functions](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#trace-collection), and the [official documentation for Datadog trace client](http://pypi.datadoghq.com/trace/docs/index.html).
-
-## Enhanced Metrics
-
-Check out the official documentation on [Datadog Lambda enhanced metrics](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#real-time-enhanced-lambda-metrics).
 
 ## Opening Issues
 
