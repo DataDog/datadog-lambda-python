@@ -24,13 +24,13 @@ function docker_build_zip {
     # Install datadogpy in a docker container to avoid the mess from switching
     # between different python runtimes.
     temp_dir=$(mktemp -d)
-    docker build -t datadog-lambda-layer-python:$1 . --no-cache \
+    docker build -t datadog-lambda-python:$1 . --no-cache \
         --build-arg image=python:$1 \
         --build-arg runtime=python$1
 
     # Run the image by runtime tag, tar its generatd `python` directory to sdout,
     # then extract it to a temp directory.
-    docker run datadog-lambda-layer-python:$1 tar cf - python | tar -xf - -C $temp_dir
+    docker run datadog-lambda-python:$1 tar cf - python | tar -xf - -C $temp_dir
 
     # Zip to destination, and keep directory structure as based in $temp_dir
     (cd $temp_dir && zip -q -r $destination ./)
