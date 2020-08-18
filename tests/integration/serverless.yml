@@ -114,3 +114,36 @@ functions:
       DD_TRACE_ENABLED: true
     layers:
       - { Ref: Python38LambdaLayer }
+
+# http-error
+  http-error_python27:
+    handler: http_error.handle
+    runtime: python2.7
+    environment:
+      DD_TRACE_ENABLED: true
+    layers:
+      - { Ref: Python27LambdaLayer }
+
+  http-error_python36:
+    handler: http_error.handle
+    runtime: python3.6
+    environment:
+      DD_TRACE_ENABLED: true
+    layers:
+      - { Ref: Python36LambdaLayer }
+
+  http-error_python37:
+    handler: http_error.handle
+    runtime: python3.7
+    environment:
+      DD_TRACE_ENABLED: true
+    layers:
+      - { Ref: Python37LambdaLayer }
+
+  http-error_python38:
+    handler: http_error.handle
+    runtime: python3.8
+    environment:
+      DD_TRACE_ENABLED: true
+    layers:
+      - { Ref: Python38LambdaLayer }
