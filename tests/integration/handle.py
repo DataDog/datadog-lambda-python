@@ -4,7 +4,7 @@ from decorator import conditional_decorator
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 
-with_plugin = os.getenv('WITH_PLUGIN', False);
+with_plugin = os.getenv('WITH_PLUGIN', False) == 'true';
 
 @conditional_decorator(datadog_lambda_wrapper, with_plugin)
 def handle(event, context):

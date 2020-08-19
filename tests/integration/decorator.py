@@ -1,4 +1,3 @@
-
 def conditional_decorator(dec, condition):
     def decorator(func):
         if condition:
