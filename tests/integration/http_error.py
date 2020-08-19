@@ -9,7 +9,7 @@ from ddtrace.internal.writer import LogWriter
 
 tracer.writer = LogWriter()
 
-with_plugin = os.getenv('WITH_PLUGIN', False) == 'true';
+with_plugin = os.getenv('WITH_PLUGIN', False);
 
 @conditional_decorator(datadog_lambda_wrapper, with_plugin)
 def handle(event, context):
@@ -19,6 +19,5 @@ def handle(event, context):
     )
 
     requests.get("httpstat.us/400")
-    requests.get("httpstat.us/500")
 
     return {"statusCode": 200, "body": {"message": "hello, dog!"}}

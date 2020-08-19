@@ -2,7 +2,7 @@
 # yarn lockfile v1
 
 
-serverless-plugin-datadog@^2.2.0:
-  version "2.2.0"
-  resolved "https://registry.yarnpkg.com/serverless-plugin-datadog/-/serverless-plugin-datadog-2.2.0.tgz#d1c9d0e28dc9378f29f07b9b5ad1463076125ffa"
-  integrity sha512-/StW6tuIE2t4cgyz1OADmXemszwDgJzWDCea+4Z5FsJlxg/9T9KB3x2VOjbwf6CpP9Qr9xnK6bQPPDOpKHqWfQ==
+serverless-plugin-datadog@^2.2.1:
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/serverless-plugin-datadog/-/serverless-plugin-datadog-2.2.1.tgz#ab8d28bbac612a499e4b871f82a78b5f7c9d447b"
+  integrity sha512-+AjuftUx8hSju67aiPpIpkaXkrIwqMzTz9HNX4u0z80sa8W2JY41LeLQpV/FKgLCBE8aZX5XG7nWhC2wDV5/xw==
