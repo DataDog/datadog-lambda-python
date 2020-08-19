@@ -1,10 +1,7 @@
-service: integration
+service: integration-plugin
 
 provider:
   name: aws
-  tracing:
-    lambda: true
-    apiGateway: true
   environment:
     DD_INTEGRATION_TEST: true
     DD_API_KEY: ${env:DD_API_KEY}
@@ -147,3 +144,14 @@ functions:
       DD_TRACE_ENABLED: true
     layers:
       - { Ref: Python38LambdaLayer }
+
+plugins:
+  - serverless-plugin-datadog
+
+custom:
+  datadog:
+    flushMetricsToLogs: true
+    enableXrayTracing: true
+    addLayers: false
+    enableDDTracing: false
+    forwarder: # The Datadog Forwarder ARN goes here.

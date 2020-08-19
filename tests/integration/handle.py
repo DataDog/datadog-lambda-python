@@ -1,16 +1,10 @@
 import os
+
+from decorator import conditional_decorator
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 
-
 with_plugin = os.getenv('WITH_PLUGIN', False);
-
-def conditional_decorator(dec, condition):
-    def decorator(func):
-        if not condition:
-            return func
-        return dec(func)
-    return decorator
 
 @conditional_decorator(datadog_lambda_wrapper, with_plugin)
 def handle(event, context):
