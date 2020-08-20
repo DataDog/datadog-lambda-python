@@ -3,4 +3,5 @@ def conditional_decorator(dec, condition):
         if condition:
             return func
         return dec(func)
+
     return decorator

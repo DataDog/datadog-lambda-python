@@ -8,8 +8,8 @@ from ddtrace import tracer
 from ddtrace.internal.writer import LogWriter
 
 tracer.writer = LogWriter()
+with_plugin = os.getenv("WITH_PLUGIN", False)
 
-with_plugin = os.getenv('WITH_PLUGIN', False)
 
 @conditional_decorator(datadog_lambda_wrapper, with_plugin)
 def handle(event, context):
