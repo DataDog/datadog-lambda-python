@@ -18,6 +18,6 @@ def handle(event, context):
         "tests.integration.count", 21, tags=["test:integration", "role:hello"]
     )
 
-    requests.get("httpstat.us/400")
+    requests.get("https://httpstat.us/400/")
 
     return {"statusCode": 200, "body": {"message": "hello, dog!"}}

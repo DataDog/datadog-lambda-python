@@ -1,45 +1,6 @@
 {
-    "errorMessage": "Invalid URL 'httpstat.us/400': No schema supplied. Perhaps you meant http://httpstat.us/400?",
-    "errorType": "MissingSchema",
-    "stackTrace": [
-        "  File \"/opt/python/lib/python3.7/site-packages/datadog_lambda/wrapper.py\", line 106, in __call__\n    return self.func(event, context, **kwargs)\n",
-        "  File \"/var/task/http_error.py\", line 21, in handle\n    requests.get(\"httpstat.us/400\")\n",
-        "  File \"/opt/python/lib/python3.7/site-packages/requests/api.py\", line 76, in get\n    return request('get', url, params=params, **kwargs)\n",
-        "  File \"/opt/python/lib/python3.7/site-packages/requests/api.py\", line 61, in request\n    return session.request(method=method, url=url, **kwargs)\n",
-        "  File \"/opt/python/lib/python3.7/site-packages/requests/sessions.py\", line 516, in request\n    prep = self.prepare_request(req)\n",
-        "  File \"/opt/python/lib/python3.7/site-packages/requests/sessions.py\", line 459, in prepare_request\n    hooks=merge_hooks(request.hooks, self.hooks),\n",
-        "  File \"/opt/python/lib/python3.7/site-packages/requests/models.py\", line 314, in prepare\n    self.prepare_url(url, params)\n",
-        "  File \"/opt/python/lib/python3.7/site-packages/requests/models.py\", line 388, in prepare_url\n    raise MissingSchema(error)\n"
-    ]
+    "statusCode": 200,
+    "body": {
+        "message": "hello, dog!"
+    }
 }
- 
-  Error --------------------------------------------------
- 
-  Error: Invoked function failed
-      at AwsInvoke.log (/usr/local/lib/node_modules/serverless/lib/plugins/aws/invoke/index.js:105:31)
-      at AwsInvoke.tryCatcher (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/util.js:16:23)
-      at Promise._settlePromiseFromHandler (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/promise.js:547:31)
-      at Promise._settlePromise (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/promise.js:604:18)
-      at Promise._settlePromise0 (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/promise.js:649:10)
-      at Promise._settlePromises (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/promise.js:729:18)
-      at _drainQueueStep (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/async.js:93:12)
-      at _drainQueue (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/async.js:86:9)
-      at Async._drainQueues (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/async.js:102:5)
-      at Immediate.Async.drainQueues [as _onImmediate] (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/async.js:15:14)
-      at processImmediate (internal/timers.js:458:21)
- 
-     For debugging logs, run again after setting the "SLS_DEBUG=*" environment variable.
- 
-  Get Support --------------------------------------------
-     Docs:          docs.serverless.com
-     Bugs:          github.com/serverless/serverless/issues
-     Issues:        forum.serverless.com
- 
-  Your Environment Information ---------------------------
-     Operating System:          darwin
-     Node Version:              14.6.0
-     Framework Version:         1.78.0
-     Plugin Version:            3.7.0
-     SDK Version:               2.3.1
-     Components Version:        2.33.2
- 
