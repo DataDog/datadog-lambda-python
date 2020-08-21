@@ -178,6 +178,7 @@ done
 if [ "$mismatch_found" = true ]; then
     echo "FAILURE: A mismatch between new data and a snapshot was found and printed above."
     echo "If the change is expected, generate new snapshots by running 'UPDATE_SNAPSHOTS=true DD_API_KEY=XXXX ./scripts/run_integration_tests.sh'"
+    echo "Make sure https://httpstat.us/400/ is UP for `http_error` test case"
     exit 1
 fi
 
