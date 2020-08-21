@@ -1,19 +1,19 @@
 START RequestId: XXXX Version: $LATEST
-{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-tester-dev-async-metrics_python36", "resource:integration-tester-dev-async-metrics_python36", "cold_start:true", "memorysize:1024", "executedversion:$LATEST", "runtime:python3.6", "dd_lambda_layer:datadog-python36_2.XX.0"]}
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-async-metrics_python36", "resource:integration-dev-async-metrics_python36", "cold_start:true", "memorysize:1024", "runtime:python3.6", "dd_lambda_layer:datadog-python36_2.XX.0"]}
 {"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
 {"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	Init Duration: XXXX ms	
 XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
 START RequestId: XXXX Version: $LATEST
-{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-tester-dev-async-metrics_python36", "resource:integration-tester-dev-async-metrics_python36", "cold_start:false", "memorysize:1024", "executedversion:$LATEST", "runtime:python3.6", "dd_lambda_layer:datadog-python36_2.XX.0"]}
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-async-metrics_python36", "resource:integration-dev-async-metrics_python36", "cold_start:false", "memorysize:1024", "runtime:python3.6", "dd_lambda_layer:datadog-python36_2.XX.0"]}
 {"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
 {"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
 XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
 START RequestId: XXXX Version: $LATEST
-{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-tester-dev-async-metrics_python36", "resource:integration-tester-dev-async-metrics_python36", "cold_start:false", "memorysize:1024", "executedversion:$LATEST", "runtime:python3.6", "dd_lambda_layer:datadog-python36_2.XX.0"]}
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-async-metrics_python36", "resource:integration-dev-async-metrics_python36", "cold_start:false", "memorysize:1024", "runtime:python3.6", "dd_lambda_layer:datadog-python36_2.XX.0"]}
 {"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
 {"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
 END RequestId: XXXX

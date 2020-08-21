@@ -1,13 +1,11 @@
-service: integration
+service: integration-plugin
 
 provider:
   name: aws
-  tracing:
-    lambda: true
-    apiGateway: true
   environment:
     DD_INTEGRATION_TEST: true
     DD_API_KEY: ${env:DD_API_KEY}
+    WITH_PLUGIN: true
 
 layers:
   python27:
@@ -25,7 +23,7 @@ layers:
 
 functions:
   # async-metrics
-  async-metrics_python27:
+  async-metrics_python27_with_plugin:
     handler: handle.handle
     runtime: python2.7
     layers:
@@ -33,7 +31,7 @@ functions:
     environment:
       DD_FLUSH_TO_LOG: true
 
-  async-metrics_python36:
+  async-metrics_python36_with_plugin:
     handler: handle.handle
     runtime: python3.6
     layers:
@@ -41,7 +39,7 @@ functions:
     environment:
       DD_FLUSH_TO_LOG: true
 
-  async-metrics_python37:
+  async-metrics_python37_with_plugin:
     handler: handle.handle
     runtime: python3.7
     layers:
@@ -49,7 +47,7 @@ functions:
     environment:
       DD_FLUSH_TO_LOG: true
 
-  async-metrics_python38:
+  async-metrics_python38_with_plugin:
     handler: handle.handle
     runtime: python3.8
     layers:
@@ -58,32 +56,32 @@ functions:
       DD_FLUSH_TO_LOG: true
 
   # sync-metrics
-  sync-metrics_python27:
+  sync-metrics_python27_with_plugin:
     handler: handle.handle
     runtime: python2.7
     layers:
       - { Ref: Python27LambdaLayer }
 
-  sync-metrics_python36:
+  sync-metrics_python36_with_plugin:
     handler: handle.handle
     runtime: python3.6
     layers:
       - { Ref: Python36LambdaLayer }
 
-  sync-metrics_python37:
+  sync-metrics_python37_with_plugin:
     handler: handle.handle
     runtime: python3.7
     layers:
       - { Ref: Python37LambdaLayer }
 
-  sync-metrics_python38:
+  sync-metrics_python38_with_plugin:
     handler: handle.handle
     runtime: python3.8
     layers:
       - { Ref: Python38LambdaLayer }
 
   # http-requests
-  http-requests_python27:
+  http-requests_python27_with_plugin:
     handler: http_requests.handle
     runtime: python2.7
     environment:
@@ -91,7 +89,7 @@ functions:
     layers:
       - { Ref: Python27LambdaLayer }
 
-  http-requests_python36:
+  http-requests_python36_with_plugin:
     handler: http_requests.handle
     runtime: python3.6
     environment:
@@ -99,7 +97,7 @@ functions:
     layers:
       - { Ref: Python36LambdaLayer }
 
-  http-requests_python37:
+  http-requests_python37_with_plugin:
     handler: http_requests.handle
     runtime: python3.7
     environment:
@@ -107,7 +105,7 @@ functions:
     layers:
       - { Ref: Python37LambdaLayer }
 
-  http-requests_python38:
+  http-requests_python38_with_plugin:
     handler: http_requests.handle
     runtime: python3.8
     environment:
@@ -116,7 +114,7 @@ functions:
       - { Ref: Python38LambdaLayer }
 
 # http-error
-  http-error_python27:
+  http-error_python27_with_plugin:
     handler: http_error.handle
     runtime: python2.7
     environment:
@@ -124,7 +122,7 @@ functions:
     layers:
       - { Ref: Python27LambdaLayer }
 
-  http-error_python36:
+  http-error_python36_with_plugin:
     handler: http_error.handle
     runtime: python3.6
     environment:
@@ -132,7 +130,7 @@ functions:
     layers:
       - { Ref: Python36LambdaLayer }
 
-  http-error_python37:
+  http-error_python37_with_plugin:
     handler: http_error.handle
     runtime: python3.7
     environment:
@@ -140,10 +138,21 @@ functions:
     layers:
       - { Ref: Python37LambdaLayer }
 
-  http-error_python38:
+  http-error_python38_with_plugin:
     handler: http_error.handle
     runtime: python3.8
     environment:
       DD_TRACE_ENABLED: true
     layers:
       - { Ref: Python38LambdaLayer }
+
+plugins:
+  - serverless-plugin-datadog
+
+custom:
+  datadog:
+    flushMetricsToLogs: true
+    enableXrayTracing: true
+    addLayers: false
+    enableDDTracing: true
+    forwarder: # The Datadog Forwarder ARN goes here.

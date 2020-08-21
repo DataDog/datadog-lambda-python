@@ -39,3 +39,6 @@ nosetests.xml
 
 
 **/.serverless/
+
+node_modules
+yarn-lock.json
