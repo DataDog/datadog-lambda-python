@@ -16,7 +16,9 @@ trap "pkill -P $$; exit 1;" INT
 PYTHON_VERSIONS_FOR_AWS_CLI=("python2.7" "python3.6" "python3.7" "python3.8")
 LAYER_PATHS=(".layers/datadog_lambda_py2.7.zip" ".layers/datadog_lambda_py3.6.zip" ".layers/datadog_lambda_py3.7.zip" ".layers/datadog_lambda_py3.8.zip")
 AVAILABLE_LAYER_NAMES=("Datadog-Python27" "Datadog-Python36" "Datadog-Python37" "Datadog-Python38")
-AVAILABLE_REGIONS=(us-east-2 us-east-1 us-west-1 us-west-2 ap-east-1 ap-south-1 ap-northeast-2 ap-southeast-1 ap-southeast-2 ap-northeast-1 ca-central-1 eu-north-1 eu-central-1 eu-west-1 eu-west-2 eu-west-3 sa-east-1)
+REGULAR_REGIONS=(us-east-2 us-east-1 us-west-1 us-west-2 ap-east-1 ap-south-1 ap-northeast-2 ap-southeast-1 ap-southeast-2 ap-northeast-1 ca-central-1 eu-north-1 eu-central-1 eu-west-1 eu-west-2 eu-west-3 sa-east-1)
+US_GOV_REGIONS=(us-gov-east-1 us-gov-west-1)
+AVAILABLE_REGIONS=("${REGULAR_REGIONS[@]}" "${US_GOV_REGIONS[@]}")
 
 # Check that the layer files exist
 for layer_file in "${LAYER_PATHS[@]}"
@@ -29,8 +31,8 @@ done
 
 # Check region arg
 if [ -z "$1" ]; then
-    echo "Region parameter not specified, running for all available regions."
-    REGIONS=("${AVAILABLE_REGIONS[@]}")
+    echo "Region parameter not specified, running for all regular regions."
+    REGIONS=("${REGULAR_REGIONS[@]}")
 else
     echo "Region parameter specified: $1"
     if [[ ! " ${AVAILABLE_REGIONS[@]} " =~ " ${1} " ]]; then
@@ -85,7 +87,7 @@ publish_layer() {
     echo "Published layer for region $region, python version $aws_version_key, layer_name $layer_name, layer_version $version_nbr"
 }
 
-BATCH_SIZE=60
+BATCH_SIZE=1
 PIDS=()
 
 wait_for_processes() {
