@@ -24,5 +24,6 @@ if len(parts) != 2:
     raise HandlerError("Value %s for DD_LAMBDA_HANDLER has invalid format." % path)
 
 (mod_name, handler_name) = parts
-handler_module = import_module(mod_name)
+modified_mod_name = ".".join(mod_name.split("/"))
+handler_module = import_module(modified_mod_name)
 handler = datadog_lambda_wrapper(getattr(handler_module, handler_name))
