@@ -23,10 +23,13 @@ parts = path.rsplit(".", 1)
 if len(parts) != 2:
     raise HandlerError("Value %s for DD_LAMBDA_HANDLER has invalid format." % path)
 
+
 def modify_module_name(module_name):
     return ".".join(mod_name.split("/"))
 
+
 (mod_name, handler_name) = parts
+
 modified_mod_name = modify_module_name(mod_name)
 handler_module = import_module(modified_mod_name)
 handler = datadog_lambda_wrapper(getattr(handler_module, handler_name))
