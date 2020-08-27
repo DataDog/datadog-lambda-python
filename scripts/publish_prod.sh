@@ -2,77 +2,72 @@
 set -e
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
+echo $BRANCH
+
 if [ $BRANCH != "master" ]; then
     echo "Not on master, aborting"
     exit 1
 fi
 
-if [ -z "$AWS_ACCESS_KEY_ID" ]; then
-    echo 'AWS_ACCESS_KEY_ID not set. Are you using aws-vault?'
-    exit 1
-fi
+echo 'Checking AWS Regions'
+aws-vault exec prod-engineering -- ./scripts/list_layers.sh
 
-if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    echo 'AWS_SECRET_ACCESS_KEY not set. Are you using aws-vault?'
-    exit 1
-fi
+echo 'Checking USGov Regions'
+AWS_PROFILE=govcloud-us1-fed-human-engineering ./scripts/list_layers.sh
 
-if [ -z "$AWS_SESSION_TOKEN" ]; then
-    echo 'AWS_SESSION_TOKEN not set. Are you using aws-vault?'
-    exit 1
-fi
-
-echo 'Checking Regions'
-# ./scripts/list_layers.sh
-echo "layer 1"
-
-# read -p "Do the list look good? " -n 1 -r
-# echo
-# if [[ ! $REPLY =~ ^[Yy]$ ]]
-# then
-#     [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
-# fi
-SEMVER_REGEX="(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(\\-[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?(\\+[0-9A-Za-z-]+(\\.[0-9A-Za-z-]+)*)?$"
-VERSION_LINE=$(sed -E -n 's/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/"\1.\2.\3"/p' ./scripts/file.txt)
-
-echo "$VERSION_LINE"
-MINOR_VERSION_NUM=$(echo "$VERSION_LINE" | cut -d '.' -f 2)
-
-echo "$MINOR_VERSION_NUM"
-
-NEW_VERSION=$(($MINOR_VERSION_NUM + 1))
-echo $NEW_VERSION
-
-read -p "Does this Minor version LGTY? ${MINOR_VERSION_NUM}" -n 1 -r
+read -p "Do the list look good?(y/n) " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
     [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
 fi
 
+VERSION_LINE=$(sed -E -n 's/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/"\1.\2.\3"/p' ./datadog_lambda/__init__.py)
+MINOR_VERSION_NUM=$(echo "$VERSION_LINE" | cut -d '.' -f 2)
+echo ""
+echo "Current version found: $MINOR_VERSION_NUM"
+echo ""
+NEW_VERSION=$(($MINOR_VERSION_NUM + 1))
+
+read -p "Ready to publish layers and update the minor version. $MINOR_VERSION_NUM to $NEW_VERSION?(y/n)" -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
+fi
+
+echo ""
 echo "Replacing __version__ in ./datadog_lambda/__init__.py"
-sed -i "" -E "s/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/\"\1.${NEW_VERSION}.\3\"/" ./scripts/file.txt
+echo ""
+sed -i "" -E "s/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/\"\1.${NEW_VERSION}.\3\"/" ./datadog_lambda/__init__.py
 
+git commit ./datadog_lambda/__init__.py -m "Update module minor version to ${NEW_VERSION}"
 
+echo ""
+echo "Building layers..."
+./scripts/build_layers.sh
 
-# PY_FILE=$(cat "./datadog_lambda/__init__.py")
+echo ""
+echo "Publishing layers to AWS regions..."
+aws-vault exec prod-engineering --./scripts/publish_layers.sh
+echo ""
+echo "Publishing layers to USGov regions..."
+AWS_PROFILE=govcloud-us1-fed-human-engineering ./scripts/publish_layers.sh
 
-# echo $PY_FILE
-# echo "WTF"
+echo ""
+echo 'Pushing updates to github'
+git push origin master
+git push origin "refs/tags/v$NEW_VERSION"
 
-# NEW_VERSION=$(echo $PY_FILE | grep -o "$SEMVER_REGEX" )
-# NEW_VERSION=$(echo $PY_FILE | grep -o "[0-9]+.([0-9]+).[0-9]+")
+echo ""
+echo "Publishing to https://pypi.org/project/datadog-lambda/"
+./scripts/pypi.sh
 
-# echo $NEW_VERSION
+echo ""
+echo "Now create a new release with the tag v${MINOR_VERSION_NUM} created"
+echo "https://github.com/DataDog/datadog-lambda-python/releases/new"
+echo ""
+echo "Then publish a new serverless-plugin-datadog version with the new layer versions!"
+echo "https://github.com/DataDog/devops/wiki/Datadog-Serverless-Plugin#release"
+echo ""
 
-# echo 'Publishing to Node'
-# yarn build
-# yarn publish --new-version "$PACKAGE_VERSION"
-
-# echo 'Tagging Release'
-# git tag "v$PACKAGE_VERSION"
-# git push origin "refs/tags/v$PACKAGE_VERSION"
-
-# echo 'Publishing Lambda Layer'
-# ./scripts/build_layers.sh
-# ./scripts/publish_layers.sh
