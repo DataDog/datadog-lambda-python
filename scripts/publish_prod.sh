@@ -9,11 +9,23 @@ if [ $BRANCH != "master" ]; then
     exit 1
 fi
 
-echo 'Checking AWS Regions'
-aws-vault exec prod-engineering -- ./scripts/list_layers.sh
+if [ -z "$AWS_ACCESS_KEY_ID" ]; then
+    echo 'AWS_ACCESS_KEY_ID not set. Are you using aws-vault?'
+    exit 1
+fi
 
-echo 'Checking USGov Regions'
-AWS_PROFILE=govcloud-us1-fed-human-engineering ./scripts/list_layers.sh
+if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+    echo 'AWS_SECRET_ACCESS_KEY not set. Are you using aws-vault?'
+    exit 1
+fi
+
+if [ -z "$AWS_SESSION_TOKEN" ]; then
+    echo 'AWS_SESSION_TOKEN not set. Are you using aws-vault?'
+    exit 1
+fi
+
+echo 'Checking AWS Regions'
+./scripts/list_layers.sh
 
 read -p "Do the list look good?(y/n) " -n 1 -r
 echo
@@ -49,10 +61,7 @@ echo "Building layers..."
 
 echo ""
 echo "Publishing layers to AWS regions..."
-aws-vault exec prod-engineering --./scripts/publish_layers.sh
-echo ""
-echo "Publishing layers to USGov regions..."
-AWS_PROFILE=govcloud-us1-fed-human-engineering ./scripts/publish_layers.sh
+./scripts/publish_layers.sh
 
 echo ""
 echo 'Pushing updates to github'
@@ -64,7 +73,7 @@ echo "Publishing to https://pypi.org/project/datadog-lambda/"
 ./scripts/pypi.sh
 
 echo ""
-echo "Now create a new release with the tag v${MINOR_VERSION_NUM} created"
+echo "Now create a new release with the tag v${NEW_VERSION} created"
 echo "https://github.com/DataDog/datadog-lambda-python/releases/new"
 echo ""
 echo "Then publish a new serverless-plugin-datadog version with the new layer versions!"
