@@ -1,6 +1,6 @@
 # The minor version corresponds to the Lambda layer version.
 # E.g.,, version 0.5.0 gets packaged into layer version 5.
-__version__ = "2.21.0"
+__version__ = "2.22.0"
 
 
 import os
