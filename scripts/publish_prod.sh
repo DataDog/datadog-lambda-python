@@ -76,15 +76,16 @@ echo "Publishing layers to AWS regions..."
 
 echo ""
 echo 'Pushing updates to github'
+MINOR_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
 git push origin master
-git push origin "refs/tags/v$NEW_VERSION"
+git push origin "refs/tags/v$MINOR_VERSION"
 
 echo ""
 echo "Publishing to https://pypi.org/project/datadog-lambda/"
 ./scripts/pypi.sh
 
 echo ""
-echo "Now create a new release with the tag v${NEW_VERSION} created"
+echo "Now create a new release with the tag v${MINOR_VERSION} created"
 echo "https://github.com/DataDog/datadog-lambda-python/releases/new"
 echo ""
 echo "Then publish a new serverless-plugin-datadog version with the new layer versions!"
