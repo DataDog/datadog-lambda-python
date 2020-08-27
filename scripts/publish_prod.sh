@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Use with `aws-vault exec PROFILE -- ./publish_prod.sh <DESIRED_NEW_VERSION>
+# Use with `aws-vault exec <PROFILE> -- ./publish_prod.sh <DESIRED_NEW_VERSION>
 
 set -e
 
