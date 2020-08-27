@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# Use with `aws-vault exec PROFILE -- ./publish_prod.sh <DESIRED_NEW_VERSION>
+
 set -e
 
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -24,6 +27,17 @@ if [ -z "$AWS_SESSION_TOKEN" ]; then
     exit 1
 fi
 
+# Read the desired version
+if [ -z "$1" ]; then
+    echo "Must specify a desired version number"
+    exit 1
+elif [[ ! $1 =~ [0-9]+\.[0-9]+\.[0-9]+ ]]; then
+    echo "Must use a semantic version, e.g., 3.1.4"
+    exit 1
+else
+    NEW_VERSION=$1
+fi
+
 echo 'Checking AWS Regions'
 ./scripts/list_layers.sh
 
@@ -35,13 +49,10 @@ then
 fi
 
 VERSION_LINE=$(sed -E -n 's/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/"\1.\2.\3"/p' ./datadog_lambda/__init__.py)
-MINOR_VERSION_NUM=$(echo "$VERSION_LINE" | cut -d '.' -f 2)
-echo ""
-echo "Current version found: $MINOR_VERSION_NUM"
-echo ""
-NEW_VERSION=$(($MINOR_VERSION_NUM + 1))
+CURRENT_VERSION=$(echo "$VERSION_LINE" | cut -d '"' -f 2)
+echo "$CURRENT_VERSION"
 
-read -p "Ready to publish layers and update the minor version. $MINOR_VERSION_NUM to $NEW_VERSION?(y/n)" -n 1 -r
+read -p "Ready to publish layers and update the version from $CURRENT_VERSION to $NEW_VERSION?(y/n)" -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
@@ -51,9 +62,9 @@ fi
 echo ""
 echo "Replacing __version__ in ./datadog_lambda/__init__.py"
 echo ""
-sed -i "" -E "s/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/\"\1.${NEW_VERSION}.\3\"/" ./datadog_lambda/__init__.py
+sed -i "" -E "s/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/\"$NEW_VERSION\"/" ./datadog_lambda/__init__.py
 
-git commit ./datadog_lambda/__init__.py -m "Update module minor version to ${NEW_VERSION}"
+git commit ./datadog_lambda/__init__.py -m "Update module version to ${NEW_VERSION}"
 
 echo ""
 echo "Building layers..."
@@ -77,6 +88,5 @@ echo "Now create a new release with the tag v${NEW_VERSION} created"
 echo "https://github.com/DataDog/datadog-lambda-python/releases/new"
 echo ""
 echo "Then publish a new serverless-plugin-datadog version with the new layer versions!"
-echo "https://github.com/DataDog/devops/wiki/Datadog-Serverless-Plugin#release"
 echo ""
 
