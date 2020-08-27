@@ -27,7 +27,6 @@ if [ -z "$AWS_SESSION_TOKEN" ]; then
     exit 1
 fi
 
-# Read the desired version
 if [ -z "$1" ]; then
     echo "Must specify a desired version number"
     exit 1
@@ -41,7 +40,7 @@ fi
 echo 'Checking AWS Regions'
 ./scripts/list_layers.sh
 
-read -p "Do the list look good?(y/n) " -n 1 -r
+read -p "Do the list look good? (y/n) " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
@@ -50,9 +49,8 @@ fi
 
 VERSION_LINE=$(sed -E -n 's/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/"\1.\2.\3"/p' ./datadog_lambda/__init__.py)
 CURRENT_VERSION=$(echo "$VERSION_LINE" | cut -d '"' -f 2)
-echo "$CURRENT_VERSION"
 
-read -p "Ready to publish layers and update the version from $CURRENT_VERSION to $NEW_VERSION?(y/n)" -n 1 -r
+read -p "Ready to publish layers and update the version from $CURRENT_VERSION to $NEW_VERSION? (y/n)" -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
@@ -80,6 +78,17 @@ MINOR_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
 git push origin master
 git push origin "refs/tags/v$MINOR_VERSION"
 
+
+echo 'Checking AWS Regions Again...'
+./scripts/list_layers.sh
+
+
+read -p "Do regions look good? Ready to publish $NEW_VERSION to Pypi? (y/n)" -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
+fi
 echo ""
 echo "Publishing to https://pypi.org/project/datadog-lambda/"
 ./scripts/pypi.sh
