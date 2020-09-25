@@ -8,9 +8,7 @@
 
 Datadog Lambda Library for Python (2.7, 3.6, 3.7 and 3.8) enables enhanced Lambda metrics, distributed tracing, and custom metric submission from AWS Lambda functions.  
 
-## IMPORTANT NOTE
-
-AWS Lambda is expected to recieve a [breaking change](https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/) on **January 30, 2021**. If you are using Datadog Python Lambda layer version 7 or below, please upgrade to the latest.
+**IMPORTANT NOTE:** AWS Lambda is expected to recieve a [breaking change](https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/) on **January 30, 2021**. If you are using Datadog Python Lambda layer version 7 or below, please upgrade to the latest.
 
 ## Installation
 
