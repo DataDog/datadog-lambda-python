@@ -8,7 +8,6 @@ import os
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core.lambda_launcher import LambdaContext
- 
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
@@ -18,7 +17,7 @@ from datadog_lambda.constants import (
 from ddtrace import tracer, patch
 from ddtrace import __version__ as ddtrace_version
 from ddtrace.propagation.http import HTTPPropagator
-from datadog_lambda import __version__ as lambda_version
+from datadog_lambda import __version__ as datadog_lambda_version
 
 logger = logging.getLogger(__name__)
 
@@ -250,8 +249,8 @@ def create_function_execution_span(
             "function_version": function_version,
             "request_id": context.aws_request_id,
             "resource_names": context.function_name,
-            "datadog_lambda_py_version":  lambda_version,
-            "dd_trace_py_version": ddtrace_version
+            "datadog_lambda":  datadog_lambda_version,
+            "dd_trace": ddtrace_version
         }
     source = trace_context["source"]
     if source == TraceContextSource.XRAY and merge_xray_traces:
