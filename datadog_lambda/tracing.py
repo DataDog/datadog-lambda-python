@@ -249,7 +249,7 @@ def create_function_execution_span(
             "function_version": function_version,
             "request_id": context.aws_request_id,
             "resource_names": context.function_name,
-            "datadog_lambda":  datadog_lambda_version,
+            "datadog_lambda": datadog_lambda_version,
             "dd_trace": ddtrace_version
         }
     source = trace_context["source"]
