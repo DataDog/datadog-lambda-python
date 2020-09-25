@@ -250,7 +250,7 @@ def create_function_execution_span(
             "request_id": context.aws_request_id,
             "resource_names": context.function_name,
             "datadog_lambda": datadog_lambda_version,
-            "dd_trace": ddtrace_version
+            "dd_trace": ddtrace_version,
         }
     source = trace_context["source"]
     if source == TraceContextSource.XRAY and merge_xray_traces:
