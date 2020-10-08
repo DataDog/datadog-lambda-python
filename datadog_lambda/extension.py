@@ -27,4 +27,3 @@ def flush_extension():
 
 
 use_extension = is_extension_running()
-
