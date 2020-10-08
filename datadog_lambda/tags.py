@@ -85,7 +85,6 @@ def get_enhanced_metrics_tags(lambda_context):
         get_cold_start_tag(),
         "memorysize:{}".format(lambda_context.memory_limit_in_mb),
         get_runtime_tag(),
-        _format_dd_lambda_layer_tag(),
     ]
 
 

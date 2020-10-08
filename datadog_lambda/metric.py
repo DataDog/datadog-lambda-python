@@ -10,8 +10,9 @@ import base64
 import logging
 
 import boto3
-from datadog import api
+from datadog import api, initialize, statsd
 from datadog.threadstats import ThreadStats
+from datadog_lambda.extension import should_use_extension
 from datadog_lambda.tags import get_enhanced_metrics_tags, tag_dd_lambda_layer
 
 
@@ -19,11 +20,32 @@ ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
 logger = logging.getLogger(__name__)
 
-lambda_stats = ThreadStats()
-lambda_stats.start()
+
+class StatsDWrapper:
+    """
+    Wraps StatsD calls, to give an identical interface to ThreadStats
+    """
+
+    def __init__(self):
+        options = {"statsd_host": "127.0.0.1", "statsd_port": 8125}
+        initialize(**options)
+
+    def distribution(self, metric_name, value, tags=[], timestamp=None):
+        statsd.distribution(metric_name, value, tags=tags)
+
+    def flush(self, value):
+        pass
 
 
-def lambda_metric(metric_name, value, timestamp=None, tags=None):
+lambda_stats = None
+if should_use_extension:
+    lambda_stats = StatsDWrapper()
+else:
+    lambda_stats = ThreadStats()
+    lambda_stats.start()
+
+
+def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=False):
     """
     Submit a data point to Datadog distribution metrics.
     https://docs.datadoghq.com/graphing/metrics/distributions/
@@ -36,12 +58,14 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
     periodically and at the end of the function execution in a
     background thread.
     """
+    flush_to_logs = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
     tags = tag_dd_lambda_layer(tags)
-    if os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true":
-        write_metric_point_to_stdout(metric_name, value, timestamp, tags)
+
+    if flush_to_logs or (force_async and not should_use_extension):
+        write_metric_point_to_stdout(metric_name, value, timestamp=timestamp, tags=tags)
     else:
         logger.debug("Sending metric %s to Datadog via lambda layer", metric_name)
-        lambda_stats.distribution(metric_name, value, timestamp=timestamp, tags=tags)
+        lambda_stats.distribution(metric_name, value, tags=tags, timestamp=timestamp)
 
 
 def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
@@ -85,13 +109,10 @@ def submit_enhanced_metric(metric_name, lambda_context):
             metric_name,
         )
         return
-
-    # Enhanced metrics are always written to logs
-    write_metric_point_to_stdout(
-        "{}.{}".format(ENHANCED_METRICS_NAMESPACE_PREFIX, metric_name),
-        1,
-        tags=get_enhanced_metrics_tags(lambda_context),
-    )
+    tags = get_enhanced_metrics_tags(lambda_context)
+    metric_name = "aws.lambda.enhanced." + metric_name
+    # Enhanced metrics always use an async submission method, (eg logs or extension).
+    lambda_metric(metric_name, 1, timestamp=None, tags=tags, force_async=True)
 
 
 def submit_invocations_metric(lambda_context):
