@@ -38,10 +38,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_wrapper_lambda_stats = patcher.start()
         self.addCleanup(patcher.stop)
 
-        # patcher = patch("datadog_lambda.metric.lambda_metric")
-        # self.mock_lambda_metric = patcher.start()
-        # self.addCleanup(patcher.stop)
-
         patcher = patch("datadog_lambda.wrapper.extract_dd_trace_context")
         self.mock_extract_dd_trace_context = patcher.start()
         self.addCleanup(patcher.stop)

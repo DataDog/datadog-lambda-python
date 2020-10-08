@@ -26,4 +26,4 @@ def flush_extension():
     return True
 
 
-use_extension = is_extension_running()
+should_use_extension = is_extension_running()

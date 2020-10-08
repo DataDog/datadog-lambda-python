@@ -12,7 +12,7 @@ import logging
 import boto3
 from datadog import api, initialize, statsd
 from datadog.threadstats import ThreadStats
-from datadog_lambda.extension import use_extension
+from datadog_lambda.extension import should_use_extension
 from datadog_lambda.tags import get_enhanced_metrics_tags, tag_dd_lambda_layer
 
 
@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 class StatsDWrapper:
     """
-    Wraps StatsD calls, to give an identical to ThreadStats
+    Wraps StatsD calls, to give an identical interface to ThreadStats
     """
 
     def __init__(self):
@@ -38,7 +38,7 @@ class StatsDWrapper:
 
 
 lambda_stats = None
-if use_extension:
+if should_use_extension:
     lambda_stats = StatsDWrapper()
 else:
     lambda_stats = ThreadStats()
@@ -61,7 +61,7 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     flush_to_logs = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
     tags = tag_dd_lambda_layer(tags)
 
-    if flush_to_logs or (force_async and not use_extension):
+    if flush_to_logs or (force_async and not should_use_extension):
         write_metric_point_to_stdout(metric_name, value, timestamp=timestamp, tags=tags)
     else:
         logger.debug("Sending metric %s to Datadog via lambda layer", metric_name)

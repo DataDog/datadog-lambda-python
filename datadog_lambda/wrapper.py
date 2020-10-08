@@ -7,7 +7,7 @@ import os
 import logging
 import traceback
 
-from datadog_lambda.extension import use_extension, flush_extension
+from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
 from datadog_lambda.metric import (
     lambda_stats,
@@ -138,9 +138,9 @@ class _LambdaDecorator(object):
 
     def _after(self, event, context):
         try:
-            if not self.flush_to_log or use_extension:
+            if not self.flush_to_log or should_use_extension:
                 lambda_stats.flush(float("inf"))
-            if use_extension:
+            if should_use_extension:
                 flush_extension()
 
             if self.span:
