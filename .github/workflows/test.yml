@@ -20,6 +20,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Cache dependencies
+        id: cache-dependencies
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
@@ -28,14 +29,8 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
-        if: steps.cache-node-modules.outputs.cache-hit != 'true'
-        run: |
-            pip install virtualenv
-            virtualenv venv
-            source venv/bin/activate
-            pip install .[dev]
+        if: steps.cache-dependencies.outputs.cache-hit != 'true'
+        run: pip install .[dev]
 
       - name: Run tests
-        run: |
-            source venv/bin/activate
-            nose2 -v
+        run: nose2 -v
