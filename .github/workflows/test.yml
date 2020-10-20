@@ -30,7 +30,7 @@ jobs:
 
       - name: Install dependencies
         if: steps.cache-dependencies.outputs.cache-hit != 'true'
-        run: pip install .[dev]
+        run: pip install --upgrade .[dev]
 
       - name: Run tests
         run: nose2 -v
