@@ -1,0 +1,61 @@
+name: build
+
+on: push
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install dependencies
+        run: |
+            pip install virtualenv
+            virtualenv venv
+            source venv/bin/activate
+            pip install .[dev]
+
+      - name: Check formatting
+        run: |
+            source venv/bin/activate
+            ./scripts/check_format.sh
+
+      - name: Lint
+        run: |
+          source venv/bin/activate
+          flake8 datadog_lambda/
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      max-parallel: 4
+      matrix:
+        python-version: [2.7, 3.6, 3.7, 3.8]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install virtualenv
+          virtualenv venv
+          source venv/bin/activate
+          pip install .[dev]
+
+      - name: Run tests
+        run: |
+          source venv/bin/activate
+          nose2 -v
