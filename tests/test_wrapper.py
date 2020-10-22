@@ -6,6 +6,8 @@ try:
 except ImportError:
     from mock import patch, call, ANY, MagicMock
 
+import datadog_lambda
+datadog_lambda.tracing.dd_tracing_enabled = False
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog_lambda.metric import lambda_metric
 

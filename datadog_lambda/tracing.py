@@ -14,15 +14,18 @@ from datadog_lambda.constants import (
     XraySubsegment,
     TraceContextSource,
 )
-from ddtrace import tracer, patch
+import ddtrace
+ddtrace.config.analytics_enabled = os.environ.get("DD_TRACE_ANALYTICS_ENABLED", "true").lower() == "true"
+
+from ddtrace import tracer, patch, config
 from ddtrace import __version__ as ddtrace_version
 from ddtrace.propagation.http import HTTPPropagator
-from datadog_lambda import __version__ as datadog_lambda_version
+from datadog_lambda import __version__ as datadog_lambda_version 
 
 logger = logging.getLogger(__name__)
 
 dd_trace_context = {}
-dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
+dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "true").lower() == "true"
 
 propagator = HTTPPropagator()
 
