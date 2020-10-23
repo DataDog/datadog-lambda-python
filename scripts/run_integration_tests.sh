@@ -139,6 +139,9 @@ for _sls_type in "${CONFIGS[@]}"; do
                     sed -E "s/(api_key=|'api_key': ')[a-z0-9\.\-]+/\1XXXX/g" |
                     # Normalize minor package version so that these snapshots aren't broken on version bumps
                     sed -E "s/(dd_lambda_layer:datadog-python[0-9]+_2\.)[0-9]+\.0/\1XX\.0/g" |
+                    #Strip out datadog lambda and dd-trace versions
+                    sed -E "s/(\"datadog_lambda\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
+                    sed -E "s/(\"dd_trace\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
                     # Strip out trace/span/parent/timestamps
                     sed -E "s/(\"trace_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
                     sed -E "s/(\"span_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
