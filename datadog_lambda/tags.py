@@ -77,6 +77,15 @@ def get_runtime_tag():
         major=major_version, minor=minor_version
     )
 
+def get_library_version_tag():
+    """Get the runtime tag from the current Python version
+    """
+    major_version, minor_version, _ = python_version_tuple()
+
+    return "datadog_lambda:python{major}.{minor}".format(
+        major=major_version, minor=minor_version
+    )
+
 
 def get_enhanced_metrics_tags(lambda_context):
     """Get the list of tags to apply to enhanced metrics
@@ -86,6 +95,7 @@ def get_enhanced_metrics_tags(lambda_context):
         "memorysize:{}".format(lambda_context.memory_limit_in_mb),
         get_runtime_tag(),
         _format_dd_lambda_layer_tag(),
+
     ]
 
 

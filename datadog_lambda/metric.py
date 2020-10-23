@@ -12,7 +12,11 @@ import logging
 import boto3
 from datadog import api
 from datadog.threadstats import ThreadStats
+from datadog.http_client import _get_user_agent_header
 from datadog_lambda.tags import get_enhanced_metrics_tags, tag_dd_lambda_layer
+from datadog_lambda import __version__
+
+from platform import python_version_tuple
 
 
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
@@ -41,6 +45,7 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None):
         write_metric_point_to_stdout(metric_name, value, timestamp, tags)
     else:
         logger.debug("Sending metric %s to Datadog via lambda layer", metric_name)
+        
         lambda_stats.distribution(metric_name, value, timestamp=timestamp, tags=tags)
 
 
@@ -133,4 +138,11 @@ logger.debug("Setting DATADOG_API_KEY of length %d", len(api._api_key))
 api._api_host = os.environ.get(
     "DATADOG_HOST", "https://api." + os.environ.get("DD_SITE", "datadoghq.com")
 )
+
+http_client = api._get_http_client()
+
+major_version, minor_version, _ = python_version_tuple()
+
+http_client._session.headers.update({'User-Agent': 'datadog-lambda/{__version__} (runtime {runtime}) ' + _get_user_agent_header()})
+
 logger.debug("Setting DATADOG_HOST to %s", api._api_host)
