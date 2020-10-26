@@ -27,13 +27,15 @@ def get_mock_context(
     aws_request_id="request-id-1",
     memory_limit_in_mb="256",
     invoked_function_arn=function_arn,
-    function_version="1"
+    function_version="1",
+    client_context="e30=",
 ):
     lambda_context = MagicMock()
     lambda_context.aws_request_id = aws_request_id
     lambda_context.memory_limit_in_mb = memory_limit_in_mb
     lambda_context.invoked_function_arn = invoked_function_arn
     lambda_context.function_version = function_version
+    lambda_context.client_context = client_context
     return lambda_context
 
 
@@ -62,7 +64,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         dd_tracing_enabled = False
 
     def test_without_datadog_trace_headers(self):
-        ctx = extract_dd_trace_context({}, {})
+        ctx = extract_dd_trace_context({}, get_mock_context())
         self.assertDictEqual(
             ctx,
             {
@@ -84,7 +86,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     def test_with_incomplete_datadog_trace_headers(self):
         ctx = extract_dd_trace_context(
             {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321"}},
-            {}
+            get_mock_context(),
         )
         self.assertDictEqual(
             ctx,
@@ -113,7 +115,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     TraceHeader.SAMPLING_PRIORITY: "1",
                 }
             },
-            {}
+            get_mock_context(),
         )
         self.assertDictEqual(
             ctx,
@@ -145,18 +147,12 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             TraceHeader.TRACE_ID: "666",
             TraceHeader.PARENT_ID: "777",
         }
-        context = {}
-        base_context = {
-          "custom": {
-            "_datadog": trace_data
-          }
-        }
-        client_context = base64.b64encode(json.dumps(base_context).encode('utf-8')).decode('utf-8')
-        context['client_context'] = client_context
-        ctx = extract_dd_trace_context(
-            {},
-            context
-        )
+        base_context = {"custom": {"_datadog": trace_data}}
+        client_context = base64.b64encode(
+            json.dumps(base_context).encode("utf-8")
+        ).decode("utf-8")
+        lambda_context = get_mock_context(client_context=client_context)
+        ctx = extract_dd_trace_context({}, lambda_context)
         self.assertDictEqual(
             ctx,
             {
@@ -179,24 +175,16 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         trace_data = {
             TraceHeader.TRACE_ID: "666",
             TraceHeader.PARENT_ID: "777",
-            TraceHeader.SAMPLING_PRIORITY: "1"
+            TraceHeader.SAMPLING_PRIORITY: "1",
         }
-        context = {}
-        base_context = {
-          "custom": {
-            "_datadog": trace_data
-          }
-        }
-        client_context = base64.b64encode(json.dumps(base_context).encode('utf-8')).decode('utf-8')
-        context['client_context'] = client_context
+        base_context = {"custom": {"_datadog": trace_data}}
+        client_context = base64.b64encode(
+            json.dumps(base_context).encode("utf-8")
+        ).decode("utf-8")
+        lambda_context = get_mock_context(client_context=client_context)
         ctx = extract_dd_trace_context(
-            {
-                "headers": {
-                    TraceHeader.TRACE_ID: "123",
-                    TraceHeader.PARENT_ID: "321",
-                }
-            },
-            context
+            {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321",}},
+            lambda_context,
         )
         self.assertDictEqual(
             ctx,
@@ -232,7 +220,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     "X-Datadog-Sampling-Priority": "1",
                 }
             },
-            {}
+            {},
         )
         self.assertDictEqual(
             get_dd_trace_context(),
