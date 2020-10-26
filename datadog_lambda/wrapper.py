@@ -117,7 +117,7 @@ class _LambdaDecorator(object):
             set_cold_start()
             submit_invocations_metric(context)
             # Extract Datadog trace context from incoming requests
-            dd_context = extract_dd_trace_context(event)
+            dd_context = extract_dd_trace_context(event, context)
 
             self.span = None
             if dd_tracing_enabled:

@@ -1,4 +1,6 @@
 import unittest
+import base64
+import json
 
 try:
     from unittest.mock import MagicMock, patch
@@ -25,7 +27,7 @@ def get_mock_context(
     aws_request_id="request-id-1",
     memory_limit_in_mb="256",
     invoked_function_arn=function_arn,
-    function_version="1",
+    function_version="1"
 ):
     lambda_context = MagicMock()
     lambda_context.aws_request_id = aws_request_id
@@ -60,7 +62,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         dd_tracing_enabled = False
 
     def test_without_datadog_trace_headers(self):
-        ctx = extract_dd_trace_context({})
+        ctx = extract_dd_trace_context({}, {})
         self.assertDictEqual(
             ctx,
             {
@@ -81,7 +83,8 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_with_incomplete_datadog_trace_headers(self):
         ctx = extract_dd_trace_context(
-            {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321"}}
+            {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321"}},
+            {}
         )
         self.assertDictEqual(
             ctx,
@@ -109,7 +112,8 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     TraceHeader.PARENT_ID: "321",
                     TraceHeader.SAMPLING_PRIORITY: "1",
                 }
-            }
+            },
+            {}
         )
         self.assertDictEqual(
             ctx,
@@ -136,6 +140,89 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             XraySubsegment.NAMESPACE,
         )
 
+    def test_with_incomplete_datadog_trace_ctx(self):
+        trace_data = {
+            TraceHeader.TRACE_ID: "666",
+            TraceHeader.PARENT_ID: "777",
+        }
+        context = {}
+        base_context = {
+          "custom": {
+            "_datadog": trace_data
+          }
+        }
+        client_context = base64.b64encode(json.dumps(base_context).encode('utf-8')).decode('utf-8')
+        context['client_context'] = client_context
+        ctx = extract_dd_trace_context(
+            {},
+            context
+        )
+        self.assertDictEqual(
+            ctx,
+            {
+                "trace-id": "4369",
+                "parent-id": "65535",
+                "sampling-priority": "2",
+                "source": "xray",
+            },
+        )
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "4369",
+                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.SAMPLING_PRIORITY: "2",
+            },
+        )
+
+    def test_with_complete_datadog_trace_data_in_ctx(self):
+        trace_data = {
+            TraceHeader.TRACE_ID: "666",
+            TraceHeader.PARENT_ID: "777",
+            TraceHeader.SAMPLING_PRIORITY: "1"
+        }
+        context = {}
+        base_context = {
+          "custom": {
+            "_datadog": trace_data
+          }
+        }
+        client_context = base64.b64encode(json.dumps(base_context).encode('utf-8')).decode('utf-8')
+        context['client_context'] = client_context
+        ctx = extract_dd_trace_context(
+            {
+                "headers": {
+                    TraceHeader.TRACE_ID: "123",
+                    TraceHeader.PARENT_ID: "321",
+                }
+            },
+            context
+        )
+        self.assertDictEqual(
+            ctx,
+            {
+                "trace-id": "666",
+                "parent-id": "777",
+                "sampling-priority": "1",
+                "source": "event",
+            },
+        )
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "666",
+                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.SAMPLING_PRIORITY: "1",
+            },
+        )
+        self.mock_xray_recorder.begin_subsegment.assert_called()
+        self.mock_xray_recorder.end_subsegment.assert_called()
+        self.mock_current_subsegment.put_metadata.assert_called_with(
+            XraySubsegment.KEY,
+            {"trace-id": "666", "parent-id": "777", "sampling-priority": "1"},
+            XraySubsegment.NAMESPACE,
+        )
+
     def test_with_complete_datadog_trace_headers_with_mixed_casing(self):
         extract_dd_trace_context(
             {
@@ -144,7 +231,8 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     "X-Datadog-Parent-Id": "321",
                     "X-Datadog-Sampling-Priority": "1",
                 }
-            }
+            },
+            {}
         )
         self.assertDictEqual(
             get_dd_trace_context(),
