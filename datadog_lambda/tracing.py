@@ -91,14 +91,8 @@ def _context_obj_to_headers(obj):
     }
 
 
-def get_dd_trace_data(low_headers, context):
-    trace_id = low_headers.get(TraceHeader.TRACE_ID)
-    parent_id = low_headers.get(TraceHeader.PARENT_ID)
-    sampling_priority = low_headers.get(TraceHeader.SAMPLING_PRIORITY)
-
-    if trace_id and parent_id and sampling_priority:
-        return trace_id, parent_id, sampling_priority
-    elif context.client_context is not None:
+def extract_dd_trace_context_from_context(context):
+    if context.client_context is not None:
         client_context_json = base64.b64decode(context.client_context).decode("utf-8")
         client_context_object = json.loads(client_context_json)
         trace_data = client_context_object.get("custom", {}).get("_datadog", {})
@@ -107,8 +101,16 @@ def get_dd_trace_data(low_headers, context):
         ctx_sampling_priority = trace_data.get(TraceHeader.SAMPLING_PRIORITY)
 
         return ctx_trace_id, ctx_parent_id, ctx_sampling_priority
-
     return None, None, None
+
+def extract_dd_trace_context_from_event(event):
+    headers = event.get("headers", {})
+    lowercase_headers = {k.lower(): v for k, v in headers.items()}
+    trace_id = lowercase_headers.get(TraceHeader.TRACE_ID)
+    parent_id = lowercase_headers.get(TraceHeader.PARENT_ID)
+    sampling_priority = lowercase_headers.get(TraceHeader.SAMPLING_PRIORITY)
+
+    return trace_id, parent_id, sampling_priority
 
 
 def extract_dd_trace_context(event, context):
@@ -124,12 +126,11 @@ def extract_dd_trace_context(event, context):
     the correct context.
     """
     global dd_trace_context
-    headers = event.get("headers", {})
-    lowercase_headers = {k.lower(): v for k, v in headers.items()}
 
-    trace_id, parent_id, sampling_priority = get_dd_trace_data(
-        lowercase_headers, context
-    )
+    trace_id, parent_id, sampling_priority = extract_dd_trace_context_from_event(event)
+
+    if not trace_id or not parent_id or not sampling_priority:
+        trace_id, parent_id, sampling_priority = extract_dd_trace_context_from_context(context)
 
     if trace_id and parent_id and sampling_priority:
         logger.debug("Extracted Datadog trace context from headers or context")
