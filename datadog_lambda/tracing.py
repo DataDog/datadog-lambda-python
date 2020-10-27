@@ -103,6 +103,7 @@ def extract_dd_trace_context_from_context(context):
         return ctx_trace_id, ctx_parent_id, ctx_sampling_priority
     return None, None, None
 
+
 def extract_dd_trace_context_from_event(event):
     headers = event.get("headers", {})
     lowercase_headers = {k.lower(): v for k, v in headers.items()}
@@ -130,7 +131,9 @@ def extract_dd_trace_context(event, context):
     trace_id, parent_id, sampling_priority = extract_dd_trace_context_from_event(event)
 
     if not trace_id or not parent_id or not sampling_priority:
-        trace_id, parent_id, sampling_priority = extract_dd_trace_context_from_context(context)
+        trace_id, parent_id, sampling_priority = extract_dd_trace_context_from_context(
+            context
+        )
 
     if trace_id and parent_id and sampling_priority:
         logger.debug("Extracted Datadog trace context from headers or context")
