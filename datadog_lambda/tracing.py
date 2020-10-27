@@ -117,7 +117,7 @@ def extract_dd_trace_context_from_event(event):
 def extract_dd_trace_context(event, context):
     """
     Extract Datadog trace context from the Lambda `event` object or
-    `ClientContext` in `context`
+    `client_context` key in the Lambda `context` object
 
     Write the context to a global `dd_trace_context`, so the trace
     can be continued on the outgoing requests with the context injected.
