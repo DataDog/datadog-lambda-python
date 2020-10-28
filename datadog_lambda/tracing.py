@@ -19,10 +19,10 @@ import ddtrace
 ddtrace.config.analytics_enabled = (
     os.environ.get("DD_TRACE_ANALYTICS_ENABLED", "true").lower() == "true"
 )
-from ddtrace import tracer, patch
-from ddtrace import __version__ as ddtrace_version
-from ddtrace.propagation.http import HTTPPropagator
-from datadog_lambda import __version__ as datadog_lambda_version
+from ddtrace import tracer, patch # noqa: E402
+from ddtrace import __version__ as ddtrace_version # noqa: E402
+from ddtrace.propagation.http import HTTPPropagator # noqa: E402
+from datadog_lambda import __version__ as datadog_lambda_version # noqa: E402
 
 logger = logging.getLogger(__name__)
 
