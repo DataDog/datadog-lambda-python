@@ -1,6 +1,6 @@
 # datadog-lambda-python
 
-[![CircleCI](https://img.shields.io/circleci/build/github/DataDog/datadog-lambda-python)](https://circleci.com/gh/DataDog/datadog-lambda-python)
+![build](https://github.com/DataDog/datadog-lambda-python/workflows/build/badge.svg)
 [![PyPI](https://img.shields.io/pypi/v/datadog-lambda)](https://pypi.org/project/datadog-lambda/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/datadog-lambda)
 [![Slack](https://img.shields.io/badge/slack-%23serverless-blueviolet?logo=slack)](https://datadoghq.slack.com/channels/serverless/)
