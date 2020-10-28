@@ -81,7 +81,7 @@ def get_runtime_tag():
 def get_library_version_tag():
     """Get datadog lambda library tag
     """
-    return "datadog_lambda:{}".format(__version__)
+    return "datadog_lambda:v{}".format(__version__)
 
 
 def get_enhanced_metrics_tags(lambda_context):
