@@ -15,7 +15,10 @@ from datadog_lambda.constants import (
     TraceContextSource,
 )
 import ddtrace
-ddtrace.config.analytics_enabled = os.environ.get("DD_TRACE_ANALYTICS_ENABLED", "true").lower() == "true"
+
+ddtrace.config.analytics_enabled = (
+    os.environ.get("DD_TRACE_ANALYTICS_ENABLED", "true").lower() == "true"
+)
 from ddtrace import tracer, patch
 from ddtrace import __version__ as ddtrace_version
 from ddtrace.propagation.http import HTTPPropagator
