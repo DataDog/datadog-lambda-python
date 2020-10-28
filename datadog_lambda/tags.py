@@ -4,7 +4,6 @@ from platform import python_version_tuple
 
 from datadog_lambda import __version__
 from datadog_lambda.cold_start import get_cold_start_tag
-from ddtrace import __version__ as ddtrace_version
 
 
 def _format_dd_lambda_layer_tag():
