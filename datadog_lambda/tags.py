@@ -4,6 +4,7 @@ from platform import python_version_tuple
 
 from datadog_lambda import __version__
 from datadog_lambda.cold_start import get_cold_start_tag
+from ddtrace import __version__ as ddtrace_version
 
 
 def _format_dd_lambda_layer_tag():
@@ -77,6 +78,11 @@ def get_runtime_tag():
         major=major_version, minor=minor_version
     )
 
+def get_library_version_tag():
+    """Get datadog lambda library tag
+    """
+    return "datadog_lambda:{}".format(__version__)
+
 
 def get_enhanced_metrics_tags(lambda_context):
     """Get the list of tags to apply to enhanced metrics
@@ -85,6 +91,7 @@ def get_enhanced_metrics_tags(lambda_context):
         get_cold_start_tag(),
         "memorysize:{}".format(lambda_context.memory_limit_in_mb),
         get_runtime_tag(),
+        get_library_version_tag()
     ]
 
 
