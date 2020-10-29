@@ -49,6 +49,7 @@ If `DD_FLUSH_TO_LOG` is set to `false` (not recommended), the Datadog API Key mu
 - DD_API_KEY - the Datadog API Key in plain-text, NOT recommended
 - DD_KMS_API_KEY - the KMS-encrypted API Key, requires the `kms:Decrypt` permission
 - DD_API_KEY_SECRET_ARN - the Secret ARN to fetch API Key from the Secrets Manager, requires the `secretsmanager:GetSecretValue` permission (and `kms:Decrypt` if using a customer managed CMK)
+- DD_API_KEY_SSM_NAME - the Parameter Name to fetch API Key from the Systems Manager Parameter Store, requires the `ssm:GetParameter` permission (and `kms:Decrypt` if using a SecureString with a customer managed CMK)
 
 You can also supply or override the API key at runtime (not recommended):
 
