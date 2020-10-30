@@ -136,12 +136,18 @@ def submit_errors_metric(lambda_context):
 # Set API Key and Host in the module, so they only set once per container
 if not api._api_key:
     DD_API_KEY_SECRET_ARN = os.environ.get("DD_API_KEY_SECRET_ARN", "")
+    DD_API_KEY_SSM_NAME = os.environ.get("DD_API_KEY_SSM_NAME", "")
     DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY", "")
     DD_API_KEY = os.environ.get("DD_API_KEY", os.environ.get("DATADOG_API_KEY", ""))
     if DD_API_KEY_SECRET_ARN:
         api._api_key = boto3.client("secretsmanager").get_secret_value(
             SecretId=DD_API_KEY_SECRET_ARN
         )["SecretString"]
+    elif DD_API_KEY_SSM_NAME:
+        api._api_key = boto3.client("ssm").get_parameter(
+            Name=DD_API_KEY_SSM_NAME,
+            WithDecryption=True
+        )["Parameter"]["Value"]
     elif DD_KMS_API_KEY:
         api._api_key = boto3.client("kms").decrypt(
             CiphertextBlob=base64.b64decode(DD_KMS_API_KEY)
