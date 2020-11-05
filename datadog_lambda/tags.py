@@ -78,6 +78,12 @@ def get_runtime_tag():
     )
 
 
+def get_library_version_tag():
+    """Get datadog lambda library tag
+    """
+    return "datadog_lambda:v{}".format(__version__)
+
+
 def get_enhanced_metrics_tags(lambda_context):
     """Get the list of tags to apply to enhanced metrics
     """
@@ -85,6 +91,7 @@ def get_enhanced_metrics_tags(lambda_context):
         get_cold_start_tag(),
         "memorysize:{}".format(lambda_context.memory_limit_in_mb),
         get_runtime_tag(),
+        get_library_version_tag(),
     ]
 
 
