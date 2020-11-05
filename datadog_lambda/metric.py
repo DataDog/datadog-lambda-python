@@ -145,8 +145,7 @@ if not api._api_key:
         )["SecretString"]
     elif DD_API_KEY_SSM_NAME:
         api._api_key = boto3.client("ssm").get_parameter(
-            Name=DD_API_KEY_SSM_NAME,
-            WithDecryption=True
+            Name=DD_API_KEY_SSM_NAME, WithDecryption=True
         )["Parameter"]["Value"]
     elif DD_KMS_API_KEY:
         api._api_key = boto3.client("kms").decrypt(
