@@ -107,6 +107,8 @@ class _LambdaDecorator(object):
             return self.func(event, context, **kwargs)
         except Exception:
             submit_errors_metric(context)
+            if self.span:
+                self.span.set_traceback()
             raise
         finally:
             self._after(event, context)
