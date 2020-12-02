@@ -57,22 +57,26 @@ then
     [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
 fi
 
-echo ""
+echo
 echo "Replacing __version__ in ./datadog_lambda/__init__.py"
-echo ""
+echo
 sed -i "" -E "s/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/\"$NEW_VERSION\"/" ./datadog_lambda/__init__.py
 
 git commit ./datadog_lambda/__init__.py -m "Update module version to ${NEW_VERSION}"
 
-echo ""
+echo
 echo "Building layers..."
 ./scripts/build_layers.sh
 
-echo ""
+echo
+echo "Signing layers..."
+./scripts/sign_layers.sh us-east-1
+
+echo
 echo "Publishing layers to AWS regions..."
 ./scripts/publish_layers.sh
 
-echo ""
+echo
 echo 'Pushing updates to github'
 MINOR_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
 git push origin master
@@ -89,14 +93,14 @@ if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
     [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
 fi
-echo ""
+echo
 echo "Publishing to https://pypi.org/project/datadog-lambda/"
 ./scripts/pypi.sh
 
-echo ""
+echo
 echo "Now create a new release with the tag v${MINOR_VERSION} created"
 echo "https://github.com/DataDog/datadog-lambda-python/releases/new"
-echo ""
+echo
 echo "Then publish a new serverless-plugin-datadog version with the new layer versions!"
-echo ""
+echo
 
