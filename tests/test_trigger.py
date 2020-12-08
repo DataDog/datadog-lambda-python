@@ -17,9 +17,7 @@ event_samples = "tests/event_samples/"
 function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
 
 
-def get_mock_context(
-    invoked_function_arn=function_arn,
-):
+def get_mock_context(invoked_function_arn=function_arn):
     lambda_context = MagicMock()
     lambda_context.invoked_function_arn = invoked_function_arn
     return lambda_context
@@ -50,8 +48,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
-            event_source_arn,
-            "arn:aws:cloudfront::123457598159:distribution/EXAMPLE",
+            event_source_arn, "arn:aws:cloudfront::123457598159:distribution/EXAMPLE"
         )
 
     def test_event_source_cloudwatch_events(self):
@@ -64,8 +61,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
-            event_source_arn,
-            "arn:aws:events:us-east-1:123456789012:rule/ExampleRule",
+            event_source_arn, "arn:aws:events:us-east-1:123456789012:rule/ExampleRule"
         )
 
     def test_event_source_cloudwatch_logs(self):
@@ -105,10 +101,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         event_source = get_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
-        self.assertEqual(
-            event_source_arn,
-            "arn:aws:kinesis:EXAMPLE",
-        )
+        self.assertEqual(event_source_arn, "arn:aws:kinesis:EXAMPLE")
 
     def test_event_source_sns(self):
         event_sample_source = "sns"
@@ -120,8 +113,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
-            event_source_arn,
-            "arn:aws:sns:us-east-1:123456789012:ExampleTopic",
+            event_source_arn, "arn:aws:sns:us-east-1:123456789012:ExampleTopic"
         )
 
     def test_event_source_sqs(self):
@@ -133,10 +125,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         event_source = get_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
-        self.assertEqual(
-            event_source_arn,
-            "arn:aws:sqs:us-east-1:123456789012:MyQueue",
-        )
+        self.assertEqual(event_source_arn, "arn:aws:sqs:us-east-1:123456789012:MyQueue")
 
     def test_event_source_unsupported(self):
         event_sample_source = "custom"
@@ -147,10 +136,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         event_source = get_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, None)
-        self.assertEqual(
-            event_source_arn,
-            None,
-        )
+        self.assertEqual(event_source_arn, None)
 
 
 class GetTriggerTags(unittest.TestCase):
