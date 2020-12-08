@@ -110,6 +110,8 @@ class _LambdaDecorator(object):
             return response
         except Exception:
             submit_errors_metric(context)
+            if self.span:
+                self.span.set_traceback()
             raise
         finally:
             self._after(event, context)
