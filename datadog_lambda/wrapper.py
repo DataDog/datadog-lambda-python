@@ -23,6 +23,7 @@ from datadog_lambda.tracing import (
     set_dd_trace_py_root,
     create_function_execution_span,
 )
+from datadog_lambda.trigger import get_trigger_tags, set_apigateway_status_code_tag
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +105,9 @@ class _LambdaDecorator(object):
         """Executes when the wrapped function gets called"""
         self._before(event, context)
         try:
-            return self.func(event, context, **kwargs)
+            response = self.func(event, context, **kwargs)
+            set_apigateway_status_code_tag(self.span, response)
+            return response
         except Exception:
             submit_errors_metric(context)
             raise
@@ -116,8 +119,10 @@ class _LambdaDecorator(object):
 
             set_cold_start()
             submit_invocations_metric(context)
+            # Extract trigger tags
+            trigger_tags = get_trigger_tags(event, context)
             # Extract Datadog trace context from incoming requests
-            dd_context = extract_dd_trace_context(event)
+            dd_context = extract_dd_trace_context(event, trigger_tags)
 
             self.span = None
             if dd_tracing_enabled:
@@ -129,6 +134,9 @@ class _LambdaDecorator(object):
                     dd_context,
                     self.merge_xray_traces,
                 )
+                # Add trigger tags
+                if self.span and trigger_tags:
+                    self.span.set_tags(trigger_tags)
             else:
                 set_correlation_ids()
 

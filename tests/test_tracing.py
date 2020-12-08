@@ -60,7 +60,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         dd_tracing_enabled = False
 
     def test_without_datadog_trace_headers(self):
-        ctx = extract_dd_trace_context({})
+        ctx = extract_dd_trace_context({}, {})
         self.assertDictEqual(
             ctx,
             {
@@ -81,7 +81,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_with_incomplete_datadog_trace_headers(self):
         ctx = extract_dd_trace_context(
-            {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321"}}
+            {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321"}}, {}
         )
         self.assertDictEqual(
             ctx,
@@ -109,7 +109,8 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     TraceHeader.PARENT_ID: "321",
                     TraceHeader.SAMPLING_PRIORITY: "1",
                 }
-            }
+            },
+            {},
         )
         self.assertDictEqual(
             ctx,
@@ -144,7 +145,8 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     "X-Datadog-Parent-Id": "321",
                     "X-Datadog-Sampling-Priority": "1",
                 }
-            }
+            },
+            {},
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -153,6 +155,55 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.PARENT_ID: "65535",
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
+        )
+
+    def test_with_complete_datadog_trace_headers_and_trigger_tags(self):
+        trigger_tags = {
+            "trigger.event_source": "api-gateway",
+            "trigger.event_source_arn": "arn:aws:apigateway:region::/restapis/123/stages/dev",
+            "http.method": "POST",
+            "http.status_code": "200",
+            "http.url_details.path": "/prod/path/to/resource",
+        }
+        ctx = extract_dd_trace_context(
+            {
+                "headers": {
+                    TraceHeader.TRACE_ID: "123",
+                    TraceHeader.PARENT_ID: "321",
+                    TraceHeader.SAMPLING_PRIORITY: "1",
+                }
+            },
+            trigger_tags,
+        )
+        self.assertDictEqual(
+            ctx,
+            {
+                "trace-id": "123",
+                "parent-id": "321",
+                "sampling-priority": "1",
+                "source": "event",
+                "tags": trigger_tags,
+            },
+        )
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "123",
+                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.SAMPLING_PRIORITY: "1",
+            },
+        )
+        self.mock_xray_recorder.begin_subsegment.assert_called()
+        self.mock_xray_recorder.end_subsegment.assert_called()
+        self.mock_current_subsegment.put_metadata.assert_called_with(
+            XraySubsegment.KEY,
+            {
+                "trace-id": "123",
+                "parent-id": "321",
+                "sampling-priority": "1",
+                "tags": trigger_tags,
+            },
+            XraySubsegment.NAMESPACE,
         )
 
 

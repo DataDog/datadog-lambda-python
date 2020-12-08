@@ -89,7 +89,7 @@ def _context_obj_to_headers(obj):
     }
 
 
-def extract_dd_trace_context(event):
+def extract_dd_trace_context(event, tags):
     """
     Extract Datadog trace context from the Lambda `event` object.
 
@@ -114,6 +114,9 @@ def extract_dd_trace_context(event):
             "parent-id": parent_id,
             "sampling-priority": sampling_priority,
         }
+        # Add tags into the datadog-metadata subsegment
+        if tags:
+            metadata["tags"] = tags
         xray_recorder.begin_subsegment(XraySubsegment.NAME)
         subsegment = xray_recorder.current_subsegment()
 
