@@ -7,8 +7,8 @@ set -e
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
 echo $BRANCH
 
-if [ $BRANCH != "master" ]; then
-    echo "Not on master, aborting"
+if [ $BRANCH != "main" ]; then
+    echo "Not on main, aborting"
     exit 1
 fi
 
@@ -79,7 +79,7 @@ echo "Publishing layers to AWS regions..."
 echo
 echo 'Pushing updates to github'
 MINOR_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
-git push origin master
+git push origin main 
 git push origin "refs/tags/v$MINOR_VERSION"
 
 
