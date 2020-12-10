@@ -10,11 +10,11 @@ from io import BytesIO, BufferedReader
 
 
 EVENT_SOURCES = {
-    "aws:dynamodb": "dynamodb",
-    "aws:kinesis": "kinesis",
-    "aws:s3": "s3",
-    "aws:sns": "sns",
-    "aws:sqs": "sqs",
+    "aws:dynamodb",
+    "aws:kinesis",
+    "aws:s3",
+    "aws:sns",
+    "aws:sqs",
 }
 
 
@@ -24,20 +24,21 @@ def get_first_record(event):
         return records[0]
 
 
-def read_event_source(event):
-    event_source = event.get("eventSource") or event.get("EventSource")
-    return EVENT_SOURCES.get(event_source)
-
-
 def get_event_source(event):
+    """Determines the source of the trigger event
+
+    Possible Returns:
+        api-gateway | application-load-balancer | cloudwatch-logs |
+        cloudwatch-events | cloudfront | dynamodb | kinesis | s3 | sns | sqs
     """
-    Attempts to determine the source of the trigger event
-    """
-    event_source = read_event_source(event)
+    event_source = event.get("eventSource") or event.get("EventSource")
 
     request_context = event.get("requestContext")
     if request_context and request_context.get("stage"):
         event_source = "api-gateway"
+
+    if request_context and request_context.get("elb"):
+        event_source = "application-load-balancer"
 
     if event.get("awslogs"):
         event_source = "cloudwatch-logs"
@@ -49,16 +50,15 @@ def get_event_source(event):
 
     event_record = get_first_record(event)
     if event_record:
-        event_source = read_event_source(event_record)
+        event_source = event_record.get("eventSource") or event_record.get(
+            "EventSource"
+        )
         if event_record.get("cf"):
             event_source = "cloudfront"
 
+    if event_source in EVENT_SOURCES:
+        event_source = event_source.replace("aws:", "")
     return event_source
-
-
-def read_event_source_arn(event):
-    event_source_arn = event.get("eventSourceARN") or event.get("eventSourceArn")
-    return event_source_arn
 
 
 def parse_event_source_arn(source, event, context):
@@ -93,6 +93,11 @@ def parse_event_source_arn(source, event, context):
             region, request_context["apiId"], request_context["stage"]
         )
 
+    # e.g. arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/lambda-xyz/123
+    if source == "application-load-balancer":
+        request_context = event.get("requestContext")
+        return request_context.get("elb")["targetGroupArn"]
+
     # e.g. arn:aws:logs:us-west-1:123456789012:log-group:/my-log-group-xyz
     if source == "cloudwatch-logs":
         with gzip.GzipFile(
@@ -109,11 +114,13 @@ def parse_event_source_arn(source, event, context):
 
 
 def get_event_source_arn(source, event, context):
-    event_source_arn = read_event_source_arn(event)
+    event_source_arn = event.get("eventSourceARN") or event.get("eventSourceArn")
 
     event_record = get_first_record(event)
     if event_record:
-        event_source_arn = read_event_source_arn(event_record)
+        event_source_arn = event_record.get("eventSourceARN") or event_record.get(
+            "eventSourceArn"
+        )
 
     if event_source_arn is None:
         event_source_arn = parse_event_source_arn(source, event, context)
@@ -121,13 +128,15 @@ def get_event_source_arn(source, event, context):
     return event_source_arn
 
 
-def get_apigateway_http_tags(event):
+def get_http_tags(event):
     """
-    Extracts HTTP tags from the triggering API Gateway event into HTTP facet tags
+    Extracts HTTP facet tags from the triggering event
     """
     http_tags = {}
     request_context = event.get("requestContext")
-    if request_context:
+    path = event.get("path")
+    method = event.get("httpMethod")
+    if request_context and request_context.get("stage"):
         if request_context.get("domainName"):
             http_tags["http.url"] = request_context["domainName"]
 
@@ -139,10 +148,10 @@ def get_apigateway_http_tags(event):
             path = apigateway_v2_http.get("path")
             method = apigateway_v2_http.get("method")
 
-        if path:
-            http_tags["http.url_details.path"] = path
-        if method:
-            http_tags["http.method"] = method
+    if path:
+        http_tags["http.url_details.path"] = path
+    if method:
+        http_tags["http.method"] = method
 
     headers = event.get("headers")
     if headers and headers.get("Referer"):
@@ -151,7 +160,7 @@ def get_apigateway_http_tags(event):
     return http_tags
 
 
-def get_trigger_tags(event, context):
+def extract_trigger_tags(event, context):
     """
     Parses the trigger event object to get tags to be added to the span metadata
     """
@@ -164,13 +173,13 @@ def get_trigger_tags(event, context):
         if event_source_arn:
             trigger_tags["trigger.event_source_arn"] = event_source_arn
 
-    if event_source == "api-gateway":
-        trigger_tags.update(get_apigateway_http_tags(event))
+    if event_source in ["api-gateway", "application-load-balancer"]:
+        trigger_tags.update(get_http_tags(event))
 
     return trigger_tags
 
 
-def set_apigateway_status_code_tag(span, response):
+def set_http_status_code_tag(span, response):
     """
     If the Lambda was triggered by API Gateway add the returned status code
     as a tag to the function execution span

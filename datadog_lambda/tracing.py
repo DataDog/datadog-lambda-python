@@ -238,7 +238,12 @@ def set_dd_trace_py_root(trace_context, merge_xray_traces):
 
 
 def create_function_execution_span(
-    context, function_name, is_cold_start, trace_context, merge_xray_traces
+    context,
+    function_name,
+    is_cold_start,
+    trace_context,
+    merge_xray_traces,
+    trigger_tags,
 ):
     tags = {}
     if context:
@@ -258,7 +263,8 @@ def create_function_execution_span(
     source = trace_context["source"]
     if source == TraceContextSource.XRAY and merge_xray_traces:
         tags["_dd.parent_source"] = source
-
+    if trigger_tags:
+        tags.update(trigger_tags)
     args = {
         "service": "aws.lambda",
         "resource": function_name,

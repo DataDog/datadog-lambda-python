@@ -23,7 +23,7 @@ from datadog_lambda.tracing import (
     set_dd_trace_py_root,
     create_function_execution_span,
 )
-from datadog_lambda.trigger import get_trigger_tags, set_apigateway_status_code_tag
+from datadog_lambda.trigger import extract_trigger_tags, set_http_status_code_tag
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +104,9 @@ class _LambdaDecorator(object):
     def __call__(self, event, context, **kwargs):
         """Executes when the wrapped function gets called"""
         self._before(event, context)
+        response = None
         try:
             response = self.func(event, context, **kwargs)
-            set_apigateway_status_code_tag(self.span, response)
             return response
         except Exception:
             submit_errors_metric(context)
@@ -114,7 +114,7 @@ class _LambdaDecorator(object):
                 self.span.set_traceback()
             raise
         finally:
-            self._after(event, context)
+            self._after(event, context, response)
 
     def _before(self, event, context):
         try:
@@ -122,7 +122,7 @@ class _LambdaDecorator(object):
             set_cold_start()
             submit_invocations_metric(context)
             # Extract trigger tags
-            trigger_tags = get_trigger_tags(event, context)
+            trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context from incoming requests
             dd_context = extract_dd_trace_context(event, trigger_tags)
 
@@ -135,10 +135,8 @@ class _LambdaDecorator(object):
                     is_cold_start(),
                     dd_context,
                     self.merge_xray_traces,
+                    trigger_tags,
                 )
-                # Add trigger tags
-                if self.span and trigger_tags:
-                    self.span.set_tags(trigger_tags)
             else:
                 set_correlation_ids()
 
@@ -146,7 +144,7 @@ class _LambdaDecorator(object):
         except Exception:
             traceback.print_exc()
 
-    def _after(self, event, context):
+    def _after(self, event, context, response):
         try:
             if not self.flush_to_log or should_use_extension:
                 lambda_stats.flush(float("inf"))
@@ -154,6 +152,8 @@ class _LambdaDecorator(object):
                 flush_extension()
 
             if self.span:
+                if response:
+                    set_http_status_code_tag(self.span, response)
                 self.span.finish()
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:

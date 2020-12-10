@@ -10,7 +10,7 @@ except ImportError:
 from datadog_lambda.trigger import (
     get_event_source,
     get_event_source_arn,
-    get_trigger_tags,
+    extract_trigger_tags,
 )
 
 event_samples = "tests/event_samples/"
@@ -36,6 +36,20 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         self.assertEqual(
             event_source_arn,
             "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod",
+        )
+
+    def test_event_source_application_load_balancer(self):
+        event_sample_source = "application-load-balancer"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        event_source = get_event_source(event)
+        event_source_arn = get_event_source_arn(event_source, event, ctx)
+        self.assertEqual(event_source, event_sample_source)
+        self.assertEqual(
+            event_source_arn,
+            "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
         )
 
     def test_event_source_cloudfront(self):
@@ -140,13 +154,13 @@ class TestGetEventSourceAndARN(unittest.TestCase):
 
 
 class GetTriggerTags(unittest.TestCase):
-    def test_get_trigger_tags_api_gateway(self):
+    def test_extract_trigger_tags_api_gateway(self):
         event_sample_source = "api-gateway"
         test_file = event_samples + event_sample_source + ".json"
         ctx = get_mock_context()
         with open(test_file, "r") as event:
             event = json.load(event)
-        tags = get_trigger_tags(event, ctx)
+        tags = extract_trigger_tags(event, ctx)
         self.assertEqual(
             tags,
             {
@@ -158,13 +172,30 @@ class GetTriggerTags(unittest.TestCase):
             },
         )
 
-    def test_get_trigger_tags_cloudfront(self):
+    def test_extract_trigger_tags_application_load_balancer(self):
+        event_sample_source = "application-load-balancer"
+        test_file = event_samples + event_sample_source + ".json"
+        ctx = get_mock_context()
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        tags = extract_trigger_tags(event, ctx)
+        self.assertEqual(
+            tags,
+            {
+                "trigger.event_source": "application-load-balancer",
+                "trigger.event_source_arn": "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
+                "http.url_details.path": "/lambda",
+                "http.method": "GET",
+            },
+        )
+
+    def test_extract_trigger_tags_cloudfront(self):
         event_sample_source = "cloudfront"
         test_file = event_samples + event_sample_source + ".json"
         ctx = get_mock_context()
         with open(test_file, "r") as event:
             event = json.load(event)
-        tags = get_trigger_tags(event, ctx)
+        tags = extract_trigger_tags(event, ctx)
         self.assertEqual(
             tags,
             {
@@ -173,13 +204,13 @@ class GetTriggerTags(unittest.TestCase):
             },
         )
 
-    def test_get_trigger_tags_cloudwatch_events(self):
+    def test_extract_trigger_tags_cloudwatch_events(self):
         event_sample_source = "cloudwatch-events"
         test_file = event_samples + event_sample_source + ".json"
         ctx = get_mock_context()
         with open(test_file, "r") as event:
             event = json.load(event)
-        tags = get_trigger_tags(event, ctx)
+        tags = extract_trigger_tags(event, ctx)
         self.assertEqual(
             tags,
             {
@@ -188,13 +219,13 @@ class GetTriggerTags(unittest.TestCase):
             },
         )
 
-    def test_get_trigger_tags_cloudwatch_logs(self):
+    def test_extract_trigger_tags_cloudwatch_logs(self):
         event_sample_source = "cloudwatch-logs"
         test_file = event_samples + event_sample_source + ".json"
         ctx = get_mock_context()
         with open(test_file, "r") as event:
             event = json.load(event)
-        tags = get_trigger_tags(event, ctx)
+        tags = extract_trigger_tags(event, ctx)
         self.assertEqual(
             tags,
             {
@@ -203,13 +234,13 @@ class GetTriggerTags(unittest.TestCase):
             },
         )
 
-    def test_get_trigger_tags_dynamodb(self):
+    def test_extract_trigger_tags_dynamodb(self):
         event_sample_source = "dynamodb"
         test_file = event_samples + event_sample_source + ".json"
         ctx = get_mock_context()
         with open(test_file, "r") as event:
             event = json.load(event)
-        tags = get_trigger_tags(event, ctx)
+        tags = extract_trigger_tags(event, ctx)
         self.assertEqual(
             tags,
             {
@@ -218,13 +249,13 @@ class GetTriggerTags(unittest.TestCase):
             },
         )
 
-    def test_get_trigger_tags_kinesis(self):
+    def test_extract_trigger_tags_kinesis(self):
         event_sample_source = "kinesis"
         test_file = event_samples + event_sample_source + ".json"
         ctx = get_mock_context()
         with open(test_file, "r") as event:
             event = json.load(event)
-        tags = get_trigger_tags(event, ctx)
+        tags = extract_trigger_tags(event, ctx)
         self.assertEqual(
             tags,
             {
@@ -233,13 +264,13 @@ class GetTriggerTags(unittest.TestCase):
             },
         )
 
-    def test_get_trigger_tags_sns(self):
+    def test_extract_trigger_tags_sns(self):
         event_sample_source = "sns"
         test_file = event_samples + event_sample_source + ".json"
         ctx = get_mock_context()
         with open(test_file, "r") as event:
             event = json.load(event)
-        tags = get_trigger_tags(event, ctx)
+        tags = extract_trigger_tags(event, ctx)
         self.assertEqual(
             tags,
             {
@@ -248,13 +279,13 @@ class GetTriggerTags(unittest.TestCase):
             },
         )
 
-    def test_get_trigger_tags_sqs(self):
+    def test_extract_trigger_tags_sqs(self):
         event_sample_source = "sqs"
         test_file = event_samples + event_sample_source + ".json"
         ctx = get_mock_context()
         with open(test_file, "r") as event:
             event = json.load(event)
-        tags = get_trigger_tags(event, ctx)
+        tags = extract_trigger_tags(event, ctx)
         self.assertEqual(
             tags,
             {
@@ -263,11 +294,11 @@ class GetTriggerTags(unittest.TestCase):
             },
         )
 
-    def test_get_trigger_tags_unsupported(self):
+    def test_extract_trigger_tags_unsupported(self):
         event_sample_source = "custom"
         test_file = event_samples + event_sample_source + ".json"
         ctx = get_mock_context()
         with open(test_file, "r") as event:
             event = json.load(event)
-        tags = get_trigger_tags(event, ctx)
+        tags = extract_trigger_tags(event, ctx)
         self.assertEqual(tags, {})
