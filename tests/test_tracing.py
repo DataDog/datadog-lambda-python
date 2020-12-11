@@ -64,12 +64,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         ctx, source = extract_dd_trace_context({})
         self.assertEqual(source, "xray")
         self.assertDictEqual(
-            ctx,
-            {
-                "trace-id": "4369",
-                "parent-id": "65535",
-                "sampling-priority": "2",
-            },
+            ctx, {"trace-id": "4369", "parent-id": "65535", "sampling-priority": "2"},
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -86,12 +81,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
         self.assertEqual(source, "xray")
         self.assertDictEqual(
-            ctx,
-            {
-                "trace-id": "4369",
-                "parent-id": "65535",
-                "sampling-priority": "2",
-            },
+            ctx, {"trace-id": "4369", "parent-id": "65535", "sampling-priority": "2"},
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -113,12 +103,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         ctx, source = extract_dd_trace_context(event)
         self.assertEqual(source, "event")
         self.assertDictEqual(
-            ctx,
-            {
-                "trace-id": "123",
-                "parent-id": "321",
-                "sampling-priority": "1",
-            },
+            ctx, {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -171,12 +156,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         ctx, source = extract_dd_trace_context(event)
         self.assertEqual(source, "event")
         self.assertDictEqual(
-            ctx,
-            {
-                "trace-id": "123",
-                "parent-id": "321",
-                "sampling-priority": "1",
-            },
+            ctx, {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -193,11 +173,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             [
                 call(
                     XraySubsegment.TRACE_KEY,
-                    {
-                        "trace-id": "123",
-                        "parent-id": "321",
-                        "sampling-priority": "1",
-                    },
+                    {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
                     XraySubsegment.NAMESPACE,
                 ),
                 call(
