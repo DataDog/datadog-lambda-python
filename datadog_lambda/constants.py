@@ -22,7 +22,8 @@ class TraceHeader(object):
 # X-Ray subsegment to save Datadog trace metadata
 class XraySubsegment(object):
     NAME = "datadog-metadata"
-    KEY = "trace"
+    TRACE_KEY = "trace"
+    ROOT_SPAN_METADATA_KEY = "root_span_metadata"
     NAMESPACE = "datadog"
 
 

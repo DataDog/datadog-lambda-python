@@ -9,6 +9,7 @@ import traceback
 
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
+from datadog_lambda.constants import TraceContextSource
 from datadog_lambda.metric import (
     lambda_stats,
     submit_invocations_metric,
@@ -17,6 +18,7 @@ from datadog_lambda.metric import (
 from datadog_lambda.patch import patch_all
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
+    create_dd_metadata_subsegment,
     inject_correlation_ids,
     dd_tracing_enabled,
     set_correlation_ids,
@@ -123,17 +125,19 @@ class _LambdaDecorator(object):
             submit_invocations_metric(context)
             # Extract trigger tags
             trigger_tags = extract_trigger_tags(event, context)
-            # Extract Datadog trace context from incoming requests
-            dd_context = extract_dd_trace_context(event, trigger_tags)
+            # Extract Datadog trace context and source from incoming requests
+            dd_context, trace_context_source = extract_dd_trace_context(event)
+            if trace_context_source == TraceContextSource.EVENT:
+                create_dd_metadata_subsegment(event, dd_context, trigger_tags)
 
             self.span = None
             if dd_tracing_enabled:
-                set_dd_trace_py_root(dd_context, self.merge_xray_traces)
+                set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
                 self.span = create_function_execution_span(
                     context,
                     self.function_name,
                     is_cold_start(),
-                    dd_context,
+                    trace_context_source,
                     self.merge_xray_traces,
                     trigger_tags,
                 )

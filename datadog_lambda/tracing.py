@@ -61,7 +61,6 @@ def _get_xray_trace_context():
         "trace-id": _convert_xray_trace_id(xray_trace_entity.trace_id),
         "parent-id": _convert_xray_entity_id(xray_trace_entity.id),
         "sampling-priority": _convert_xray_sampling(xray_trace_entity.sampled),
-        "source": TraceContextSource.XRAY,
     }
 
 
@@ -89,18 +88,37 @@ def _context_obj_to_headers(obj):
     }
 
 
-def extract_dd_trace_context(event, tags):
+def create_dd_metadata_subsegment(event, dd_context, trigger_tags):
+    """
+    Save the context to an X-Ray subsegment's metadata field, so the X-Ray
+    trace can be converted to a Datadog trace in the Datadog backend with
+    the correct context.
+    """
+    xray_recorder.begin_subsegment(XraySubsegment.NAME)
+    subsegment = xray_recorder.current_subsegment()
+
+    subsegment.put_metadata(
+        XraySubsegment.TRACE_KEY, dd_context, XraySubsegment.NAMESPACE
+    )
+    # Add trigger tags under the dd subsegment's root_span_metadata field
+    if trigger_tags:
+        subsegment.put_metadata(
+            XraySubsegment.ROOT_SPAN_METADATA_KEY,
+            trigger_tags,
+            XraySubsegment.NAMESPACE,
+        )
+    xray_recorder.end_subsegment()
+
+
+def extract_dd_trace_context(event):
     """
     Extract Datadog trace context from the Lambda `event` object.
 
     Write the context to a global `dd_trace_context`, so the trace
     can be continued on the outgoing requests with the context injected.
-
-    Save the context to an X-Ray subsegment's metadata field, so the X-Ray
-    trace can be converted to a Datadog trace in the Datadog backend with
-    the correct context.
     """
     global dd_trace_context
+    trace_context_source = None
     headers = event.get("headers", {})
     lowercase_headers = {k.lower(): v for k, v in headers.items()}
 
@@ -114,22 +132,16 @@ def extract_dd_trace_context(event, tags):
             "parent-id": parent_id,
             "sampling-priority": sampling_priority,
         }
-        # Add tags into the datadog-metadata subsegment
-        if tags:
-            metadata["tags"] = tags
-        xray_recorder.begin_subsegment(XraySubsegment.NAME)
-        subsegment = xray_recorder.current_subsegment()
-
-        subsegment.put_metadata(XraySubsegment.KEY, metadata, XraySubsegment.NAMESPACE)
         dd_trace_context = metadata.copy()
-        dd_trace_context["source"] = TraceContextSource.EVENT
-        xray_recorder.end_subsegment()
+        trace_context_source = TraceContextSource.EVENT
     else:
         # AWS Lambda runtime caches global variables between invocations,
         # reset to avoid using the context from the last invocation.
         dd_trace_context = _get_xray_trace_context()
+        if dd_trace_context:
+            trace_context_source = TraceContextSource.XRAY
     logger.debug("extracted dd trace context %s", dd_trace_context)
-    return dd_trace_context
+    return dd_trace_context, trace_context_source
 
 
 def get_dd_trace_context():
@@ -230,8 +242,8 @@ def is_lambda_context():
     return type(xray_recorder.context) == LambdaContext
 
 
-def set_dd_trace_py_root(trace_context, merge_xray_traces):
-    if trace_context["source"] == TraceContextSource.EVENT or merge_xray_traces:
+def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
+    if trace_context_source == TraceContextSource.EVENT or merge_xray_traces:
         headers = get_dd_trace_context()
         span_context = propagator.extract(headers)
         tracer.context_provider.activate(span_context)
@@ -241,7 +253,7 @@ def create_function_execution_span(
     context,
     function_name,
     is_cold_start,
-    trace_context,
+    trace_context_source,
     merge_xray_traces,
     trigger_tags,
 ):
@@ -260,9 +272,8 @@ def create_function_execution_span(
             "datadog_lambda": datadog_lambda_version,
             "dd_trace": ddtrace_version,
         }
-    source = trace_context["source"]
-    if source == TraceContextSource.XRAY and merge_xray_traces:
-        tags["_dd.parent_source"] = source
+    if trace_context_source == TraceContextSource.XRAY and merge_xray_traces:
+        tags["_dd.parent_source"] = trace_context_source
     if trigger_tags:
         tags.update(trigger_tags)
     args = {

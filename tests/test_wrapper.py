@@ -40,6 +40,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         patcher = patch("datadog_lambda.wrapper.extract_dd_trace_context")
         self.mock_extract_dd_trace_context = patcher.start()
+        self.mock_extract_dd_trace_context.return_value = ({}, None)
         self.addCleanup(patcher.stop)
 
         patcher = patch("datadog_lambda.wrapper.set_correlation_ids")
@@ -94,7 +95,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             [call("test.metric", 100, timestamp=None, tags=ANY)]
         )
         self.mock_wrapper_lambda_stats.flush.assert_called()
-        self.mock_extract_dd_trace_context.assert_called_with(lambda_event, {})
+        self.mock_extract_dd_trace_context.assert_called_with(lambda_event)
         self.mock_set_correlation_ids.assert_called()
         self.mock_inject_correlation_ids.assert_called()
         self.mock_patch_all.assert_called()

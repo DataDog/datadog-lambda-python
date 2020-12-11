@@ -1,15 +1,16 @@
 import unittest
 
 try:
-    from unittest.mock import MagicMock, patch
+    from unittest.mock import MagicMock, patch, call
 except ImportError:
-    from mock import MagicMock, patch
+    from mock import MagicMock, patch, call
 
 from ddtrace.helpers import get_correlation_ids
 
 from datadog_lambda.constants import SamplingPriority, TraceHeader, XraySubsegment
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
+    create_dd_metadata_subsegment,
     create_function_execution_span,
     get_dd_trace_context,
     set_correlation_ids,
@@ -60,14 +61,14 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         dd_tracing_enabled = False
 
     def test_without_datadog_trace_headers(self):
-        ctx = extract_dd_trace_context({}, {})
+        ctx, source = extract_dd_trace_context({})
+        self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
             {
                 "trace-id": "4369",
                 "parent-id": "65535",
                 "sampling-priority": "2",
-                "source": "xray",
             },
         )
         self.assertDictEqual(
@@ -80,16 +81,16 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     def test_with_incomplete_datadog_trace_headers(self):
-        ctx = extract_dd_trace_context(
-            {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321"}}, {}
+        ctx, source = extract_dd_trace_context(
+            {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321"}}
         )
+        self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
             {
                 "trace-id": "4369",
                 "parent-id": "65535",
                 "sampling-priority": "2",
-                "source": "xray",
             },
         )
         self.assertDictEqual(
@@ -102,23 +103,21 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     def test_with_complete_datadog_trace_headers(self):
-        ctx = extract_dd_trace_context(
-            {
-                "headers": {
-                    TraceHeader.TRACE_ID: "123",
-                    TraceHeader.PARENT_ID: "321",
-                    TraceHeader.SAMPLING_PRIORITY: "1",
-                }
-            },
-            {},
-        )
+        event = {
+            "headers": {
+                TraceHeader.TRACE_ID: "123",
+                TraceHeader.PARENT_ID: "321",
+                TraceHeader.SAMPLING_PRIORITY: "1",
+            }
+        }
+        ctx, source = extract_dd_trace_context(event)
+        self.assertEqual(source, "event")
         self.assertDictEqual(
             ctx,
             {
                 "trace-id": "123",
                 "parent-id": "321",
                 "sampling-priority": "1",
-                "source": "event",
             },
         )
         self.assertDictEqual(
@@ -129,10 +128,11 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
+        create_dd_metadata_subsegment(event, ctx, {})
         self.mock_xray_recorder.begin_subsegment.assert_called()
         self.mock_xray_recorder.end_subsegment.assert_called()
         self.mock_current_subsegment.put_metadata.assert_called_with(
-            XraySubsegment.KEY,
+            XraySubsegment.TRACE_KEY,
             {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
             XraySubsegment.NAMESPACE,
         )
@@ -146,7 +146,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     "X-Datadog-Sampling-Priority": "1",
                 }
             },
-            {},
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -157,32 +156,26 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
 
-    def test_with_complete_datadog_trace_headers_and_trigger_tags(self):
-        trigger_tags = {
-            "trigger.event_source": "api-gateway",
-            "trigger.event_source_arn": "arn:aws:apigateway:region::/restapis/123/stages/dev",
-            "http.method": "POST",
-            "http.status_code": "200",
-            "http.url_details.path": "/prod/path/to/resource",
+    def test_with_complete_datadog_trace_headers_with_trigger_tags(self):
+        event = {
+            "headers": {
+                TraceHeader.TRACE_ID: "123",
+                TraceHeader.PARENT_ID: "321",
+                TraceHeader.SAMPLING_PRIORITY: "1",
+            }
         }
-        ctx = extract_dd_trace_context(
-            {
-                "headers": {
-                    TraceHeader.TRACE_ID: "123",
-                    TraceHeader.PARENT_ID: "321",
-                    TraceHeader.SAMPLING_PRIORITY: "1",
-                }
-            },
-            trigger_tags,
-        )
+        trigger_tags = {
+            "trigger.event_source": "sqs",
+            "trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
+        }
+        ctx, source = extract_dd_trace_context(event)
+        self.assertEqual(source, "event")
         self.assertDictEqual(
             ctx,
             {
                 "trace-id": "123",
                 "parent-id": "321",
                 "sampling-priority": "1",
-                "source": "event",
-                "tags": trigger_tags,
             },
         )
         self.assertDictEqual(
@@ -193,17 +186,29 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
+        create_dd_metadata_subsegment(event, ctx, trigger_tags)
         self.mock_xray_recorder.begin_subsegment.assert_called()
         self.mock_xray_recorder.end_subsegment.assert_called()
-        self.mock_current_subsegment.put_metadata.assert_called_with(
-            XraySubsegment.KEY,
-            {
-                "trace-id": "123",
-                "parent-id": "321",
-                "sampling-priority": "1",
-                "tags": trigger_tags,
-            },
-            XraySubsegment.NAMESPACE,
+        self.mock_current_subsegment.put_metadata.assert_has_calls(
+            [
+                call(
+                    XraySubsegment.TRACE_KEY,
+                    {
+                        "trace-id": "123",
+                        "parent-id": "321",
+                        "sampling-priority": "1",
+                    },
+                    XraySubsegment.NAMESPACE,
+                ),
+                call(
+                    XraySubsegment.ROOT_SPAN_METADATA_KEY,
+                    {
+                        "trigger.event_source": "sqs",
+                        "trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
+                    },
+                    XraySubsegment.NAMESPACE,
+                ),
+            ]
         )
 
 
@@ -287,3 +292,16 @@ class TestFunctionSpanTags(unittest.TestCase):
         span = create_function_execution_span(ctx, "", False, {"source": ""}, False, {})
         self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("function_version"), function_alias)
+
+    def test_function_with_trigger_tags(self):
+        ctx = get_mock_context()
+        span = create_function_execution_span(
+            ctx,
+            "",
+            False,
+            {"source": ""},
+            False,
+            {"trigger.event_source": "cloudwatch-logs"},
+        )
+        self.assertEqual(span.get_tag("function_arn"), function_arn)
+        self.assertEqual(span.get_tag("trigger.event_source"), "cloudwatch-logs")
