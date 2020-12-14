@@ -181,11 +181,11 @@ def extract_trigger_tags(event, context):
 
 def set_http_status_code_tag(span, response):
     """
-    If the Lambda was triggered by API Gateway add the returned status code
+    If the Lambda was triggered by API Gateway or ALB add the returned status code
     as a tag to the function execution span
     """
-    is_apigateway_trigger = (
-        span and span.get_tag("trigger.event_source") == "api-gateway"
+    is_http_trigger = span and span.get_tag("trigger.event_source") == (
+        "api-gateway" or "application-load-balancer"
     )
-    if is_apigateway_trigger and response and response.get("statusCode"):
+    if is_http_trigger and response and response.get("statusCode"):
         span.set_tag("http.status_code", response.get("statusCode"))
