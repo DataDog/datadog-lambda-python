@@ -117,6 +117,17 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(event_source_arn, "arn:aws:kinesis:EXAMPLE")
 
+    def test_event_source_s3(self):
+        event_sample_source = "s3"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        event_source = get_event_source(event)
+        event_source_arn = get_event_source_arn(event_source, event, ctx)
+        self.assertEqual(event_source, event_sample_source)
+        self.assertEqual(event_source_arn, "arn:aws:s3:::example-bucket")
+
     def test_event_source_sns(self):
         event_sample_source = "sns"
         test_file = event_samples + event_sample_source + ".json"
@@ -261,6 +272,21 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "trigger.event_source": "kinesis",
                 "trigger.event_source_arn": "arn:aws:kinesis:EXAMPLE",
+            },
+        )
+
+    def test_extract_trigger_tags_s3(self):
+        event_sample_source = "s3"
+        test_file = event_samples + event_sample_source + ".json"
+        ctx = get_mock_context()
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        tags = extract_trigger_tags(event, ctx)
+        self.assertEqual(
+            tags,
+            {
+                "trigger.event_source": "s3",
+                "trigger.event_source_arn": "arn:aws:s3:::example-bucket",
             },
         )
 
