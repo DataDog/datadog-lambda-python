@@ -103,11 +103,8 @@ def extract_context_from_http_event(event):
 
 def extract_context_from_sqs_event(event):
     first_record = event["Records"][0]
-    dd_json_data = first_record.get(
-        "messageAttributes", {})
-        .get("_datadog", {})
-        .get("StringValue", r"{}"
-    )
+    msg_attributes = first_record.get("messageAttributes", {})
+    dd_json_data = msg_attributes.get("_datadog", {}).get("StringValue", r"{}")
     dd_data = json.loads(dd_json_data)
     trace_id = dd_data.get(TraceHeader.TRACE_ID)
     parent_id = dd_data.get(TraceHeader.PARENT_ID)
