@@ -144,7 +144,6 @@ def extract_dd_trace_context(event, lambda_context):
             lambda_context
         )
 
-
     if trace_id and parent_id and sampling_priority:
         logger.debug("Extracted Datadog trace context from event")
         metadata = {
