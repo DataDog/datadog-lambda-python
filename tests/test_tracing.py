@@ -88,7 +88,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         lambda_ctx = get_mock_context()
         ctx = extract_dd_trace_context(
             {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321"}},
-            lambda_ctx
+            lambda_ctx,
         )
         self.assertDictEqual(
             ctx,
@@ -118,7 +118,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     TraceHeader.SAMPLING_PRIORITY: "1",
                 }
             },
-            lambda_ctx
+            lambda_ctx,
         )
         self.assertDictEqual(
             ctx,
@@ -157,21 +157,23 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                         "ApproximateReceiveCount": "1",
                         "SentTimestamp": "1545082649183",
                         "SenderId": "AIDAIENQZJOLO23YVJ4VO",
-                        "ApproximateFirstReceiveTimestamp": "1545082649185"
+                        "ApproximateFirstReceiveTimestamp": "1545082649185",
                     },
                     "messageAttributes": {
                         "_datadog": {
-                            "StringValue": json.dumps({
-                                TraceHeader.TRACE_ID: "123",
-                                TraceHeader.PARENT_ID: "321",
-                                TraceHeader.SAMPLING_PRIORITY: "1",
-                            })
+                            "StringValue": json.dumps(
+                                {
+                                    TraceHeader.TRACE_ID: "123",
+                                    TraceHeader.PARENT_ID: "321",
+                                    TraceHeader.SAMPLING_PRIORITY: "1",
+                                }
+                            )
                         }
                     },
                     "md5OfBody": "e4e68fb7bd0e697a0ae8f1bb342846b3",
                     "eventSource": "aws:sqs",
                     "eventSourceARN": "arn:aws:sqs:us-east-2:123456789012:my-queue",
-                    "awsRegion": "us-east-2"
+                    "awsRegion": "us-east-2",
                 }
             ]
         }
@@ -202,19 +204,18 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     def test_with_client_context_datadog_trace_data(self):
-        lambda_ctx = get_mock_context(client_context={
-            "custom": {
-                "_datadog": {
-                    TraceHeader.TRACE_ID: "666",
-                    TraceHeader.PARENT_ID: "777",
-                    TraceHeader.SAMPLING_PRIORITY: "1",
+        lambda_ctx = get_mock_context(
+            client_context={
+                "custom": {
+                    "_datadog": {
+                        TraceHeader.TRACE_ID: "666",
+                        TraceHeader.PARENT_ID: "777",
+                        TraceHeader.SAMPLING_PRIORITY: "1",
+                    }
                 }
             }
-        })
-        ctx = extract_dd_trace_context(
-            { "test": "foo" },
-            lambda_ctx
         )
+        ctx = extract_dd_trace_context({}, lambda_ctx)
         self.assertDictEqual(
             ctx,
             {
@@ -250,7 +251,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     "X-Datadog-Sampling-Priority": "1",
                 }
             },
-            lambda_ctx
+            lambda_ctx,
         )
         self.assertDictEqual(
             get_dd_trace_context(),
