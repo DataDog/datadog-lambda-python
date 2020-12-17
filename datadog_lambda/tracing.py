@@ -103,7 +103,11 @@ def extract_context_from_http_event(event):
 
 def extract_context_from_sqs_event(event):
     first_record = event["Records"][0]
-    dd_json_data = first_record.get("messageAttributes", {}).get("_datadog", {}).get("StringValue", r"{}")
+    dd_json_data = first_record.get(
+        "messageAttributes", {})
+        .get("_datadog", {})
+        .get("StringValue", r"{}"
+    )
     dd_data = json.loads(dd_json_data)
     trace_id = dd_data.get(TraceHeader.TRACE_ID)
     parent_id = dd_data.get(TraceHeader.PARENT_ID)
@@ -139,7 +143,9 @@ def extract_dd_trace_context(event, lambda_context):
     elif "Records" in event:
         trace_id, parent_id, sampling_priority = extract_context_from_sqs_event(event)
     else:
-        trace_id, parent_id, sampling_priority = extract_context_from_lambda_context(lambda_context)
+        trace_id, parent_id, sampling_priority = extract_context_from_lambda_context(
+            lambda_context
+        )
 
 
     if trace_id and parent_id and sampling_priority:
