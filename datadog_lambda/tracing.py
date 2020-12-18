@@ -100,7 +100,7 @@ def extract_context_from_lambda_context(lambda_context):
     client_context = lambda_context.client_context
 
     if client_context and "custom" in client_context:
-        dd_data = lambda_context.client_context.get("custom", {}).get("_datadog", {})
+        dd_data = client_context.get("custom", {}).get("_datadog", {})
         trace_id = dd_data.get(TraceHeader.TRACE_ID)
         parent_id = dd_data.get(TraceHeader.PARENT_ID)
         sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
@@ -164,13 +164,17 @@ def extract_dd_trace_context(event, lambda_context):
     global dd_trace_context
 
     if "headers" in event:
-        trace_id, parent_id, sampling_priority = extract_context_from_http_event_or_context(
-            event, lambda_context
-        )
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extract_context_from_http_event_or_context(event, lambda_context)
     elif "Records" in event:
-        trace_id, parent_id, sampling_priority = extract_context_from_sqs_event_or_context(
-            event, lambda_context
-        )
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extract_context_from_sqs_event_or_context(event, lambda_context)
     else:
         trace_id, parent_id, sampling_priority = extract_context_from_lambda_context(
             lambda_context
