@@ -14,11 +14,6 @@ if [ -d "dist" ]; then
     rm -rf dist;
 fi
 
-# Install build tools
-pip install --upgrade setuptools wheel twine
+# Publish to pypi
+poetry publish --build
 
-# Build distributions
-python setup.py sdist bdist_wheel
-
-# Upload distributions
-python -m twine upload dist/*

@@ -47,8 +47,7 @@ then
     [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
 fi
 
-VERSION_LINE=$(sed -E -n 's/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/"\1.\2.\3"/p' ./datadog_lambda/__init__.py)
-CURRENT_VERSION=$(echo "$VERSION_LINE" | cut -d '"' -f 2)
+CURRENT_VERSION=$(poetry version --short)
 
 read -p "Ready to publish layers and update the version from $CURRENT_VERSION to $NEW_VERSION? (y/n)" -n 1 -r
 echo
@@ -58,9 +57,10 @@ then
 fi
 
 echo
-echo "Replacing __version__ in ./datadog_lambda/__init__.py"
+echo "Replacing version in pyproject.toml"
 echo
-sed -i "" -E "s/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/\"$NEW_VERSION\"/" ./datadog_lambda/__init__.py
+
+poetry version ${NEW_VERSION}
 
 git commit ./datadog_lambda/__init__.py -m "Update module version to ${NEW_VERSION}"
 
