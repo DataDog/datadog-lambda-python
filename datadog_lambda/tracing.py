@@ -181,7 +181,7 @@ def extract_dd_trace_context(event, lambda_context):
         )
 
     if trace_id and parent_id and sampling_priority:
-        logger.debug("Extracted Datadog trace context from event")
+        logger.debug("Extracted Datadog trace context from event or context")
         metadata = {
             "trace-id": trace_id,
             "parent-id": parent_id,
