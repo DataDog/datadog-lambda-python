@@ -89,6 +89,7 @@ def _context_obj_to_headers(obj):
         TraceHeader.SAMPLING_PRIORITY: str(obj.get("sampling-priority")),
     }
 
+
 def extract_context_from_lambda_context(lambda_context):
     """
     Extract Datadog trace context from the `client_context` attr
@@ -104,10 +105,12 @@ def extract_context_from_lambda_context(lambda_context):
     return trace_id, parent_id, sampling_priority
 
 
-def extract_context_from_http_event(event, lambda_context):
+def extract_context_from_http_event_or_context(event, lambda_context):
     """
     Extract Datadog trace context from the `headers` key in from the Lambda
     `event` object.
+
+    Falls back to lambda context if no trace data is found in the `headers`
     """
     headers = event.get("headers", {})
     lowercase_headers = {k.lower(): v for k, v in headers.items()}
@@ -122,9 +125,11 @@ def extract_context_from_http_event(event, lambda_context):
     return trace_id, parent_id, sampling_priority
 
 
-def extract_context_from_sqs_event(event, lambda_context):
+def extract_context_from_sqs_event_or_context(event, lambda_context):
     """
     Extract Datadog trace context from the first SQS message attributes.
+
+    Falls back to lambda context if no trace data is found in the SQS message attributes.
     """
     try:
         first_record = event["Records"][0]
@@ -154,9 +159,13 @@ def extract_dd_trace_context(event, lambda_context):
     global dd_trace_context
 
     if "headers" in event:
-        trace_id, parent_id, sampling_priority = extract_context_from_http_event(event, lambda_context)
+        trace_id, parent_id, sampling_priority = extract_context_from_http_event_or_context(
+            event, lambda_context
+        )
     elif "Records" in event:
-        trace_id, parent_id, sampling_priority = extract_context_from_sqs_event(event, lambda_context)
+        trace_id, parent_id, sampling_priority = extract_context_from_sqs_event_or_context(
+            event, lambda_context
+        )
     else:
         trace_id, parent_id, sampling_priority = extract_context_from_lambda_context(
             lambda_context
