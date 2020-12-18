@@ -89,8 +89,26 @@ def _context_obj_to_headers(obj):
         TraceHeader.SAMPLING_PRIORITY: str(obj.get("sampling-priority")),
     }
 
+def extract_context_from_lambda_context(lambda_context):
+    """
+    Extract Datadog trace context from the `client_context` attr
+    from the Lambda `context` object.
 
-def extract_context_from_http_event(event):
+    dd_trace libraries inject this trace context on synchronous invocations
+    """
+    dd_data = lambda_context.client_context.get("custom", {}).get("_datadog", {})
+    trace_id = dd_data.get(TraceHeader.TRACE_ID)
+    parent_id = dd_data.get(TraceHeader.PARENT_ID)
+    sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
+
+    return trace_id, parent_id, sampling_priority
+
+
+def extract_context_from_http_event(event, lambda_context):
+    """
+    Extract Datadog trace context from the `headers` key in from the Lambda
+    `event` object.
+    """
     headers = event.get("headers", {})
     lowercase_headers = {k.lower(): v for k, v in headers.items()}
 
@@ -98,28 +116,28 @@ def extract_context_from_http_event(event):
     parent_id = lowercase_headers.get(TraceHeader.PARENT_ID)
     sampling_priority = lowercase_headers.get(TraceHeader.SAMPLING_PRIORITY)
 
-    return trace_id, parent_id, sampling_priority
-
-
-def extract_context_from_sqs_event(event):
-    first_record = event["Records"][0]
-    msg_attributes = first_record.get("messageAttributes", {})
-    dd_json_data = msg_attributes.get("_datadog", {}).get("StringValue", r"{}")
-    dd_data = json.loads(dd_json_data)
-    trace_id = dd_data.get(TraceHeader.TRACE_ID)
-    parent_id = dd_data.get(TraceHeader.PARENT_ID)
-    sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
+    if not trace_id or not parent_id or not sampling_priority:
+        return extract_context_from_lambda_context(lambda_context)
 
     return trace_id, parent_id, sampling_priority
 
 
-def extract_context_from_lambda_context(lambda_context):
-    dd_data = lambda_context.client_context.get("custom", {}).get("_datadog", {})
-    trace_id = dd_data.get(TraceHeader.TRACE_ID)
-    parent_id = dd_data.get(TraceHeader.PARENT_ID)
-    sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
+def extract_context_from_sqs_event(event, lambda_context):
+    """
+    Extract Datadog trace context from the first SQS message attributes.
+    """
+    try:
+        first_record = event["Records"][0]
+        msg_attributes = first_record.get("messageAttributes", {})
+        dd_json_data = msg_attributes.get("_datadog", {}).get("StringValue", r"{}")
+        dd_data = json.loads(dd_json_data)
+        trace_id = dd_data.get(TraceHeader.TRACE_ID)
+        parent_id = dd_data.get(TraceHeader.PARENT_ID)
+        sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
 
-    return trace_id, parent_id, sampling_priority
+        return trace_id, parent_id, sampling_priority
+    except Exception:
+        return extract_context_from_lambda_context(lambda_context)
 
 
 def extract_dd_trace_context(event, lambda_context):
@@ -136,9 +154,9 @@ def extract_dd_trace_context(event, lambda_context):
     global dd_trace_context
 
     if "headers" in event:
-        trace_id, parent_id, sampling_priority = extract_context_from_http_event(event)
+        trace_id, parent_id, sampling_priority = extract_context_from_http_event(event, lambda_context)
     elif "Records" in event:
-        trace_id, parent_id, sampling_priority = extract_context_from_sqs_event(event)
+        trace_id, parent_id, sampling_priority = extract_context_from_sqs_event(event, lambda_context)
     else:
         trace_id, parent_id, sampling_priority = extract_context_from_lambda_context(
             lambda_context
