@@ -97,12 +97,17 @@ def extract_context_from_lambda_context(lambda_context):
 
     dd_trace libraries inject this trace context on synchronous invocations
     """
-    dd_data = lambda_context.client_context.get("custom", {}).get("_datadog", {})
-    trace_id = dd_data.get(TraceHeader.TRACE_ID)
-    parent_id = dd_data.get(TraceHeader.PARENT_ID)
-    sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
+    client_context = lambda_context.client_context
 
-    return trace_id, parent_id, sampling_priority
+    if client_context and "custom" in client_context:
+        dd_data = lambda_context.client_context.get("custom", {}).get("_datadog", {})
+        trace_id = dd_data.get(TraceHeader.TRACE_ID)
+        parent_id = dd_data.get(TraceHeader.PARENT_ID)
+        sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
+
+        return trace_id, parent_id, sampling_priority
+
+    return None, None, None
 
 
 def extract_context_from_http_event_or_context(event, lambda_context):
