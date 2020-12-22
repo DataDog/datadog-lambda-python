@@ -19,6 +19,7 @@ from datadog_lambda.patch import patch_all
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
     create_dd_metadata_subsegment,
+    create_dd_root_span_metadata_subsegment,
     inject_correlation_ids,
     dd_tracing_enabled,
     set_correlation_ids,
@@ -123,12 +124,14 @@ class _LambdaDecorator(object):
 
             set_cold_start()
             submit_invocations_metric(context)
-            # Extract trigger tags
+            # Extract trigger tags and add them to a subsegment if found
             trigger_tags = extract_trigger_tags(event, context)
+            if trigger_tags:
+                create_dd_root_span_metadata_subsegment(trigger_tags)
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source = extract_dd_trace_context(event)
             if trace_context_source == TraceContextSource.EVENT:
-                create_dd_metadata_subsegment(dd_context, trigger_tags)
+                create_dd_metadata_subsegment(dd_context)
 
             self.span = None
             if dd_tracing_enabled:

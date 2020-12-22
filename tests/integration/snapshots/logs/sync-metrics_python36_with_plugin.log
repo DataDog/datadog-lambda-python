@@ -1,4 +1,4 @@
-/var/runtime/botocore/vendored/requests/__init__.py:91: RequestsDependencyWarning: urllib3 (1.26.2) or chardet (3.0.4) doesn't match a supported version!
+/var/runtime/botocore/vendored/requests/__init__.py:91: RequestsDependencyWarning: urllib3 (1.26.2) or chardet (4.0.0) doesn't match a supported version!
 RequestsDependencyWarning)
 START RequestId: XXXX Version: $LATEST
 {"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-plugin-dev-sync-metrics_python36_with_plugin", "resource:integration-plugin-dev-sync-metrics_python36_with_plugin", "cold_start:true", "memorysize:1024", "runtime:python3.6", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python36_2.XX.0"]}

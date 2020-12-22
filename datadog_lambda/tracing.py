@@ -88,7 +88,7 @@ def _context_obj_to_headers(obj):
     }
 
 
-def create_dd_metadata_subsegment(dd_context, trigger_tags):
+def create_dd_metadata_subsegment(dd_context):
     """
     Save the context to an X-Ray subsegment's metadata field, so the X-Ray
     trace can be converted to a Datadog trace in the Datadog backend with
@@ -100,13 +100,21 @@ def create_dd_metadata_subsegment(dd_context, trigger_tags):
     subsegment.put_metadata(
         XraySubsegment.TRACE_KEY, dd_context, XraySubsegment.NAMESPACE
     )
-    # Add trigger tags under the dd subsegment's root_span_metadata field
-    if trigger_tags:
-        subsegment.put_metadata(
-            XraySubsegment.ROOT_SPAN_METADATA_KEY,
-            trigger_tags,
-            XraySubsegment.NAMESPACE,
-        )
+    xray_recorder.end_subsegment()
+
+
+def create_dd_root_span_metadata_subsegment(lambda_function_tags):
+    """
+    Store tags to an X-Ray subsegment's metadata field to be added to the Lambda
+    function execution span
+    """
+    xray_recorder.begin_subsegment(XraySubsegment.NAME)
+    subsegment = xray_recorder.current_subsegment()
+    subsegment.put_metadata(
+        XraySubsegment.ROOT_SPAN_METADATA_KEY,
+        lambda_function_tags,
+        XraySubsegment.NAMESPACE,
+    )
     xray_recorder.end_subsegment()
 
 
