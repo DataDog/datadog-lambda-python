@@ -128,7 +128,7 @@ class _LambdaDecorator(object):
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source = extract_dd_trace_context(event)
             if trace_context_source == TraceContextSource.EVENT:
-                create_dd_metadata_subsegment(event, dd_context, trigger_tags)
+                create_dd_metadata_subsegment(dd_context, trigger_tags)
 
             self.span = None
             if dd_tracing_enabled:
@@ -156,8 +156,7 @@ class _LambdaDecorator(object):
                 flush_extension()
 
             if self.span:
-                if response:
-                    set_http_status_code_tag(self.span, response)
+                set_http_status_code_tag(self.span, response)
                 self.span.finish()
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:

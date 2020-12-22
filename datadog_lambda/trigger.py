@@ -9,13 +9,24 @@ import json
 from io import BytesIO, BufferedReader
 
 
-EVENT_SOURCES = {
+EVENT_SOURCES = [
     "aws:dynamodb",
     "aws:kinesis",
     "aws:s3",
     "aws:sns",
     "aws:sqs",
-}
+]
+
+GOVCLOUD_REGIONS = ["us-gov-east-1", "us-gov-west-1"]
+CHINA_REGIONS = ["cn-north-1", "cn-northwest-1"]
+
+
+def get_arn_region_identifier(region):
+    if region in GOVCLOUD_REGIONS:
+        return "aws-us-gov"
+    if region in CHINA_REGIONS:
+        return "aws-cn"
+    return "aws"
 
 
 def get_first_record(event):
@@ -69,6 +80,7 @@ def parse_event_source_arn(source, event, context):
     split_function_arn = context.invoked_function_arn.split(":")
     region = split_function_arn[3]
     account_id = split_function_arn[4]
+    aws_arn = get_arn_region_identifier(region)
 
     event_record = get_first_record(event)
     # e.g. arn:aws:s3:::lambda-xyz123-abc890
@@ -82,15 +94,15 @@ def parse_event_source_arn(source, event, context):
     # e.g. arn:aws:cloudfront::123456789012:distribution/ABC123XYZ
     if source == "cloudfront":
         distribution_id = event_record.get("cf")["config"]["distributionId"]
-        return "arn:aws:cloudfront::{}:distribution/{}".format(
-            account_id, distribution_id
+        return "arn:{}:cloudfront::{}:distribution/{}".format(
+            aws_arn, account_id, distribution_id
         )
 
     # e.g. arn:aws:apigateway:us-east-1::/restapis/xyz123/stages/default
     if source == "api-gateway":
         request_context = event.get("requestContext")
-        return "arn:aws:apigateway:{}::/restapis/{}/stages/{}".format(
-            region, request_context["apiId"], request_context["stage"]
+        return "arn:{}:apigateway:{}::/restapis/{}/stages/{}".format(
+            aws_arn, region, request_context["apiId"], request_context["stage"]
         )
 
     # e.g. arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/lambda-xyz/123
@@ -106,7 +118,9 @@ def parse_event_source_arn(source, event, context):
             data = b"".join(BufferedReader(decompress_stream))
         logs = json.loads(data)
         log_group = logs.get("logGroup", "cloudwatch")
-        return "arn:aws:logs:{}:{}:log-group:{}".format(region, account_id, log_group)
+        return "arn:{}:logs:{}:{}:log-group:{}".format(
+            aws_arn, region, account_id, log_group
+        )
 
     # e.g. arn:aws:events:us-east-1:123456789012:rule/my-schedule
     if source == "cloudwatch-events" and event.get("resources"):

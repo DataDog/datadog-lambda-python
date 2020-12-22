@@ -88,7 +88,7 @@ def _context_obj_to_headers(obj):
     }
 
 
-def create_dd_metadata_subsegment(event, dd_context, trigger_tags):
+def create_dd_metadata_subsegment(dd_context, trigger_tags):
     """
     Save the context to an X-Ray subsegment's metadata field, so the X-Ray
     trace can be converted to a Datadog trace in the Datadog backend with
@@ -274,8 +274,7 @@ def create_function_execution_span(
         }
     if trace_context_source == TraceContextSource.XRAY and merge_xray_traces:
         tags["_dd.parent_source"] = trace_context_source
-    if trigger_tags:
-        tags.update(trigger_tags)
+    tags.update(trigger_tags)
     args = {
         "service": "aws.lambda",
         "resource": function_name,
