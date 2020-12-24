@@ -10,8 +10,7 @@ from ddtrace.helpers import get_correlation_ids
 from datadog_lambda.constants import SamplingPriority, TraceHeader, XraySubsegment
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
-    create_dd_metadata_subsegment,
-    create_dd_root_span_metadata_subsegment,
+    create_dd_subsegment,
     create_function_execution_span,
     get_dd_trace_context,
     set_correlation_ids,
@@ -114,7 +113,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
-        create_dd_metadata_subsegment(ctx)
+        create_dd_subsegment(ctx, source, {})
         self.mock_xray_recorder.begin_subsegment.assert_called()
         self.mock_xray_recorder.end_subsegment.assert_called()
         self.mock_current_subsegment.put_metadata.assert_called_with(
@@ -143,11 +142,12 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     def test_with_complete_datadog_trace_headers_with_trigger_tags(self):
+        ctx = get_mock_context()
         trigger_tags = {
             "trigger.event_source": "sqs",
             "trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
         }
-        create_dd_root_span_metadata_subsegment(trigger_tags)
+        create_dd_subsegment(ctx, "event", trigger_tags)
         self.mock_xray_recorder.begin_subsegment.assert_called()
         self.mock_xray_recorder.end_subsegment.assert_called()
         self.mock_current_subsegment.put_metadata.assert_has_calls(

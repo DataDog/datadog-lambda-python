@@ -8,7 +8,7 @@ except ImportError:
 
 
 from datadog_lambda.trigger import (
-    get_event_source,
+    parse_event_source,
     get_event_source_arn,
     extract_trigger_tags,
 )
@@ -30,7 +30,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        event_source = get_event_source(event)
+        event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
@@ -44,7 +44,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        event_source = get_event_source(event)
+        event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
@@ -58,7 +58,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        event_source = get_event_source(event)
+        event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
@@ -71,7 +71,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        event_source = get_event_source(event)
+        event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
@@ -84,7 +84,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        event_source = get_event_source(event)
+        event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
@@ -98,7 +98,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        event_source = get_event_source(event)
+        event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
@@ -112,7 +112,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        event_source = get_event_source(event)
+        event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(event_source_arn, "arn:aws:kinesis:EXAMPLE")
@@ -123,7 +123,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        event_source = get_event_source(event)
+        event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(event_source_arn, "arn:aws:s3:::example-bucket")
@@ -134,7 +134,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        event_source = get_event_source(event)
+        event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
@@ -147,7 +147,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        event_source = get_event_source(event)
+        event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, event_sample_source)
         self.assertEqual(event_source_arn, "arn:aws:sqs:us-east-1:123456789012:MyQueue")
@@ -158,7 +158,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        event_source = get_event_source(event)
+        event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source, None)
         self.assertEqual(event_source_arn, None)

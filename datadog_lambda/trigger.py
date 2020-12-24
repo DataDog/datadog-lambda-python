@@ -17,14 +17,11 @@ EVENT_SOURCES = [
     "aws:sqs",
 ]
 
-GOVCLOUD_REGIONS = ["us-gov-east-1", "us-gov-west-1"]
-CHINA_REGIONS = ["cn-north-1", "cn-northwest-1"]
 
-
-def get_arn_region_identifier(region):
-    if region in GOVCLOUD_REGIONS:
+def get_aws_partition_by_region(region):
+    if region.startswith("us-gov-"):
         return "aws-us-gov"
-    if region in CHINA_REGIONS:
+    if region.startswith("cn-"):
         return "aws-cn"
     return "aws"
 
@@ -35,7 +32,7 @@ def get_first_record(event):
         return records[0]
 
 
-def get_event_source(event):
+def parse_event_source(event):
     """Determines the source of the trigger event
 
     Possible Returns:
@@ -80,7 +77,7 @@ def parse_event_source_arn(source, event, context):
     split_function_arn = context.invoked_function_arn.split(":")
     region = split_function_arn[3]
     account_id = split_function_arn[4]
-    aws_arn = get_arn_region_identifier(region)
+    aws_arn = get_aws_partition_by_region(region)
 
     event_record = get_first_record(event)
     # e.g. arn:aws:s3:::lambda-xyz123-abc890
@@ -142,7 +139,7 @@ def get_event_source_arn(source, event, context):
     return event_source_arn
 
 
-def get_http_tags(event):
+def extract_http_tags(event):
     """
     Extracts HTTP facet tags from the triggering event
     """
@@ -179,7 +176,7 @@ def extract_trigger_tags(event, context):
     Parses the trigger event object to get tags to be added to the span metadata
     """
     trigger_tags = {}
-    event_source = get_event_source(event)
+    event_source = parse_event_source(event)
     if event_source:
         trigger_tags["trigger.event_source"] = event_source
 
@@ -188,7 +185,7 @@ def extract_trigger_tags(event, context):
             trigger_tags["trigger.event_source_arn"] = event_source_arn
 
     if event_source in ["api-gateway", "application-load-balancer"]:
-        trigger_tags.update(get_http_tags(event))
+        trigger_tags.update(extract_http_tags(event))
 
     return trigger_tags
 
