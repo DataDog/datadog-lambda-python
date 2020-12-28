@@ -118,14 +118,15 @@ def create_dd_subsegment(dd_context, trace_context_source, lambda_function_tags)
     Create a Datadog subsegment to pass the Datadog trace context or tags into
     its metadata field
     """
-    if dd_context or lambda_function_tags:
-        xray_recorder.begin_subsegment(XraySubsegment.NAME)
+    if not dd_context and not lambda_function_tags:
+        return
+    xray_recorder.begin_subsegment(XraySubsegment.NAME)
 
-        create_dd_root_span_metadata_subsegment(lambda_function_tags)
-        if trace_context_source == TraceContextSource.EVENT:
-            create_dd_trace_context_metadata_subsegment(dd_context)
+    create_dd_root_span_metadata_subsegment(lambda_function_tags)
+    if trace_context_source == TraceContextSource.EVENT:
+        create_dd_trace_context_metadata_subsegment(dd_context)
 
-        xray_recorder.end_subsegment()
+    xray_recorder.end_subsegment()
 
 
 def extract_dd_trace_context(event):
