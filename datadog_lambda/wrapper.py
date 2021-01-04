@@ -17,8 +17,8 @@ from datadog_lambda.metric import (
 from datadog_lambda.patch import patch_all
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
-    create_dd_subsegment,
-    close_dd_subsegment,
+    begin_dd_dummy_metadata_subsegment,
+    end_dd_dummy_metadata_subsegment,
     inject_correlation_ids,
     dd_tracing_enabled,
     set_correlation_ids,
@@ -105,7 +105,7 @@ class _LambdaDecorator(object):
 
     def __call__(self, event, context, **kwargs):
         """Executes when the wrapped function gets called"""
-        self._before(event, context)
+        dd_dummy_subsegment = self._before(event, context)
         response = None
         try:
             response = self.func(event, context, **kwargs)
@@ -116,7 +116,7 @@ class _LambdaDecorator(object):
                 self.span.set_traceback()
             raise
         finally:
-            self._after(event, context, response)
+            self._after(event, context, response, dd_dummy_subsegment)
 
     def _before(self, event, context):
         try:
@@ -128,7 +128,9 @@ class _LambdaDecorator(object):
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source = extract_dd_trace_context(event)
             # Create a Datadog X-Ray subsegment
-            create_dd_subsegment(dd_context, trace_context_source, trigger_tags)
+            dd_dummy_subsegment = begin_dd_dummy_metadata_subsegment(
+                dd_context, trace_context_source, trigger_tags
+            )
 
             self.span = None
             if dd_tracing_enabled:
@@ -145,10 +147,11 @@ class _LambdaDecorator(object):
                 set_correlation_ids()
 
             logger.debug("datadog_lambda_wrapper _before() done")
+            return dd_dummy_subsegment
         except Exception:
             traceback.print_exc()
 
-    def _after(self, event, context, response):
+    def _after(self, event, context, response, dd_dummy_subsegment):
         try:
             if not self.flush_to_log or should_use_extension:
                 lambda_stats.flush(float("inf"))
@@ -158,8 +161,7 @@ class _LambdaDecorator(object):
             if self.span:
                 set_http_status_code_tag(self.span, response)
                 self.span.finish()
-                # Close the DD subsegment here and send it
-            close_dd_subsegment()
+            end_dd_dummy_metadata_subsegment(dd_dummy_subsegment)
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
             traceback.print_exc()
