@@ -7,6 +7,7 @@ import base64
 import gzip
 import json
 from io import BytesIO, BufferedReader
+from datadog_lambda.tracing import update_dd_root_span_metadata_subsegment
 
 
 EVENT_SOURCES = [
@@ -195,8 +196,10 @@ def set_http_status_code_tag(span, response):
     If the Lambda was triggered by API Gateway or ALB add the returned status code
     as a tag to the function execution span.
     """
-    is_http_trigger = span and span.get_tag("trigger.event_source") == (
-        "api-gateway" or "application-load-balancer"
+    is_http_trigger = (
+        span
+        and span.get_tag("trigger.event_source") == "api-gateway"
+        or span.get_tag("trigger.event_source") == "application-load-balancer"
     )
     if not is_http_trigger:
         return
@@ -209,3 +212,5 @@ def set_http_status_code_tag(span, response):
         status_code = response.get("statusCode")
 
     span.set_tag("http.status_code", status_code)
+    # Update the DD X-Ray subsegment with the tag
+    update_dd_root_span_metadata_subsegment({"http.status_code": status_code})

@@ -8,6 +8,7 @@ import os
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core.lambda_launcher import LambdaContext
+from aws_xray_sdk.core.exceptions.exceptions import SegmentNotFoundException
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
@@ -113,6 +114,19 @@ def add_dd_root_span_metadata_subsegment(lambda_function_tags):
     )
 
 
+def update_dd_root_span_metadata_subsegment(lambda_function_tags):
+    """
+    Update the a Datadog subsegment's root_span_metadata field with additional tags
+    """
+    subsegment = xray_recorder.current_subsegment()
+    if not lambda_function_tags or subsegment is None:
+        return
+    dd_subsegment = subsegment.metadata[XraySubsegment.NAMESPACE]
+    root_span_metadata = dd_subsegment.get(XraySubsegment.ROOT_SPAN_METADATA_KEY)
+    if root_span_metadata:
+        root_span_metadata.update(lambda_function_tags)
+
+
 def create_dd_subsegment(dd_context, trace_context_source, lambda_function_tags):
     """
     Create a Datadog subsegment to pass the Datadog trace context or tags into
@@ -120,13 +134,22 @@ def create_dd_subsegment(dd_context, trace_context_source, lambda_function_tags)
     """
     if not dd_context and not lambda_function_tags:
         return
+    # Start the subsegment here
     xray_recorder.begin_subsegment(XraySubsegment.NAME)
 
     add_dd_root_span_metadata_subsegment(lambda_function_tags)
     if trace_context_source == TraceContextSource.EVENT:
         add_dd_trace_context_metadata_subsegment(dd_context)
 
-    xray_recorder.end_subsegment()
+
+def close_dd_subsegment():
+    """
+    End the DD subsegment and swallow exceptions if a subsegment is not found
+    """
+    try:
+        xray_recorder.end_subsegment()
+    except SegmentNotFoundException:
+        pass
 
 
 def extract_dd_trace_context(event):

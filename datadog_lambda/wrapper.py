@@ -18,6 +18,7 @@ from datadog_lambda.patch import patch_all
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
     create_dd_subsegment,
+    close_dd_subsegment,
     inject_correlation_ids,
     dd_tracing_enabled,
     set_correlation_ids,
@@ -157,6 +158,8 @@ class _LambdaDecorator(object):
             if self.span:
                 set_http_status_code_tag(self.span, response)
                 self.span.finish()
+                # Close the DD subsegment here and send it
+            close_dd_subsegment()
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
             traceback.print_exc()

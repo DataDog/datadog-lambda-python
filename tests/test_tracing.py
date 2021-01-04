@@ -115,7 +115,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
         create_dd_subsegment(ctx, source, {})
         self.mock_xray_recorder.begin_subsegment.assert_called()
-        self.mock_xray_recorder.end_subsegment.assert_called()
         self.mock_current_subsegment.put_metadata.assert_called_with(
             XraySubsegment.TRACE_KEY,
             {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
@@ -149,7 +148,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         }
         create_dd_subsegment(ctx, "event", trigger_tags)
         self.mock_xray_recorder.begin_subsegment.assert_called()
-        self.mock_xray_recorder.end_subsegment.assert_called()
         self.mock_current_subsegment.put_metadata.assert_has_calls(
             [
                 call(
