@@ -15,12 +15,14 @@ def get_mock_context(
     memory_limit_in_mb="256",
     invoked_function_arn="arn:aws:lambda:us-west-1:123457598159:function:python-layer-test:1",
     function_version="1",
+    client_context={},
 ):
     lambda_context = MagicMock()
     lambda_context.aws_request_id = aws_request_id
     lambda_context.memory_limit_in_mb = memory_limit_in_mb
     lambda_context.invoked_function_arn = invoked_function_arn
     lambda_context.function_version = function_version
+    lambda_context.client_context = client_context
     return lambda_context
 
 
@@ -88,13 +90,17 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         lambda_event = {}
 
-        lambda_handler(lambda_event, get_mock_context())
+        lambda_context = get_mock_context()
+
+        lambda_handler(lambda_event, lambda_context)
 
         self.mock_metric_lambda_stats.distribution.assert_has_calls(
             [call("test.metric", 100, timestamp=None, tags=ANY)]
         )
         self.mock_wrapper_lambda_stats.flush.assert_called()
-        self.mock_extract_dd_trace_context.assert_called_with(lambda_event)
+        self.mock_extract_dd_trace_context.assert_called_with(
+            lambda_event, lambda_context
+        )
         self.mock_set_correlation_ids.assert_called()
         self.mock_inject_correlation_ids.assert_called()
         self.mock_patch_all.assert_called()
