@@ -7,8 +7,6 @@ import base64
 import gzip
 import json
 from io import BytesIO, BufferedReader
-from datadog_lambda.constants import XraySubsegment
-from datadog_lambda.tracing import update_dd_dummy_metadata_subsegment
 
 
 EVENT_SOURCES = [
@@ -213,7 +211,3 @@ def set_http_status_code_tag(span, response):
         status_code = response.get("statusCode")
 
     span.set_tag("http.status_code", status_code)
-    # Update the DD X-Ray subsegment with the tag
-    update_dd_dummy_metadata_subsegment(
-        XraySubsegment.ROOT_SPAN_METADATA_KEY, {"http.status_code": status_code}
-    )

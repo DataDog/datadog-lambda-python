@@ -3,8 +3,8 @@
 ![build](https://github.com/DataDog/datadog-lambda-python/workflows/build/badge.svg)
 [![PyPI](https://img.shields.io/pypi/v/datadog-lambda)](https://pypi.org/project/datadog-lambda/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/datadog-lambda)
-[![Slack](https://img.shields.io/badge/slack-%23serverless-blueviolet?logo=slack)](https://datadoghq.slack.com/channels/serverless/)
-[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DataDog/datadog-lambda-python/blob/master/LICENSE)
+[![Slack](https://chat.datadoghq.com/badge.svg?bg=632CA6)](https://chat.datadoghq.com/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DataDog/datadog-lambda-python/blob/main/LICENSE)
 
 Datadog Lambda Library for Python (2.7, 3.6, 3.7 and 3.8) enables enhanced Lambda metrics, distributed tracing, and custom metric submission from AWS Lambda functions.  
 
@@ -40,7 +40,7 @@ Check out the official documentation on [Datadog Lambda enhanced metrics](https:
 
 ### DD_FLUSH_TO_LOG
 
-Set to `true` (recommended) to send custom metrics asynchronously (with no added latency to your Lambda function executions) through CloudWatch Logs with the help of [Datadog Forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/master/aws/logs_monitoring). Defaults to `false`. If set to `false`, you also need to set `DD_API_KEY` and `DD_SITE`.
+Set to `true` (recommended) to send custom metrics asynchronously (with no added latency to your Lambda function executions) through CloudWatch Logs with the help of [Datadog Forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/main/aws/logs_monitoring). Defaults to `false`. If set to `false`, you also need to set `DD_API_KEY` and `DD_SITE`.
 
 ### DD_API_KEY
 
@@ -98,6 +98,10 @@ You can also open an issue for a feature request.
 ## Contributing
 
 If you find an issue with this package and have a fix, please feel free to open a pull request following the [procedures](CONTRIBUTING.md).
+
+## Community
+
+For product feedback and questions, join the `#serverless` channel in the [Datadog community on Slack](https://chat.datadoghq.com/).
 
 ## License
 

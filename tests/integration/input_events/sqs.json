@@ -10,7 +10,11 @@
         "SenderId": "AIDAIENQZJOLO23YVJ4VO",
         "ApproximateFirstReceiveTimestamp": "1545082649185"
       },
-      "messageAttributes": {},
+      "messageAttributes": {
+        "_datadog": {
+          "StringValue": "{\"x-datadog-trace-id\":\"666\",\"x-datadog-parent-id\":\"777\",\"x-datadog-sampling-priority\":\"1\"}"
+        }
+      },
       "md5OfBody": "e4e68fb7bd0e697a0ae8f1bb342846b3",
       "eventSource": "aws:sqs",
       "eventSourceARN": "arn:aws:sqs:us-east-2:123456789012:my-queue",

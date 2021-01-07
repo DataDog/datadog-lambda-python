@@ -5,6 +5,7 @@
 
 import logging
 import os
+import json
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core.lambda_launcher import LambdaContext
@@ -100,20 +101,7 @@ def add_dd_dummy_metadata_subsegment(subsegment_metadata_key, dd_context):
     )
 
 
-def update_dd_dummy_metadata_subsegment(subsegment_metadata_key, lambda_function_tags):
-    """
-    Update the specified Datadog subsegment key's field with additional tags
-    """
-    subsegment = xray_recorder.current_subsegment()
-    if not lambda_function_tags or subsegment is None:
-        return
-    dd_subsegment = subsegment.metadata[XraySubsegment.NAMESPACE]
-    root_span_metadata = dd_subsegment.get(subsegment_metadata_key)
-    if root_span_metadata:
-        root_span_metadata.update(lambda_function_tags)
-
-
-def begin_dd_dummy_metadata_subsegment(
+def create_dd_dummy_metadata_subsegment(
     dd_context, trace_context_source, lambda_function_tags
 ):
     """
@@ -123,7 +111,7 @@ def begin_dd_dummy_metadata_subsegment(
     if not dd_context and not lambda_function_tags:
         return
     # Start the Datadog dummy subsegment here
-    dd_dummy_subsegment = xray_recorder.begin_subsegment(XraySubsegment.NAME)
+    xray_recorder.begin_subsegment(XraySubsegment.NAME)
 
     add_dd_dummy_metadata_subsegment(
         XraySubsegment.ROOT_SPAN_METADATA_KEY, lambda_function_tags
@@ -131,22 +119,70 @@ def begin_dd_dummy_metadata_subsegment(
     if trace_context_source == TraceContextSource.EVENT:
         add_dd_dummy_metadata_subsegment(XraySubsegment.TRACE_KEY, dd_context)
 
-    return dd_dummy_subsegment
+    xray_recorder.end_subsegment()
 
 
-def end_dd_dummy_metadata_subsegment(dd_dummy_subsegment):
+def extract_context_from_lambda_context(lambda_context):
     """
-    End the Datadog dummy metadata subsegment if it is the current subsegment
+    Extract Datadog trace context from the `client_context` attr
+    from the Lambda `context` object.
+
+    dd_trace libraries inject this trace context on synchronous invocations
     """
-    if dd_dummy_subsegment is None:
-        return
-    # Ensure we are ending the Datadog dummy subsegment
-    subsegment = xray_recorder.current_subsegment()
-    if subsegment is dd_dummy_subsegment:
-        xray_recorder.end_subsegment()
+    client_context = lambda_context.client_context
+
+    if client_context and "custom" in client_context:
+        dd_data = client_context.get("custom", {}).get("_datadog", {})
+        trace_id = dd_data.get(TraceHeader.TRACE_ID)
+        parent_id = dd_data.get(TraceHeader.PARENT_ID)
+        sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
+
+        return trace_id, parent_id, sampling_priority
+
+    return None, None, None
 
 
-def extract_dd_trace_context(event):
+def extract_context_from_http_event_or_context(event, lambda_context):
+    """
+    Extract Datadog trace context from the `headers` key in from the Lambda
+    `event` object.
+
+    Falls back to lambda context if no trace data is found in the `headers`
+    """
+    headers = event.get("headers", {})
+    lowercase_headers = {k.lower(): v for k, v in headers.items()}
+
+    trace_id = lowercase_headers.get(TraceHeader.TRACE_ID)
+    parent_id = lowercase_headers.get(TraceHeader.PARENT_ID)
+    sampling_priority = lowercase_headers.get(TraceHeader.SAMPLING_PRIORITY)
+
+    if not trace_id or not parent_id or not sampling_priority:
+        return extract_context_from_lambda_context(lambda_context)
+
+    return trace_id, parent_id, sampling_priority
+
+
+def extract_context_from_sqs_event_or_context(event, lambda_context):
+    """
+    Extract Datadog trace context from the first SQS message attributes.
+
+    Falls back to lambda context if no trace data is found in the SQS message attributes.
+    """
+    try:
+        first_record = event["Records"][0]
+        msg_attributes = first_record.get("messageAttributes", {})
+        dd_json_data = msg_attributes.get("_datadog", {}).get("StringValue", r"{}")
+        dd_data = json.loads(dd_json_data)
+        trace_id = dd_data.get(TraceHeader.TRACE_ID)
+        parent_id = dd_data.get(TraceHeader.PARENT_ID)
+        sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
+
+        return trace_id, parent_id, sampling_priority
+    except Exception:
+        return extract_context_from_lambda_context(lambda_context)
+
+
+def extract_dd_trace_context(event, lambda_context):
     """
     Extract Datadog trace context from the Lambda `event` object.
 
@@ -155,14 +191,26 @@ def extract_dd_trace_context(event):
     """
     global dd_trace_context
     trace_context_source = None
-    headers = event.get("headers", {})
-    lowercase_headers = {k.lower(): v for k, v in headers.items()}
 
-    trace_id = lowercase_headers.get(TraceHeader.TRACE_ID)
-    parent_id = lowercase_headers.get(TraceHeader.PARENT_ID)
-    sampling_priority = lowercase_headers.get(TraceHeader.SAMPLING_PRIORITY)
+    if "headers" in event:
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extract_context_from_http_event_or_context(event, lambda_context)
+    elif "Records" in event:
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extract_context_from_sqs_event_or_context(event, lambda_context)
+    else:
+        trace_id, parent_id, sampling_priority = extract_context_from_lambda_context(
+            lambda_context
+        )
+
     if trace_id and parent_id and sampling_priority:
-        logger.debug("Extracted Datadog trace context from headers")
+        logger.debug("Extracted Datadog trace context from event or context")
         metadata = {
             "trace-id": trace_id,
             "parent-id": parent_id,
