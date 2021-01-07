@@ -166,7 +166,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     },
                     "messageAttributes": {
                         "_datadog": {
-                            "StringValue": json.dumps(
+                            "stringValue": json.dumps(
                                 {
                                     TraceHeader.TRACE_ID: "123",
                                     TraceHeader.PARENT_ID: "321",

@@ -139,7 +139,7 @@ def extract_context_from_sqs_event_or_context(event, lambda_context):
     try:
         first_record = event["Records"][0]
         msg_attributes = first_record.get("messageAttributes", {})
-        dd_json_data = msg_attributes.get("_datadog", {}).get("StringValue", r"{}")
+        dd_json_data = msg_attributes.get("_datadog", {}).get("stringValue", r"{}")
         dd_data = json.loads(dd_json_data)
         trace_id = dd_data.get(TraceHeader.TRACE_ID)
         parent_id = dd_data.get(TraceHeader.PARENT_ID)
