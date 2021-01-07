@@ -21,9 +21,11 @@ from datadog_lambda.tracing import (
 
 function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
 
+
 class ClientContext(object):
     def __init__(self, custom=None):
         self.custom = custom
+
 
 def get_mock_context(
     aws_request_id="request-id-1",
