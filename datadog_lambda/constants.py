@@ -23,7 +23,7 @@ class TraceHeader(object):
 class XraySubsegment(object):
     NAME = "datadog-metadata"
     TRACE_KEY = "trace"
-    ROOT_SPAN_METADATA_KEY = "root_span_metadata"
+    LAMBDA_FUNCTION_TAGS_KEY = "lambda_function_tags"
     NAMESPACE = "datadog"
 
 

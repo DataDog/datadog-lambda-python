@@ -123,7 +123,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
-        create_dd_dummy_metadata_subsegment(ctx, source, {})
+        create_dd_dummy_metadata_subsegment(ctx, source, XraySubsegment.TRACE_KEY)
         self.mock_xray_recorder.begin_subsegment.assert_called()
         self.mock_current_subsegment.put_metadata.assert_called_with(
             XraySubsegment.TRACE_KEY,
@@ -176,7 +176,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
-        create_dd_dummy_metadata_subsegment(ctx, source, {})
+        create_dd_dummy_metadata_subsegment(ctx, source, XraySubsegment.TRACE_KEY)
         self.mock_xray_recorder.begin_subsegment.assert_called()
         self.mock_xray_recorder.end_subsegment.assert_called()
         self.mock_current_subsegment.put_metadata.assert_called_with(
@@ -210,7 +210,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
-        create_dd_dummy_metadata_subsegment(ctx, source, {})
+        create_dd_dummy_metadata_subsegment(ctx, source, XraySubsegment.TRACE_KEY)
         self.mock_xray_recorder.begin_subsegment.assert_called()
         self.mock_xray_recorder.end_subsegment.assert_called()
         self.mock_current_subsegment.put_metadata.assert_called_with(
@@ -241,17 +241,19 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     def test_with_complete_datadog_trace_headers_with_trigger_tags(self):
-        ctx = get_mock_context()
         trigger_tags = {
             "trigger.event_source": "sqs",
             "trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
         }
-        create_dd_dummy_metadata_subsegment(ctx, "event", trigger_tags)
+        create_dd_dummy_metadata_subsegment(
+            trigger_tags, "event", XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
+        )
         self.mock_xray_recorder.begin_subsegment.assert_called()
+        self.mock_xray_recorder.end_subsegment.assert_called()
         self.mock_current_subsegment.put_metadata.assert_has_calls(
             [
                 call(
-                    XraySubsegment.ROOT_SPAN_METADATA_KEY,
+                    XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY,
                     {
                         "trigger.event_source": "sqs",
                         "trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",

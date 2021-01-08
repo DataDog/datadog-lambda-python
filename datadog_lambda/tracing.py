@@ -89,36 +89,24 @@ def _context_obj_to_headers(obj):
     }
 
 
-def add_dd_dummy_metadata_subsegment(subsegment_metadata_key, dd_context):
+def create_dd_dummy_metadata_subsegment(
+    dd_context, trace_context_source, subsegment_metadata_key
+):
     """
-    Save the context to an X-Ray subsegment's metadata field, so the X-Ray
-    trace can be converted to a Datadog trace in the Datadog backend with
-    the correct context.
+    Create a Datadog subsegment to pass the Datadog trace context or Lambda function
+    tags into its metadata field, so the X-Ray trace can be converted to a Datadog
+    trace in the Datadog backend with the correct context.
     """
+    if not dd_context or (
+        trace_context_source and trace_context_source != TraceContextSource.EVENT
+    ):
+        return
+
+    xray_recorder.begin_subsegment(XraySubsegment.NAME)
     subsegment = xray_recorder.current_subsegment()
     subsegment.put_metadata(
         subsegment_metadata_key, dd_context, XraySubsegment.NAMESPACE
     )
-
-
-def create_dd_dummy_metadata_subsegment(
-    dd_context, trace_context_source, lambda_function_tags
-):
-    """
-    Create a Datadog subsegment to pass the Datadog trace context or tags into
-    its metadata field
-    """
-    if not dd_context and not lambda_function_tags:
-        return
-    # Start the Datadog dummy subsegment here
-    xray_recorder.begin_subsegment(XraySubsegment.NAME)
-
-    add_dd_dummy_metadata_subsegment(
-        XraySubsegment.ROOT_SPAN_METADATA_KEY, lambda_function_tags
-    )
-    if trace_context_source == TraceContextSource.EVENT:
-        add_dd_dummy_metadata_subsegment(XraySubsegment.TRACE_KEY, dd_context)
-
     xray_recorder.end_subsegment()
 
 
