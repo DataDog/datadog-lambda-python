@@ -80,6 +80,7 @@ echo
 echo 'Pushing updates to github'
 MINOR_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
 git push origin main 
+git tag "v$MINOR_VERSION"
 git push origin "refs/tags/v$MINOR_VERSION"
 
 
