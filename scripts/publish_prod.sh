@@ -37,6 +37,26 @@ else
     NEW_VERSION=$1
 fi
 
+MINOR_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
+AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
+LAYER_NAMES=("Datadog-Python27" "Datadog-Python36" "Datadog-Python37" "Datadog-Python38")
+
+
+for layer_name in "${LAYER_NAMES[@]}"; do
+    for region in $AVAILABLE_REGIONS; do
+        echo ""
+        echo $layer_name
+        echo $region
+        echo ""
+        last_layer_version=$(aws lambda list-layer-versions --layer-name $layer_name --region $region | jq -r ".LayerVersions | .[0] |  .Version")
+        if [ "$last_layer_version" != "$(($MINOR_VERSION - 1))" ]; then
+            echo "The layer $layer_name in $region has a version ($last_layer_version) >= to the version being published ($MINOR_VERSION)"
+            exit 1
+        fi
+    done
+done
+
+
 echo 'Checking AWS Regions'
 ./scripts/list_layers.sh
 
@@ -78,7 +98,6 @@ echo "Publishing layers to AWS regions..."
 
 echo
 echo 'Pushing updates to github'
-MINOR_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
 git push origin main 
 git tag "v$MINOR_VERSION"
 git push origin "refs/tags/v$MINOR_VERSION"
