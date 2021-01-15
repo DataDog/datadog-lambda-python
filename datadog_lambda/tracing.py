@@ -150,7 +150,24 @@ def extract_context_from_sqs_event_or_context(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
-def extract_dd_trace_context(event, lambda_context):
+def extract_context_custom_extractor(extractor, event, lambda_context):
+    """
+    Extract Datadog trace context using a custom trace extractor function
+    """
+    try:
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extractor(event, lambda_context)
+        return trace_id, parent_id, sampling_priority
+    except Exception as e:
+        logger.debug("The trace extractor returned with error %s", e)
+
+        return None, None, None
+
+
+def extract_dd_trace_context(event, lambda_context, extractor=None):
     """
     Extract Datadog trace context from the Lambda `event` object.
 
@@ -163,7 +180,13 @@ def extract_dd_trace_context(event, lambda_context):
     """
     global dd_trace_context
 
-    if "headers" in event:
+    if extractor is not None:
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extract_context_custom_extractor(extractor, event, lambda_context)
+    elif "headers" in event:
         (
             trace_id,
             parent_id,

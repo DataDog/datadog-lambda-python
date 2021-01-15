@@ -99,7 +99,29 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         )
         self.mock_wrapper_lambda_stats.flush.assert_called()
         self.mock_extract_dd_trace_context.assert_called_with(
-            lambda_event, lambda_context
+            lambda_event, lambda_context, extractor=None
+        )
+        self.mock_set_correlation_ids.assert_called()
+        self.mock_inject_correlation_ids.assert_called()
+        self.mock_patch_all.assert_called()
+
+    def test_datadog_lambda_wrapper_with_extractor(self):
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            lambda_metric("test.metric", 100)
+
+        lambda_event = {}
+
+        lambda_context = get_mock_context()
+
+        lambda_handler(lambda_event, lambda_context)
+
+        self.mock_metric_lambda_stats.distribution.assert_has_calls(
+            [call("test.metric", 100, timestamp=None, tags=ANY)]
+        )
+        self.mock_wrapper_lambda_stats.flush.assert_called()
+        self.mock_extract_dd_trace_context.assert_called_with(
+            lambda_event, lambda_context, extractor=None
         )
         self.mock_set_correlation_ids.assert_called()
         self.mock_inject_correlation_ids.assert_called()
