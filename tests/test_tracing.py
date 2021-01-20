@@ -359,4 +359,3 @@ class TestFunctionSpanTags(unittest.TestCase):
         self.assertEqual(
             span.get_tag("function_trigger.event_source"), "cloudwatch-logs"
         )
-
