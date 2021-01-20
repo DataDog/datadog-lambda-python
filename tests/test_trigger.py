@@ -175,8 +175,8 @@ class GetTriggerTags(unittest.TestCase):
         self.assertEqual(
             tags,
             {
-                "trigger.event_source": "api-gateway",
-                "trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod",
+                "function_trigger.event_source": "api-gateway",
+                "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod",
                 "http.url": "70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
                 "http.url_details.path": "/prod/path/to/resource",
                 "http.method": "POST",
@@ -193,8 +193,8 @@ class GetTriggerTags(unittest.TestCase):
         self.assertEqual(
             tags,
             {
-                "trigger.event_source": "application-load-balancer",
-                "trigger.event_source_arn": "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
+                "function_trigger.event_source": "application-load-balancer",
+                "function_trigger.event_source_arn": "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
                 "http.url_details.path": "/lambda",
                 "http.method": "GET",
             },
@@ -210,8 +210,8 @@ class GetTriggerTags(unittest.TestCase):
         self.assertEqual(
             tags,
             {
-                "trigger.event_source": "cloudfront",
-                "trigger.event_source_arn": "arn:aws:cloudfront::123457598159:distribution/EXAMPLE",
+                "function_trigger.event_source": "cloudfront",
+                "function_trigger.event_source_arn": "arn:aws:cloudfront::123457598159:distribution/EXAMPLE",
             },
         )
 
@@ -225,8 +225,8 @@ class GetTriggerTags(unittest.TestCase):
         self.assertEqual(
             tags,
             {
-                "trigger.event_source": "cloudwatch-events",
-                "trigger.event_source_arn": "arn:aws:events:us-east-1:123456789012:rule/ExampleRule",
+                "function_trigger.event_source": "cloudwatch-events",
+                "function_trigger.event_source_arn": "arn:aws:events:us-east-1:123456789012:rule/ExampleRule",
             },
         )
 
@@ -240,8 +240,8 @@ class GetTriggerTags(unittest.TestCase):
         self.assertEqual(
             tags,
             {
-                "trigger.event_source": "cloudwatch-logs",
-                "trigger.event_source_arn": "arn:aws:logs:us-west-1:123457598159:log-group:testLogGroup",
+                "function_trigger.event_source": "cloudwatch-logs",
+                "function_trigger.event_source_arn": "arn:aws:logs:us-west-1:123457598159:log-group:testLogGroup",
             },
         )
 
@@ -255,8 +255,8 @@ class GetTriggerTags(unittest.TestCase):
         self.assertEqual(
             tags,
             {
-                "trigger.event_source": "dynamodb",
-                "trigger.event_source_arn": "arn:aws:dynamodb:us-east-1:123456789012:table/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
+                "function_trigger.event_source": "dynamodb",
+                "function_trigger.event_source_arn": "arn:aws:dynamodb:us-east-1:123456789012:table/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
             },
         )
 
@@ -270,8 +270,8 @@ class GetTriggerTags(unittest.TestCase):
         self.assertEqual(
             tags,
             {
-                "trigger.event_source": "kinesis",
-                "trigger.event_source_arn": "arn:aws:kinesis:EXAMPLE",
+                "function_trigger.event_source": "kinesis",
+                "function_trigger.event_source_arn": "arn:aws:kinesis:EXAMPLE",
             },
         )
 
@@ -285,8 +285,8 @@ class GetTriggerTags(unittest.TestCase):
         self.assertEqual(
             tags,
             {
-                "trigger.event_source": "s3",
-                "trigger.event_source_arn": "arn:aws:s3:::example-bucket",
+                "function_trigger.event_source": "s3",
+                "function_trigger.event_source_arn": "arn:aws:s3:::example-bucket",
             },
         )
 
@@ -300,8 +300,8 @@ class GetTriggerTags(unittest.TestCase):
         self.assertEqual(
             tags,
             {
-                "trigger.event_source": "sns",
-                "trigger.event_source_arn": "arn:aws:sns:us-east-1:123456789012:ExampleTopic",
+                "function_trigger.event_source": "sns",
+                "function_trigger.event_source_arn": "arn:aws:sns:us-east-1:123456789012:ExampleTopic",
             },
         )
 
@@ -315,8 +315,8 @@ class GetTriggerTags(unittest.TestCase):
         self.assertEqual(
             tags,
             {
-                "trigger.event_source": "sqs",
-                "trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
+                "function_trigger.event_source": "sqs",
+                "function_trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
             },
         )
 

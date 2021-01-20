@@ -242,8 +242,8 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_with_complete_datadog_trace_headers_with_trigger_tags(self):
         trigger_tags = {
-            "trigger.event_source": "sqs",
-            "trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
+            "function_trigger.event_source": "sqs",
+            "function_trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
         }
         create_dd_dummy_metadata_subsegment(
             trigger_tags, "event", XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
@@ -255,8 +255,8 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 call(
                     XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY,
                     {
-                        "trigger.event_source": "sqs",
-                        "trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
+                        "function_trigger.event_source": "sqs",
+                        "function_trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
                     },
                     XraySubsegment.NAMESPACE,
                 ),
@@ -353,7 +353,10 @@ class TestFunctionSpanTags(unittest.TestCase):
             False,
             {"source": ""},
             False,
-            {"trigger.event_source": "cloudwatch-logs"},
+            {"function_trigger.event_source": "cloudwatch-logs"},
         )
         self.assertEqual(span.get_tag("function_arn"), function_arn)
-        self.assertEqual(span.get_tag("trigger.event_source"), "cloudwatch-logs")
+        self.assertEqual(
+            span.get_tag("function_trigger.event_source"), "cloudwatch-logs"
+        )
+

@@ -178,11 +178,11 @@ def extract_trigger_tags(event, context):
     trigger_tags = {}
     event_source = parse_event_source(event)
     if event_source:
-        trigger_tags["trigger.event_source"] = event_source
+        trigger_tags["function_trigger.event_source"] = event_source
 
         event_source_arn = get_event_source_arn(event_source, event, context)
         if event_source_arn:
-            trigger_tags["trigger.event_source_arn"] = event_source_arn
+            trigger_tags["function_trigger.event_source_arn"] = event_source_arn
 
     if event_source in ["api-gateway", "application-load-balancer"]:
         trigger_tags.update(extract_http_tags(event))
@@ -196,8 +196,9 @@ def extract_http_status_code_tag(trigger_tags, response):
     as a tag to the function execution span.
     """
     is_http_trigger = trigger_tags and (
-        trigger_tags.get("trigger.event_source") == "api-gateway"
-        or trigger_tags.get("trigger.event_source") == "application-load-balancer"
+        trigger_tags.get("function_trigger.event_source") == "api-gateway"
+        or trigger_tags.get("function_trigger.event_source")
+        == "application-load-balancer"
     )
     if not is_http_trigger:
         return
