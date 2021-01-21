@@ -23,19 +23,24 @@ from datadog_lambda.tracing import (
 function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
 
 
+class ClientContext(object):
+    def __init__(self, custom=None):
+        self.custom = custom
+
+
 def get_mock_context(
     aws_request_id="request-id-1",
     memory_limit_in_mb="256",
     invoked_function_arn=function_arn,
     function_version="1",
-    client_context={},
+    custom=None,
 ):
     lambda_context = MagicMock()
     lambda_context.aws_request_id = aws_request_id
     lambda_context.memory_limit_in_mb = memory_limit_in_mb
     lambda_context.invoked_function_arn = invoked_function_arn
     lambda_context.function_version = function_version
-    lambda_context.client_context = client_context
+    lambda_context.client_context = ClientContext(custom)
     return lambda_context
 
 
@@ -147,7 +152,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     },
                     "messageAttributes": {
                         "_datadog": {
-                            "StringValue": json.dumps(
+                            "stringValue": json.dumps(
                                 {
                                     TraceHeader.TRACE_ID: "123",
                                     TraceHeader.PARENT_ID: "321",
@@ -187,13 +192,11 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_with_client_context_datadog_trace_data(self):
         lambda_ctx = get_mock_context(
-            client_context={
-                "custom": {
-                    "_datadog": {
-                        TraceHeader.TRACE_ID: "666",
-                        TraceHeader.PARENT_ID: "777",
-                        TraceHeader.SAMPLING_PRIORITY: "1",
-                    }
+            custom={
+                "_datadog": {
+                    TraceHeader.TRACE_ID: "666",
+                    TraceHeader.PARENT_ID: "777",
+                    TraceHeader.SAMPLING_PRIORITY: "1",
                 }
             }
         )

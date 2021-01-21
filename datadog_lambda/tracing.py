@@ -114,8 +114,8 @@ def extract_context_from_lambda_context(lambda_context):
     """
     client_context = lambda_context.client_context
 
-    if client_context and "custom" in client_context:
-        dd_data = client_context.get("custom", {}).get("_datadog", {})
+    if client_context and client_context.custom:
+        dd_data = client_context.custom.get("_datadog", {})
         trace_id = dd_data.get(TraceHeader.TRACE_ID)
         parent_id = dd_data.get(TraceHeader.PARENT_ID)
         sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
@@ -154,7 +154,7 @@ def extract_context_from_sqs_event_or_context(event, lambda_context):
     try:
         first_record = event["Records"][0]
         msg_attributes = first_record.get("messageAttributes", {})
-        dd_json_data = msg_attributes.get("_datadog", {}).get("StringValue", r"{}")
+        dd_json_data = msg_attributes.get("_datadog", {}).get("stringValue", r"{}")
         dd_data = json.loads(dd_json_data)
         trace_id = dd_data.get(TraceHeader.TRACE_ID)
         parent_id = dd_data.get(TraceHeader.PARENT_ID)
