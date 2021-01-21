@@ -90,22 +90,17 @@ def _context_obj_to_headers(obj):
 
 
 def create_dd_dummy_metadata_subsegment(
-    dd_context, trace_context_source, subsegment_metadata_key
+    subsegment_metadata_value, trace_context_source, subsegment_metadata_key
 ):
     """
     Create a Datadog subsegment to pass the Datadog trace context or Lambda function
     tags into its metadata field, so the X-Ray trace can be converted to a Datadog
     trace in the Datadog backend with the correct context.
     """
-    if not dd_context or (
-        trace_context_source and trace_context_source != TraceContextSource.EVENT
-    ):
-        return
-
     xray_recorder.begin_subsegment(XraySubsegment.NAME)
     subsegment = xray_recorder.current_subsegment()
     subsegment.put_metadata(
-        subsegment_metadata_key, dd_context, XraySubsegment.NAMESPACE
+        subsegment_metadata_key, subsegment_metadata_value, XraySubsegment.NAMESPACE
     )
     xray_recorder.end_subsegment()
 
