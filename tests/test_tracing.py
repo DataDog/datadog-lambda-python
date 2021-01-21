@@ -128,7 +128,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
-        create_dd_dummy_metadata_subsegment(ctx, source, XraySubsegment.TRACE_KEY)
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
         self.mock_xray_recorder.begin_subsegment.assert_called()
         self.mock_current_subsegment.put_metadata.assert_called_with(
             XraySubsegment.TRACE_KEY,
@@ -181,7 +181,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
-        create_dd_dummy_metadata_subsegment(ctx, source, XraySubsegment.TRACE_KEY)
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
         self.mock_xray_recorder.begin_subsegment.assert_called()
         self.mock_xray_recorder.end_subsegment.assert_called()
         self.mock_current_subsegment.put_metadata.assert_called_with(
@@ -213,7 +213,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
-        create_dd_dummy_metadata_subsegment(ctx, source, XraySubsegment.TRACE_KEY)
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
         self.mock_xray_recorder.begin_subsegment.assert_called()
         self.mock_xray_recorder.end_subsegment.assert_called()
         self.mock_current_subsegment.put_metadata.assert_called_with(
@@ -249,7 +249,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             "function_trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
         }
         create_dd_dummy_metadata_subsegment(
-            trigger_tags, "event", XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
+            trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
         )
         self.mock_xray_recorder.begin_subsegment.assert_called()
         self.mock_xray_recorder.end_subsegment.assert_called()

@@ -129,7 +129,7 @@ class _LambdaDecorator(object):
             # Create a Datadog X-Ray subsegment with the trace context
             if dd_context and trace_context_source == TraceContextSource.EVENT:
                 create_dd_dummy_metadata_subsegment(
-                    dd_context, trace_context_source, XraySubsegment.TRACE_KEY
+                    dd_context, XraySubsegment.TRACE_KEY
                 )
 
             self.span = None
@@ -159,7 +159,7 @@ class _LambdaDecorator(object):
             # can attach them to X-Ray spans when hybrid tracing is used
             if self.trigger_tags:
                 create_dd_dummy_metadata_subsegment(
-                    self.trigger_tags, None, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
+                    self.trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
                 )
 
             if not self.flush_to_log or should_use_extension:
