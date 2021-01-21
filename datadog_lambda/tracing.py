@@ -90,7 +90,7 @@ def _context_obj_to_headers(obj):
 
 
 def create_dd_dummy_metadata_subsegment(
-    subsegment_metadata_value, trace_context_source, subsegment_metadata_key
+    subsegment_metadata_value, subsegment_metadata_key
 ):
     """
     Create a Datadog subsegment to pass the Datadog trace context or Lambda function
