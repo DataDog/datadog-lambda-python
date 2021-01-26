@@ -62,7 +62,6 @@ def _get_xray_trace_context():
         "trace-id": _convert_xray_trace_id(xray_trace_entity.trace_id),
         "parent-id": _convert_xray_entity_id(xray_trace_entity.id),
         "sampling-priority": _convert_xray_sampling(xray_trace_entity.sampled),
-        "source": TraceContextSource.XRAY,
     }
 
 
@@ -88,6 +87,22 @@ def _context_obj_to_headers(obj):
         TraceHeader.PARENT_ID: str(obj.get("parent-id")),
         TraceHeader.SAMPLING_PRIORITY: str(obj.get("sampling-priority")),
     }
+
+
+def create_dd_dummy_metadata_subsegment(
+    subsegment_metadata_value, subsegment_metadata_key
+):
+    """
+    Create a Datadog subsegment to pass the Datadog trace context or Lambda function
+    tags into its metadata field, so the X-Ray trace can be converted to a Datadog
+    trace in the Datadog backend with the correct context.
+    """
+    xray_recorder.begin_subsegment(XraySubsegment.NAME)
+    subsegment = xray_recorder.current_subsegment()
+    subsegment.put_metadata(
+        subsegment_metadata_key, subsegment_metadata_value, XraySubsegment.NAMESPACE
+    )
+    xray_recorder.end_subsegment()
 
 
 def extract_context_from_lambda_context(lambda_context):
@@ -156,12 +171,9 @@ def extract_dd_trace_context(event, lambda_context):
 
     Write the context to a global `dd_trace_context`, so the trace
     can be continued on the outgoing requests with the context injected.
-
-    Save the context to an X-Ray subsegment's metadata field, so the X-Ray
-    trace can be converted to a Datadog trace in the Datadog backend with
-    the correct context.
     """
     global dd_trace_context
+    trace_context_source = None
 
     if "headers" in event:
         (
@@ -187,19 +199,16 @@ def extract_dd_trace_context(event, lambda_context):
             "parent-id": parent_id,
             "sampling-priority": sampling_priority,
         }
-        xray_recorder.begin_subsegment(XraySubsegment.NAME)
-        subsegment = xray_recorder.current_subsegment()
-
-        subsegment.put_metadata(XraySubsegment.KEY, metadata, XraySubsegment.NAMESPACE)
         dd_trace_context = metadata.copy()
-        dd_trace_context["source"] = TraceContextSource.EVENT
-        xray_recorder.end_subsegment()
+        trace_context_source = TraceContextSource.EVENT
     else:
         # AWS Lambda runtime caches global variables between invocations,
         # reset to avoid using the context from the last invocation.
         dd_trace_context = _get_xray_trace_context()
+        if dd_trace_context:
+            trace_context_source = TraceContextSource.XRAY
     logger.debug("extracted dd trace context %s", dd_trace_context)
-    return dd_trace_context
+    return dd_trace_context, trace_context_source
 
 
 def get_dd_trace_context():
@@ -300,15 +309,20 @@ def is_lambda_context():
     return type(xray_recorder.context) == LambdaContext
 
 
-def set_dd_trace_py_root(trace_context, merge_xray_traces):
-    if trace_context["source"] == TraceContextSource.EVENT or merge_xray_traces:
+def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
+    if trace_context_source == TraceContextSource.EVENT or merge_xray_traces:
         headers = get_dd_trace_context()
         span_context = propagator.extract(headers)
         tracer.context_provider.activate(span_context)
 
 
 def create_function_execution_span(
-    context, function_name, is_cold_start, trace_context, merge_xray_traces
+    context,
+    function_name,
+    is_cold_start,
+    trace_context_source,
+    merge_xray_traces,
+    trigger_tags,
 ):
     tags = {}
     if context:
@@ -325,10 +339,9 @@ def create_function_execution_span(
             "datadog_lambda": datadog_lambda_version,
             "dd_trace": ddtrace_version,
         }
-    source = trace_context["source"]
-    if source == TraceContextSource.XRAY and merge_xray_traces:
-        tags["_dd.parent_source"] = source
-
+    if trace_context_source == TraceContextSource.XRAY and merge_xray_traces:
+        tags["_dd.parent_source"] = trace_context_source
+    tags.update(trigger_tags)
     args = {
         "service": "aws.lambda",
         "resource": function_name,
