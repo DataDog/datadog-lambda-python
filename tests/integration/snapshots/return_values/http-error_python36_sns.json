@@ -1,6 +1,34 @@
 {
-    "statusCode": 200,
-    "body": {
-        "message": "hello, dog!"
-    }
+    "errorMessage": "2021-01-21T18:31:59.978Z d60cccdd-fe17-4641-8b15-bcf6d726b224 Task timed out after 6.01 seconds"
 }
+ 
+  Error --------------------------------------------------
+ 
+  Error: Invoked function failed
+      at AwsInvoke.log (/usr/local/lib/node_modules/serverless/lib/plugins/aws/invoke/index.js:105:31)
+      at AwsInvoke.tryCatcher (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/util.js:16:23)
+      at Promise._settlePromiseFromHandler (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/promise.js:547:31)
+      at Promise._settlePromise (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/promise.js:604:18)
+      at Promise._settlePromise0 (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/promise.js:649:10)
+      at Promise._settlePromises (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/promise.js:729:18)
+      at _drainQueueStep (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/async.js:93:12)
+      at _drainQueue (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/async.js:86:9)
+      at Async._drainQueues (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/async.js:102:5)
+      at Immediate.Async.drainQueues [as _onImmediate] (/usr/local/lib/node_modules/serverless/node_modules/bluebird/js/release/async.js:15:14)
+      at processImmediate (node:internal/timers:463:21)
+ 
+     For debugging logs, run again after setting the "SLS_DEBUG=*" environment variable.
+ 
+  Get Support --------------------------------------------
+     Docs:          docs.serverless.com
+     Bugs:          github.com/serverless/serverless/issues
+     Issues:        forum.serverless.com
+ 
+  Your Environment Information ---------------------------
+     Operating System:          darwin
+     Node Version:              15.3.0
+     Framework Version:         1.69.0
+     Plugin Version:            3.6.9
+     SDK Version:               2.3.0
+     Components Version:        2.30.4
+ 

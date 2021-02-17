@@ -42,6 +42,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         patcher = patch("datadog_lambda.wrapper.extract_dd_trace_context")
         self.mock_extract_dd_trace_context = patcher.start()
+        self.mock_extract_dd_trace_context.return_value = ({}, None)
         self.addCleanup(patcher.stop)
 
         patcher = patch("datadog_lambda.wrapper.set_correlation_ids")

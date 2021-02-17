@@ -10,6 +10,7 @@ from importlib import import_module
 
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
+from datadog_lambda.constants import XraySubsegment, TraceContextSource
 from datadog_lambda.metric import (
     lambda_stats,
     submit_invocations_metric,
@@ -19,12 +20,14 @@ from datadog_lambda.module_name import modify_module_name
 from datadog_lambda.patch import patch_all
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
+    create_dd_dummy_metadata_subsegment,
     inject_correlation_ids,
     dd_tracing_enabled,
     set_correlation_ids,
     set_dd_trace_py_root,
     create_function_execution_span,
 )
+from datadog_lambda.trigger import extract_trigger_tags, extract_http_status_code_tag
 
 logger = logging.getLogger(__name__)
 
@@ -114,9 +117,12 @@ class _LambdaDecorator(object):
 
     def __call__(self, event, context, **kwargs):
         """Executes when the wrapped function gets called"""
+        self.trigger_tags = extract_trigger_tags(event, context)
+        self.response = None
         self._before(event, context)
         try:
-            return self.func(event, context, **kwargs)
+            self.response = self.func(event, context, **kwargs)
+            return self.response
         except Exception:
             submit_errors_metric(context)
             if self.span:
@@ -130,20 +136,26 @@ class _LambdaDecorator(object):
 
             set_cold_start()
             submit_invocations_metric(context)
-            # Extract Datadog trace context from incoming requests
-            dd_context = extract_dd_trace_context(
+            # Extract Datadog trace context and source from incoming requests
+            dd_context, trace_context_source = extract_dd_trace_context(
                 event, context, extractor=self.trace_extractor
             )
+            # Create a Datadog X-Ray subsegment with the trace context
+            if dd_context and trace_context_source == TraceContextSource.EVENT:
+                create_dd_dummy_metadata_subsegment(
+                    dd_context, XraySubsegment.TRACE_KEY
+                )
 
             self.span = None
             if dd_tracing_enabled:
-                set_dd_trace_py_root(dd_context, self.merge_xray_traces)
+                set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
                 self.span = create_function_execution_span(
                     context,
                     self.function_name,
                     is_cold_start(),
-                    dd_context,
+                    trace_context_source,
                     self.merge_xray_traces,
+                    self.trigger_tags,
                 )
             else:
                 set_correlation_ids()
@@ -154,12 +166,24 @@ class _LambdaDecorator(object):
 
     def _after(self, event, context):
         try:
+            status_code = extract_http_status_code_tag(self.trigger_tags, self.response)
+            if status_code:
+                self.trigger_tags["http.status_code"] = status_code
+            # Create a new dummy Datadog subsegment for function trigger tags so we
+            # can attach them to X-Ray spans when hybrid tracing is used
+            if self.trigger_tags:
+                create_dd_dummy_metadata_subsegment(
+                    self.trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
+                )
+
             if not self.flush_to_log or should_use_extension:
                 lambda_stats.flush(float("inf"))
             if should_use_extension:
                 flush_extension()
 
             if self.span:
+                if status_code:
+                    self.span.set_tag("http.status_code", status_code)
                 self.span.finish()
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
