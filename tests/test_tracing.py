@@ -136,6 +136,70 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             XraySubsegment.NAMESPACE,
         )
 
+    def test_with_extractor_function(self):
+        def extractor_foo(event, context):
+            foo = event.get("foo", {})
+            lowercase_foo = {k.lower(): v for k, v in foo.items()}
+
+            trace_id = lowercase_foo.get(TraceHeader.TRACE_ID)
+            parent_id = lowercase_foo.get(TraceHeader.PARENT_ID)
+            sampling_priority = lowercase_foo.get(TraceHeader.SAMPLING_PRIORITY)
+            return trace_id, parent_id, sampling_priority
+
+        lambda_ctx = get_mock_context()
+        ctx, ctx_source = extract_dd_trace_context(
+            {
+                "foo": {
+                    TraceHeader.TRACE_ID: "123",
+                    TraceHeader.PARENT_ID: "321",
+                    TraceHeader.SAMPLING_PRIORITY: "1",
+                }
+            },
+            lambda_ctx,
+            extractor=extractor_foo,
+        )
+        self.assertEquals(ctx_source, "event")
+        self.assertDictEqual(
+            ctx, {"trace-id": "123", "parent-id": "321", "sampling-priority": "1",},
+        )
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "123",
+                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.SAMPLING_PRIORITY: "1",
+            },
+        )
+
+    def test_graceful_fail_of_extractor_function(self):
+        def extractor_raiser(event, context):
+            raise Exception("kreator")
+
+        lambda_ctx = get_mock_context()
+        ctx, ctx_source = extract_dd_trace_context(
+            {
+                "foo": {
+                    TraceHeader.TRACE_ID: "123",
+                    TraceHeader.PARENT_ID: "321",
+                    TraceHeader.SAMPLING_PRIORITY: "1",
+                }
+            },
+            lambda_ctx,
+            extractor=extractor_raiser,
+        )
+        self.assertEquals(ctx_source, "xray")
+        self.assertDictEqual(
+            ctx, {"trace-id": "4369", "parent-id": "65535", "sampling-priority": "2",},
+        )
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "4369",
+                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.SAMPLING_PRIORITY: "2",
+            },
+        )
+
     def test_with_sqs_distributed_datadog_trace_data(self):
         lambda_ctx = get_mock_context()
         sqs_event = {

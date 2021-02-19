@@ -6,6 +6,7 @@
 import os
 import logging
 import traceback
+from importlib import import_module
 
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
@@ -15,6 +16,7 @@ from datadog_lambda.metric import (
     submit_invocations_metric,
     submit_errors_metric,
 )
+from datadog_lambda.module_name import modify_module_name
 from datadog_lambda.patch import patch_all
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
@@ -91,6 +93,16 @@ class _LambdaDecorator(object):
                 os.environ.get("DD_MERGE_XRAY_TRACES", "false").lower() == "true"
             )
             self.function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "function")
+            self.extractor_env = os.environ.get("DD_TRACE_EXTRACTOR", None)
+            self.trace_extractor = None
+
+            if self.extractor_env:
+                extractor_parts = self.extractor_env.rsplit(".", 1)
+                if len(extractor_parts) == 2:
+                    (mod_name, extractor_name) = extractor_parts
+                    modified_extractor_name = modify_module_name(mod_name)
+                    extractor_module = import_module(modified_extractor_name)
+                    self.trace_extractor = getattr(extractor_module, extractor_name)
 
             # Inject trace correlation ids to logs
             if self.logs_injection:
@@ -125,7 +137,9 @@ class _LambdaDecorator(object):
             set_cold_start()
             submit_invocations_metric(context)
             # Extract Datadog trace context and source from incoming requests
-            dd_context, trace_context_source = extract_dd_trace_context(event, context)
+            dd_context, trace_context_source = extract_dd_trace_context(
+                event, context, extractor=self.trace_extractor
+            )
             # Create a Datadog X-Ray subsegment with the trace context
             if dd_context and trace_context_source == TraceContextSource.EVENT:
                 create_dd_dummy_metadata_subsegment(
