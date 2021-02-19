@@ -58,11 +58,17 @@ def _get_xray_trace_context():
         return None
 
     xray_trace_entity = xray_recorder.get_trace_entity()  # xray (sub)segment
-    return {
+    trace_context = {
         "trace-id": _convert_xray_trace_id(xray_trace_entity.trace_id),
         "parent-id": _convert_xray_entity_id(xray_trace_entity.id),
         "sampling-priority": _convert_xray_sampling(xray_trace_entity.sampled),
     }
+    logger.debug(
+        "Converted trace context %s from X-Ray segment %s",
+        trace_context,
+        (xray_trace_entity.trace_id, xray_trace_entity.id, xray_trace_entity.sampled),
+    )
+    return trace_context
 
 
 def _get_dd_trace_py_context():
@@ -73,6 +79,9 @@ def _get_dd_trace_py_context():
     parent_id = span.context.span_id
     trace_id = span.context.trace_id
     sampling_priority = span.context.sampling_priority
+    logger.debug(
+        "found dd trace context: %s", (span.context.trace_id, span.context.span_id)
+    )
     return {
         "parent-id": str(parent_id),
         "trace-id": str(trace_id),
@@ -258,11 +267,11 @@ def get_dd_trace_context():
     elif xray_context and dd_trace_context:
         context = dd_trace_context.copy()
         context["parent-id"] = xray_context["parent-id"]
+        logger.debug("Set parent id from xray trace context: %s", context["parent-id"])
 
     if dd_tracing_enabled:
         dd_trace_py_context = _get_dd_trace_py_context()
         if dd_trace_py_context is not None:
-            logger.debug("get_dd_trace_context using dd-trace context")
             context = dd_trace_py_context
 
     return _context_obj_to_headers(context) if context is not None else {}
@@ -328,9 +337,13 @@ def is_lambda_context():
 
 def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
     if trace_context_source == TraceContextSource.EVENT or merge_xray_traces:
-        headers = get_dd_trace_context()
+        headers = _context_obj_to_headers(dd_trace_context)
         span_context = propagator.extract(headers)
         tracer.context_provider.activate(span_context)
+        logger.debug(
+            "Set dd trace root context to: %s",
+            (span_context.trace_id, span_context.span_id),
+        )
 
 
 def create_function_execution_span(
