@@ -4,29 +4,23 @@
 
 set -e
 
+# Ensure on main, and pull the latest
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
-echo $BRANCH
-
 if [ $BRANCH != "main" ]; then
     echo "Not on main, aborting"
     exit 1
+else
+    echo "Updating main"
+    git pull origin main
 fi
 
-if [ -z "$AWS_ACCESS_KEY_ID" ]; then
-    echo 'AWS_ACCESS_KEY_ID not set. Are you using aws-vault?'
+# # Ensure no uncommitted changes
+if [ -n "$(git status --porcelain)" ]; then 
+    echo "Detected uncommitted changes, aborting"
     exit 1
 fi
 
-if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-    echo 'AWS_SECRET_ACCESS_KEY not set. Are you using aws-vault?'
-    exit 1
-fi
-
-if [ -z "$AWS_SESSION_TOKEN" ]; then
-    echo 'AWS_SESSION_TOKEN not set. Are you using aws-vault?'
-    exit 1
-fi
-
+# Read the new version
 if [ -z "$1" ]; then
     echo "Must specify a desired version number"
     exit 1
@@ -37,10 +31,27 @@ else
     NEW_VERSION=$1
 fi
 
-echo 'Checking AWS Regions'
-./scripts/list_layers.sh
+# Ensure AWS access before proceeding
+saml2aws login -a govcloud-us1-fed-human-engineering
+AWS_PROFILE=govcloud-us1-fed-human-engineering aws sts get-caller-identity
+aws-vault exec prod-engineering -- aws sts get-caller-identity
 
-read -p "Do the list look good? (y/n) " -n 1 -r
+# Ensure pypi registry access
+read -p "Do you have the PyPi login credentials for datadog account (y/n)? " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]
+then
+    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
+fi
+
+echo 'Checking existing layers in commercial AWS regions'
+aws-vault exec prod-engineering -- ./scripts/list_layers.sh
+
+echo 'Checking existing layers in GovCloud AWS regions'
+saml2aws login -a govcloud-us1-fed-human-engineering
+AWS_PROFILE=govcloud-us1-fed-human-engineering ./scripts/list_layers.sh
+
+read -p "Do the layer lists look good? Proceed publishing the new version (y/n)? " -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
@@ -69,39 +80,43 @@ echo "Building layers..."
 ./scripts/build_layers.sh
 
 echo
-echo "Signing layers..."
-./scripts/sign_layers.sh prod
+echo "Signing layers for commercial AWS regions"
+aws-vault exec prod-engineering -- ./scripts/sign_layers.sh prod
 
 echo
-echo "Publishing layers to AWS regions..."
-./scripts/publish_layers.sh
+echo "Publishing layers to commercial AWS regions"
+aws-vault exec prod-engineering -- ./scripts/publish_layers.sh
 
-echo
-echo 'Pushing updates to github'
-MINOR_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
-git push origin main 
-git tag "v$MINOR_VERSION"
-git push origin "refs/tags/v$MINOR_VERSION"
+echo "Publishing layers to GovCloud AWS regions"
+saml2aws login -a govcloud-us1-fed-human-engineering
+AWS_PROFILE=govcloud-us1-fed-human-engineering ./scripts/publish_layers.sh
+
+echo 'Checking published layers in commercial AWS regions'
+aws-vault exec prod-engineering -- ./scripts/list_layers.sh
+
+echo 'Checking published layers in GovCloud AWS regions'
+saml2aws login -a govcloud-us1-fed-human-engineering
+AWS_PROFILE=govcloud-us1-fed-human-engineering ./scripts/list_layers.sh
 
 
-echo 'Checking AWS Regions Again...'
-./scripts/list_layers.sh
-
-
-read -p "Do regions look good? Ready to publish $NEW_VERSION to Pypi? (y/n)" -n 1 -r
+read -p "Do the layer lists look good? Ready to publish $NEW_VERSION to Pypi? (y/n)" -n 1 -r
 echo
 if [[ ! $REPLY =~ ^[Yy]$ ]]
 then
     [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
 fi
+
 echo
 echo "Publishing to https://pypi.org/project/datadog-lambda/"
 ./scripts/pypi.sh
 
 echo
-echo "Now create a new release with the tag v${MINOR_VERSION} created"
-echo "https://github.com/DataDog/datadog-lambda-python/releases/new"
-echo
-echo "Then publish a new serverless-plugin-datadog version with the new layer versions!"
-echo
+echo 'Publishing updates to github'
+MINOR_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
+git push origin main
+git tag "v$MINOR_VERSION"
+git push origin "refs/tags/v$MINOR_VERSION"
 
+echo
+echo "Now create a new release with the tag v${MINOR_VERSION} created"
+echo "https://github.com/DataDog/datadog-lambda-python/releases/new?tag=v$MINOR_VERSION&title=v$MINOR_VERSION"
