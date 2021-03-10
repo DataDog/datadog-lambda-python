@@ -207,7 +207,9 @@ def extract_http_status_code_tag(trigger_tags, response):
     if response is None:
         # Return a 502 status if no response is found
         status_code = "502"
-    elif response.get("statusCode"):
+    elif hasattr(response, "get"):
         status_code = response.get("statusCode")
+    elif hasattr(response, "status_code"):
+        status_code = response.status_code
 
     return status_code

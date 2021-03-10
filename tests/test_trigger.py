@@ -11,6 +11,7 @@ from datadog_lambda.trigger import (
     parse_event_source,
     get_event_source_arn,
     extract_trigger_tags,
+    extract_http_status_code_tag,
 )
 
 event_samples = "tests/event_samples/"
@@ -328,3 +329,18 @@ class GetTriggerTags(unittest.TestCase):
             event = json.load(event)
         tags = extract_trigger_tags(event, ctx)
         self.assertEqual(tags, {})
+
+
+class ExtractHTTPStatusCodeTag(unittest.TestCase):
+    def test_extract_http_status_code_tag_from_response_dict(self):
+        trigger_tags = {"function_trigger.event_source": "api-gateway"}
+        response = {"statusCode": 403}
+        status_code = extract_http_status_code_tag(trigger_tags, response)
+        self.assertEqual(status_code, 403)
+
+    def test_extract_http_status_code_tag_from_response_object(self):
+        trigger_tags = {"function_trigger.event_source": "api-gateway"}
+        response = MagicMock(spec=["status_code"])
+        response.status_code = 403
+        status_code = extract_http_status_code_tag(trigger_tags, response)
+        self.assertEqual(status_code, 403)
