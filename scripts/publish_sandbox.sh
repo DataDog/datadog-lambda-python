@@ -2,5 +2,5 @@
 set -e
 
 ./scripts/build_layers.sh
-./scripts/sign_layers.sh sandbox
-./scripts/publish_layers.sh sa-east-1
+aws-vault exec sandbox-account-admin -- ./scripts/sign_layers.sh sandbox
+aws-vault exec sandbox-account-admin -- ./scripts/publish_layers.sh
