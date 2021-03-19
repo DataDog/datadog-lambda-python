@@ -22,8 +22,8 @@ We love pull requests. Here's a quick guide.
      ./scripts/build_layers.sh
 
      # Publish the a testing layer to your own AWS account, and the ARN will be returned
-     # Example: ./scripts/publish_layers.sh us-east-1 Datadog-Python37
-     ./scripts/publish_layers.sh <AWS_REGION> <Layer_Name>
+     # Example: VERSION=1 REGIONS=us-east-1 LAYERS=Datadog-Python37 ./scripts/publish_layers.sh
+     VERSION=<VERSION> REGIONS=<REGION> LAYERS=<LAYER> ./scripts/publish_layers.sh
      ```
 
 1. Ensure the unit tests pass (install Docker if you haven't):

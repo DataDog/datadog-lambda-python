@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Use with `aws-vault exec <PROFILE> -- ./publish_prod.sh <DESIRED_NEW_VERSION>
+# Use with `./publish_prod.sh <DESIRED_NEW_VERSION>
 
 set -e
 
@@ -14,8 +14,8 @@ else
     git pull origin main
 fi
 
-# # Ensure no uncommitted changes
-if [ -n "$(git status --porcelain)" ]; then 
+# Ensure no uncommitted changes
+if [ -n "$(git status --porcelain)" ]; then
     echo "Detected uncommitted changes, aborting"
     exit 1
 fi
@@ -37,43 +37,26 @@ AWS_PROFILE=govcloud-us1-fed-human-engineering aws sts get-caller-identity
 aws-vault exec prod-engineering -- aws sts get-caller-identity
 
 # Ensure pypi registry access
-read -p "Do you have the PyPi login credentials for datadog account (y/n)? " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]
-then
-    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
-fi
-
-echo 'Checking existing layers in commercial AWS regions'
-aws-vault exec prod-engineering -- ./scripts/list_layers.sh
-
-echo 'Checking existing layers in GovCloud AWS regions'
-saml2aws login -a govcloud-us1-fed-human-engineering
-AWS_PROFILE=govcloud-us1-fed-human-engineering ./scripts/list_layers.sh
-
-read -p "Do the layer lists look good? Proceed publishing the new version (y/n)? " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]
-then
-    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
+read -p "Do you have the PyPi login credentials for datadog account (y/n)?" CONT
+if [ "$CONT" != "y" ]; then
+    echo "Exiting"
+    exit 1
 fi
 
 VERSION_LINE=$(sed -E -n 's/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/"\1.\2.\3"/p' ./datadog_lambda/__init__.py)
 CURRENT_VERSION=$(echo "$VERSION_LINE" | cut -d '"' -f 2)
+LAYER_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
 
-read -p "Ready to publish layers and update the version from $CURRENT_VERSION to $NEW_VERSION? (y/n)" -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]
-then
-    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
+read -p "Ready to update the library version from $CURRENT_VERSION to $NEW_VERSION and publish layer version $LAYER_VERSION (y/n)?" CONT
+if [ "$CONT" != "y" ]; then
+    echo "Exiting"
+    exit 1
 fi
 
 echo
 echo "Replacing __version__ in ./datadog_lambda/__init__.py"
 echo
 sed -i "" -E "s/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/\"$NEW_VERSION\"/" ./datadog_lambda/__init__.py
-
-git commit ./datadog_lambda/__init__.py -m "Update module version to ${NEW_VERSION}"
 
 echo
 echo "Building layers..."
@@ -85,25 +68,16 @@ aws-vault exec prod-engineering -- ./scripts/sign_layers.sh prod
 
 echo
 echo "Publishing layers to commercial AWS regions"
-aws-vault exec prod-engineering -- ./scripts/publish_layers.sh
+VERSION=$LAYER_VERSION aws-vault exec prod-engineering -- ./scripts/publish_layers.sh
 
 echo "Publishing layers to GovCloud AWS regions"
 saml2aws login -a govcloud-us1-fed-human-engineering
-AWS_PROFILE=govcloud-us1-fed-human-engineering ./scripts/publish_layers.sh
+VERSION=$LAYER_VERSION AWS_PROFILE=govcloud-us1-fed-human-engineering ./scripts/publish_layers.sh
 
-echo 'Checking published layers in commercial AWS regions'
-aws-vault exec prod-engineering -- ./scripts/list_layers.sh
-
-echo 'Checking published layers in GovCloud AWS regions'
-saml2aws login -a govcloud-us1-fed-human-engineering
-AWS_PROFILE=govcloud-us1-fed-human-engineering ./scripts/list_layers.sh
-
-
-read -p "Do the layer lists look good? Ready to publish $NEW_VERSION to Pypi? (y/n)" -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]
-then
-    [[ "$0" = "$BASH_SOURCE" ]] && exit 1 || return 1
+read -p "Ready to publish $NEW_VERSION to PyPI (y/n)?" CONT
+if [ "$CONT" != "y" ]; then
+    echo "Exiting"
+    exit 1
 fi
 
 echo
@@ -112,11 +86,11 @@ echo "Publishing to https://pypi.org/project/datadog-lambda/"
 
 echo
 echo 'Publishing updates to github'
-MINOR_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
+git commit ./datadog_lambda/__init__.py -m "Update module version to ${NEW_VERSION}"
 git push origin main
-git tag "v$MINOR_VERSION"
-git push origin "refs/tags/v$MINOR_VERSION"
+git tag "v$LAYER_VERSION"
+git push origin "refs/tags/v$LAYER_VERSION"
 
 echo
-echo "Now create a new release with the tag v${MINOR_VERSION} created"
-echo "https://github.com/DataDog/datadog-lambda-python/releases/new?tag=v$MINOR_VERSION&title=v$MINOR_VERSION"
+echo "Now create a new release with the tag v${LAYER_VERSION} created"
+echo "https://github.com/DataDog/datadog-lambda-python/releases/new?tag=v$LAYER_VERSION&title=v$LAYER_VERSION"
