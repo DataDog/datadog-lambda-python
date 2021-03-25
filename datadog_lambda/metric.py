@@ -41,7 +41,7 @@ lambda_stats = None
 if should_use_extension:
     lambda_stats = StatsDWrapper()
 else:
-    lambda_stats = ThreadStats(compress_payload=True)
+    lambda_stats = ThreadStats()
     lambda_stats.start()
 
 

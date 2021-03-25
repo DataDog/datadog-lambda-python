@@ -13,7 +13,7 @@ set -e
 LAMBDA_HANDLERS=("async-metrics" "sync-metrics" "http-requests" "http-error")
 RUNTIMES=("python27" "python36" "python37" "python38")
 
-LOGS_WAIT_SECONDS=30
+LOGS_WAIT_SECONDS=20
 
 script_path=${BASH_SOURCE[0]}
 scripts_dir=$(dirname $script_path)
@@ -91,7 +91,6 @@ echo "Sleeping $LOGS_WAIT_SECONDS seconds to wait for logs to appear in CloudWat
 sleep $LOGS_WAIT_SECONDS
 
 echo "Fetching logs for invocations and comparing to snapshots"
-
 for handler_name in "${LAMBDA_HANDLERS[@]}"; do
     for runtime in "${RUNTIMES[@]}"; do
         function_name="${handler_name}_${runtime}"
