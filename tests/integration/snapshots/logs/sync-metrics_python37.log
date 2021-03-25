@@ -1,20 +1,182 @@
-/var/runtime/botocore/vendored/requests/__init__.py:91: RequestsDependencyWarning: urllib3 (1.26.2) or chardet (4.0.0) doesn't match a supported version!
+/var/runtime/botocore/vendored/requests/__init__.py:91: RequestsDependencyWarning: urllib3 (1.26.4) or chardet (4.0.0) doesn't match a supported version!
 RequestsDependencyWarning)
 START RequestId: XXXX Version: $LATEST
 {"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-sync-metrics_python37", "resource:integration-dev-sync-metrics_python37", "cold_start:true", "memorysize:1024", "runtime:python3.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python37_2.XX.0"]}
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Length:460", "Content-Type:application/json", "User-Agent:datadogpy/0.39.0 (python 3.7.9; os linux; arch x86_64)", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:2", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python37_2.XX.0"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python37_2.XX.0"], "interval": 10}]}
+2021-03-24 18:59:12.282 (-04:00)	49bf112c-ad6a-4bf1-96c5-936e6bc65d10	[ERROR]	[dd.trace_id=6523039869705907713 dd.span_id=13975012327376355870]	Error flushing metrics and events
+Traceback (most recent call last):
+File "/opt/python/lib/python3.7/site-packages/datadog/threadstats/base.py", line 343, in flush
+self.reporter.flush_distributions(dists)
+File "/opt/python/lib/python3.7/site-packages/datadog/threadstats/reporters.py", line 24, in flush_distributions
+api.Distribution.send(distributions, compress_payload=self.compress_payload)
+File "/opt/python/lib/python3.7/site-packages/datadog/api/distributions.py", line 43, in send
+attach_host_name=attach_host_name, compress_payload=compress_payload, **series_dict
+File "/opt/python/lib/python3.7/site-packages/datadog/api/resources.py", line 88, in send
+compress_payload=compress_payload
+File "/opt/python/lib/python3.7/site-packages/datadog/api/api_client.py", line 166, in submit
+proxies=_proxies, verify=_cacert
+File "/opt/python/lib/python3.7/site-packages/datadog/api/http_client.py", line 100, in request
+proxies=proxies, verify=verify)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 112, in _wrap_requests_request
+return func(*args, **kwargs)
+File "/opt/python/lib/python3.7/site-packages/requests/sessions.py", line 542, in request
+resp = self.send(prep, **send_kwargs)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 133, in _log_request
+_print_request_string(request)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 147, in _print_request_string
+data_dict = json.loads(data)
+File "/var/lang/lib/python3.7/json/__init__.py", line 343, in loads
+s = s.decode(detect_encoding(s), 'surrogatepass')
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9c in position 1: invalid start byte
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	Init Duration: XXXX ms	
 XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
 START RequestId: XXXX Version: $LATEST
 {"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-sync-metrics_python37", "resource:integration-dev-sync-metrics_python37", "cold_start:false", "memorysize:1024", "runtime:python3.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python37_2.XX.0"]}
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Length:460", "Content-Type:application/json", "User-Agent:datadogpy/0.39.0 (python 3.7.9; os linux; arch x86_64)", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:2", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python37_2.XX.0"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python37_2.XX.0"], "interval": 10}]}
+2021-03-24 18:59:13.677 (-04:00)	8889baab-979a-497c-b769-f58ec86961f4	[ERROR]	[dd.trace_id=8248266912389868626 dd.span_id=16804444618323817732]	Error flushing metrics and events
+Traceback (most recent call last):
+File "/opt/python/lib/python3.7/site-packages/datadog/threadstats/base.py", line 343, in flush
+self.reporter.flush_distributions(dists)
+File "/opt/python/lib/python3.7/site-packages/datadog/threadstats/reporters.py", line 24, in flush_distributions
+api.Distribution.send(distributions, compress_payload=self.compress_payload)
+File "/opt/python/lib/python3.7/site-packages/datadog/api/distributions.py", line 43, in send
+attach_host_name=attach_host_name, compress_payload=compress_payload, **series_dict
+File "/opt/python/lib/python3.7/site-packages/datadog/api/resources.py", line 88, in send
+compress_payload=compress_payload
+File "/opt/python/lib/python3.7/site-packages/datadog/api/api_client.py", line 166, in submit
+proxies=_proxies, verify=_cacert
+File "/opt/python/lib/python3.7/site-packages/datadog/api/http_client.py", line 100, in request
+proxies=proxies, verify=verify)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 112, in _wrap_requests_request
+return func(*args, **kwargs)
+File "/opt/python/lib/python3.7/site-packages/requests/sessions.py", line 542, in request
+resp = self.send(prep, **send_kwargs)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 133, in _log_request
+_print_request_string(request)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 147, in _print_request_string
+data_dict = json.loads(data)
+File "/var/lang/lib/python3.7/json/__init__.py", line 343, in loads
+s = s.decode(detect_encoding(s), 'surrogatepass')
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9c in position 1: invalid start byte
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
 XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
 START RequestId: XXXX Version: $LATEST
 {"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-sync-metrics_python37", "resource:integration-dev-sync-metrics_python37", "cold_start:false", "memorysize:1024", "runtime:python3.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python37_2.XX.0"]}
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Length:460", "Content-Type:application/json", "User-Agent:datadogpy/0.39.0 (python 3.7.9; os linux; arch x86_64)", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:2", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python37_2.XX.0"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python37_2.XX.0"], "interval": 10}]}
+2021-03-24 18:59:15.790 (-04:00)	9a91df1f-2bd7-44aa-b58a-df182128c76b	[ERROR]	[dd.trace_id=666 dd.span_id=16317587142888653001]	Error flushing metrics and events
+Traceback (most recent call last):
+File "/opt/python/lib/python3.7/site-packages/datadog/threadstats/base.py", line 343, in flush
+self.reporter.flush_distributions(dists)
+File "/opt/python/lib/python3.7/site-packages/datadog/threadstats/reporters.py", line 24, in flush_distributions
+api.Distribution.send(distributions, compress_payload=self.compress_payload)
+File "/opt/python/lib/python3.7/site-packages/datadog/api/distributions.py", line 43, in send
+attach_host_name=attach_host_name, compress_payload=compress_payload, **series_dict
+File "/opt/python/lib/python3.7/site-packages/datadog/api/resources.py", line 88, in send
+compress_payload=compress_payload
+File "/opt/python/lib/python3.7/site-packages/datadog/api/api_client.py", line 166, in submit
+proxies=_proxies, verify=_cacert
+File "/opt/python/lib/python3.7/site-packages/datadog/api/http_client.py", line 100, in request
+proxies=proxies, verify=verify)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 112, in _wrap_requests_request
+return func(*args, **kwargs)
+File "/opt/python/lib/python3.7/site-packages/requests/sessions.py", line 542, in request
+resp = self.send(prep, **send_kwargs)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 133, in _log_request
+_print_request_string(request)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 147, in _print_request_string
+data_dict = json.loads(data)
+File "/var/lang/lib/python3.7/json/__init__.py", line 343, in loads
+s = s.decode(detect_encoding(s), 'surrogatepass')
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9c in position 1: invalid start byte
+END RequestId: XXXX
+REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
+XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
+START RequestId: XXXX Version: $LATEST
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-sync-metrics_python37", "resource:integration-dev-sync-metrics_python37", "cold_start:true", "memorysize:1024", "runtime:python3.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python37_2.XX.0"]}
+2021-03-24 19:20:47.489 (-04:00)	41db1d91-3ac7-4c7a-b7fb-0c510d506966	[ERROR]	[dd.trace_id=6873013750661996913 dd.span_id=13330696601698775934]	Error flushing metrics and events
+Traceback (most recent call last):
+File "/opt/python/lib/python3.7/site-packages/datadog/threadstats/base.py", line 343, in flush
+self.reporter.flush_distributions(dists)
+File "/opt/python/lib/python3.7/site-packages/datadog/threadstats/reporters.py", line 24, in flush_distributions
+api.Distribution.send(distributions, compress_payload=self.compress_payload)
+File "/opt/python/lib/python3.7/site-packages/datadog/api/distributions.py", line 43, in send
+attach_host_name=attach_host_name, compress_payload=compress_payload, **series_dict
+File "/opt/python/lib/python3.7/site-packages/datadog/api/resources.py", line 88, in send
+compress_payload=compress_payload
+File "/opt/python/lib/python3.7/site-packages/datadog/api/api_client.py", line 166, in submit
+proxies=_proxies, verify=_cacert
+File "/opt/python/lib/python3.7/site-packages/datadog/api/http_client.py", line 100, in request
+proxies=proxies, verify=verify)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 112, in _wrap_requests_request
+return func(*args, **kwargs)
+File "/opt/python/lib/python3.7/site-packages/requests/sessions.py", line 542, in request
+resp = self.send(prep, **send_kwargs)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 133, in _log_request
+_print_request_string(request)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 147, in _print_request_string
+data_dict = json.loads(data)
+File "/var/lang/lib/python3.7/json/__init__.py", line 343, in loads
+s = s.decode(detect_encoding(s), 'surrogatepass')
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9c in position 1: invalid start byte
+END RequestId: XXXX
+REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	Init Duration: XXXX ms	
+XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
+START RequestId: XXXX Version: $LATEST
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-sync-metrics_python37", "resource:integration-dev-sync-metrics_python37", "cold_start:false", "memorysize:1024", "runtime:python3.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python37_2.XX.0"]}
+2021-03-24 19:20:48.857 (-04:00)	c63e2340-a993-4e74-abd7-60e7759b0560	[ERROR]	[dd.trace_id=838555420660853650 dd.span_id=15948256004017926779]	Error flushing metrics and events
+Traceback (most recent call last):
+File "/opt/python/lib/python3.7/site-packages/datadog/threadstats/base.py", line 343, in flush
+self.reporter.flush_distributions(dists)
+File "/opt/python/lib/python3.7/site-packages/datadog/threadstats/reporters.py", line 24, in flush_distributions
+api.Distribution.send(distributions, compress_payload=self.compress_payload)
+File "/opt/python/lib/python3.7/site-packages/datadog/api/distributions.py", line 43, in send
+attach_host_name=attach_host_name, compress_payload=compress_payload, **series_dict
+File "/opt/python/lib/python3.7/site-packages/datadog/api/resources.py", line 88, in send
+compress_payload=compress_payload
+File "/opt/python/lib/python3.7/site-packages/datadog/api/api_client.py", line 166, in submit
+proxies=_proxies, verify=_cacert
+File "/opt/python/lib/python3.7/site-packages/datadog/api/http_client.py", line 100, in request
+proxies=proxies, verify=verify)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 112, in _wrap_requests_request
+return func(*args, **kwargs)
+File "/opt/python/lib/python3.7/site-packages/requests/sessions.py", line 542, in request
+resp = self.send(prep, **send_kwargs)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 133, in _log_request
+_print_request_string(request)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 147, in _print_request_string
+data_dict = json.loads(data)
+File "/var/lang/lib/python3.7/json/__init__.py", line 343, in loads
+s = s.decode(detect_encoding(s), 'surrogatepass')
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9c in position 1: invalid start byte
+END RequestId: XXXX
+REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
+XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
+START RequestId: XXXX Version: $LATEST
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-sync-metrics_python37", "resource:integration-dev-sync-metrics_python37", "cold_start:false", "memorysize:1024", "runtime:python3.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python37_2.XX.0"]}
+2021-03-24 19:20:50.237 (-04:00)	e1229395-382e-44bd-8d30-428a8ea42be6	[ERROR]	[dd.trace_id=666 dd.span_id=17831180250483233350]	Error flushing metrics and events
+Traceback (most recent call last):
+File "/opt/python/lib/python3.7/site-packages/datadog/threadstats/base.py", line 343, in flush
+self.reporter.flush_distributions(dists)
+File "/opt/python/lib/python3.7/site-packages/datadog/threadstats/reporters.py", line 24, in flush_distributions
+api.Distribution.send(distributions, compress_payload=self.compress_payload)
+File "/opt/python/lib/python3.7/site-packages/datadog/api/distributions.py", line 43, in send
+attach_host_name=attach_host_name, compress_payload=compress_payload, **series_dict
+File "/opt/python/lib/python3.7/site-packages/datadog/api/resources.py", line 88, in send
+compress_payload=compress_payload
+File "/opt/python/lib/python3.7/site-packages/datadog/api/api_client.py", line 166, in submit
+proxies=_proxies, verify=_cacert
+File "/opt/python/lib/python3.7/site-packages/datadog/api/http_client.py", line 100, in request
+proxies=proxies, verify=verify)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 112, in _wrap_requests_request
+return func(*args, **kwargs)
+File "/opt/python/lib/python3.7/site-packages/requests/sessions.py", line 542, in request
+resp = self.send(prep, **send_kwargs)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 133, in _log_request
+_print_request_string(request)
+File "/opt/python/lib/python3.7/site-packages/datadog_lambda/patch.py", line 147, in _print_request_string
+data_dict = json.loads(data)
+File "/var/lang/lib/python3.7/json/__init__.py", line 343, in loads
+s = s.decode(detect_encoding(s), 'surrogatepass')
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0x9c in position 1: invalid start byte
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
 XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	

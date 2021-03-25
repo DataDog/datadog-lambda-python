@@ -9,6 +9,7 @@ provider:
     DD_INTEGRATION_TEST: true
     DD_API_KEY: ${env:DD_API_KEY}
   lambdaHashingVersion: 20201221
+  timeout: 15
 
 layers:
   python27:
@@ -25,7 +26,7 @@ layers:
       artifact: ../../.layers/datadog_lambda_py3.8.zip
 
 functions:
-  # async-metrics
+  # async-metrics (flushed to logs)
   async-metrics_python27:
     handler: handle.handle
     runtime: python2.7
@@ -58,7 +59,7 @@ functions:
     environment:
       DD_FLUSH_TO_LOG: true
 
-  # sync-metrics
+  # sync-metrics (sent via API)
   sync-metrics_python27:
     handler: handle.handle
     runtime: python2.7

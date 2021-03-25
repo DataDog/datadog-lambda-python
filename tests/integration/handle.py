@@ -1,13 +1,8 @@
-import os
-
-from decorator import conditional_decorator
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 
-with_plugin = os.getenv("WITH_PLUGIN", False)
 
-
-@conditional_decorator(datadog_lambda_wrapper, with_plugin)
+@datadog_lambda_wrapper
 def handle(event, context):
     # Parse request ID and record ids out of the event to include in the response
     request_id = event.get("requestContext", {}).get("requestId")
