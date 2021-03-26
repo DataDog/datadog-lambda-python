@@ -6,6 +6,7 @@ provider:
     DD_INTEGRATION_TEST: true
     DD_API_KEY: ${env:DD_API_KEY}
     WITH_PLUGIN: true
+    INSTANCE_ID: ${sls:instanceId} # To force cold start
   lambdaHashingVersion: 20201221
 
 layers:
