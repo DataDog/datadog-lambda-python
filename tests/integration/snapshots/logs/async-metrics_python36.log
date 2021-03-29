@@ -20,3 +20,4 @@ START RequestId: XXXX Version: $LATEST
 {"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
+XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
