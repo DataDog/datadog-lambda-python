@@ -99,22 +99,24 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
         function_name="${handler_name}_${runtime}"
         function_snapshot_path="./snapshots/logs/$function_name.log"
 
-        # Fetch logs with serverless cli, retrying up to 5 times to avoid rate limit error
+        # Fetch logs with serverless cli, retrying to avoid AWS account-wide rate limit error
         retry_counter=0
-        while [ $retry_counter -lt 5 ]; do
+        while [ $retry_counter -lt 10 ]; do
             raw_logs=$(serverless logs -f $function_name --stage $run_id --startTime $script_utc_start_time)
             fetch_logs_exit_code=$?
             if [ $fetch_logs_exit_code -eq 1 ]; then
                 echo "Retrying fetch logs for $function_name..."
                 retry_counter=$(($retry_counter + 1))
-                sleep 2
+                sleep 10
                 continue
             fi
             break
         done
 
-        if [ $retry_counter -eq 4 ]; then
+        if [ $retry_counter -eq 9 ]; then
             echo "FAILURE: Could not retrieve logs for $function_name"
+            echo "Error from final attempt to retrieve logs:"
+            echo $raw_logs
 
             echo "Removing functions"
             serverless remove --stage $run_id
