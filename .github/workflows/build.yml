@@ -80,7 +80,7 @@ jobs:
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
       - name: Install Serverless Framework
-        run: yarn global add serverless
+        run: yarn global add serverless --prefix /usr/local
 
       - name: Yarn global bin
         run: yarn global bin
