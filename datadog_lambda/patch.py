@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import logging
+import zlib
 
 from wrapt import wrap_function_wrapper as wrap
 from wrapt.importer import when_imported
@@ -144,6 +145,9 @@ def _print_request_string(request):
 
     # Sort the datapoints POSTed by their name so that snapshots always align
     data = request.body or "{}"
+    # Decompress request payload
+    if request.headers.get("Content-Encoding") == "deflate":
+        data = zlib.decompress(data)
     data_dict = json.loads(data)
     data_dict.get("series", []).sort(key=lambda series: series.get("metric"))
     sorted_data = json.dumps(data_dict)

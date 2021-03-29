@@ -32,7 +32,7 @@ jobs:
           source venv/bin/activate
           flake8 datadog_lambda/
 
-  test:
+  unit-test:
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4

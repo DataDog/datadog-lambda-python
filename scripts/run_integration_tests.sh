@@ -20,8 +20,7 @@ scripts_dir=$(dirname $script_path)
 repo_dir=$(dirname $scripts_dir)
 integration_tests_dir="$repo_dir/tests/integration"
 
-script_start_time=$(date +"%Y%m%dT%H%M%S")
-echo $script_start_time
+script_utc_start_time=$(date -u +"%Y%m%dT%H%M%S")
 
 mismatch_found=false
 
@@ -97,7 +96,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
         function_snapshot_path="./snapshots/logs/$function_name.log"
 
         # Fetch logs with serverless cli
-        raw_logs=$(serverless logs -f $function_name --startTime $script_start_time)
+        raw_logs=$(serverless logs -f $function_name --startTime $script_utc_start_time)
 
         # Replace invocation-specific data like timestamps and IDs with XXXX to normalize logs across executions
         logs=$(
