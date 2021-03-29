@@ -6,6 +6,7 @@ provider:
     DD_INTEGRATION_TEST: true
     DD_API_KEY: ${env:DD_API_KEY}
     WITH_PLUGIN: true
+    COLD_START_ENFORCER: ${env:COLD_START_ENFORCER}
   lambdaHashingVersion: 20201221
 
 layers:
@@ -29,32 +30,24 @@ functions:
     runtime: python2.7
     layers:
       - { Ref: Python27LambdaLayer }
-    environment:
-      DD_FLUSH_TO_LOG: true
 
   async-metrics_python36_with_plugin:
     handler: handle.handle
     runtime: python3.6
     layers:
       - { Ref: Python36LambdaLayer }
-    environment:
-      DD_FLUSH_TO_LOG: true
 
   async-metrics_python37_with_plugin:
     handler: handle.handle
     runtime: python3.7
     layers:
       - { Ref: Python37LambdaLayer }
-    environment:
-      DD_FLUSH_TO_LOG: true
 
   async-metrics_python38_with_plugin:
     handler: handle.handle
     runtime: python3.8
     layers:
       - { Ref: Python38LambdaLayer }
-    environment:
-      DD_FLUSH_TO_LOG: true
 
   # sync-metrics
   sync-metrics_python27_with_plugin:
@@ -85,32 +78,24 @@ functions:
   http-requests_python27_with_plugin:
     handler: http_requests.handle
     runtime: python2.7
-    environment:
-      DD_TRACE_ENABLED: true
     layers:
       - { Ref: Python27LambdaLayer }
 
   http-requests_python36_with_plugin:
     handler: http_requests.handle
     runtime: python3.6
-    environment:
-      DD_TRACE_ENABLED: true
     layers:
       - { Ref: Python36LambdaLayer }
 
   http-requests_python37_with_plugin:
     handler: http_requests.handle
     runtime: python3.7
-    environment:
-      DD_TRACE_ENABLED: true
     layers:
       - { Ref: Python37LambdaLayer }
 
   http-requests_python38_with_plugin:
     handler: http_requests.handle
     runtime: python3.8
-    environment:
-      DD_TRACE_ENABLED: true
     layers:
       - { Ref: Python38LambdaLayer }
 
@@ -118,32 +103,24 @@ functions:
   http-error_python27_with_plugin:
     handler: http_error.handle
     runtime: python2.7
-    environment:
-      DD_TRACE_ENABLED: true
     layers:
       - { Ref: Python27LambdaLayer }
 
   http-error_python36_with_plugin:
     handler: http_error.handle
     runtime: python3.6
-    environment:
-      DD_TRACE_ENABLED: true
     layers:
       - { Ref: Python36LambdaLayer }
 
   http-error_python37_with_plugin:
     handler: http_error.handle
     runtime: python3.7
-    environment:
-      DD_TRACE_ENABLED: true
     layers:
       - { Ref: Python37LambdaLayer }
 
   http-error_python38_with_plugin:
     handler: http_error.handle
     runtime: python3.8
-    environment:
-      DD_TRACE_ENABLED: true
     layers:
       - { Ref: Python38LambdaLayer }
 

@@ -16,6 +16,9 @@ CONFIGS=("with-plugin" "without-plugin")
 
 LOGS_WAIT_SECONDS=20
 
+# Force cold start to avoid flaky tests
+export COLD_START_ENFORCER=$((1 + $RANDOM % 100000))
+
 script_path=${BASH_SOURCE[0]}
 scripts_dir=$(dirname $script_path)
 repo_dir=$(dirname $scripts_dir)
@@ -42,6 +45,10 @@ else
 fi
 
 cd $integration_tests_dir
+
+# Install the specified plugin version
+yarn install
+
 input_event_files=$(ls ./input_events)
 # Sort event files by name so that snapshots stay consistent
 input_event_files=($(for file_name in ${input_event_files[@]}; do echo $file_name; done | sort))
@@ -127,6 +134,8 @@ for _sls_type in "${CONFIGS[@]}"; do
                 echo "$raw_logs" |
                     # Filter serverless cli errors
                     sed '/Serverless: Recoverable error occurred/d' |
+                    # Remove RequestsDependencyWarning from botocore/vendored/requests/__init__.py
+                    sed '/RequestsDependencyWarning/d' |
                     # Remove blank lines
                     sed '/^$/d' |
                     # Normalize Lambda runtime report logs
