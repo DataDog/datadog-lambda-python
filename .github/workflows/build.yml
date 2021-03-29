@@ -79,6 +79,9 @@ jobs:
           path: "**/node_modules"
           key: ${{ runner.os }}-modules-${{ hashFiles('**/yarn.lock') }}
 
+      - name: Echo $PATH
+        run: echo $PATH
+
       - name: Install Serverless Framework
         run: yarn global add serverless --prefix /usr/local
 
