@@ -13,7 +13,7 @@ set -e
 LAMBDA_HANDLERS=("async-metrics" "sync-metrics" "http-requests" "http-error")
 RUNTIMES=("python27" "python36" "python37" "python38")
 
-LOGS_WAIT_SECONDS=30
+LOGS_WAIT_SECONDS=20
 
 script_path=${BASH_SOURCE[0]}
 scripts_dir=$(dirname $script_path)
@@ -92,18 +92,35 @@ set -e
 echo "Sleeping $LOGS_WAIT_SECONDS seconds to wait for logs to appear in CloudWatch..."
 sleep $LOGS_WAIT_SECONDS
 
-set +e # Don't exit this script if there is a diff
+set +e # Don't exit this script if there is a diff or the logs endpoint fails
 echo "Fetching logs for invocations and comparing to snapshots"
 for handler_name in "${LAMBDA_HANDLERS[@]}"; do
     for runtime in "${RUNTIMES[@]}"; do
         function_name="${handler_name}_${runtime}"
         function_snapshot_path="./snapshots/logs/$function_name.log"
-        echo "Got function name: $function_name"
 
-        # Fetch logs with serverless cli
-        echo "Preparing to fetch logs for: $function_name"
-        raw_logs=$(serverless logs -f $function_name --stage $run_id --startTime $script_utc_start_time)
-        echo "Successfully fetched logs for: $function_name"
+        # Fetch logs with serverless cli, retrying up to 5 times to avoid rate limit error
+        retry_counter=0
+        while [ $retry_counter -lt 5 ]; do
+            raw_logs=$(serverless logs -f $function_name --stage $run_id --startTime $script_utc_start_time)
+            fetch_logs_exit_code=$?
+            if [ $fetch_logs_exit_code -eq 1 ]; then
+                echo "Retrying fetch logs for $function_name..."
+                retry_counter=$(($retry_counter + 1))
+                sleep 2
+                continue
+            fi
+            break
+        done
+
+        if [ $retry_counter -eq 4 ]; then
+            echo "FAILURE: Could not retrieve logs for $function_name"
+
+            echo "Removing functions"
+            serverless remove --stage $run_id
+
+            exit 1
+        fi
 
         # Replace invocation-specific data like timestamps and IDs with XXXX to normalize logs across executions
         logs=$(
