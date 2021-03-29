@@ -63,7 +63,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
             input_event_name=$(echo "$input_event_file" | sed "s/.json//")
             snapshot_path="./snapshots/return_values/${function_name}_${input_event_name}.json"
 
-            return_value=$(serverless invoke -f $function_name --path "./input_events/$input_event_file")
+            return_value=$(serverless invoke -f $function_name --stage $run_id --path "./input_events/$input_event_file")
 
             if [ ! -f $snapshot_path ]; then
                 # If the snapshot file doesn't exist yet, we create it
@@ -99,7 +99,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
         function_snapshot_path="./snapshots/logs/$function_name.log"
 
         # Fetch logs with serverless cli
-        raw_logs=$(serverless logs -f $function_name --startTime $script_utc_start_time)
+        raw_logs=$(serverless logs -f $function_name --stage $run_id --startTime $script_utc_start_time)
 
         # Replace invocation-specific data like timestamps and IDs with XXXX to normalize logs across executions
         logs=$(
