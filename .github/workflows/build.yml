@@ -83,7 +83,7 @@ jobs:
         run: echo $PATH
 
       - name: Install Serverless Framework
-        run: yarn global add serverless --prefix /usr/local
+        run: sudo yarn global add serverless --prefix /usr/local
 
       - name: Yarn global bin
         run: yarn global bin
