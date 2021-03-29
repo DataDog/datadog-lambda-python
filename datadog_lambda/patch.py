@@ -145,7 +145,7 @@ def _print_request_string(request):
 
     # Sort the datapoints POSTed by their name so that snapshots always align
     data = request.body or "{}"
-    # Decompress request payload
+    # If payload is compressed, decompress it so we can parse it
     if request.headers.get("Content-Encoding") == "deflate":
         data = zlib.decompress(data)
     data_dict = json.loads(data)

@@ -15,6 +15,9 @@ RUNTIMES=("python27" "python36" "python37" "python38")
 
 LOGS_WAIT_SECONDS=20
 
+# Force cold start to avoid flaky tests
+export COLD_START_ENFORCER=$((1 + $RANDOM % 100000))
+
 script_path=${BASH_SOURCE[0]}
 scripts_dir=$(dirname $script_path)
 repo_dir=$(dirname $scripts_dir)
@@ -41,6 +44,7 @@ else
 fi
 
 cd $integration_tests_dir
+
 input_event_files=$(ls ./input_events)
 # Sort event files by name so that snapshots stay consistent
 input_event_files=($(for file_name in ${input_event_files[@]}; do echo $file_name; done | sort))
@@ -129,9 +133,11 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
             echo "$raw_logs" |
                 # Filter serverless cli errors
                 sed '/Serverless: Recoverable error occurred/d' |
+                # Remove RequestsDependencyWarning from botocore/vendored/requests/__init__.py
+                sed '/RequestsDependencyWarning/d' |
                 # Remove blank lines
                 sed '/^$/d' |
-                # Normalize Lambda runtime report logs
+                # Normalize Lambda runtime REPORT logs
                 sed -E 's/(RequestId|TraceId|SegmentId|Duration|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g' |
                 # Normalize HTTP headers
                 sed -E "s/(x-datadog-parent-id:|x-datadog-trace-id:|Content-Length:)[0-9]+/\1XXXX/g" |

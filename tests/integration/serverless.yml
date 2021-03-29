@@ -8,7 +8,7 @@ provider:
   environment:
     DD_INTEGRATION_TEST: true
     DD_API_KEY: ${env:DD_API_KEY}
-    INSTANCE_ID: ${sls:instanceId} # To force cold start
+    COLD_START_ENFORCER: ${env:COLD_START_ENFORCER}
   lambdaHashingVersion: 20201221
   timeout: 15
 

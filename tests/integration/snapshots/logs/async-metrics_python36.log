@@ -1,20 +1,18 @@
-/var/runtime/botocore/vendored/requests/__init__.py:91: RequestsDependencyWarning: urllib3 (1.26.4) or chardet (4.0.0) doesn't match a supported version!
-RequestsDependencyWarning)
 START RequestId: XXXX Version: $LATEST
-{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:sa-east-1", "account_id:XXXX", "functionname:python-integration-tests-XXXX-async-metrics_python36", "resource:python-integration-tests-XXXX-async-metrics_python36", "cold_start:true", "memorysize:1024", "runtime:python3.6", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python36_2.XX.0"]}
-{"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
-{"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:sa-east-1", "account_id:XXXX", "functionname:python-integration-tests-XXXX-async-metrics_python36", "resource:python-integration-tests-XXXX-async-metrics_python36", "cold_start:true", "memorysize:1024", "runtime:python3.6", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python36_3.31.0"]}
+{"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_3.31.0"]}
+{"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_3.31.0"]}
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	Init Duration: XXXX ms	
 START RequestId: XXXX Version: $LATEST
-{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:sa-east-1", "account_id:XXXX", "functionname:python-integration-tests-XXXX-async-metrics_python36", "resource:python-integration-tests-XXXX-async-metrics_python36", "cold_start:false", "memorysize:1024", "runtime:python3.6", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python36_2.XX.0"]}
-{"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
-{"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:sa-east-1", "account_id:XXXX", "functionname:python-integration-tests-XXXX-async-metrics_python36", "resource:python-integration-tests-XXXX-async-metrics_python36", "cold_start:false", "memorysize:1024", "runtime:python3.6", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python36_3.31.0"]}
+{"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_3.31.0"]}
+{"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_3.31.0"]}
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
 START RequestId: XXXX Version: $LATEST
-{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:sa-east-1", "account_id:XXXX", "functionname:python-integration-tests-XXXX-async-metrics_python36", "resource:python-integration-tests-XXXX-async-metrics_python36", "cold_start:false", "memorysize:1024", "runtime:python3.6", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python36_2.XX.0"]}
-{"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
-{"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_2.XX.0"]}
+{"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:sa-east-1", "account_id:XXXX", "functionname:python-integration-tests-XXXX-async-metrics_python36", "resource:python-integration-tests-XXXX-async-metrics_python36", "cold_start:false", "memorysize:1024", "runtime:python3.6", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python36_3.31.0"]}
+{"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_3.31.0"]}
+{"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_3.31.0"]}
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
