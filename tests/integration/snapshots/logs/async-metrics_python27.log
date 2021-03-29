@@ -1,5 +1,3 @@
-/var/runtime/botocore/vendored/requests/__init__.py:91: RequestsDependencyWarning: urllib3 (1.26.2) or chardet (4.0.0) doesn't match a supported version!
-RequestsDependencyWarning)
 START RequestId: XXXX Version: $LATEST
 {"e": XXXX, "m": "aws.lambda.enhanced.invocations", "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-async-metrics_python27", "resource:integration-dev-async-metrics_python27", "cold_start:true", "memorysize:1024", "runtime:python2.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python27_2.XX.0"], "v": 1}
 {"e": XXXX, "m": "hello.dog", "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python27_2.XX.0"], "v": 1}

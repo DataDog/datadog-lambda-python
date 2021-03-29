@@ -41,8 +41,13 @@ lambda_stats = None
 if should_use_extension:
     lambda_stats = StatsDWrapper()
 else:
+    # Periodical flushing in a background thread is NOT guaranteed to succeed
+    # and leads to data loss. When disabled, metrics are only flushed at the
+    # end of invocation. To make metrics submitted from a long-running Lambda
+    # function available sooner, consider using the Datadog Lambda extension.
+    flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
     lambda_stats = ThreadStats(compress_payload=True)
-    lambda_stats.start()
+    lambda_stats.start(flush_in_thread=flush_in_thread)
 
 
 def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=False):

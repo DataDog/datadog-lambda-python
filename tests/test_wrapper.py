@@ -32,13 +32,19 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         # (not no-op) wrapper.
         datadog_lambda_wrapper._force_wrap = True
 
-        patcher = patch("datadog_lambda.metric.lambda_stats")
-        self.mock_metric_lambda_stats = patcher.start()
+        patcher = patch(
+            "datadog.threadstats.reporters.HttpReporter.flush_distributions"
+        )
+        self.mock_threadstats_flush_distributions = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("datadog_lambda.wrapper.lambda_stats")
-        self.mock_wrapper_lambda_stats = patcher.start()
-        self.addCleanup(patcher.stop)
+        self.metric_lambda_stats_patcher = patch("datadog_lambda.metric.lambda_stats")
+        self.mock_metric_lambda_stats = self.metric_lambda_stats_patcher.start()
+        self.addCleanup(self.metric_lambda_stats_patcher.stop)
+
+        self.wrapper_lambda_stats_patcher = patch("datadog_lambda.wrapper.lambda_stats")
+        self.mock_wrapper_lambda_stats = self.wrapper_lambda_stats_patcher.start()
+        self.addCleanup(self.wrapper_lambda_stats_patcher.stop)
 
         patcher = patch("datadog_lambda.wrapper.extract_dd_trace_context")
         self.mock_extract_dd_trace_context = patcher.start()
@@ -120,6 +126,76 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_wrapper_lambda_stats.flush.assert_not_called()
 
         del os.environ["DD_FLUSH_TO_LOG"]
+
+    def test_datadog_lambda_wrapper_flush_in_thread(self):
+        # stop patchers so mock_threadstats_flush_distributions gets called
+        self.metric_lambda_stats_patcher.stop()
+        self.wrapper_lambda_stats_patcher.stop()
+
+        # force ThreadStats to flush in thread
+        import datadog_lambda.metric as metric_module
+
+        metric_module.lambda_stats.stop()
+        metric_module.lambda_stats.start(flush_in_thread=True)
+
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            import time
+
+            lambda_metric("test.metric", 100)
+            time.sleep(11)
+            # assert flushing in the thread
+            self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 1)
+            lambda_metric("test.metric", 200)
+
+        lambda_event = {}
+        lambda_handler(lambda_event, get_mock_context())
+
+        # assert another flushing in the end
+        self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 2)
+
+        # reset ThreadStats
+        metric_module.lambda_stats.stop()
+        metric_module.lambda_stats.start(flush_in_thread=False)
+
+        # resume patchers
+        self.metric_lambda_stats_patcher.start()
+        self.wrapper_lambda_stats_patcher.start()
+
+    def test_datadog_lambda_wrapper_not_flush_in_thread(self):
+        # stop patchers so mock_threadstats_flush_distributions gets called
+        self.metric_lambda_stats_patcher.stop()
+        self.wrapper_lambda_stats_patcher.stop()
+
+        # force ThreadStats to not flush in thread
+        import datadog_lambda.metric as metric_module
+
+        metric_module.lambda_stats.stop()
+        metric_module.lambda_stats.start(flush_in_thread=False)
+
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            import time
+
+            lambda_metric("test.metric", 100)
+            time.sleep(11)
+            # assert no flushing in the thread
+            self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 0)
+            lambda_metric("test.metric", 200)
+
+        lambda_event = {}
+        lambda_handler(lambda_event, get_mock_context())
+
+        # assert flushing in the end
+        self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 1)
+
+        # reset ThreadStats
+        metric_module.lambda_stats.stop()
+        metric_module.lambda_stats.start(flush_in_thread=False)
+
+        # resume patchers
+        self.metric_lambda_stats_patcher.start()
+        self.wrapper_lambda_stats_patcher.start()
 
     def test_datadog_lambda_wrapper_inject_correlation_ids(self):
         os.environ["DD_LOGS_INJECTION"] = "True"
