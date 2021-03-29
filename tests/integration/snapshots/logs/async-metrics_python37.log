@@ -6,18 +6,15 @@ START RequestId: XXXX Version: $LATEST
 {"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python37_2.XX.0"]}
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	Init Duration: XXXX ms	
-XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
 START RequestId: XXXX Version: $LATEST
 {"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:sa-east-1", "account_id:XXXX", "functionname:python-integration-tests-XXXX-async-metrics_python37", "resource:python-integration-tests-XXXX-async-metrics_python37", "cold_start:false", "memorysize:1024", "runtime:python3.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python37_2.XX.0"]}
 {"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python37_2.XX.0"]}
 {"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python37_2.XX.0"]}
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
-XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
 START RequestId: XXXX Version: $LATEST
 {"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:sa-east-1", "account_id:XXXX", "functionname:python-integration-tests-XXXX-async-metrics_python37", "resource:python-integration-tests-XXXX-async-metrics_python37", "cold_start:false", "memorysize:1024", "runtime:python3.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python37_2.XX.0"]}
 {"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python37_2.XX.0"]}
 {"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python37_2.XX.0"]}
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
-XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
