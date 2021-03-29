@@ -45,8 +45,11 @@ input_event_files=$(ls ./input_events)
 # Sort event files by name so that snapshots stay consistent
 input_event_files=($(for file_name in ${input_event_files[@]}; do echo $file_name; done | sort))
 
+# Generate a random 8-character ID to avoid collisions with other runs
+run_id=$(xxd -l 4 -c 4 -p < /dev/random)
+
 echo "Deploying functions"
-serverless deploy
+serverless deploy --stage $run_id
 
 echo "Invoking functions"
 set +e # Don't exit this script if an invocation fails or there's a diff
@@ -152,6 +155,9 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
         fi
     done
 done
+
+echo "Removing functions"
+serverless remove --stage $run_id
 
 if [ "$mismatch_found" = true ]; then
     echo "FAILURE: A mismatch between new data and a snapshot was found and printed above."
