@@ -110,7 +110,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed '/^$/d' |
                 # Normalize Lambda runtime report logs
                 sed -E 's/(RequestId|TraceId|SegmentId|Duration|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g' |
-                # Normalize DD APM headers and AWS account ID
+                # Normalize DD APM headers, AWS account ID
                 sed -E "s/(x-datadog-parent-id:|x-datadog-trace-id:|account_id:)[0-9]+/\1XXXX/g" |
                 # Normalize timestamps in datapoints POSTed to DD
                 sed -E 's/"points": \[\[[0-9\.]+,/"points": \[\[XXXX,/g' |
@@ -119,6 +119,8 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 # Normalize minor package version so that these snapshots aren't broken on version bumps
                 sed -E "s/(dd_lambda_layer:datadog-python[0-9]+_2\.)[0-9]+\.0/\1XX\.0/g" |
                 sed -E "s/(datadog_lambda:v)([0-9]+\.[0-9]+\.[0-9])/\1XX/g" |
+                # Strip out run ID (from function name, resource, etc.)
+                sed -E "s/$run_id/XXXX/g" |
                 # Strip out trace/span/parent/timestamps
                 sed -E "s/(\"trace_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"span_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
