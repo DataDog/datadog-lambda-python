@@ -1,3 +1,4 @@
+# Service name must begin with 'integration-tests' for IAM permissions to work
 service: integration-tests-python
 
 provider:
