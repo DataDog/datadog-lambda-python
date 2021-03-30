@@ -1,4 +1,4 @@
-service: python-integration-tests
+service: integration-tests-python
 
 provider:
   name: aws
