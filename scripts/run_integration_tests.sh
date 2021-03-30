@@ -15,9 +15,6 @@ RUNTIMES=("python27" "python36" "python37" "python38")
 
 LOGS_WAIT_SECONDS=20
 
-# Force cold start to avoid flaky tests
-export COLD_START_ENFORCER=$((1 + $RANDOM % 100000))
-
 script_path=${BASH_SOURCE[0]}
 scripts_dir=$(dirname $script_path)
 repo_dir=$(dirname $scripts_dir)
