@@ -1,4 +1,4 @@
-# Service name must begin with 'integration-tests' for IAM permissions to work
+# IAM permissions require service name to begin with 'integration-tests'
 service: integration-tests-python
 
 provider:
@@ -13,7 +13,7 @@ provider:
   lambdaHashingVersion: 20201221
   timeout: 15
   iam:
-    # This role must be used by all functions for IAM permissions to work
+    # IAM permissions require that all functions are deployed with this role
     role: "arn:aws:iam::601427279990:role/serverless-integration-test-lambda-role"
 
 layers:
