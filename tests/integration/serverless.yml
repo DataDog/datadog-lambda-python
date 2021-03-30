@@ -12,6 +12,9 @@ provider:
     DD_API_KEY: ${env:DD_API_KEY}
   lambdaHashingVersion: 20201221
   timeout: 15
+  iam:
+    # This role must be used by all functions for IAM permissions to work
+    role: "arn:aws:iam::601427279990:role/serverless-integration-test-lambda-role"
 
 layers:
   python27:
