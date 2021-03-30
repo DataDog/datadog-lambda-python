@@ -1,3 +1,5 @@
+import requests
+
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 
