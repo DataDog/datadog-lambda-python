@@ -1,10 +1,39 @@
 {
-    "statusCode": 200,
-    "body": {
-        "message": "hello, dog!",
-        "request_id": null,
-        "event_record_ids": [
-            "95df01b4-ee98-5cb9-9903-4c221d41eb5e"
-        ]
-    }
+    "errorMessage": "name 'requests' is not defined",
+    "errorType": "NameError",
+    "stackTrace": [
+        "  File \"/opt/python/lib/python3.7/site-packages/datadog_lambda/wrapper.py\", line 124, in __call__\n    self.response = self.func(event, context, **kwargs)\n",
+        "  File \"/var/task/handle.py\", line 27, in handle\n    requests.get(\"https://httpstat.us/200/\")\n"
+    ]
 }
+ 
+  Error --------------------------------------------------
+ 
+  Error: Invoked function failed
+      at AwsInvoke.log (/usr/local/Cellar/serverless/1.74.1/libexec/lib/node_modules/serverless/lib/plugins/aws/invoke/index.js:105:31)
+      at AwsInvoke.tryCatcher (/usr/local/Cellar/serverless/1.74.1/libexec/lib/node_modules/serverless/node_modules/bluebird/js/release/util.js:16:23)
+      at Promise._settlePromiseFromHandler (/usr/local/Cellar/serverless/1.74.1/libexec/lib/node_modules/serverless/node_modules/bluebird/js/release/promise.js:547:31)
+      at Promise._settlePromise (/usr/local/Cellar/serverless/1.74.1/libexec/lib/node_modules/serverless/node_modules/bluebird/js/release/promise.js:604:18)
+      at Promise._settlePromise0 (/usr/local/Cellar/serverless/1.74.1/libexec/lib/node_modules/serverless/node_modules/bluebird/js/release/promise.js:649:10)
+      at Promise._settlePromises (/usr/local/Cellar/serverless/1.74.1/libexec/lib/node_modules/serverless/node_modules/bluebird/js/release/promise.js:729:18)
+      at _drainQueueStep (/usr/local/Cellar/serverless/1.74.1/libexec/lib/node_modules/serverless/node_modules/bluebird/js/release/async.js:93:12)
+      at _drainQueue (/usr/local/Cellar/serverless/1.74.1/libexec/lib/node_modules/serverless/node_modules/bluebird/js/release/async.js:86:9)
+      at Async._drainQueues (/usr/local/Cellar/serverless/1.74.1/libexec/lib/node_modules/serverless/node_modules/bluebird/js/release/async.js:102:5)
+      at Immediate.Async.drainQueues [as _onImmediate] (/usr/local/Cellar/serverless/1.74.1/libexec/lib/node_modules/serverless/node_modules/bluebird/js/release/async.js:15:14)
+      at processImmediate (internal/timers.js:461:21)
+ 
+     For debugging logs, run again after setting the "SLS_DEBUG=*" environment variable.
+ 
+  Get Support --------------------------------------------
+     Docs:          docs.serverless.com
+     Bugs:          github.com/serverless/serverless/issues
+     Issues:        forum.serverless.com
+ 
+  Your Environment Information ---------------------------
+     Operating System:          darwin
+     Node Version:              14.16.0
+     Framework Version:         1.74.1
+     Plugin Version:            3.6.15
+     SDK Version:               2.3.1
+     Components Version:        2.31.11
+ 

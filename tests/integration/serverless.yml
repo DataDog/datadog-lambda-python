@@ -7,6 +7,7 @@ provider:
     lambda: "PassThrough"
   environment:
     DD_INTEGRATION_TEST: true
+    DD_TRACE_ENABLED: true
     DD_API_KEY: ${env:DD_API_KEY}
   lambdaHashingVersion: 20201221
   timeout: 15
@@ -81,71 +82,5 @@ functions:
   sync-metrics_python38:
     handler: handle.handle
     runtime: python3.8
-    layers:
-      - { Ref: Python38LambdaLayer }
-
-  # http-requests
-  http-requests_python27:
-    handler: http_requests.handle
-    runtime: python2.7
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python27LambdaLayer }
-
-  http-requests_python36:
-    handler: http_requests.handle
-    runtime: python3.6
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python36LambdaLayer }
-
-  http-requests_python37:
-    handler: http_requests.handle
-    runtime: python3.7
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python37LambdaLayer }
-
-  http-requests_python38:
-    handler: http_requests.handle
-    runtime: python3.8
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python38LambdaLayer }
-
-# http-error
-  http-error_python27:
-    handler: http_error.handle
-    runtime: python2.7
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python27LambdaLayer }
-
-  http-error_python36:
-    handler: http_error.handle
-    runtime: python3.6
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python36LambdaLayer }
-
-  http-error_python37:
-    handler: http_error.handle
-    runtime: python3.7
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python37LambdaLayer }
-
-  http-error_python38:
-    handler: http_error.handle
-    runtime: python3.8
-    environment:
-      DD_TRACE_ENABLED: true
     layers:
       - { Ref: Python38LambdaLayer }
