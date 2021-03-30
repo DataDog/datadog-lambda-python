@@ -1,21 +1,18 @@
 START RequestId: XXXX Version: $LATEST
-{"e": XXXX, "m": "aws.lambda.enhanced.invocations", "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-async-metrics_python27", "resource:integration-dev-async-metrics_python27", "cold_start:true", "memorysize:1024", "runtime:python2.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python27_2.XX.0"], "v": 1}
-{"e": XXXX, "m": "hello.dog", "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python27_2.XX.0"], "v": 1}
-{"e": XXXX, "m": "tests.integration.count", "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python27_2.XX.0"], "v": 21}
+{"e": XXXX, "m": "aws.lambda.enhanced.invocations", "t": ["region:sa-east-1", "account_id:XXXX", "functionname:python-integration-tests-XXXX-async-metrics_python27", "resource:python-integration-tests-XXXX-async-metrics_python27", "cold_start:true", "memorysize:1024", "runtime:python2.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python27_X.X.X"], "v": 1}
+{"e": XXXX, "m": "hello.dog", "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python27_X.X.X"], "v": 1}
+{"e": XXXX, "m": "tests.integration.count", "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python27_X.X.X"], "v": 21}
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	Init Duration: XXXX ms	
-XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
 START RequestId: XXXX Version: $LATEST
-{"e": XXXX, "m": "aws.lambda.enhanced.invocations", "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-async-metrics_python27", "resource:integration-dev-async-metrics_python27", "cold_start:false", "memorysize:1024", "runtime:python2.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python27_2.XX.0"], "v": 1}
-{"e": XXXX, "m": "hello.dog", "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python27_2.XX.0"], "v": 1}
-{"e": XXXX, "m": "tests.integration.count", "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python27_2.XX.0"], "v": 21}
+{"e": XXXX, "m": "aws.lambda.enhanced.invocations", "t": ["region:sa-east-1", "account_id:XXXX", "functionname:python-integration-tests-XXXX-async-metrics_python27", "resource:python-integration-tests-XXXX-async-metrics_python27", "cold_start:false", "memorysize:1024", "runtime:python2.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python27_X.X.X"], "v": 1}
+{"e": XXXX, "m": "hello.dog", "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python27_X.X.X"], "v": 1}
+{"e": XXXX, "m": "tests.integration.count", "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python27_X.X.X"], "v": 21}
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
-XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	
 START RequestId: XXXX Version: $LATEST
-{"e": XXXX, "m": "aws.lambda.enhanced.invocations", "t": ["region:us-east-1", "account_id:XXXX", "functionname:integration-dev-async-metrics_python27", "resource:integration-dev-async-metrics_python27", "cold_start:false", "memorysize:1024", "runtime:python2.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python27_2.XX.0"], "v": 1}
-{"e": XXXX, "m": "hello.dog", "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python27_2.XX.0"], "v": 1}
-{"e": XXXX, "m": "tests.integration.count", "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python27_2.XX.0"], "v": 21}
+{"e": XXXX, "m": "aws.lambda.enhanced.invocations", "t": ["region:sa-east-1", "account_id:XXXX", "functionname:python-integration-tests-XXXX-async-metrics_python27", "resource:python-integration-tests-XXXX-async-metrics_python27", "cold_start:false", "memorysize:1024", "runtime:python2.7", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python27_X.X.X"], "v": 1}
+{"e": XXXX, "m": "hello.dog", "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python27_X.X.X"], "v": 1}
+{"e": XXXX, "m": "tests.integration.count", "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python27_X.X.X"], "v": 21}
 END RequestId: XXXX
 REPORT RequestId: XXXX	Duration: XXXX ms	Billed Duration: XXXX ms	Memory Size: 1024 MB	Max Memory Used: XXXX MB	
-XRAY TraceId: XXXX	SegmentId: XXXX	Sampled: true	

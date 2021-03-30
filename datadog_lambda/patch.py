@@ -145,8 +145,8 @@ def _print_request_string(request):
 
     # Sort the datapoints POSTed by their name so that snapshots always align
     data = request.body or "{}"
+    # If payload is compressed, decompress it so we can parse it
     if request.headers.get("Content-Encoding") == "deflate":
-        # See metric.py: lambda_stats = ThreadStats(compress_payload=True)
         data = zlib.decompress(data)
     data_dict = json.loads(data)
     data_dict.get("series", []).sort(key=lambda series: series.get("metric"))

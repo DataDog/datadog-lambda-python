@@ -1,15 +1,15 @@
-service: integration
+service: python-integration-tests
 
 provider:
   name: aws
+  region: sa-east-1
   tracing:
-    lambda: true
-    apiGateway: true
+    lambda: "PassThrough"
   environment:
     DD_INTEGRATION_TEST: true
     DD_API_KEY: ${env:DD_API_KEY}
-    COLD_START_ENFORCER: ${env:COLD_START_ENFORCER}
   lambdaHashingVersion: 20201221
+  timeout: 15
 
 layers:
   python27:
@@ -26,7 +26,7 @@ layers:
       artifact: ../../.layers/datadog_lambda_py3.8.zip
 
 functions:
-  # async-metrics
+  # async-metrics (flushed to logs)
   async-metrics_python27:
     handler: handle.handle
     runtime: python2.7
@@ -59,7 +59,7 @@ functions:
     environment:
       DD_FLUSH_TO_LOG: true
 
-  # sync-metrics
+  # sync-metrics (sent via API)
   sync-metrics_python27:
     handler: handle.handle
     runtime: python2.7
