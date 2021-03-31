@@ -1,4 +1,5 @@
-service: python-integration-tests
+# IAM permissions require service name to begin with 'integration-tests'
+service: integration-tests-python
 
 provider:
   name: aws
@@ -11,6 +12,9 @@ provider:
     DD_API_KEY: ${env:DD_API_KEY}
   lambdaHashingVersion: 20201221
   timeout: 15
+  iam:
+    # IAM permissions require that all functions are deployed with this role
+    role: "arn:aws:iam::601427279990:role/serverless-integration-test-lambda-role"
 
 layers:
   python27:
