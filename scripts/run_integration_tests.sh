@@ -10,7 +10,7 @@ set -e
 
 # These values need to be in sync with serverless.yml, where there needs to be a function
 # defined for every handler_runtime combination
-LAMBDA_HANDLERS=("async-metrics" "sync-metrics" "http-requests" "http-error")
+LAMBDA_HANDLERS=("async-metrics" "sync-metrics")
 RUNTIMES=("python27" "python36" "python37" "python38")
 
 LOGS_WAIT_SECONDS=20
@@ -144,7 +144,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E 's/"points": \[\[[0-9\.]+,/"points": \[\[XXXX,/g' |
                 # Strip API key from logged requests
                 sed -E "s/(api_key=|'api_key': ')[a-z0-9\.\-]+/\1XXXX/g" |
-                # Normalize minor package version so that these snapshots aren't broken on version bumps
+                # Normalize package version so that these snapshots aren't broken on version bumps
                 sed -E "s/(dd_lambda_layer:datadog-python[0-9]+_)[0-9]+\.[0-9]+\.[0-9]+/\1X\.X\.X/g" |
                 sed -E "s/(datadog_lambda:v)([0-9]+\.[0-9]+\.[0-9])/\1XX/g" |
                 # Strip out run ID (from function name, resource, etc.)
