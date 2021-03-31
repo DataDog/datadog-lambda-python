@@ -9,7 +9,7 @@
 
 # 5 mb size limit
 MAX_LAYER_COMPRESSED_SIZE_KB=$(expr 5 \* 1024) 
-MAX_LAYER_UNCOMPRESSED_SIZE_KB=$(expr 15 \* 1024) 
+MAX_LAYER_UNCOMPRESSED_SIZE_KB=$(expr 16 \* 1024) 
 
 
 LAYER_FILES_PREFIX="datadog_lambda_py"
