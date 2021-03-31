@@ -16,9 +16,9 @@ LAYER_FILES_PREFIX="datadog_lambda_py"
 LAYER_DIR=".layers"
 VERSIONS=("2.7" "3.6" "3.7" "3.8")
 
-for node_version in "${VERSIONS[@]}"
+for version in "${VERSIONS[@]}"
 do
-    FILE=$LAYER_DIR/${LAYER_FILES_PREFIX}${node_version}.zip
+    FILE=$LAYER_DIR/${LAYER_FILES_PREFIX}${version}.zip
     FILE_SIZE=$(stat --printf="%s" $FILE)
     FILE_SIZE_KB="$(( ${FILE_SIZE%% *} / 1024))"
     echo "Layer file ${FILE} has zipped size ${FILE_SIZE_KB} kb"
