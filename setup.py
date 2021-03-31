@@ -32,7 +32,10 @@ setup(
         "datadog==0.39.0",
         "ddtrace==0.45.0",
         "wrapt==1.11.2",
-        "setuptools==42.0.2",
+        # If building for Python 3, use the latest version of setuptools
+        "setuptools==54.2.0; python_version >= '3.0'",
+        # If building for Python 2, use the latest version that supports Python 2
+        "setuptools==44.1.1; python_version < '3.0'"
     ],
     extras_require={
         "dev": ["nose2==0.9.1", "flake8==3.7.9", "requests==2.22.0", "boto3==1.10.33"]
