@@ -55,6 +55,13 @@ input_event_files=($(for file_name in ${input_event_files[@]}; do echo $file_nam
 # Generate a random 8-character ID to avoid collisions with other runs
 run_id=$(xxd -l 4 -c 4 -p < /dev/random)
 
+# Always remove the stack before exiting, no matter what
+function remove_stack() {
+    echo "Removing functions"
+    serverless remove --stage $run_id
+}
+trap remove_stack EXIT
+
 echo "Deploying functions"
 serverless deploy --stage $run_id
 
@@ -125,9 +132,6 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
             echo "Error from final attempt to retrieve logs:"
             echo $raw_logs
 
-            echo "Removing functions"
-            serverless remove --stage $run_id
-
             exit 1
         fi
 
@@ -190,9 +194,6 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
     done
 done
 set -e
-
-echo "Removing functions"
-serverless remove --stage $run_id
 
 if [ "$mismatch_found" = true ]; then
     echo "FAILURE: A mismatch between new data and a snapshot was found and printed above."
