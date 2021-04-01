@@ -24,6 +24,12 @@ script_utc_start_time=$(date -u +"%Y%m%dT%H%M%S")
 
 mismatch_found=false
 
+if [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+    echo "No AWS credentials were found in the environment."
+    echo "Note that only Datadog employees can run these integration tests."
+    exit 1
+fi
+
 if [ -z "$DD_API_KEY" ]; then
     echo "No DD_API_KEY env var set, exiting"
     exit 1
