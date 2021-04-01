@@ -1,6 +1,5 @@
 {
   "devDependencies": {
-    "serverless-deployment-bucket": "^1.4.1",
     "serverless-plugin-datadog": "^2.18.0"
   }
 }
