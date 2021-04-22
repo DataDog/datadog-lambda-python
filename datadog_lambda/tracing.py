@@ -295,8 +295,8 @@ def set_correlation_ids():
     context = get_dd_trace_context()
 
     span = tracer.trace("dummy.span")
-    span.trace_id = context[TraceHeader.TRACE_ID]
-    span.span_id = context[TraceHeader.PARENT_ID]
+    span.trace_id = int(context[TraceHeader.TRACE_ID])
+    span.span_id = int(context[TraceHeader.PARENT_ID])
 
     logger.debug("correlation ids set")
 
