@@ -1,4 +1,3 @@
-Serverless: Running "serverless" installed locally (in service node_modules)
 START RequestId: XXXX Version: $LATEST
 {"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:sa-east-1", "account_id:XXXX", "functionname:integration-tests-python-XXXX-sync-metrics_python36", "resource:integration-tests-python-XXXX-sync-metrics_python36", "cold_start:true", "memorysize:1024", "runtime:python3.6", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python36_X.X.X"]}
 HTTP GET https://httpstat.us/200/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/2.25.1", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-trace-id:XXXX"] Data: {}

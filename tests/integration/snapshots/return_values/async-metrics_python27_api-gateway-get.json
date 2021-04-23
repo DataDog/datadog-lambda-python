@@ -1,4 +1,3 @@
-Serverless: Running "serverless" installed locally (in service node_modules)
 {
     "body": {
         "message": "hello, dog!",
