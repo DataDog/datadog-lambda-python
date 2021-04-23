@@ -353,7 +353,7 @@ After you have configured your function following the steps above, you can view 
 
 ### Unified Service Tagging
 
-Although it's optional, Datadog highly recommends tagging you serverless applications with the `env`, `service`, and `version` tags following the [unified service tagging documentation][3].
+Although it's optional, Datadog highly recommends tagging your serverless applications with the `env`, `service`, and `version` tags following the [unified service tagging documentation][3].
 
 ### Monitor Custom Business Logic
 
