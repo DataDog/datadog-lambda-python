@@ -385,8 +385,8 @@ class TestLogsInjection(unittest.TestCase):
     def test_set_correlation_ids(self):
         set_correlation_ids()
         trace_id, span_id = get_correlation_ids()
-        self.assertEqual(trace_id, "123")
-        self.assertEqual(span_id, "456")
+        self.assertEqual(trace_id, 123)
+        self.assertEqual(span_id, 456)
 
 
 class TestFunctionSpanTags(unittest.TestCase):
