@@ -39,6 +39,8 @@ def parse_event_source(event):
         api-gateway | application-load-balancer | cloudwatch-logs |
         cloudwatch-events | cloudfront | dynamodb | kinesis | s3 | sns | sqs
     """
+    if type(event) is not dict:
+        return
     event_source = event.get("eventSource") or event.get("EventSource")
 
     request_context = event.get("requestContext")

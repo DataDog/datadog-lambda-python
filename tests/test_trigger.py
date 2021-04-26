@@ -330,6 +330,12 @@ class GetTriggerTags(unittest.TestCase):
         tags = extract_trigger_tags(event, ctx)
         self.assertEqual(tags, {})
 
+    def test_extract_trigger_tags_list_type_event(self):
+        event = []
+        ctx = get_mock_context()
+        tags = extract_trigger_tags(event, ctx)
+        self.assertEqual(tags, {})
+
 
 class ExtractHTTPStatusCodeTag(unittest.TestCase):
     def test_extract_http_status_code_tag_from_response_dict(self):
