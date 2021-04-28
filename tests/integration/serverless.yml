@@ -19,74 +19,25 @@ provider:
     role: "arn:aws:iam::601427279990:role/serverless-integration-test-lambda-role"
 
 layers:
-  python27:
+  python:
     package:
-      artifact: ../../.layers/datadog_lambda_py2.7.zip
-  python36:
-    package:
-      artifact: ../../.layers/datadog_lambda_py3.6.zip
-  python37:
-    package:
-      artifact: ../../.layers/datadog_lambda_py3.7.zip
-  python38:
-    package:
-      artifact: ../../.layers/datadog_lambda_py3.8.zip
+      artifact: ../../.layers/datadog_lambda_py${env:PYTHON_VERSION}.zip
 
 functions:
   # async-metrics (flushed to logs)
-  async-metrics_python27:
+  async-metrics_python:
+    name: integration-tests-python-${sls:stage}-async-metrics_${env:RUNTIME}
     handler: handle.handle
-    runtime: python2.7
+    runtime: ${env:SERVERLESS_RUNTIME}
     layers:
-      - { Ref: Python27LambdaLayer }
-    environment:
-      DD_FLUSH_TO_LOG: true
-
-  async-metrics_python36:
-    handler: handle.handle
-    runtime: python3.6
-    layers:
-      - { Ref: Python36LambdaLayer }
-    environment:
-      DD_FLUSH_TO_LOG: true
-
-  async-metrics_python37:
-    handler: handle.handle
-    runtime: python3.7
-    layers:
-      - { Ref: Python37LambdaLayer }
-    environment:
-      DD_FLUSH_TO_LOG: true
-
-  async-metrics_python38:
-    handler: handle.handle
-    runtime: python3.8
-    layers:
-      - { Ref: Python38LambdaLayer }
+      - { Ref: PythonLambdaLayer }
     environment:
       DD_FLUSH_TO_LOG: true
 
   # sync-metrics (sent via API)
-  sync-metrics_python27:
+  sync-metrics_python:
+    name: integration-tests-python-${sls:stage}-sync-metrics_${env:RUNTIME}
     handler: handle.handle
-    runtime: python2.7
+    runtime: ${env:SERVERLESS_RUNTIME}
     layers:
-      - { Ref: Python27LambdaLayer }
-
-  sync-metrics_python36:
-    handler: handle.handle
-    runtime: python3.6
-    layers:
-      - { Ref: Python36LambdaLayer }
-
-  sync-metrics_python37:
-    handler: handle.handle
-    runtime: python3.7
-    layers:
-      - { Ref: Python37LambdaLayer }
-
-  sync-metrics_python38:
-    handler: handle.handle
-    runtime: python3.8
-    layers:
-      - { Ref: Python38LambdaLayer }
+      - { Ref: PythonLambdaLayer }
