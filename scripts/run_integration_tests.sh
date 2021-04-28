@@ -72,7 +72,7 @@ input_event_files=$(ls ./input_events)
 # Sort event files by name so that snapshots stay consistent
 input_event_files=($(for file_name in ${input_event_files[@]}; do echo $file_name; done | sort))
 
-# Always remove the stacks before exiting, no matter what
+# Always remove the stack(s) before exiting, no matter what
 function remove_stack() {
     for parameters_set in "${PARAMETERS_SETS[@]}"; do
         serverless_runtime=$parameters_set[0]
