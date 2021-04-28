@@ -39,7 +39,7 @@ if [ -z "$RUNTIME_PARAM" ]; then
     echo "Python version not specified, running for all python versions."
 else
     RUNTIME_PARAM_NO_DOT=$(echo $RUNTIME_PARAM | sed 's/\.//')
-    echo "Python version is specified: $RUNTIME_PARAM_NO_DOT"
+    echo "Python version is specified: $RUNTIME_PARAM"
     PARAMETERS_SETS=(python${RUNTIME_PARAM_NO_DOT})
     BUILD_LAYER_VERSION=python$RUNTIME_PARAM_NO_DOT[1]
 fi
