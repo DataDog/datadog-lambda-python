@@ -38,14 +38,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_threadstats_flush_distributions = patcher.start()
         self.addCleanup(patcher.stop)
 
-        self.metric_lambda_stats_patcher = patch("datadog_lambda.metric.lambda_stats")
-        self.mock_metric_lambda_stats = self.metric_lambda_stats_patcher.start()
-        self.addCleanup(self.metric_lambda_stats_patcher.stop)
-
-        self.wrapper_lambda_stats_patcher = patch("datadog_lambda.wrapper.lambda_stats")
-        self.mock_wrapper_lambda_stats = self.wrapper_lambda_stats_patcher.start()
-        self.addCleanup(self.wrapper_lambda_stats_patcher.stop)
-
         patcher = patch("datadog_lambda.wrapper.extract_dd_trace_context")
         self.mock_extract_dd_trace_context = patcher.start()
         self.mock_extract_dd_trace_context.return_value = ({}, None)
@@ -101,10 +93,23 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         lambda_handler(lambda_event, lambda_context)
 
-        self.mock_metric_lambda_stats.distribution.assert_has_calls(
-            [call("test.metric", 100, timestamp=None, tags=ANY)]
+        self.mock_threadstats_flush_distributions.assert_has_calls(
+            [
+                call(
+                    [
+                        {
+                            "metric": "test.metric",
+                            "points": [[ANY, [100]]],
+                            "type": "distribution",
+                            "host": None,
+                            "device": None,
+                            "tags": ANY,
+                            "interval": 10,
+                        }
+                    ]
+                )
+            ]
         )
-        self.mock_wrapper_lambda_stats.flush.assert_called()
         self.mock_extract_dd_trace_context.assert_called_with(
             lambda_event, lambda_context, extractor=None
         )
@@ -122,16 +127,11 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         lambda_event = {}
         lambda_handler(lambda_event, get_mock_context())
 
-        self.mock_metric_lambda_stats.distribution.assert_not_called()
-        self.mock_wrapper_lambda_stats.flush.assert_not_called()
+        self.mock_threadstats_flush_distributions.assert_not_called()
 
         del os.environ["DD_FLUSH_TO_LOG"]
 
     def test_datadog_lambda_wrapper_flush_in_thread(self):
-        # stop patchers so mock_threadstats_flush_distributions gets called
-        self.metric_lambda_stats_patcher.stop()
-        self.wrapper_lambda_stats_patcher.stop()
-
         # force ThreadStats to flush in thread
         import datadog_lambda.metric as metric_module
 
@@ -158,15 +158,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         metric_module.lambda_stats.stop()
         metric_module.lambda_stats.start(flush_in_thread=False)
 
-        # resume patchers
-        self.metric_lambda_stats_patcher.start()
-        self.wrapper_lambda_stats_patcher.start()
-
     def test_datadog_lambda_wrapper_not_flush_in_thread(self):
-        # stop patchers so mock_threadstats_flush_distributions gets called
-        self.metric_lambda_stats_patcher.stop()
-        self.wrapper_lambda_stats_patcher.stop()
-
         # force ThreadStats to not flush in thread
         import datadog_lambda.metric as metric_module
 
@@ -192,10 +184,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         # reset ThreadStats
         metric_module.lambda_stats.stop()
         metric_module.lambda_stats.start(flush_in_thread=False)
-
-        # resume patchers
-        self.metric_lambda_stats_patcher.start()
-        self.wrapper_lambda_stats_patcher.start()
 
     def test_datadog_lambda_wrapper_inject_correlation_ids(self):
         os.environ["DD_LOGS_INJECTION"] = "True"
@@ -445,5 +433,4 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         lambda_handler_double_wrapped(lambda_event, get_mock_context())
 
         self.mock_patch_all.assert_called_once()
-        self.mock_wrapper_lambda_stats.flush.assert_called_once()
         self.mock_submit_invocations_metric.assert_called_once()

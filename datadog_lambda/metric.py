@@ -91,6 +91,42 @@ def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
     )
 
 
+def flush_thread_stats():
+    """"Flush distributions from ThreadStats to Datadog.
+
+    Modified based on `datadog.threadstats.base.ThreadStats.flush()`,
+    to gain better control over exception handling.
+    """
+    _, dists = lambda_stats._get_aggregate_metrics_and_dists(float("inf"))
+    count_dists = len(dists)
+    if not count_dists:
+        logger.debug("No distributions to flush. Continuing.")
+
+    lambda_stats.flush_count += 1
+    logger.debug(
+        "Flush #%s sending %s distributions", lambda_stats.flush_count, count_dists
+    )
+    try:
+        lambda_stats.reporter.flush_distributions(dists)
+    except Exception as e:
+        # The nature of the root issue https://bugs.python.org/issue41345 is to be complex,
+        # but comprehensive tests suggest that it is safe to retry on this specific error.
+        if isinstance(e, api.exceptions.ClientError) and "RemoteDisconnected" in str(e):
+            logger.debug(
+                "Retry flush #%s due to RemoteDisconnected", lambda_stats.flush_count
+            )
+            try:
+                lambda_stats.reporter.flush_distributions(dists)
+            except Exception:
+                logger.debug(
+                    "Flush #%s failed after retry",
+                    lambda_stats.flush_count,
+                    exc_info=True,
+                )
+        else:
+            logger.debug("Flush #%s failed", lambda_stats.flush_count, exc_info=True)
+
+
 def are_enhanced_metrics_enabled():
     """Check env var to find if enhanced metrics should be submitted
 
@@ -165,3 +201,6 @@ api._api_host = os.environ.get(
     "DATADOG_HOST", "https://api." + os.environ.get("DD_SITE", "datadoghq.com")
 )
 logger.debug("Setting DATADOG_HOST to %s", api._api_host)
+
+# Unmute exceptions from datadog api client, so we can catch and handle them
+api._mute = False

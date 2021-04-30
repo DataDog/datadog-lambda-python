@@ -12,7 +12,7 @@ from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
 from datadog_lambda.constants import XraySubsegment, TraceContextSource
 from datadog_lambda.metric import (
-    lambda_stats,
+    flush_thread_stats,
     submit_invocations_metric,
     submit_errors_metric,
 )
@@ -177,7 +177,7 @@ class _LambdaDecorator(object):
                 )
 
             if not self.flush_to_log or should_use_extension:
-                lambda_stats.flush(float("inf"))
+                flush_thread_stats()
             if should_use_extension:
                 flush_extension()
 
