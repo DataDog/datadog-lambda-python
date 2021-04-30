@@ -109,7 +109,7 @@ def flush_thread_stats():
     try:
         lambda_stats.reporter.flush_distributions(dists)
     except Exception as e:
-        # The nature of the root issue https://bugs.python.org/issue41345 is to be complex,
+        # The nature of the root issue https://bugs.python.org/issue41345 is complex,
         # but comprehensive tests suggest that it is safe to retry on this specific error.
         if isinstance(e, api.exceptions.ClientError) and "RemoteDisconnected" in str(e):
             logger.debug(
