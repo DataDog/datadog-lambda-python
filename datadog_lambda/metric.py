@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 class StatsWriter:
-
     def distribution(self, metric_name, value, tags=[], timestamp=None):
         raise NotImplementedError()
 
@@ -44,7 +43,7 @@ class StatsDWriter(StatsWriter):
 
     def distribution(self, metric_name, value, tags=[], timestamp=None):
         statsd.distribution(metric_name, value, tags=tags)
-    
+
     def flush(self):
         pass
 
