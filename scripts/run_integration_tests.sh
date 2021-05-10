@@ -197,6 +197,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 # Normalize package version so that these snapshots aren't broken on version bumps
                 sed -E "s/(dd_lambda_layer:datadog-python[0-9]+_)[0-9]+\.[0-9]+\.[0-9]+/\1X\.X\.X/g" |
                 sed -E "s/(datadog_lambda:v)([0-9]+\.[0-9]+\.[0-9])/\1XX/g" |
+                sed -E "s/(python )([0-9]\.[0-9]+\.[0-9]+)/\1XX/g" |
                 # Strip out run ID (from function name, resource, etc.)
                 sed -E "s/${!run_id}/XXXX/g" |
                 # Strip out trace/span/parent/timestamps

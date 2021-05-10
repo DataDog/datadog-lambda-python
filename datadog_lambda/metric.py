@@ -9,7 +9,6 @@ import time
 import base64
 import logging
 
-from abc import ABC, abstractmethod
 import boto3
 from datadog import api, initialize, statsd
 from datadog.threadstats import ThreadStats
@@ -22,18 +21,16 @@ ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 logger = logging.getLogger(__name__)
 
 
-class StatsWriter(ABC):
+class StatsWriter:
 
-    @abstractmethod
     def distribution(self, metric_name, value, tags=[], timestamp=None):
-        pass
+        raise NotImplementedError()
 
-    @abstractmethod
     def flush(self):
-        pass
-    @abstractmethod
+        raise NotImplementedError()
+
     def stop(self):
-        pass
+        raise NotImplementedError()
 
 
 class StatsDWriter(StatsWriter):
@@ -47,6 +44,12 @@ class StatsDWriter(StatsWriter):
 
     def distribution(self, metric_name, value, tags=[], timestamp=None):
         statsd.distribution(metric_name, value, tags=tags)
+    
+    def flush(self):
+        pass
+
+    def stop(self):
+        pass
 
 
 class ThreadStatsWriter(StatsWriter):
