@@ -7,7 +7,7 @@ except ImportError:
     from mock import patch, call
 
 from datadog.api.exceptions import ClientError
-from datadog_lambda.metric import lambda_metric, flush_thread_stats
+from datadog_lambda.metric import lambda_metric, ThreadStatsWriter
 from datadog_lambda.tags import _format_dd_lambda_layer_tag
 
 
@@ -49,10 +49,12 @@ class TestFlushThreadStats(unittest.TestCase):
 
     def test_retry_on_remote_disconnected(self):
         # Raise the RemoteDisconnected error
+        lambda_stats = ThreadStatsWriter(True)
+
         self.mock_threadstats_flush_distributions.side_effect = ClientError(
             "POST",
             "https://api.datadoghq.com/api/v1/distribution_points",
             "RemoteDisconnected('Remote end closed connection without response')",
         )
-        flush_thread_stats()
+        lambda_stats.flush()
         self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 2)

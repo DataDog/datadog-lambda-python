@@ -7,7 +7,7 @@ except ImportError:
     from mock import patch, call, ANY, MagicMock
 
 from datadog_lambda.wrapper import datadog_lambda_wrapper
-from datadog_lambda.metric import lambda_metric
+from datadog_lambda.metric import lambda_metric, ThreadStatsWriter
 
 
 def get_mock_context(
@@ -136,7 +136,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         import datadog_lambda.metric as metric_module
 
         metric_module.lambda_stats.stop()
-        metric_module.lambda_stats.start(flush_in_thread=True)
+        metric_module.lambda_stats = ThreadStatsWriter(True)
 
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -156,14 +156,14 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         # reset ThreadStats
         metric_module.lambda_stats.stop()
-        metric_module.lambda_stats.start(flush_in_thread=False)
+        metric_module.lambda_stats = ThreadStatsWriter(False)
 
     def test_datadog_lambda_wrapper_not_flush_in_thread(self):
         # force ThreadStats to not flush in thread
         import datadog_lambda.metric as metric_module
 
         metric_module.lambda_stats.stop()
-        metric_module.lambda_stats.start(flush_in_thread=False)
+        metric_module.lambda_stats = ThreadStatsWriter(False)
 
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -183,7 +183,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         # reset ThreadStats
         metric_module.lambda_stats.stop()
-        metric_module.lambda_stats.start(flush_in_thread=False)
+        metric_module.lambda_stats = ThreadStatsWriter(False)
 
     def test_datadog_lambda_wrapper_inject_correlation_ids(self):
         os.environ["DD_LOGS_INJECTION"] = "True"
