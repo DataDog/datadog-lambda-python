@@ -114,7 +114,11 @@ def create_dd_dummy_metadata_subsegment(
         )
         xray_recorder.end_subsegment()
     except Exception as e:
-        logger.debug("failed to create dd dummy metadata subsegment with error %s", e)
+        logger.debug(
+            "failed to create dd dummy metadata subsegment with error %s",
+            e,
+            exc_info=True,
+        )
 
 
 def extract_context_from_lambda_context(lambda_context):
