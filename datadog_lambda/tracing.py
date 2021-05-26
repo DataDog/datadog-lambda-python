@@ -106,12 +106,19 @@ def create_dd_dummy_metadata_subsegment(
     tags into its metadata field, so the X-Ray trace can be converted to a Datadog
     trace in the Datadog backend with the correct context.
     """
-    xray_recorder.begin_subsegment(XraySubsegment.NAME)
-    subsegment = xray_recorder.current_subsegment()
-    subsegment.put_metadata(
-        subsegment_metadata_key, subsegment_metadata_value, XraySubsegment.NAMESPACE
-    )
-    xray_recorder.end_subsegment()
+    try:
+        xray_recorder.begin_subsegment(XraySubsegment.NAME)
+        subsegment = xray_recorder.current_subsegment()
+        subsegment.put_metadata(
+            subsegment_metadata_key, subsegment_metadata_value, XraySubsegment.NAMESPACE
+        )
+        xray_recorder.end_subsegment()
+    except Exception as e:
+        logger.debug(
+            "failed to create dd dummy metadata subsegment with error %s",
+            e,
+            exc_info=True,
+        )
 
 
 def extract_context_from_lambda_context(lambda_context):
