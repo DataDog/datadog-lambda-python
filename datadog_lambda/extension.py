@@ -9,6 +9,7 @@ EXTENSION_PATH = "/opt/extensions/datadog-agent"
 
 logger = logging.getLogger(__name__)
 
+
 def is_extension_running():
     if not path.exists(EXTENSION_PATH):
         return False
