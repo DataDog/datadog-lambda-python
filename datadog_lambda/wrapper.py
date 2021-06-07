@@ -95,6 +95,7 @@ class _LambdaDecorator(object):
             self.function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "function")
             self.extractor_env = os.environ.get("DD_TRACE_EXTRACTOR", None)
             self.trace_extractor = None
+            self.span = None
 
             if self.extractor_env:
                 extractor_parts = self.extractor_env.rsplit(".", 1)
@@ -146,7 +147,6 @@ class _LambdaDecorator(object):
                     dd_context, XraySubsegment.TRACE_KEY
                 )
 
-            self.span = None
             if dd_tracing_enabled:
                 set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
                 self.span = create_function_execution_span(
