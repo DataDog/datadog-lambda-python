@@ -243,7 +243,7 @@ def decrypt_kms_api_key(kms_client, ciphertext):
         )["Plaintext"]
     except ClientError:
         logger.debug(
-            "Failed to decrypt ciphertext with encryption context, retrying without encryption context"
+            "Failed to decrypt ciphertext with encryption context, retrying without"
         )
         # Try without encryption context
         plaintext = kms_client.decrypt(CiphertextBlob=decoded_bytes)["Plaintext"]
