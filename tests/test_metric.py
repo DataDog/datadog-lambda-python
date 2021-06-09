@@ -12,7 +12,7 @@ from datadog_lambda.metric import (
     decrypt_kms_api_key,
     lambda_metric,
     ThreadStatsWriter,
-    KMS_ENCRYPTION_CONTEXT_KEY
+    KMS_ENCRYPTION_CONTEXT_KEY,
 )
 from datadog_lambda.tags import _format_dd_lambda_layer_tag
 
@@ -84,30 +84,36 @@ class TestDecryptKMSApiKey(unittest.TestCase):
 
         class MockKMSClient:
             def decrypt(CiphertextBlob=None, EncryptionContext=None):
-                if EncryptionContext.get(KMS_ENCRYPTION_CONTEXT_KEY) != self.mock_function_name:
+                if (
+                    EncryptionContext.get(KMS_ENCRYPTION_CONTEXT_KEY)
+                    != self.mock_function_name
+                ):
                     raise BotocoreClientError()
-                if CiphertextBlob == self.mock_encrypted_api_key.encode('utf-8'):
+                if CiphertextBlob == self.mock_encrypted_api_key.encode("utf-8"):
                     return {
                         "Plaintext": self.expected_decrypted_api_key,
-                    } 
+                    }
 
         mock_kms_client = MockKMSClient()
-        decrypted_key = decrypt_kms_api_key(mock_kms_client, self.mock_encrypted_api_key_base64)
+        decrypted_key = decrypt_kms_api_key(
+            mock_kms_client, self.mock_encrypted_api_key_base64
+        )
         self.assertEqual(decrypted_key, self.expected_decrypted_api_key)
 
         del os.environ["AWS_LAMBDA_FUNCTION_NAME"]
-    
-    def test_key_encrypted_without_encryption_context(self):
 
+    def test_key_encrypted_without_encryption_context(self):
         class MockKMSClient:
             def decrypt(CiphertextBlob=None, EncryptionContext=None):
                 if EncryptionContext.get(KMS_ENCRYPTION_CONTEXT_KEY) != None:
                     raise BotocoreClientError()
-                if CiphertextBlob == self.mock_encrypted_api_key.encode('utf-8'):
+                if CiphertextBlob == self.mock_encrypted_api_key.encode("utf-8"):
                     return {
                         "Plaintext": self.expected_decrypted_api_key,
                     }
-        
+
         mock_kms_client = MockKMSClient()
-        decrypted_key = decrypt_kms_api_key(mock_kms_client, self.mock_encrypted_api_key_base64)
+        decrypted_key = decrypt_kms_api_key(
+            mock_kms_client, self.mock_encrypted_api_key_base64
+        )
         self.assertEqual(decrypted_key, self.expected_decrypted_api_key)
