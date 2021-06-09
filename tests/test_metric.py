@@ -16,6 +16,7 @@ from datadog_lambda.metric import (
 )
 from datadog_lambda.tags import _format_dd_lambda_layer_tag
 
+
 class TestLambdaMetric(unittest.TestCase):
     def setUp(self):
         patcher = patch("datadog_lambda.metric.lambda_stats")
@@ -64,6 +65,7 @@ class TestFlushThreadStats(unittest.TestCase):
         lambda_stats.flush()
         self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 2)
 
+
 MOCK_FUNCTION_NAME = "myFunction"
 
 # An API key encrypted with KMS and encoded as a base64 string
@@ -74,8 +76,9 @@ MOCK_ENCRYPTED_API_KEY = "2222222222222222"
 
 # The true value of the API key after decryption by KMS
 EXPECTED_DECRYPTED_API_KEY = "1111111111111111"
-class TestDecryptKMSApiKey(unittest.TestCase):
 
+
+class TestDecryptKMSApiKey(unittest.TestCase):
     def test_key_encrypted_with_encryption_context(self):
         os.environ["AWS_LAMBDA_FUNCTION_NAME"] = MOCK_FUNCTION_NAME
 
