@@ -83,7 +83,7 @@ class TestDecryptKMSApiKey(unittest.TestCase):
         os.environ["AWS_LAMBDA_FUNCTION_NAME"] = MOCK_FUNCTION_NAME
 
         class MockKMSClient:
-            def decrypt(self, CiphertextBlob=None, EncryptionContext=None):
+            def decrypt(self, CiphertextBlob=None, EncryptionContext={}):
                 if (
                     EncryptionContext.get(KMS_ENCRYPTION_CONTEXT_KEY)
                     != MOCK_FUNCTION_NAME
@@ -104,7 +104,7 @@ class TestDecryptKMSApiKey(unittest.TestCase):
 
     def test_key_encrypted_without_encryption_context(self):
         class MockKMSClient:
-            def decrypt(self, CiphertextBlob=None, EncryptionContext=None):
+            def decrypt(self, CiphertextBlob=None, EncryptionContext={}):
                 if EncryptionContext.get(KMS_ENCRYPTION_CONTEXT_KEY) != None:
                     raise BotocoreClientError({}, "Decrypt")
                 if CiphertextBlob == self.mock_encrypted_api_key.encode("utf-8"):
