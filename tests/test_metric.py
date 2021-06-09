@@ -6,8 +6,14 @@ try:
 except ImportError:
     from mock import patch, call
 
+from botocore.exceptions import ClientError as BotocoreClientError
 from datadog.api.exceptions import ClientError
-from datadog_lambda.metric import lambda_metric, ThreadStatsWriter
+from datadog_lambda.metric import (
+    decrypt_kms_api_key,
+    lambda_metric,
+    ThreadStatsWriter,
+    KMS_ENCRYPTION_CONTEXT_KEY
+)
 from datadog_lambda.tags import _format_dd_lambda_layer_tag
 
 
@@ -58,3 +64,50 @@ class TestFlushThreadStats(unittest.TestCase):
         )
         lambda_stats.flush()
         self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 2)
+
+
+class TestDecryptKMSApiKey(unittest.TestCase):
+
+    mock_function_name = "myFunction"
+
+    # An API key encrypted with KMS and encoded as a base64 string
+    mock_encrypted_api_key_base64 = "MjIyMjIyMjIyMjIyMjIyMg=="
+
+    # The encrypted API key after it has been decoded from base64
+    mock_encrypted_api_key = "2222222222222222"
+
+    # The true value of the API key after decryption by KMS
+    expected_decrypted_api_key = "1111111111111111"
+
+    def test_key_encrypted_with_encryption_context(self):
+        os.environ["AWS_LAMBDA_FUNCTION_NAME"] = self.mock_function_name
+
+        class MockKMSClient:
+            def decrypt(CiphertextBlob, EncryptionContext):
+                if EncryptionContext.get(KMS_ENCRYPTION_CONTEXT_KEY) != self.mock_function_name:
+                    raise BotocoreClientError()
+                if CiphertextBlob == self.mock_encrypted_api_key.encode('utf-8'):
+                    return {
+                        "Plaintext": self.expected_decrypted_api_key,
+                    } 
+
+        mock_kms_client = MockKMSClient()
+        decrypted_key = decrypt_kms_api_key(mock_kms_client, self.mock_encrypted_api_key_base64)
+        self.assertEqual(decrypted_key, self.expected_decrypted_api_key)
+
+        del os.environ["AWS_LAMBDA_FUNCTION_NAME"]
+    
+    def test_key_encrypted_without_encryption_context(self):
+
+        class MockKMSClient:
+            def decrypt(CiphertextBlob, EncryptionContext):
+                if EncryptionContext.get(KMS_ENCRYPTION_CONTEXT_KEY) != None:
+                    raise BotocoreClientError()
+                if CiphertextBlob == self.mock_encrypted_api_key.encode('utf-8'):
+                    return {
+                        "Plaintext": self.expected_decrypted_api_key,
+                    }
+        
+        mock_kms_client = MockKMSClient()
+        decrypted_key = decrypt_kms_api_key(mock_kms_client, self.mock_encrypted_api_key_base64)
+        self.assertEqual(decrypted_key, self.expected_decrypted_api_key)

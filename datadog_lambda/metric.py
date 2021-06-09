@@ -9,13 +9,14 @@ import time
 import base64
 import logging
 
+from botocore.exceptions import ClientError
 import boto3
 from datadog import api, initialize, statsd
 from datadog.threadstats import ThreadStats
 from datadog_lambda.extension import should_use_extension
 from datadog_lambda.tags import get_enhanced_metrics_tags, tag_dd_lambda_layer
 
-
+KMS_ENCRYPTION_CONTEXT_KEY = "LambdaFunctionName"
 ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
 logger = logging.getLogger(__name__)
@@ -212,13 +213,45 @@ def submit_errors_metric(lambda_context):
     """
     submit_enhanced_metric("errors", lambda_context)
 
+def decrypt_kms_api_key(ciphertext):
+    """
+    Decodes and deciphers the base64-encoded ciphertext given as a parameter using KMS.
+    For this to work properly, the Lambda function must have the appropriate IAM permissions.
 
-# Set API Key and Host in the module, so they only set once per container
+    Args:
+        ciphertext (string): The base64-encoded ciphertext to decrypt
+    """
+    decoded_bytes = base64.b64decode(ciphertext)
+
+    """
+    The Lambda console UI changed the way it encrypts environment variables.
+    The current behavior as of May 2021 is to encrypt environment variables using the function name as an encryption context.
+    Previously, the behavior was to encrypt environment variables without an encryption context.
+    We need to try both, as supplying the incorrect encryption context will cause decryption to fail.
+    """
+    # Try with encryption context
+    function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
+    try:
+        plaintext = kms_client.decrypt(
+            CiphertextBlob=decoded_bytes,
+            EncryptionContext={
+                KMS_ENCRYPTION_CONTEXT_KEY: function_name,
+            }
+        )["Plaintext"]
+    except ClientError:
+        logger.debug("Failed to decrypt ciphertext with encryption context, retrying without encryption context")
+        # Try without encryption context
+        plaintext = kms_client.decrypt(CiphertextBlob=decoded_bytes)["Plaintext"]
+
+    return plaintext
+
+# Set API Key
 if not api._api_key:
     DD_API_KEY_SECRET_ARN = os.environ.get("DD_API_KEY_SECRET_ARN", "")
     DD_API_KEY_SSM_NAME = os.environ.get("DD_API_KEY_SSM_NAME", "")
     DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY", "")
     DD_API_KEY = os.environ.get("DD_API_KEY", os.environ.get("DATADOG_API_KEY", ""))
+
     if DD_API_KEY_SECRET_ARN:
         api._api_key = boto3.client("secretsmanager").get_secret_value(
             SecretId=DD_API_KEY_SECRET_ARN
@@ -228,11 +261,11 @@ if not api._api_key:
             Name=DD_API_KEY_SSM_NAME, WithDecryption=True
         )["Parameter"]["Value"]
     elif DD_KMS_API_KEY:
-        api._api_key = boto3.client("kms").decrypt(
-            CiphertextBlob=base64.b64decode(DD_KMS_API_KEY)
-        )["Plaintext"]
+        kms_client = boto3.client("kms")
+        api._api_key = decrypt_kms_api_key(kms_client, DD_KMS_API_KEY)
     else:
         api._api_key = DD_API_KEY
+
 logger.debug("Setting DATADOG_API_KEY of length %d", len(api._api_key))
 
 # Set DATADOG_HOST, to send data to a non-default Datadog datacenter
