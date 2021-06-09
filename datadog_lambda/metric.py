@@ -213,12 +213,14 @@ def submit_errors_metric(lambda_context):
     """
     submit_enhanced_metric("errors", lambda_context)
 
-def decrypt_kms_api_key(ciphertext):
+
+def decrypt_kms_api_key(kms_client, ciphertext):
     """
     Decodes and deciphers the base64-encoded ciphertext given as a parameter using KMS.
     For this to work properly, the Lambda function must have the appropriate IAM permissions.
 
     Args:
+        kms_client: The KMS client to use for decryption
         ciphertext (string): The base64-encoded ciphertext to decrypt
     """
     decoded_bytes = base64.b64decode(ciphertext)
@@ -236,14 +238,17 @@ def decrypt_kms_api_key(ciphertext):
             CiphertextBlob=decoded_bytes,
             EncryptionContext={
                 KMS_ENCRYPTION_CONTEXT_KEY: function_name,
-            }
+            },
         )["Plaintext"]
     except ClientError:
-        logger.debug("Failed to decrypt ciphertext with encryption context, retrying without encryption context")
+        logger.debug(
+            "Failed to decrypt ciphertext with encryption context, retrying without encryption context"
+        )
         # Try without encryption context
         plaintext = kms_client.decrypt(CiphertextBlob=decoded_bytes)["Plaintext"]
 
     return plaintext
+
 
 # Set API Key
 if not api._api_key:
