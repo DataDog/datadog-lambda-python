@@ -16,9 +16,6 @@ from datadog_lambda.metric import (
 )
 from datadog_lambda.tags import _format_dd_lambda_layer_tag
 
-MOCK_FUNCTION_NAME = "myFunction"
-
-
 class TestLambdaMetric(unittest.TestCase):
     def setUp(self):
         patcher = patch("datadog_lambda.metric.lambda_stats")
@@ -67,17 +64,17 @@ class TestFlushThreadStats(unittest.TestCase):
         lambda_stats.flush()
         self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 2)
 
+MOCK_FUNCTION_NAME = "myFunction"
 
+# An API key encrypted with KMS and encoded as a base64 string
+MOCK_ENCRYPTED_API_KEY_BASE64 = "MjIyMjIyMjIyMjIyMjIyMg=="
+
+# The encrypted API key after it has been decoded from base64
+MOCK_ENCRYPTED_API_KEY = "2222222222222222"
+
+# The true value of the API key after decryption by KMS
+EXPECTED_DECRYPTED_API_KEY = "1111111111111111"
 class TestDecryptKMSApiKey(unittest.TestCase):
-
-    # An API key encrypted with KMS and encoded as a base64 string
-    mock_encrypted_api_key_base64 = "MjIyMjIyMjIyMjIyMjIyMg=="
-
-    # The encrypted API key after it has been decoded from base64
-    mock_encrypted_api_key = "2222222222222222"
-
-    # The true value of the API key after decryption by KMS
-    expected_decrypted_api_key = "1111111111111111"
 
     def test_key_encrypted_with_encryption_context(self):
         os.environ["AWS_LAMBDA_FUNCTION_NAME"] = MOCK_FUNCTION_NAME
@@ -89,16 +86,16 @@ class TestDecryptKMSApiKey(unittest.TestCase):
                     != MOCK_FUNCTION_NAME
                 ):
                     raise BotocoreClientError({}, "Decrypt")
-                if CiphertextBlob == self.mock_encrypted_api_key.encode("utf-8"):
+                if CiphertextBlob == MOCK_ENCRYPTED_API_KEY.encode("utf-8"):
                     return {
-                        "Plaintext": self.expected_decrypted_api_key,
+                        "Plaintext": EXPECTED_DECRYPTED_API_KEY,
                     }
 
         mock_kms_client = MockKMSClient()
         decrypted_key = decrypt_kms_api_key(
-            mock_kms_client, self.mock_encrypted_api_key_base64
+            mock_kms_client, MOCK_ENCRYPTED_API_KEY_BASE64
         )
-        self.assertEqual(decrypted_key, self.expected_decrypted_api_key)
+        self.assertEqual(decrypted_key, EXPECTED_DECRYPTED_API_KEY)
 
         del os.environ["AWS_LAMBDA_FUNCTION_NAME"]
 
@@ -107,13 +104,13 @@ class TestDecryptKMSApiKey(unittest.TestCase):
             def decrypt(self, CiphertextBlob=None, EncryptionContext={}):
                 if EncryptionContext.get(KMS_ENCRYPTION_CONTEXT_KEY) != None:
                     raise BotocoreClientError({}, "Decrypt")
-                if CiphertextBlob == self.mock_encrypted_api_key.encode("utf-8"):
+                if CiphertextBlob == MOCK_ENCRYPTED_API_KEY.encode("utf-8"):
                     return {
-                        "Plaintext": self.expected_decrypted_api_key,
+                        "Plaintext": EXPECTED_DECRYPTED_API_KEY,
                     }
 
         mock_kms_client = MockKMSClient()
         decrypted_key = decrypt_kms_api_key(
-            mock_kms_client, self.mock_encrypted_api_key_base64
+            mock_kms_client, MOCK_ENCRYPTED_API_KEY_BASE64
         )
-        self.assertEqual(decrypted_key, self.expected_decrypted_api_key)
+        self.assertEqual(decrypted_key, EXPECTED_DECRYPTED_API_KEY)
