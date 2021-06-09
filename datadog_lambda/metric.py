@@ -226,10 +226,11 @@ def decrypt_kms_api_key(kms_client, ciphertext):
     decoded_bytes = base64.b64decode(ciphertext)
 
     """
-    The Lambda console UI changed the way it encrypts environment variables.
-    The current behavior as of May 2021 is to encrypt environment variables using the function name as an encryption context.
-    Previously, the behavior was to encrypt environment variables without an encryption context.
-    We need to try both, as supplying the incorrect encryption context will cause decryption to fail.
+    The Lambda console UI changed the way it encrypts environment variables. The current behavior
+    as of May 2021 is to encrypt environment variables using the function name as an encryption
+    context. Previously, the behavior was to encrypt environment variables without an encryption
+    context. We need to try both, as supplying the incorrect encryption context will cause
+    decryption to fail.
     """
     # Try with encryption context
     function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME")

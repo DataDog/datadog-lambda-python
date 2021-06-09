@@ -93,7 +93,10 @@ def get_enhanced_metrics_tags(lambda_context):
 
 
 def check_if_number(alias):
-    """Check if the alias is a version or number. Python 2 has no easy way to test this like Python 3"""
+    """
+    Check if the alias is a version or number.
+    Python 2 has no easy way to test this like Python 3
+    """
     try:
         float(alias)
         return True
