@@ -18,6 +18,7 @@ from datadog_lambda.tags import _format_dd_lambda_layer_tag
 
 MOCK_FUNCTION_NAME = "myFunction"
 
+
 class TestLambdaMetric(unittest.TestCase):
     def setUp(self):
         patcher = patch("datadog_lambda.metric.lambda_stats")
