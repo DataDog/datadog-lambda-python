@@ -91,7 +91,7 @@ class TestDecryptKMSApiKey(unittest.TestCase):
                     raise BotocoreClientError({}, "Decrypt")
                 if CiphertextBlob == MOCK_ENCRYPTED_API_KEY.encode("utf-8"):
                     return {
-                        "Plaintext": EXPECTED_DECRYPTED_API_KEY,
+                        "Plaintext": EXPECTED_DECRYPTED_API_KEY.encode("utf-8"),
                     }
 
         mock_kms_client = MockKMSClient()
@@ -109,7 +109,7 @@ class TestDecryptKMSApiKey(unittest.TestCase):
                     raise BotocoreClientError({}, "Decrypt")
                 if CiphertextBlob == MOCK_ENCRYPTED_API_KEY.encode("utf-8"):
                     return {
-                        "Plaintext": EXPECTED_DECRYPTED_API_KEY,
+                        "Plaintext": EXPECTED_DECRYPTED_API_KEY.encode("utf-8"),
                     }
 
         mock_kms_client = MockKMSClient()
