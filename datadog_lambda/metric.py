@@ -240,13 +240,15 @@ def decrypt_kms_api_key(kms_client, ciphertext):
             EncryptionContext={
                 KMS_ENCRYPTION_CONTEXT_KEY: function_name,
             },
-        )["Plaintext"].decode('utf-8')
+        )["Plaintext"].decode("utf-8")
     except ClientError:
         logger.debug(
             "Failed to decrypt ciphertext with encryption context, retrying without"
         )
         # Try without encryption context
-        plaintext = kms_client.decrypt(CiphertextBlob=decoded_bytes)["Plaintext"].decode('utf-8')
+        plaintext = kms_client.decrypt(CiphertextBlob=decoded_bytes)[
+            "Plaintext"
+        ].decode("utf-8")
 
     return plaintext
 
