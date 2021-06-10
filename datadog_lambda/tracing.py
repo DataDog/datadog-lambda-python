@@ -186,7 +186,11 @@ def extract_context_custom_extractor(extractor, event, lambda_context):
     Extract Datadog trace context using a custom trace extractor function
     """
     try:
-        (trace_id, parent_id, sampling_priority,) = extractor(event, lambda_context)
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extractor(event, lambda_context)
         return trace_id, parent_id, sampling_priority
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
@@ -205,9 +209,11 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
     trace_context_source = None
 
     if extractor is not None:
-        (trace_id, parent_id, sampling_priority,) = extract_context_custom_extractor(
-            extractor, event, lambda_context
-        )
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extract_context_custom_extractor(extractor, event, lambda_context)
     elif "headers" in event:
         (
             trace_id,
