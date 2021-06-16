@@ -20,6 +20,7 @@ ENHANCED_METRICS_NAMESPACE_PREFIX = "aws.lambda.enhanced"
 
 logger = logging.getLogger(__name__)
 
+lambda_stats = None
 
 class StatsWriter:
     def distribution(self, metric_name, value, tags=[], timestamp=None):
@@ -110,16 +111,17 @@ class ThreadStatsWriter(StatsWriter):
         self.thread_stats.stop()
 
 
-lambda_stats = None
-if should_use_extension:
-    lambda_stats = StatsDWriter()
-else:
-    # Periodical flushing in a background thread is NOT guaranteed to succeed
-    # and leads to data loss. When disabled, metrics are only flushed at the
-    # end of invocation. To make metrics submitted from a long-running Lambda
-    # function available sooner, consider using the Datadog Lambda extension.
-    flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
-    lambda_stats = ThreadStatsWriter(flush_in_thread)
+def init_lambda_stats():
+    global lambda_stats
+    if should_use_extension:
+        lambda_stats = StatsDWriter()
+    else:
+        # Periodical flushing in a background thread is NOT guaranteed to succeed
+        # and leads to data loss. When disabled, metrics are only flushed at the
+        # end of invocation. To make metrics submitted from a long-running Lambda
+        # function available sooner, consider using the Datadog Lambda extension.
+        flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
+        lambda_stats = ThreadStatsWriter(flush_in_thread)
 
 
 def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=False):
@@ -135,6 +137,7 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     periodically and at the end of the function execution in a
     background thread.
     """
+    global lambda_stats
     flush_to_logs = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
     tags = tag_dd_lambda_layer(tags)
 
@@ -163,6 +166,7 @@ def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
 
 
 def flush_stats():
+    global lambda_stats
     lambda_stats.flush()
 
 
