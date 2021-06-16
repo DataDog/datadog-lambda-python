@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 lambda_stats = None
 
+
 class StatsWriter:
     def distribution(self, metric_name, value, tags=[], timestamp=None):
         raise NotImplementedError()
