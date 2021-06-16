@@ -6,7 +6,7 @@
 import logging
 import os
 import json
-from typing import Optional
+from typing import Optional  # noqa: F401
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core.lambda_launcher import LambdaContext
