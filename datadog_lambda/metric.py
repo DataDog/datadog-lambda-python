@@ -237,9 +237,7 @@ def decrypt_kms_api_key(kms_client, ciphertext):
     try:
         plaintext = kms_client.decrypt(
             CiphertextBlob=decoded_bytes,
-            EncryptionContext={
-                KMS_ENCRYPTION_CONTEXT_KEY: function_name,
-            },
+            EncryptionContext={KMS_ENCRYPTION_CONTEXT_KEY: function_name,},
         )["Plaintext"].decode("utf-8")
     except ClientError:
         logger.debug(
