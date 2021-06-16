@@ -225,9 +225,7 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
             trace_id,
             parent_id,
             sampling_priority,
-        ) = extract_context_custom_extractor(
-            extractor, event, lambda_context
-        )
+        ) = extract_context_custom_extractor(extractor, event, lambda_context)
     elif "headers" in event:
         (
             trace_id,
