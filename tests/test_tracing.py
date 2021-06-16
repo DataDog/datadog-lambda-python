@@ -272,7 +272,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             XraySubsegment.NAMESPACE,
         )
 
-    def test_with_client_context_datadog_trace_data(self):
+    def test_with_legacy_client_context_datadog_trace_data(self):
         lambda_ctx = get_mock_context(
             custom={
                 "_datadog": {
@@ -280,6 +280,41 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     TraceHeader.PARENT_ID: "777",
                     TraceHeader.SAMPLING_PRIORITY: "1",
                 }
+            }
+        )
+        ctx, source = extract_dd_trace_context({}, lambda_ctx)
+        self.assertEqual(source, "event")
+        self.assertDictEqual(
+            ctx,
+            {
+                "trace-id": "666",
+                "parent-id": "777",
+                "sampling-priority": "1",
+            },
+        )
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "666",
+                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.SAMPLING_PRIORITY: "1",
+            },
+        )
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_xray_recorder.begin_subsegment.assert_called()
+        self.mock_xray_recorder.end_subsegment.assert_called()
+        self.mock_current_subsegment.put_metadata.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            {"trace-id": "666", "parent-id": "777", "sampling-priority": "1"},
+            XraySubsegment.NAMESPACE,
+        )
+
+    def test_with_new_client_context_datadog_trace_data(self):
+        lambda_ctx = get_mock_context(
+            custom={
+                TraceHeader.TRACE_ID: "666",
+                TraceHeader.PARENT_ID: "777",
+                TraceHeader.SAMPLING_PRIORITY: "1",
             }
         )
         ctx, source = extract_dd_trace_context({}, lambda_ctx)
