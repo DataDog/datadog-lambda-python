@@ -135,6 +135,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         # force ThreadStats to flush in thread
         os.environ["DD_FLUSH_IN_THREAD"] = "True"
         import datadog_lambda.metric as metric_module
+
         metric_module.lambda_stats.stop()
         metric_module.init_lambda_stats()
 
