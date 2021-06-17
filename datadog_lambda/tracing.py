@@ -129,16 +129,27 @@ def extract_context_from_lambda_context(lambda_context):
     dd_trace libraries inject this trace context on synchronous invocations
     """
     client_context = lambda_context.client_context
-
+    trace_id = None
+    parent_id = None
+    sampling_priority = None
     if client_context and client_context.custom:
-        dd_data = client_context.custom.get("_datadog", {})
-        trace_id = dd_data.get(TraceHeader.TRACE_ID)
-        parent_id = dd_data.get(TraceHeader.PARENT_ID)
-        sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
+        if "_datadog" in client_context.custom:
+            # Legacy trace propagation dict
+            dd_data = client_context.custom.get("_datadog", {})
+            trace_id = dd_data.get(TraceHeader.TRACE_ID)
+            parent_id = dd_data.get(TraceHeader.PARENT_ID)
+            sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
+        elif (
+            TraceHeader.TRACE_ID in client_context.custom
+            and TraceHeader.PARENT_ID in client_context.custom
+            and TraceHeader.SAMPLING_PRIORITY in client_context.custom
+        ):
+            # New trace propagation keys
+            trace_id = client_context.custom.get(TraceHeader.TRACE_ID)
+            parent_id = client_context.custom.get(TraceHeader.PARENT_ID)
+            sampling_priority = client_context.custom.get(TraceHeader.SAMPLING_PRIORITY)
 
-        return trace_id, parent_id, sampling_priority
-
-    return None, None, None
+    return trace_id, parent_id, sampling_priority
 
 
 def extract_context_from_http_event_or_context(event, lambda_context):
