@@ -6,7 +6,6 @@
 import logging
 import os
 import json
-from typing import Optional  # noqa: F401
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core.lambda_launcher import LambdaContext
@@ -130,9 +129,9 @@ def extract_context_from_lambda_context(lambda_context):
     dd_trace libraries inject this trace context on synchronous invocations
     """
     client_context = lambda_context.client_context
-    trace_id = None  # type: Optional[str]
-    parent_id = None  # type: Optional[str]
-    sampling_priority = None  # type: Optional[str]
+    trace_id = None
+    parent_id = None
+    sampling_priority = None
     if client_context and client_context.custom:
         if "_datadog" in client_context.custom:
             # Legacy trace propagation dict
