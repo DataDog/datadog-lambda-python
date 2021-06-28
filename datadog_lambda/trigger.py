@@ -214,4 +214,4 @@ def extract_http_status_code_tag(trigger_tags, response):
     elif hasattr(response, "status_code"):
         status_code = response.status_code
 
-    return status_code
+    return str(status_code)
