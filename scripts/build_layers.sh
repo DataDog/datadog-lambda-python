@@ -1,16 +1,36 @@
-#!/bin/sh
+#!/bin/bash
 
 # Unless explicitly stated otherwise all files in this repository are licensed
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
-# Builds Datadogpy layers for lambda functions, using Docker
+# Builds datadog-lambda-python layers for Lambda functions
+
+# Usage: PYTHON_VERSION=3.7 ./build_layers.sh
+# If PYTHON_VERSION is not specified, all versions will be built.
+
 set -e
 
 LAYER_DIR=".layers"
 LAYER_FILES_PREFIX="datadog_lambda_py"
-PYTHON_VERSIONS=("2.7" "3.6" "3.7" "3.8")
+AVAILABLE_PYTHON_VERSIONS=("2.7" "3.6" "3.7" "3.8")
+
+# Determine which Python versions to build layers for
+if [ -z "$PYTHON_VERSION" ]; then
+    echo "Python version not specified, building layers for all versions."
+    PYTHON_VERSIONS=("${AVAILABLE_PYTHON_VERSIONS[@]}")
+else
+    echo "Python version specified: $PYTHON_VERSION"
+    if [[ ! " ${AVAILABLE_PYTHON_VERSIONS[@]} " =~ " ${PYTHON_VERSION} " ]]; then
+        echo "Python version $PYTHON_VERSION is not a valid option. Choose from: ${AVAILABLE_PYTHON_VERSIONS[@]}"
+        echo ""
+        echo "EXITING SCRIPT."
+        exit 1
+    fi
+    PYTHON_VERSIONS=$PYTHON_VERSION
+fi
+
 
 function make_path_absolute {
     echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
@@ -44,10 +64,9 @@ mkdir $LAYER_DIR
 
 for python_version in "${PYTHON_VERSIONS[@]}"
 do
-    echo "Building layer for python${python_version}"
+    echo "Building layer for Python ${python_version}"
     docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}${python_version}.zip
 done
-
 
 echo "Done creating layers:"
 ls $LAYER_DIR | xargs -I _ echo "$LAYER_DIR/_"

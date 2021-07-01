@@ -23,5 +23,5 @@ do
     docker run -v `pwd`:/datadog-lambda-python \
         -w /datadog-lambda-python \
         datadog-lambda-python-test:$python_version \
-        flake8
+        flake8 datadog_lambda/
 done
