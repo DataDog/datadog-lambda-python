@@ -1,0 +1,18 @@
+repos:
+  - repo: git@github.com:pre-commit/pre-commit-hooks
+    rev: v2.1.0
+    hooks:
+      - id: check-merge-conflict
+        files: \.py$
+  - repo: git@github.com:psf/black
+    rev: 21.6b0
+    hooks:
+      - id: black
+        files: \.py$
+  - repo: local
+    hooks:
+      - id: detect-api-keys
+        name: detect-api-keys
+        description: Checks for AWS or Datadog API keys
+        entry: ".git-hooks/detect-api-keys.py"
+        language: python
