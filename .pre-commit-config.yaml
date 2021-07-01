@@ -16,3 +16,4 @@ repos:
         description: Checks for AWS or Datadog API keys
         entry: ".git-hooks/detect-api-keys.py"
         language: python
+        exclude: tests
