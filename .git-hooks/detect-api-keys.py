@@ -61,12 +61,12 @@ def main(argv=None):
                 if match != None:
                     files_with_key.append((name, filename, i + 1, match.end()))
 
-        if files_with_key:
-            for file in files_with_key:
-                print(key_found_message(file))
-            return 1
-        else:
-            return 0
+    if files_with_key:
+        for file in files_with_key:
+            print(key_found_message(file))
+        return 1
+    else:
+        return 0
 
 
 if __name__ == "__main__":
