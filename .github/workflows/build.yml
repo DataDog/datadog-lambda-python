@@ -1,6 +1,6 @@
 name: build
 
-on: push
+on: [push, pull_request]
 
 jobs:
   lint:
@@ -17,15 +17,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-            pip install virtualenv
-            virtualenv venv
-            source venv/bin/activate
-            pip install .[dev]
+          pip install virtualenv
+          virtualenv venv
+          source venv/bin/activate
+          pip install .[dev]
 
       - name: Check formatting
         run: |
-            source venv/bin/activate
-            ./scripts/check_format.sh
+          source venv/bin/activate
+          ./scripts/check_format.sh
 
       - name: Lint
         run: |
@@ -59,7 +59,7 @@ jobs:
         run: |
           source venv/bin/activate
           nose2 -v
-  
+
   integration-test:
     runs-on: ubuntu-latest
     strategy:
