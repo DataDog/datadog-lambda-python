@@ -226,9 +226,9 @@ def decrypt_kms_api_key(kms_client, ciphertext):
     decoded_bytes = base64.b64decode(ciphertext)
 
     """
-    When the API key is encrypted using the AWS console, the function name is added as an encryption context.
-    When the API key is encrypted using the AWS CLI, no encryption context is added.
-    We need to try decrypting the API key both with and without the encryption context.
+    When the API key is encrypted using the AWS console, the function name is added as an
+    encryption context. When the API key is encrypted using the AWS CLI, no encryption context
+    is added. We need to try decrypting the API key both with and without the encryption context.
     """
     # Try without encryption context, in case API key was encrypted using the AWS CLI
     function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
