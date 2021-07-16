@@ -238,9 +238,9 @@ def decrypt_kms_api_key(kms_client, ciphertext):
         ].decode("utf-8")
     except ClientError:
         logger.debug(
-            "Failed to decrypt ciphertext with encryption context, retrying without"
+            "Failed to decrypt ciphertext without encryption context, retrying with encryption context"
         )
-        # Try without encryption context, in case API key was encrypted using the AWS Console
+        # Try with encryption context, in case API key was encrypted using the AWS Console
         plaintext = kms_client.decrypt(
             CiphertextBlob=decoded_bytes,
             EncryptionContext={
