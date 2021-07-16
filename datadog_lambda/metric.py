@@ -226,29 +226,27 @@ def decrypt_kms_api_key(kms_client, ciphertext):
     decoded_bytes = base64.b64decode(ciphertext)
 
     """
-    The Lambda console UI changed the way it encrypts environment variables. The current behavior
-    as of May 2021 is to encrypt environment variables using the function name as an encryption
-    context. Previously, the behavior was to encrypt environment variables without an encryption
-    context. We need to try both, as supplying the incorrect encryption context will cause
-    decryption to fail.
+    When the API key is encrypted using the AWS console, the function name is added as an encryption context.
+    When the API key is encrypted using the AWS CLI, no encryption context is added.
+    We need to try decrypting the API key both with and without the encryption context.
     """
-    # Try with encryption context
+    # Try without encryption context, in case API key was encrypted using the AWS CLI
     function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
     try:
+        plaintext = kms_client.decrypt(CiphertextBlob=decoded_bytes)[
+            "Plaintext"
+        ].decode("utf-8")
+    except ClientError:
+        logger.debug(
+            "Failed to decrypt ciphertext with encryption context, retrying without"
+        )
+        # Try without encryption context, in case API key was encrypted using the AWS Console
         plaintext = kms_client.decrypt(
             CiphertextBlob=decoded_bytes,
             EncryptionContext={
                 KMS_ENCRYPTION_CONTEXT_KEY: function_name,
             },
         )["Plaintext"].decode("utf-8")
-    except ClientError:
-        logger.debug(
-            "Failed to decrypt ciphertext with encryption context, retrying without"
-        )
-        # Try without encryption context
-        plaintext = kms_client.decrypt(CiphertextBlob=decoded_bytes)[
-            "Plaintext"
-        ].decode("utf-8")
 
     return plaintext
 
