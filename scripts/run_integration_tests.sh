@@ -200,6 +200,8 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(python )([0-9]\.[0-9]+\.[0-9]+)/\1XX/g" |
                 # Strip out run ID (from function name, resource, etc.)
                 sed -E "s/${!run_id}/XXXX/g" |
+                # Normalize python-requests version
+                sed -E "s/(User-Agent:python-requests\/)[0-9]+\.[0-9]+\.[0-9]+/\1X\.X\.X/g" |
                 # Strip out trace/span/parent/timestamps
                 sed -E "s/(\"trace_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"span_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
