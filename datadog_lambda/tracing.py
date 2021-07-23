@@ -336,7 +336,10 @@ def inject_correlation_ids():
     # Override the log format of the AWS provided LambdaLoggerHandler
     root_logger = logging.getLogger()
     for handler in root_logger.handlers:
-        if handler.__class__.__name__ == "LambdaLoggerHandler":
+        if (
+            handler.__class__.__name__ == "LambdaLoggerHandler"
+            and type(handler.formatter) == logging.Formatter
+        ):
             handler.setFormatter(
                 logging.Formatter(
                     "[%(levelname)s]\t%(asctime)s.%(msecs)dZ\t%(aws_request_id)s\t"
