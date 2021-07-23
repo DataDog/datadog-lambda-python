@@ -65,7 +65,7 @@ If `DD_FLUSH_TO_LOG` is set to `false` (not recommended), you must set `DD_SITE`
 
 ### DD_LOGS_INJECTION
 
-Inject Datadog trace id into logs for [correlation](https://docs.datadoghq.com/tracing/connect_logs_and_traces/python/). Defaults to `true`.
+Inject Datadog trace id into logs for [correlation](https://docs.datadoghq.com/tracing/connect_logs_and_traces/python/) if you are using a `logging.Formatter` in the default `LambdaLoggerHandler` by the Lambda runtime. Defaults to `true`.
 
 ### DD_LOG_LEVEL
 
