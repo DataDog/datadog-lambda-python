@@ -13,6 +13,7 @@ from datadog_lambda.tracing import (
     extract_dd_trace_context,
     create_dd_dummy_metadata_subsegment,
     create_function_execution_span,
+    create_inferred_span_from_API_Gateway_event,
     get_dd_trace_context,
     set_correlation_ids,
     _convert_xray_trace_id,
@@ -447,7 +448,34 @@ class TestLogsInjection(unittest.TestCase):
         self.assertEqual(span_id, 456)
 
 
+class TestInferredSpanCreation(unittest.TestCase):
+    event_samples = "tests/event_samples/"
+
+    def test_function_with_api_gateway_event(self):
+        test_file = self.event_samples + "api-gateway.json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+            span = create_inferred_span_from_API_Gateway_event(event)
+            # things to assert:
+            #  - Creation time
+            #  - Parent ID is what we expect it to be
+            #  - various tags that Alex said
+            self.assertEqual(span.start, 14285828960.00)
+            self.assertEqual(span.get_tag("operation_name"), "aws.apigateway")
+            self.assertEqual(
+                span.get_tag("service_name"),
+                "70ixmpl4fl.execute-api.us-east-2.amazonaws.com/path/to/resource",
+            )
+            self.assertEqual(
+                span.get_tag("url"), "70ixmpl4fl.execute-api.us-east-2.amazonaws.com"
+            )
+            self.assertEqual(span.get_tag("endpoint"), "/path/to/resource")
+            self.assertEqual(span.get_tag("method"), "POST")
+
+
 class TestFunctionSpanTags(unittest.TestCase):
+    event_samples = "tests/event_samples/"
+
     def test_function(self):
         ctx = get_mock_context()
         span = create_function_execution_span(ctx, "", False, {"source": ""}, False, {})
@@ -484,3 +512,15 @@ class TestFunctionSpanTags(unittest.TestCase):
         self.assertEqual(
             span.get_tag("function_trigger.event_source"), "cloudwatch-logs"
         )
+
+    def test_function_with_API_Gateway_event(self):
+        ctx = get_mock_context()
+        test_file = self.event_samples + "api-gateway.json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+            inferred = create_inferred_span_from_API_Gateway_event(event)
+            span = create_function_execution_span(
+                ctx, "", False, {"source": ""}, False, {}, upstream=inferred
+            )
+            self.assertEqual(span.parent_id, inferred.span_id)
+            self.assertEqual(span.trace_id, inferred.trace_id)
