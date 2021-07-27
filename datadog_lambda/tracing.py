@@ -373,27 +373,29 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
         )
 
 
-def create_inferred_span_from_API_Gateway_event(event):
+def create_inferred_span_from_API_Gateway_event(event, context, function_name):
     print("AGOCS! About to do the thing!")
     tags = {
         "operation_name": "aws.apigateway",
         "service_name": event["requestContext"]["domainName"] + event["path"],
         "url": event["requestContext"]["domainName"],
         "endpoint": event["path"],
-        "method": event["httpMethod"],
+        "http.method": event["httpMethod"],
+        "resource_names": function_name,
+        "request_id": context.aws_request_id,
     }
 
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
         "service": "aws.lambda",
-        "resource": tags["url"],
+        "resource": function_name,
         "span_type": "serverless",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
     span = tracer.trace("aws.lambda", **args)
     if span:
         span.set_tags(tags)
-    span.start = request_time_epoch / 100
+    span.start = request_time_epoch / 1000
     return span
 
 
