@@ -97,6 +97,7 @@ class _LambdaDecorator(object):
             self.extractor_env = os.environ.get("DD_TRACE_EXTRACTOR", None)
             self.trace_extractor = None
             self.span = None
+            self.response = None
 
             if self.extractor_env:
                 extractor_parts = self.extractor_env.rsplit(".", 1)
@@ -119,8 +120,6 @@ class _LambdaDecorator(object):
 
     def __call__(self, event, context, **kwargs):
         """Executes when the wrapped function gets called"""
-        self.trigger_tags = extract_trigger_tags(event, context)
-        self.response = None
         init_lambda_stats()
         self._before(event, context)
         try:
@@ -136,9 +135,9 @@ class _LambdaDecorator(object):
 
     def _before(self, event, context):
         try:
-
             set_cold_start()
             submit_invocations_metric(context)
+            self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source = extract_dd_trace_context(
                 event, context, extractor=self.trace_extractor
