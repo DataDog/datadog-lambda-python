@@ -393,7 +393,9 @@ def create_function_execution_span(
             "function_version": function_version,
             "request_id": context.aws_request_id,
             "resource_names": context.function_name,
-            "functionname": context.function_name.lower() if context.function_name else None,
+            "functionname": context.function_name.lower()
+            if context.function_name
+            else None,
             "datadog_lambda": datadog_lambda_version,
             "dd_trace": ddtrace_version,
         }
