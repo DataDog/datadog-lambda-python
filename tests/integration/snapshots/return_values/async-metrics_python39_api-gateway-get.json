@@ -1,0 +1,16 @@
+Serverless: Configuration warning:
+Serverless:   at 'functions['async-metrics_python'].runtime': should be equal to one of the allowed values [dotnetcore2.1, dotnetcore3.1, go1.x, java11, java8, java8.al2, nodejs10.x, nodejs12.x, nodejs14.x, provided, provided.al2, python2.7, python3.6, python3.7, python3.8, ruby2.5, ruby2.7]
+Serverless:   at 'functions['sync-metrics_python'].runtime': should be equal to one of the allowed values [dotnetcore2.1, dotnetcore3.1, go1.x, java11, java8, java8.al2, nodejs10.x, nodejs12.x, nodejs14.x, provided, provided.al2, python2.7, python3.6, python3.7, python3.8, ruby2.5, ruby2.7]
+Serverless:  
+Serverless: Learn more about configuration validation here: http://slss.io/configuration-validation
+Serverless:  
+Serverless: Deprecation warning: Starting with next major, Serverless will throw on configuration errors by default. Adapt to this behavior now by adding "configValidationMode: error" to service configuration
+            More Info: https://www.serverless.com/framework/docs/deprecations/#CONFIG_VALIDATION_MODE_DEFAULT
+{
+    "statusCode": 200,
+    "body": {
+        "message": "hello, dog!",
+        "request_id": "41b45ea3-70b5-11e6-b7bd-69b5aaebc7d9",
+        "event_record_ids": []
+    }
+}
