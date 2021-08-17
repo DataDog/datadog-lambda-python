@@ -5,8 +5,7 @@ service: integration-tests-python
 # and complains about an invalid configuration when we deploy Python 3.9 functions.
 # This option suppresses the warning.
 # Remove this when the Serverless framework supports Python 3.9.
-disabledDeprecations:
-  - CONFIG_VALIDATION_MODE_DEFAULT
+configValidationMode: off
 
 provider:
   name: aws
