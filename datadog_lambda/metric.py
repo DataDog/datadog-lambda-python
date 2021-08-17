@@ -25,9 +25,11 @@ def init_lambda_stats():
     global lambda_stats
     if should_use_extension:
         from datadog_lambda.statsd_writer import StatsDWriter
+
         lambda_stats = StatsDWriter()
     else:
         from datadog_lambda.thread_stats_writer import ThreadStatsWriter
+
         # Periodical flushing in a background thread is NOT guaranteed to succeed
         # and leads to data loss. When disabled, metrics are only flushed at the
         # end of invocation. To make metrics submitted from a long-running Lambda
@@ -170,8 +172,10 @@ def decrypt_kms_api_key(kms_client, ciphertext):
 # Set API Key only if extension is not here
 if not should_use_extension:
     from datadog import api
+
     if not api._api_key:
         import boto3
+
         DD_API_KEY_SECRET_ARN = os.environ.get("DD_API_KEY_SECRET_ARN", "")
         DD_API_KEY_SSM_NAME = os.environ.get("DD_API_KEY_SSM_NAME", "")
         DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY", "")
