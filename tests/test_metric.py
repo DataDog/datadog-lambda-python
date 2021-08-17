@@ -11,9 +11,9 @@ from datadog.api.exceptions import ClientError
 from datadog_lambda.metric import (
     decrypt_kms_api_key,
     lambda_metric,
-    ThreadStatsWriter,
     KMS_ENCRYPTION_CONTEXT_KEY,
 )
+from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 from datadog_lambda.tags import _format_dd_lambda_layer_tag
 
 

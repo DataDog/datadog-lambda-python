@@ -1,5 +1,9 @@
+import logging
 from datadog.threadstats import ThreadStats
 from datadog_lambda.stats_writer import StatsWriter
+
+logger = logging.getLogger(__name__)
+
 
 class ThreadStatsWriter(StatsWriter):
     """

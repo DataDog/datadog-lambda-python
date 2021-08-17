@@ -7,7 +7,8 @@ except ImportError:
     from mock import patch, call, ANY, MagicMock
 
 from datadog_lambda.wrapper import datadog_lambda_wrapper
-from datadog_lambda.metric import lambda_metric, ThreadStatsWriter
+from datadog_lambda.metric import lambda_metric
+from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
 
 def get_mock_context(

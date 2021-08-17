@@ -1,6 +1,7 @@
 from datadog_lambda.stats_writer import StatsWriter
 from datadog import initialize, statsd
 
+
 class StatsDWriter(StatsWriter):
     """
     Writes distribution metrics using StatsD protocol

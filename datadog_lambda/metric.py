@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 lambda_stats = None
 
+
 def init_lambda_stats():
     global lambda_stats
     if should_use_extension:
@@ -164,7 +165,6 @@ def decrypt_kms_api_key(kms_client, ciphertext):
         )["Plaintext"].decode("utf-8")
 
     return plaintext
-
 
 
 # Set API Key only if extension is not here
