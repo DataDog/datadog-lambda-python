@@ -14,7 +14,7 @@ MAX_LAYER_UNCOMPRESSED_SIZE_KB=$(expr 16 \* 1024)
 
 LAYER_FILES_PREFIX="datadog_lambda_py"
 LAYER_DIR=".layers"
-VERSIONS=("2.7" "3.6" "3.7" "3.8")
+VERSIONS=("2.7" "3.6" "3.7" "3.8" "3.9")
 
 for version in "${VERSIONS[@]}"
 do
