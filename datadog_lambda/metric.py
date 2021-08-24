@@ -28,7 +28,7 @@ else:
     # end of invocation. To make metrics submitted from a long-running Lambda
     # function available sooner, consider using the Datadog Lambda extension.
     from datadog_lambda.thread_stats_writer import ThreadStatsWriter
-    
+
     flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
     lambda_stats = ThreadStatsWriter(flush_in_thread)
 
