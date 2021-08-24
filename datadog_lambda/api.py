@@ -8,6 +8,7 @@ KMS_ENCRYPTION_CONTEXT_KEY = "LambdaFunctionName"
 
 def decrypt_kms_api_key(kms_client, ciphertext):
     from botocore.exceptions import ClientError
+
     """
     Decodes and deciphers the base64-encoded ciphertext given as a parameter using KMS.
     For this to work properly, the Lambda function must have the appropriate IAM permissions.
@@ -55,7 +56,9 @@ def init_api():
             DD_API_KEY_SECRET_ARN = os.environ.get("DD_API_KEY_SECRET_ARN", "")
             DD_API_KEY_SSM_NAME = os.environ.get("DD_API_KEY_SSM_NAME", "")
             DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY", "")
-            DD_API_KEY = os.environ.get("DD_API_KEY", os.environ.get("DATADOG_API_KEY", ""))
+            DD_API_KEY = os.environ.get(
+                "DD_API_KEY", os.environ.get("DATADOG_API_KEY", "")
+            )
 
             if DD_API_KEY_SECRET_ARN:
                 api._api_key = boto3.client("secretsmanager").get_secret_value(
