@@ -5,6 +5,9 @@ __version__ = "3.44.0"
 
 import os
 import logging
+from datadog_lambda.api import init_api
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+
+init_api()

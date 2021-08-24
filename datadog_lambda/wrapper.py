@@ -12,7 +12,6 @@ from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
 from datadog_lambda.constants import XraySubsegment, TraceContextSource
 from datadog_lambda.metric import (
-    init_lambda_stats,
     flush_stats,
     submit_invocations_metric,
     submit_errors_metric,
@@ -120,7 +119,6 @@ class _LambdaDecorator(object):
 
     def __call__(self, event, context, **kwargs):
         """Executes when the wrapped function gets called"""
-        init_lambda_stats()
         self._before(event, context)
         try:
             self.response = self.func(event, context, **kwargs)
