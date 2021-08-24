@@ -10,10 +10,14 @@ import logging
 
 from datadog_lambda.extension import should_use_extension
 from datadog_lambda.tags import get_enhanced_metrics_tags, tag_dd_lambda_layer
+from datadog_lambda.api import init_api
 
 logger = logging.getLogger(__name__)
 
 lambda_stats = None
+
+init_api()
+
 if should_use_extension:
     from datadog_lambda.statsd_writer import StatsDWriter
     lambda_stats = StatsDWriter()
