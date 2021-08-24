@@ -1,6 +1,7 @@
 import os
 import logging
 import base64
+from datadog_lambda.extension import should_use_extension
 
 logger = logging.getLogger(__name__)
 KMS_ENCRYPTION_CONTEXT_KEY = "LambdaFunctionName"
@@ -47,7 +48,10 @@ def decrypt_kms_api_key(kms_client, ciphertext):
 
 
 def init_api():
-    if os.environ.get("DD_FLUSH_TO_LOG", "").lower() != "true":
+    if (
+        not should_use_extension
+        and os.environ.get("DD_FLUSH_TO_LOG", "").lower() != "true"
+    ):
         from datadog import api
 
         if not api._api_key:
