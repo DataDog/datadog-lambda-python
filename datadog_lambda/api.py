@@ -50,7 +50,7 @@ def decrypt_kms_api_key(kms_client, ciphertext):
 def init_api():
     if (
         not should_use_extension
-        and os.environ.get("DD_FLUSH_TO_LOG", "").lower() != "true"
+        and not os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
     ):
         from datadog import api
 
