@@ -7,7 +7,8 @@ except ImportError:
     from mock import patch, call, ANY, MagicMock
 
 from datadog_lambda.wrapper import datadog_lambda_wrapper
-from datadog_lambda.metric import lambda_metric, ThreadStatsWriter
+from datadog_lambda.metric import lambda_metric
+from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
 
 def get_mock_context(
@@ -133,11 +134,10 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     def test_datadog_lambda_wrapper_flush_in_thread(self):
         # force ThreadStats to flush in thread
-        os.environ["DD_FLUSH_IN_THREAD"] = "True"
         import datadog_lambda.metric as metric_module
 
         metric_module.lambda_stats.stop()
-        metric_module.init_lambda_stats()
+        metric_module.lambda_stats = ThreadStatsWriter(True)
 
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -158,7 +158,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         # reset ThreadStats
         metric_module.lambda_stats.stop()
         metric_module.lambda_stats = ThreadStatsWriter(False)
-        del os.environ["DD_FLUSH_IN_THREAD"]
 
     def test_datadog_lambda_wrapper_not_flush_in_thread(self):
         # force ThreadStats to not flush in thread
