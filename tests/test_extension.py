@@ -13,16 +13,17 @@ from datadog_lambda.extension import (
     should_use_extension,
 )
 
+
 def exceptionCallback(request, uri, headers):
     raise Exception("oopsy!")
 
-class TestLambdaExtension(unittest.TestCase):
 
+class TestLambdaExtension(unittest.TestCase):
     @patch("datadog_lambda.extension.EXTENSION_PATH", os.path.abspath(__file__))
     def test_is_extension_running_true(self):
         httpretty.enable()
         last_request = httpretty.last_request()
-        httpretty.register_uri(httpretty.GET,"http://127.0.0.1:8124/lambda/hello")
+        httpretty.register_uri(httpretty.GET, "http://127.0.0.1:8124/lambda/hello")
         assert is_extension_running() == True
         assert httpretty.last_request() != last_request
         httpretty.disable()
@@ -30,7 +31,7 @@ class TestLambdaExtension(unittest.TestCase):
     def test_is_extension_running_file_not_found(self):
         httpretty.enable()
         last_request = httpretty.last_request()
-        httpretty.register_uri(httpretty.GET,"http://127.0.0.1:8124/lambda/hello")
+        httpretty.register_uri(httpretty.GET, "http://127.0.0.1:8124/lambda/hello")
         assert is_extension_running() == False
         assert httpretty.last_request() == last_request
         httpretty.disable()
@@ -53,7 +54,7 @@ class TestLambdaExtension(unittest.TestCase):
     def test_flush_ok(self):
         httpretty.enable()
         last_request = httpretty.last_request()
-        httpretty.register_uri(httpretty.POST,"http://127.0.0.1:8124/lambda/flush")
+        httpretty.register_uri(httpretty.POST, "http://127.0.0.1:8124/lambda/flush")
         assert flush_extension() == True
         assert httpretty.last_request() != last_request
         httpretty.disable()
