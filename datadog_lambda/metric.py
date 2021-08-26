@@ -45,15 +45,24 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     Otherwise, the metrics will be submitted to the Datadog API
     periodically and at the end of the function execution in a
     background thread.
+
+    Note that if the extension is present, it will override the DD_FLUSH_TO_LOG value
+    and always use the layer to send metrics to the extension
     """
     flush_to_logs = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
     tags = tag_dd_lambda_layer(tags)
 
-    if flush_to_logs or (force_async and not should_use_extension):
-        write_metric_point_to_stdout(metric_name, value, timestamp=timestamp, tags=tags)
-    else:
-        logger.debug("Sending metric %s to Datadog via lambda layer", metric_name)
+    if should_use_extension:
         lambda_stats.distribution(metric_name, value, tags=tags, timestamp=timestamp)
+    else:
+        if flush_to_logs or force_async:
+            write_metric_point_to_stdout(
+                metric_name, value, timestamp=timestamp, tags=tags
+            )
+        else:
+            lambda_stats.distribution(
+                metric_name, value, tags=tags, timestamp=timestamp
+            )
 
 
 def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
