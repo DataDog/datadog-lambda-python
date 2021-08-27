@@ -1,6 +1,14 @@
 import logging
-import requests
 from os import path
+
+try:
+    # only available in python 3
+    # not an issue since the extension is not compatible with python 2.x runtime
+    # https://docs.aws.amazon.com/lambda/latest/dg/using-extensions.html
+    import urllib.request
+except ImportError:
+    # safe since both calls to urllib are protected with try/expect and will return false
+    urllib = None
 
 AGENT_URL = "http://127.0.0.1:8124"
 HELLO_PATH = "/lambda/hello"
@@ -14,7 +22,7 @@ def is_extension_running():
     if not path.exists(EXTENSION_PATH):
         return False
     try:
-        requests.get(AGENT_URL + HELLO_PATH)
+        urllib.request.urlopen(AGENT_URL + HELLO_PATH)
     except Exception as e:
         logger.debug("Extension is not running, returned with error %s", e)
         return False
@@ -23,7 +31,8 @@ def is_extension_running():
 
 def flush_extension():
     try:
-        requests.post(AGENT_URL + FLUSH_PATH, data={})
+        req = urllib.request.Request(AGENT_URL + FLUSH_PATH, "".encode("ascii"))
+        urllib.request.urlopen(req)
     except Exception as e:
         logger.debug("Failed to flush extension, returned with error %s", e)
         return False
