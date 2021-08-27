@@ -60,7 +60,7 @@ class TestLambdaExtension(unittest.TestCase):
         httpretty.disable()
 
     @patch("datadog_lambda.extension.EXTENSION_PATH", os.path.abspath(__file__))
-    def test_flush_ko(self):
+    def test_flush_not_ok(self):
         httpretty.enable()
         last_request = httpretty.last_request()
         httpretty.register_uri(
