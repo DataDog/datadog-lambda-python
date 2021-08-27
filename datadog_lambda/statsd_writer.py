@@ -1,5 +1,5 @@
 from datadog_lambda.stats_writer import StatsWriter
-from datadog import initialize, statsd
+from datadog.dogstatsd import statsd
 
 
 class StatsDWriter(StatsWriter):
@@ -8,8 +8,8 @@ class StatsDWriter(StatsWriter):
     """
 
     def __init__(self):
-        options = {"statsd_host": "127.0.0.1", "statsd_port": 8125}
-        initialize(**options)
+        statsd.host = "127.0.0.1"
+        statsd.port = 8125
 
     def distribution(self, metric_name, value, tags=[], timestamp=None):
         statsd.distribution(metric_name, value, tags=tags)
