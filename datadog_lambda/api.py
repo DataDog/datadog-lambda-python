@@ -53,7 +53,8 @@ def init_api():
         and not os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
     ):
         # Make sure that this package would always be lazy-loaded/outside from the critical path
-        # since underlying packages are quite heavy to load and useless when the extension is present
+        # since underlying packages are quite heavy to load 
+        # and useless when the extension is present
         from datadog import api
 
         if not api._api_key:
