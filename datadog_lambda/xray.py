@@ -28,7 +28,7 @@ def send(host_port_tuple, payload):
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setblocking(0)
-        sock.connect(host_port_tuple[0], host_port_tuple[1])
+        sock.connect(host_port_tuple)
         sock.send(payload.encode("utf-8"))
     except Exception as e_send:
         logger.error("Error occurred submitting to xray daemon: %s", str(e_send))
