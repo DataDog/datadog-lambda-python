@@ -1,14 +1,16 @@
 import os
 import logging
-import json 
+import json
 import binascii
 import time
+import socket
 
 from datadog_lambda.constants import XraySubsegment, TraceContextSource
 
 XRAY_TRACE_ID_HEADER_NAME = "_X_AMZN_TRACE_ID"
 XRAY_DAEMON_ADDRESS = "AWS_XRAY_DAEMON_ADDRESS"
 logger = logging.getLogger(__name__)
+
 
 def get_xray_host_port(adress):
     if adress == "":
@@ -21,6 +23,7 @@ def get_xray_host_port(adress):
     port = int(parts[1])
     host = parts[0]
     return (host, port)
+
 
 def send(host_port_tuple, payload):
     sock = None
@@ -36,18 +39,17 @@ def send(host_port_tuple, payload):
     except Exception as e_close:
         logger.error("Error while closing the socket: %s", str(e_close))
 
+
 def build_segment_payload(payload):
     if payload is None:
         return None
-    header = json.dumps({
-        "format": "json",
-        "version": 1
-    })
+    header = json.dumps({"format": "json", "version": 1})
     return header + "\n" + payload
+
 
 def parse_xray_header(raw_trace_id):
     # Example: Root=1-5e272390-8c398be037738dc042009320;Parent=94ae789b969f1cc5;Sampled=1
-    logger.debug("Reading trace context from env var %s", raw_trace_id);
+    logger.debug("Reading trace context from env var %s", raw_trace_id)
     if len(raw_trace_id) == 0:
         return None
     parts = raw_trace_id.split(";")
@@ -66,39 +68,45 @@ def parse_xray_header(raw_trace_id):
         "parent_id": parent,
         "trace_id": root,
         "sampled": sampled,
-        "source": TraceContextSource.XRAY
+        "source": TraceContextSource.XRAY,
     }
 
+
 def generate_random_id():
-    return binascii.b2a_hex(os.urandom(8)).decode('utf-8')
+    return binascii.b2a_hex(os.urandom(8)).decode("utf-8")
+
 
 def build_segment(context, key, metadata):
 
-    segment = json.dumps({
-        "id": generate_random_id(),
-        "trace_id": context["trace_id"],
-        "parent_id": context["parent_id"],
-        "name": XraySubsegment.NAME,
-        "start_time": time.time(),
-        "end_time": time.time(),
-        "type": "subsegment",
-        "metadata": {
-            XraySubsegment.NAMESPACE: {
-                key: metadata,
-            }
+    segment = json.dumps(
+        {
+            "id": generate_random_id(),
+            "trace_id": context["trace_id"],
+            "parent_id": context["parent_id"],
+            "name": XraySubsegment.NAME,
+            "start_time": time.time(),
+            "end_time": time.time(),
+            "type": "subsegment",
+            "metadata": {
+                XraySubsegment.NAMESPACE: {
+                    key: metadata,
+                }
+            },
         }
-    })
+    )
     return segment
+
 
 def send_segment(key, metadata):
     host_port_tuple = get_xray_host_port(os.environ.get(XRAY_DAEMON_ADDRESS, ""))
     if host_port_tuple is None:
         return None
-    context = parse_xray_header(os.environ.get(XRAY_TRACE_ID_HEADER_NAME,""))
+    context = parse_xray_header(os.environ.get(XRAY_TRACE_ID_HEADER_NAME, ""))
     if context is None:
-        logger.debug("Failed to create the segment since it was not possible to get the trace context for the header")
+        logger.debug(
+            "Failed to create segment since it was not possible to get trace context from header"
+        )
         return None
     segment = build_segment(context, key, metadata)
     segment_payload = build_segment_payload(segment)
-    send(host_port_tuple, seegment_payload)
-
+    send(host_port_tuple, segment_payload)

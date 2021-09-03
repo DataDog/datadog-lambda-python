@@ -79,7 +79,11 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
-            {"trace-id": fake_xray_header_value_root_decimal, "parent-id": fake_xray_header_value_parent_decimal, "sampling-priority": "2"},
+            {
+                "trace-id": fake_xray_header_value_root_decimal,
+                "parent-id": fake_xray_header_value_parent_decimal,
+                "sampling-priority": "2",
+            },
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -100,7 +104,11 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
-            {"trace-id": fake_xray_header_value_root_decimal, "parent-id": fake_xray_header_value_parent_decimal, "sampling-priority": "2"},
+            {
+                "trace-id": fake_xray_header_value_root_decimal,
+                "parent-id": fake_xray_header_value_parent_decimal,
+                "sampling-priority": "2",
+            },
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -305,7 +313,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.mock_send_segment.assert_called()
         self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
-            {"trace-id": "666", "parent-id": "777", "sampling-priority": "1"}
+            {"trace-id": "666", "parent-id": "777", "sampling-priority": "1"},
         )
 
     def test_with_new_client_context_datadog_trace_data(self):
@@ -338,7 +346,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.mock_send_segment.assert_called()
         self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
-            {"trace-id": "666", "parent-id": "777", "sampling-priority": "1"}
+            {"trace-id": "666", "parent-id": "777", "sampling-priority": "1"},
         )
 
     def test_with_complete_datadog_trace_headers_with_mixed_casing(self):
@@ -378,7 +386,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     {
                         "function_trigger.event_source": "sqs",
                         "function_trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
-                    }
+                    },
                 ),
             ]
         )

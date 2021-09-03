@@ -35,9 +35,8 @@ class TraceContextSource(object):
     EVENT = "event"
     DDTRACE = "ddtrace"
 
+
 # X-Ray deamon
 class XrayDeamon(object):
     HOST = "127.0.0.1"
     PORT = 2000
-   
-

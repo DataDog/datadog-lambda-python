@@ -10,13 +10,12 @@ import json
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
-    XraySubsegment,
     TraceContextSource,
 )
 from datadog_lambda.xray import (
     send_segment,
     parse_xray_header,
-    XRAY_TRACE_ID_HEADER_NAME
+    XRAY_TRACE_ID_HEADER_NAME,
 )
 from ddtrace import tracer, patch
 from ddtrace import __version__ as ddtrace_version
@@ -31,6 +30,7 @@ dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "tru
 propagator = HTTPPropagator()
 
 FUNCTION_NAME_HEADER_NAME = "AWS_LAMBDA_FUNCTION_NAME"
+
 
 def _convert_xray_trace_id(xray_trace_id):
     """
@@ -72,7 +72,11 @@ def _get_xray_trace_context():
     logger.debug(
         "Converted trace context %s from X-Ray segment %s",
         trace_context,
-        (xray_trace_entity["trace_id"], xray_trace_entity["parent_id"], xray_trace_entity["sampled"]),
+        (
+            xray_trace_entity["trace_id"],
+            xray_trace_entity["parent_id"],
+            xray_trace_entity["sampled"],
+        ),
     )
     return trace_context
 

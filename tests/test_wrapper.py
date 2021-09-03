@@ -132,8 +132,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         del os.environ["DD_FLUSH_TO_LOG"]
 
-    
-
     def test_errors_metric(self):
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
