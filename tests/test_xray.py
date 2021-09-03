@@ -3,9 +3,9 @@ import unittest
 import json
 
 try:
-    from unittest.mock import patch
+    from unittest.mock import patch, mock
 except ImportError:
-    from mock import patch
+    from mock import patch, mock
 
 from datadog_lambda.xray import get_xray_host_port, build_segment_payload, build_segment
 
