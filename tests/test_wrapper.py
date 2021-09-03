@@ -132,6 +132,105 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         del os.environ["DD_FLUSH_TO_LOG"]
 
+    def test_datadog_lambda_wrapper_flush_in_thread(self):
+        # force ThreadStats to flush in thread
+        import datadog_lambda.metric as metric_module
+
+        metric_module.lambda_stats.stop()
+        metric_module.lambda_stats = ThreadStatsWriter(True)
+
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            import time
+
+            lambda_metric("test.metric", 100)
+            time.sleep(11)
+            # assert flushing in the thread
+            self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 1)
+            lambda_metric("test.metric", 200)
+
+        lambda_event = {}
+        lambda_handler(lambda_event, get_mock_context())
+
+        # assert another flushing in the end
+        self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 2)
+
+        # reset ThreadStats
+        metric_module.lambda_stats.stop()
+        metric_module.lambda_stats = ThreadStatsWriter(False)
+
+    def test_datadog_lambda_wrapper_not_flush_in_thread(self):
+        # force ThreadStats to not flush in thread
+        import datadog_lambda.metric as metric_module
+
+        metric_module.lambda_stats.stop()
+        metric_module.lambda_stats = ThreadStatsWriter(False)
+
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            import time
+
+            lambda_metric("test.metric", 100)
+            time.sleep(11)
+            # assert no flushing in the thread
+            self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 0)
+            lambda_metric("test.metric", 200)
+
+        lambda_event = {}
+        lambda_handler(lambda_event, get_mock_context())
+
+        # assert flushing in the end
+        self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 1)
+
+        # reset ThreadStats
+        metric_module.lambda_stats.stop()
+        metric_module.lambda_stats = ThreadStatsWriter(False)
+
+    def test_datadog_lambda_wrapper_inject_correlation_ids(self):
+        os.environ["DD_LOGS_INJECTION"] = "True"
+
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            lambda_metric("test.metric", 100)
+
+        lambda_event = {}
+        lambda_handler(lambda_event, get_mock_context())
+
+        self.mock_set_correlation_ids.assert_called()
+        self.mock_inject_correlation_ids.assert_called()
+
+        del os.environ["DD_LOGS_INJECTION"]
+
+    def test_invocations_metric(self):
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            lambda_metric("test.metric", 100)
+
+        lambda_event = {}
+
+        lambda_handler(lambda_event, get_mock_context())
+
+        self.mock_write_metric_point_to_stdout.assert_has_calls(
+            [
+                call(
+                    "aws.lambda.enhanced.invocations",
+                    1,
+                    tags=[
+                        "region:us-west-1",
+                        "account_id:123457598159",
+                        "functionname:python-layer-test",
+                        "resource:python-layer-test:1",
+                        "cold_start:true",
+                        "memorysize:256",
+                        "runtime:python2.7",
+                        "datadog_lambda:v6.6.6",
+                        "dd_lambda_layer:datadog-python27_0.1.0",
+                    ],
+                    timestamp=None,
+                )
+            ]
+        )
+
     def test_errors_metric(self):
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
