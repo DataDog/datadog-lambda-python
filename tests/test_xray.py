@@ -2,7 +2,10 @@ import os
 import unittest
 import json
 
-from unittest import mock
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
 
 from datadog_lambda.xray import get_xray_host_port, build_segment_payload, build_segment
 
