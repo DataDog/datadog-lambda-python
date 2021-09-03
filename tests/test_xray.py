@@ -3,9 +3,9 @@ import unittest
 import json
 
 try:
-    from unittest.mock import patch, mock
+    from unittest.mock import MagicMock, patch, call
 except ImportError:
-    from mock import patch, mock
+    from mock import MagicMock, patch, call
 
 from datadog_lambda.xray import get_xray_host_port, build_segment_payload, build_segment
 
@@ -31,10 +31,10 @@ class TestXRay(unittest.TestCase):
     def test_build_segment_payload_no_payload(self):
         self.assertIsNone(build_segment_payload(None))
 
-    @mock.patch("time.time", mock.MagicMock(return_value=1111))
-    @mock.patch(
+    @patch("time.time", mock.MagicMock(return_value=1111))
+    @patch(
         "datadog_lambda.xray.generate_random_id",
-        mock.MagicMock(return_value="1234abcd"),
+        MagicMock(return_value="1234abcd"),
     )
     def test_build_segment(self):
         context = {
