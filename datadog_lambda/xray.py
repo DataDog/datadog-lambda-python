@@ -41,7 +41,7 @@ def send(host_port_tuple, payload):
 def build_segment_payload(payload):
     if payload is None:
         return None
-    return "{\"format\": \"json\", \"version\": 1}" + "\n" + payload
+    return '{"format": "json", "version": 1}' + "\n" + payload
 
 
 def parse_xray_header(raw_trace_id):
