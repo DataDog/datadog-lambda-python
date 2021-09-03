@@ -5,10 +5,8 @@ import binascii
 import time
 import socket
 
-from datadog_lambda.constants import XraySubsegment, TraceContextSource
+from datadog_lambda.constants import XrayDaemon, XraySubsegment, TraceContextSource
 
-XRAY_TRACE_ID_HEADER_NAME = "_X_AMZN_TRACE_ID"
-XRAY_DAEMON_ADDRESS = "AWS_XRAY_DAEMON_ADDRESS"
 logger = logging.getLogger(__name__)
 
 
@@ -98,10 +96,14 @@ def build_segment(context, key, metadata):
 
 
 def send_segment(key, metadata):
-    host_port_tuple = get_xray_host_port(os.environ.get(XRAY_DAEMON_ADDRESS, ""))
+    host_port_tuple = get_xray_host_port(
+        os.environ.get(XrayDaemon.XRAY_DAEMON_ADDRESS, "")
+    )
     if host_port_tuple is None:
         return None
-    context = parse_xray_header(os.environ.get(XRAY_TRACE_ID_HEADER_NAME, ""))
+    context = parse_xray_header(
+        os.environ.get(XrayDaemon.XRAY_TRACE_ID_HEADER_NAME, "")
+    )
     if context is None:
         logger.debug(
             "Failed to create segment since it was not possible to get trace context from header"

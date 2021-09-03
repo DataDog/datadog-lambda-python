@@ -58,7 +58,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         global dd_tracing_enabled
         dd_tracing_enabled = False
         os.environ["_X_AMZN_TRACE_ID"] = fake_xray_header_value
-        os.environ["XRAY_DAEMON_ADDRESS"] = "1.1.1.1:8888"
         patcher = patch("datadog_lambda.tracing.send_segment")
         self.mock_send_segment = patcher.start()
         self.addCleanup(patcher.stop)
@@ -71,7 +70,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         global dd_tracing_enabled
         dd_tracing_enabled = False
         del os.environ["_X_AMZN_TRACE_ID"]
-        del os.environ["XRAY_DAEMON_ADDRESS"]
 
     def test_without_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()

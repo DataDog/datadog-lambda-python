@@ -11,11 +11,11 @@ from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
     TraceContextSource,
+    XrayDaemon,
 )
 from datadog_lambda.xray import (
     send_segment,
     parse_xray_header,
-    XRAY_TRACE_ID_HEADER_NAME,
 )
 from ddtrace import tracer, patch
 from ddtrace import __version__ as ddtrace_version
@@ -61,7 +61,9 @@ def _get_xray_trace_context():
     if not is_lambda_context():
         return None
 
-    xray_trace_entity = parse_xray_header(os.environ.get(XRAY_TRACE_ID_HEADER_NAME, ""))
+    xray_trace_entity = parse_xray_header(
+        os.environ.get(XrayDaemon.XRAY_TRACE_ID_HEADER_NAME, "")
+    )
     if xray_trace_entity is None:
         return None
     trace_context = {

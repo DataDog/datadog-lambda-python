@@ -37,6 +37,6 @@ class TraceContextSource(object):
 
 
 # X-Ray deamon
-class XrayDeamon(object):
-    HOST = "127.0.0.1"
-    PORT = 2000
+class XrayDaemon(object):
+    XRAY_TRACE_ID_HEADER_NAME = "_X_AMZN_TRACE_ID"
+    XRAY_DAEMON_ADDRESS = "AWS_XRAY_DAEMON_ADDRESS"
