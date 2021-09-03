@@ -31,7 +31,7 @@ class TestXRay(unittest.TestCase):
     def test_build_segment_payload_no_payload(self):
         self.assertIsNone(build_segment_payload(None))
 
-    @patch("time.time", mock.MagicMock(return_value=1111))
+    @patch("time.time", MagicMock(return_value=1111))
     @patch(
         "datadog_lambda.xray.generate_random_id",
         MagicMock(return_value="1234abcd"),
