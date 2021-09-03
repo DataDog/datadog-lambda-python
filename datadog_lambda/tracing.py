@@ -29,8 +29,6 @@ dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "tru
 
 propagator = HTTPPropagator()
 
-FUNCTION_NAME_HEADER_NAME = "AWS_LAMBDA_FUNCTION_NAME"
-
 
 def _convert_xray_trace_id(xray_trace_id):
     """
@@ -359,7 +357,7 @@ def is_lambda_context():
     Return True if the X-Ray context is `LambdaContext`, rather than the
     regular `Context` (e.g., when testing lambda functions locally).
     """
-    return os.environ.get("FUNCTION_NAME_HEADER_NAME", "") != ""
+    return os.environ.get(XrayDaemon.FUNCTION_NAME_HEADER_NAME, "") != ""
 
 
 def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
