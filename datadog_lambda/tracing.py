@@ -7,13 +7,16 @@ import logging
 import os
 import json
 
-from aws_xray_sdk.core import xray_recorder
-from aws_xray_sdk.core.lambda_launcher import LambdaContext
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
     XraySubsegment,
     TraceContextSource,
+)
+from datadog_lambda.xray import (
+    send_segment,
+    parse_xray_header,
+    XRAY_TRACE_ID_HEADER_NAME
 )
 from ddtrace import tracer, patch
 from ddtrace import __version__ as ddtrace_version
@@ -27,6 +30,7 @@ dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "tru
 
 propagator = HTTPPropagator()
 
+FUNCTION_NAME_HEADER_NAME = "AWS_LAMBDA_FUNCTION_NAME"
 
 def _convert_xray_trace_id(xray_trace_id):
     """
@@ -57,16 +61,18 @@ def _get_xray_trace_context():
     if not is_lambda_context():
         return None
 
-    xray_trace_entity = xray_recorder.get_trace_entity()  # xray (sub)segment
+    xray_trace_entity = parse_xray_header(os.environ.get(XRAY_TRACE_ID_HEADER_NAME, ""))
+    if xray_trace_entity is None:
+        return None
     trace_context = {
-        "trace-id": _convert_xray_trace_id(xray_trace_entity.trace_id),
-        "parent-id": _convert_xray_entity_id(xray_trace_entity.id),
-        "sampling-priority": _convert_xray_sampling(xray_trace_entity.sampled),
+        "trace-id": _convert_xray_trace_id(xray_trace_entity["trace_id"]),
+        "parent-id": _convert_xray_entity_id(xray_trace_entity["parent_id"]),
+        "sampling-priority": _convert_xray_sampling(xray_trace_entity["sampled"]),
     }
     logger.debug(
         "Converted trace context %s from X-Ray segment %s",
         trace_context,
-        (xray_trace_entity.trace_id, xray_trace_entity.id, xray_trace_entity.sampled),
+        (xray_trace_entity["trace_id"], xray_trace_entity["parent_id"], xray_trace_entity["sampled"]),
     )
     return trace_context
 
@@ -106,19 +112,7 @@ def create_dd_dummy_metadata_subsegment(
     tags into its metadata field, so the X-Ray trace can be converted to a Datadog
     trace in the Datadog backend with the correct context.
     """
-    try:
-        xray_recorder.begin_subsegment(XraySubsegment.NAME)
-        subsegment = xray_recorder.current_subsegment()
-        subsegment.put_metadata(
-            subsegment_metadata_key, subsegment_metadata_value, XraySubsegment.NAMESPACE
-        )
-        xray_recorder.end_subsegment()
-    except Exception as e:
-        logger.debug(
-            "failed to create dd dummy metadata subsegment with error %s",
-            e,
-            exc_info=True,
-        )
+    send_segment(subsegment_metadata_key, subsegment_metadata_value)
 
 
 def extract_context_from_lambda_context(lambda_context):
@@ -359,7 +353,7 @@ def is_lambda_context():
     Return True if the X-Ray context is `LambdaContext`, rather than the
     regular `Context` (e.g., when testing lambda functions locally).
     """
-    return type(xray_recorder.context) == LambdaContext
+    return os.environ.get("FUNCTION_NAME_HEADER_NAME", "") != ""
 
 
 def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
