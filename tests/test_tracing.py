@@ -34,6 +34,7 @@ def get_mock_context(
     memory_limit_in_mb="256",
     invoked_function_arn=function_arn,
     function_version="1",
+    function_name="Function",
     custom=None,
 ):
     lambda_context = MagicMock()
@@ -41,6 +42,7 @@ def get_mock_context(
     lambda_context.memory_limit_in_mb = memory_limit_in_mb
     lambda_context.invoked_function_arn = invoked_function_arn
     lambda_context.function_version = function_version
+    lambda_context.function_name = function_name
     lambda_context.client_context = ClientContext(custom)
     return lambda_context
 
@@ -481,6 +483,8 @@ class TestFunctionSpanTags(unittest.TestCase):
         span = create_function_execution_span(ctx, "", False, {"source": ""}, False, {})
         self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("function_version"), "$LATEST")
+        self.assertEqual(span.get_tag("resource_names"), "Function")
+        self.assertEqual(span.get_tag("functionname"), "function")
 
     def test_function_with_version(self):
         function_version = "1"
@@ -490,6 +494,8 @@ class TestFunctionSpanTags(unittest.TestCase):
         span = create_function_execution_span(ctx, "", False, {"source": ""}, False, {})
         self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("function_version"), function_version)
+        self.assertEqual(span.get_tag("resource_names"), "Function")
+        self.assertEqual(span.get_tag("functionname"), "function")
 
     def test_function_with_alias(self):
         function_alias = "alias"
@@ -497,6 +503,8 @@ class TestFunctionSpanTags(unittest.TestCase):
         span = create_function_execution_span(ctx, "", False, {"source": ""}, False, {})
         self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("function_version"), function_alias)
+        self.assertEqual(span.get_tag("resource_names"), "Function")
+        self.assertEqual(span.get_tag("functionname"), "function")
 
     def test_function_with_trigger_tags(self):
         ctx = get_mock_context()
@@ -509,6 +517,8 @@ class TestFunctionSpanTags(unittest.TestCase):
             {"function_trigger.event_source": "cloudwatch-logs"},
         )
         self.assertEqual(span.get_tag("function_arn"), function_arn)
+        self.assertEqual(span.get_tag("resource_names"), "Function")
+        self.assertEqual(span.get_tag("functionname"), "function")
         self.assertEqual(
             span.get_tag("function_trigger.event_source"), "cloudwatch-logs"
         )
