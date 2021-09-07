@@ -373,7 +373,7 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
         )
 
 
-def create_inferred_span_from_API_Gateway_event(event, context, function_name):
+def create_inferred_span_from_managed_service_event(event, context, function_name):
     print("AGOCS! About to do the thing!")
     tags = {
         "operation_name": "aws.apigateway",
@@ -387,7 +387,7 @@ def create_inferred_span_from_API_Gateway_event(event, context, function_name):
 
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
-        "service": "aws.lambda",
+        "service": "aws.apigateway",
         "resource": function_name,
         "span_type": "serverless",
     }
