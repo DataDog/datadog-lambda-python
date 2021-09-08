@@ -464,7 +464,7 @@ class TestInferredSpanCreation(unittest.TestCase):
             #  - Creation time
             #  - Parent ID is what we expect it to be
             #  - various tags that Alex said
-            self.assertEqual(span.start, 14285828960.00)
+            self.assertEqual(span.start, 1428582896.0)
             self.assertEqual(span.get_tag("operation_name"), "aws.apigateway")
             self.assertEqual(
                 span.get_tag("service_name"),
