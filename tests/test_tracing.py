@@ -457,7 +457,9 @@ class TestInferredSpanCreation(unittest.TestCase):
         test_file = self.event_samples + "api-gateway.json"
         with open(test_file, "r") as event:
             event = json.load(event)
-            span = create_inferred_span_from_api_gateway_event(event)
+            span = create_inferred_span_from_api_gateway_event(
+                event, get_mock_context(), "some_function_name"
+            )
             # things to assert:
             #  - Creation time
             #  - Parent ID is what we expect it to be
@@ -528,7 +530,9 @@ class TestFunctionSpanTags(unittest.TestCase):
         test_file = self.event_samples + "api-gateway.json"
         with open(test_file, "r") as event:
             event = json.load(event)
-            inferred = create_inferred_span_from_api_gateway_event(event)
+            inferred = create_inferred_span_from_api_gateway_event(
+                event, ctx, "some_function_name"
+            )
             span = create_function_execution_span(
                 ctx, "", False, {"source": ""}, False, {}, upstream=inferred
             )
