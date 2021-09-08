@@ -26,6 +26,7 @@ from datadog_lambda.tracing import (
     set_correlation_ids,
     set_dd_trace_py_root,
     create_function_execution_span,
+    create_inferred_span,
 )
 from datadog_lambda.trigger import extract_trigger_tags, extract_http_status_code_tag
 
@@ -133,9 +134,9 @@ class _LambdaDecorator(object):
 
     def _before(self, event, context):
         try:
+
             set_cold_start()
             submit_invocations_metric(context)
-            self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source = extract_dd_trace_context(
                 event, context, extractor=self.trace_extractor
@@ -148,6 +149,13 @@ class _LambdaDecorator(object):
 
             if dd_tracing_enabled:
                 set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
+                self.inferred_span = None
+                print("AGOCS! About to check if this is an API Gateway event")
+                if "httpMethod" in event:  # if the event is an API Gateway event
+                    print("Agocs! It is!")
+                    self.inferred_span = create_inferred_span(
+                        event, context, self.function_name
+                    )
                 self.span = create_function_execution_span(
                     context,
                     self.function_name,
@@ -155,7 +163,10 @@ class _LambdaDecorator(object):
                     trace_context_source,
                     self.merge_xray_traces,
                     self.trigger_tags,
+                    upstream=self.inferred_span,
                 )
+                print("AGOCS! the main span start is {}".format(self.span.start))
+                print("AGOCS! the main span start_ns is {}".format(self.span.start_ns))
             else:
                 set_correlation_ids()
 

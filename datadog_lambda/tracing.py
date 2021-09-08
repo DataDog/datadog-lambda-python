@@ -6,6 +6,7 @@
 import logging
 import os
 import json
+from enum import Enum
 
 from aws_xray_sdk.core import xray_recorder
 from aws_xray_sdk.core.lambda_launcher import LambdaContext
@@ -26,6 +27,14 @@ dd_trace_context = {}
 dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
 
 propagator = HTTPPropagator()
+
+
+class ManagedService(Enum):
+    UNKNOWN = 0
+    API_GATEWAY_V1 = 1
+    API_GATEWAY_V2 = 2
+    HTTP_API = 3
+    APPSYNC = 4
 
 
 def _convert_xray_trace_id(xray_trace_id):
@@ -373,7 +382,19 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
         )
 
 
-def create_inferred_span_from_managed_service_event(event, context, function_name):
+def create_inferred_span(event, context, function_name):
+    managed_service = detect_inferrable_span_type(event)
+    if managed_service == ManagedService.API_GATEWAY_V1:
+        create_inferred_span_from_api_gateway_event(event, context, function_name)
+
+
+def detect_inferrable_span_type(event):
+    if "requestPath" in event:  # likely some kind of API Gateway event
+        return ManagedService.API_GATEWAY_V1
+    return ManagedService.UNKNOWN
+
+
+def create_inferred_span_from_api_gateway_event(event, context, function_name):
     print("AGOCS! About to do the thing!")
     tags = {
         "operation_name": "aws.apigateway",

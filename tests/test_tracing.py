@@ -13,7 +13,7 @@ from datadog_lambda.tracing import (
     extract_dd_trace_context,
     create_dd_dummy_metadata_subsegment,
     create_function_execution_span,
-    create_inferred_span_from_managed_service_event,
+    create_inferred_span_from_api_gateway_event,
     get_dd_trace_context,
     set_correlation_ids,
     _convert_xray_trace_id,
@@ -457,7 +457,7 @@ class TestInferredSpanCreation(unittest.TestCase):
         test_file = self.event_samples + "api-gateway.json"
         with open(test_file, "r") as event:
             event = json.load(event)
-            span = create_inferred_span_from_managed_service_event(event)
+            span = create_inferred_span_from_api_gateway_event(event)
             # things to assert:
             #  - Creation time
             #  - Parent ID is what we expect it to be
@@ -528,7 +528,7 @@ class TestFunctionSpanTags(unittest.TestCase):
         test_file = self.event_samples + "api-gateway.json"
         with open(test_file, "r") as event:
             event = json.load(event)
-            inferred = create_inferred_span_from_managed_service_event(event)
+            inferred = create_inferred_span_from_api_gateway_event(event)
             span = create_function_execution_span(
                 ctx, "", False, {"source": ""}, False, {}, upstream=inferred
             )
