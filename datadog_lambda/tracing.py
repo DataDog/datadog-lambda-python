@@ -436,7 +436,7 @@ def create_inferred_span_from_api_gateway_websocket_event(
     }
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
-        "service": "aws.apigateway.websocket",
+        "service": event["requestContext"]["domainName"],
         "resource": function_name,
         "span_type": "web",
     }
@@ -460,7 +460,7 @@ def create_inferred_span_from_api_gateway_event(event, context, function_name):
     }
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
-        "service": "aws.apigateway",
+        "service": event["requestContext"]["domainName"] + event["path"],
         "resource": function_name,
         "span_type": "http",
     }
@@ -484,7 +484,7 @@ def create_inferred_span_from_http_api_event(event, context, function_name):
     }
     request_time_epoch = event["requestContext"]["timeEpoch"]
     args = {
-        "service": "aws.httpapi",
+        "service": event["requestContext"]["domainName"] + event["rawPath"],
         "resource": function_name,
         "span_type": "http",
     }
