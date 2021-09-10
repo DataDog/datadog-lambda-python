@@ -31,8 +31,8 @@ propagator = HTTPPropagator()
 
 class ManagedService(Enum):
     UNKNOWN = 0
-    API_GATEWAY_V1 = 1
-    API_GATEWAY_V2 = 2
+    API_GATEWAY = 1
+    API_GATEWAY_WEBSOCKET = 2
     HTTP_API = 3
     APPSYNC = 4
 
@@ -384,18 +384,64 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
 
 def create_inferred_span(event, context, function_name):
     managed_service = detect_inferrable_span_type(event)
-    if managed_service == ManagedService.API_GATEWAY_V1:
-        create_inferred_span_from_api_gateway_event(event, context, function_name)
+    if managed_service == ManagedService.API_GATEWAY:
+        logger.debug("API Gateway event detected. Inferring a span")
+        return create_inferred_span_from_api_gateway_event(
+            event, context, function_name
+        )
+    elif managed_service == ManagedService.HTTP_API:
+        logger.debug("HTTP API event detected. Inferring a span")
+        return create_inferred_span_from_http_api_event(event, context, function_name)
+    elif managed_service == ManagedService.API_GATEWAY_WEBSOCKET:
+        logger.debug("API Gateway Websocket event detected. Inferring a span")
+        return create_inferred_span_from_api_gateway_websocket_event(
+            event, context, function_name
+        )
+    elif managed_service == ManagedService.UNKNOWN:
+        logger.debug("Unable to infer a span: unknown event type")
+        return None
 
 
 def detect_inferrable_span_type(event):
-    if "requestPath" in event:  # likely some kind of API Gateway event
-        return ManagedService.API_GATEWAY_V1
+    if "httpMethod" in event:  # likely some kind of API Gateway event
+        return ManagedService.API_GATEWAY
+    if "routeKey" in event:  # likely HTTP API
+        return ManagedService.HTTP_API
+    if (
+        "requestContext" in event and "messageDirection" in event["requestContext"]
+    ):  # likely a websocket API
+        return ManagedService.API_GATEWAY_WEBSOCKET
     return ManagedService.UNKNOWN
 
 
+def create_inferred_span_from_api_gateway_websocket_event(
+    event, context, function_name
+):
+    tags = {
+        "operation_name": "aws.apigateway.websocket",
+        "service_name": event["requestContext"]["domainName"]
+        + event["requestContext"]["routeKey"],
+        "url": event["requestContext"]["domainName"],
+        "endpoint": event["requestContext"]["routeKey"],
+        "resource_names": function_name,
+        "request_id": context.aws_request_id,
+        "connection_id": event["requestContext"]["connectionId"],
+    }
+    request_time_epoch = event["requestContext"]["requestTimeEpoch"]
+    args = {
+        "service": "aws.apigateway.websocket",
+        "resource": function_name,
+        "span_type": "serverless",
+    }
+    tracer.set_tags({"_dd.origin": "lambda"})
+    span = tracer.trace("aws.lambda", **args)
+    if span:
+        span.set_tags(tags)
+    span.start = request_time_epoch / 1000
+    return span
+
+
 def create_inferred_span_from_api_gateway_event(event, context, function_name):
-    print("AGOCS! About to do the thing!")
     tags = {
         "operation_name": "aws.apigateway",
         "service_name": event["requestContext"]["domainName"] + event["path"],
@@ -409,6 +455,30 @@ def create_inferred_span_from_api_gateway_event(event, context, function_name):
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
         "service": "aws.apigateway",
+        "resource": function_name,
+        "span_type": "serverless",
+    }
+    tracer.set_tags({"_dd.origin": "lambda"})
+    span = tracer.trace("aws.lambda", **args)
+    if span:
+        span.set_tags(tags)
+    span.start = request_time_epoch / 1000
+    return span
+
+
+def create_inferred_span_from_http_api_event(event, context, function_name):
+    tags = {
+        "operation_name": "aws.httpapi",
+        "service_name": event["requestContext"]["domainName"] + event["rawPath"],
+        "url": event["requestContext"]["domainName"],
+        "endpoint": event["rawPath"],
+        "http.method": event["requestContext"]["http"]["method"],
+        "resource_names": function_name,
+        "request_id": context.aws_request_id,
+    }
+    request_time_epoch = event["requestContext"]["timeEpoch"]
+    args = {
+        "service": "aws.httpapi",
         "resource": function_name,
         "span_type": "serverless",
     }

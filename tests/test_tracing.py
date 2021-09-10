@@ -1,3 +1,4 @@
+import math
 import unittest
 import json
 
@@ -13,7 +14,7 @@ from datadog_lambda.tracing import (
     extract_dd_trace_context,
     create_dd_dummy_metadata_subsegment,
     create_function_execution_span,
-    create_inferred_span_from_api_gateway_event,
+    create_inferred_span,
     get_dd_trace_context,
     set_correlation_ids,
     _convert_xray_trace_id,
@@ -457,9 +458,7 @@ class TestInferredSpanCreation(unittest.TestCase):
         test_file = self.event_samples + "api-gateway.json"
         with open(test_file, "r") as event:
             event = json.load(event)
-            span = create_inferred_span_from_api_gateway_event(
-                event, get_mock_context(), "some_function_name"
-            )
+            span = create_inferred_span(event, get_mock_context(), "some_function_name")
             # things to assert:
             #  - Creation time
             #  - Parent ID is what we expect it to be
@@ -474,7 +473,49 @@ class TestInferredSpanCreation(unittest.TestCase):
                 span.get_tag("url"), "70ixmpl4fl.execute-api.us-east-2.amazonaws.com"
             )
             self.assertEqual(span.get_tag("endpoint"), "/path/to/resource")
-            self.assertEqual(span.get_tag("method"), "POST")
+            self.assertEqual(span.get_tag("http.method"), "POST")
+
+    def test_function_with_api_gateway_non_proxy_event(self):
+        test_file = self.event_samples + "api-gateway-non-proxy.json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+            span = create_inferred_span(event, get_mock_context(), "some_function_name")
+            # things to assert:
+            #  - Creation time
+            #  - Parent ID is what we expect it to be
+            #  - various tags that Alex said
+            self.assertEqual(math.floor(span.start), 1631210915.0)
+            self.assertEqual(span.get_tag("operation_name"), "aws.apigateway")
+            self.assertEqual(
+                span.get_tag("service_name"),
+                "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
+            )
+            self.assertEqual(
+                span.get_tag("url"), "lgxbo6a518.execute-api.sa-east-1.amazonaws.com"
+            )
+            self.assertEqual(span.get_tag("endpoint"), "/http/get")
+            self.assertEqual(span.get_tag("http.method"), "GET")
+
+    def test_function_with_http_api_event(self):
+        test_file = self.event_samples + "http-api.json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+            span = create_inferred_span(event, get_mock_context(), "some_function_name")
+            # things to assert:
+            #  - Creation time
+            #  - Parent ID is what we expect it to be
+            #  - various tags that Alex said
+            self.assertEqual(math.floor(span.start), 1631212283.0)
+            self.assertEqual(span.get_tag("operation_name"), "aws.httpapi")
+            self.assertEqual(
+                span.get_tag("service_name"),
+                "x02yirxc7a.execute-api.sa-east-1.amazonaws.com/httpapi/get",
+            )
+            self.assertEqual(
+                span.get_tag("url"), "x02yirxc7a.execute-api.sa-east-1.amazonaws.com"
+            )
+            self.assertEqual(span.get_tag("endpoint"), "/httpapi/get")
+            self.assertEqual(span.get_tag("http.method"), "GET")
 
 
 class TestFunctionSpanTags(unittest.TestCase):
@@ -530,11 +571,57 @@ class TestFunctionSpanTags(unittest.TestCase):
         test_file = self.event_samples + "api-gateway.json"
         with open(test_file, "r") as event:
             event = json.load(event)
-            inferred = create_inferred_span_from_api_gateway_event(
-                event, ctx, "some_function_name"
-            )
+            inferred = create_inferred_span(event, ctx, "some_function_name")
             span = create_function_execution_span(
                 ctx, "", False, {"source": ""}, False, {}, upstream=inferred
             )
             self.assertEqual(span.parent_id, inferred.span_id)
             self.assertEqual(span.trace_id, inferred.trace_id)
+
+    def test_function_with_API_Gateway_websocket_connect_event(self):
+        ctx = get_mock_context()
+        test_file = self.event_samples + "api-gateway-websocket-connect.json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+            inferred = create_inferred_span(event, ctx, "some_function_name")
+            span = create_function_execution_span(
+                ctx, "", False, {"source": ""}, False, {}, upstream=inferred
+            )
+            self.assertEqual(span.parent_id, inferred.span_id)
+            self.assertEqual(span.trace_id, inferred.trace_id)
+            self.assertEqual(
+                inferred.get_tag("service_name"),
+                "p62c47itsb.execute-api.sa-east-1.amazonaws.com$connect",
+            )
+
+    def test_function_with_API_Gateway_websocket_default_event(self):
+        ctx = get_mock_context()
+        test_file = self.event_samples + "api-gateway-websocket-default.json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+            inferred = create_inferred_span(event, ctx, "some_function_name")
+            span = create_function_execution_span(
+                ctx, "", False, {"source": ""}, False, {}, upstream=inferred
+            )
+            self.assertEqual(span.parent_id, inferred.span_id)
+            self.assertEqual(span.trace_id, inferred.trace_id)
+            self.assertEqual(
+                inferred.get_tag("service_name"),
+                "p62c47itsb.execute-api.sa-east-1.amazonaws.com$default",
+            )
+
+    def test_function_with_API_Gateway_websocket_disconnect_event(self):
+        ctx = get_mock_context()
+        test_file = self.event_samples + "api-gateway-websocket-disconnect.json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+            inferred = create_inferred_span(event, ctx, "some_function_name")
+            span = create_function_execution_span(
+                ctx, "", False, {"source": ""}, False, {}, upstream=inferred
+            )
+            self.assertEqual(span.parent_id, inferred.span_id)
+            self.assertEqual(span.trace_id, inferred.trace_id)
+            self.assertEqual(
+                inferred.get_tag("service_name"),
+                "p62c47itsb.execute-api.sa-east-1.amazonaws.com$disconnect",
+            )

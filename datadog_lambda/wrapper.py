@@ -97,6 +97,7 @@ class _LambdaDecorator(object):
             self.extractor_env = os.environ.get("DD_TRACE_EXTRACTOR", None)
             self.trace_extractor = None
             self.span = None
+            self.inferred_span = None
             self.response = None
 
             if self.extractor_env:
@@ -150,13 +151,9 @@ class _LambdaDecorator(object):
 
             if dd_tracing_enabled:
                 set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
-                self.inferred_span = None
-                print("AGOCS! About to check if this is an API Gateway event")
-                if "httpMethod" in event:  # if the event is an API Gateway event
-                    print("Agocs! It is!")
-                    self.inferred_span = create_inferred_span(
-                        event, context, self.function_name
-                    )
+                self.inferred_span = create_inferred_span(
+                    event, context, self.function_name
+                )
                 self.span = create_function_execution_span(
                     context,
                     self.function_name,
@@ -197,6 +194,10 @@ class _LambdaDecorator(object):
                     self.span.set_tag("http.status_code", status_code)
                 self.span.finish()
             logger.debug("datadog_lambda_wrapper _after() done")
+            if self.inferred_span:
+                if status_code:
+                    self.inferred_span.set_tag("http.status_code", status_code)
+                self.inferred_span.finish()
         except Exception:
             traceback.print_exc()
 
