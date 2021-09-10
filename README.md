@@ -90,7 +90,7 @@ Set to `true` to merge the X-Ray trace and the Datadog trace, when using both th
 ### DD_INFERRED_SPANS (beta)
 
 Inferred Spans are spans that Datadog can create based on incoming event metadata. 
-Set to `true` to infer spans based on Lambda events.
+Set `DD_INFERRED_SPANS` to `true` to infer spans based on Lambda events.
 Defaults to `false`.
 Infers spans for:
 - API Gateway REST events
