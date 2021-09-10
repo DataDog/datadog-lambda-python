@@ -98,6 +98,9 @@ class _LambdaDecorator(object):
             self.trace_extractor = None
             self.span = None
             self.inferred_span = None
+            self.make_inferred_span = (
+                os.environ.get("DD_INFERRED_SPANS", "false").lower() == "true"
+            )
             self.response = None
 
             if self.extractor_env:
@@ -151,9 +154,10 @@ class _LambdaDecorator(object):
 
             if dd_tracing_enabled:
                 set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
-                self.inferred_span = create_inferred_span(
-                    event, context, self.function_name
-                )
+                if self.make_inferred_span:
+                    self.inferred_span = create_inferred_span(
+                        event, context, self.function_name
+                    )
                 self.span = create_function_execution_span(
                     context,
                     self.function_name,
@@ -163,8 +167,6 @@ class _LambdaDecorator(object):
                     self.trigger_tags,
                     upstream=self.inferred_span,
                 )
-                print("AGOCS! the main span start is {}".format(self.span.start))
-                print("AGOCS! the main span start_ns is {}".format(self.span.start_ns))
             else:
                 set_correlation_ids()
 
@@ -193,11 +195,11 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
                 self.span.finish()
-            logger.debug("datadog_lambda_wrapper _after() done")
             if self.inferred_span:
                 if status_code:
                     self.inferred_span.set_tag("http.status_code", status_code)
                 self.inferred_span.finish()
+            logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
             traceback.print_exc()
 
