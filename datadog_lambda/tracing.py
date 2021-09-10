@@ -384,22 +384,29 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
 
 def create_inferred_span(event, context, function_name):
     managed_service = detect_inferrable_span_type(event)
-    if managed_service == ManagedService.API_GATEWAY:
-        logger.debug("API Gateway event detected. Inferring a span")
-        return create_inferred_span_from_api_gateway_event(
-            event, context, function_name
+    try:
+        if managed_service == ManagedService.API_GATEWAY:
+            logger.debug("API Gateway event detected. Inferring a span")
+            return create_inferred_span_from_api_gateway_event(
+                event, context, function_name
+            )
+        elif managed_service == ManagedService.HTTP_API:
+            logger.debug("HTTP API event detected. Inferring a span")
+            return create_inferred_span_from_http_api_event(
+                event, context, function_name
+            )
+        elif managed_service == ManagedService.API_GATEWAY_WEBSOCKET:
+            logger.debug("API Gateway Websocket event detected. Inferring a span")
+            return create_inferred_span_from_api_gateway_websocket_event(
+                event, context, function_name
+            )
+    except Exception as e:
+        logger.debug(
+            "Unable to infer span. Detected type: {}. Reason: {}", managed_service, e
         )
-    elif managed_service == ManagedService.HTTP_API:
-        logger.debug("HTTP API event detected. Inferring a span")
-        return create_inferred_span_from_http_api_event(event, context, function_name)
-    elif managed_service == ManagedService.API_GATEWAY_WEBSOCKET:
-        logger.debug("API Gateway Websocket event detected. Inferring a span")
-        return create_inferred_span_from_api_gateway_websocket_event(
-            event, context, function_name
-        )
-    elif managed_service == ManagedService.UNKNOWN:
-        logger.debug("Unable to infer a span: unknown event type")
         return None
+    logger.debug("Unable to infer a span: unknown event type")
+    return None
 
 
 def detect_inferrable_span_type(event):
@@ -431,10 +438,10 @@ def create_inferred_span_from_api_gateway_websocket_event(
     args = {
         "service": "aws.apigateway.websocket",
         "resource": function_name,
-        "span_type": "serverless",
+        "span_type": "web",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
-    span = tracer.trace("aws.lambda", **args)
+    span = tracer.trace("aws.apigateway", **args)
     if span:
         span.set_tags(tags)
     span.start = request_time_epoch / 1000
@@ -451,15 +458,14 @@ def create_inferred_span_from_api_gateway_event(event, context, function_name):
         "resource_names": function_name,
         "request_id": context.aws_request_id,
     }
-
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
         "service": "aws.apigateway",
         "resource": function_name,
-        "span_type": "serverless",
+        "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
-    span = tracer.trace("aws.lambda", **args)
+    span = tracer.trace("aws.apigateway", **args)
     if span:
         span.set_tags(tags)
     span.start = request_time_epoch / 1000
@@ -480,10 +486,10 @@ def create_inferred_span_from_http_api_event(event, context, function_name):
     args = {
         "service": "aws.httpapi",
         "resource": function_name,
-        "span_type": "serverless",
+        "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
-    span = tracer.trace("aws.lambda", **args)
+    span = tracer.trace("aws.httpapi", **args)
     if span:
         span.set_tags(tags)
     span.start = request_time_epoch / 1000
