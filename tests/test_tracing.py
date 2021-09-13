@@ -1,5 +1,6 @@
 import unittest
 import json
+import os
 
 try:
     from unittest.mock import MagicMock, patch, call
@@ -21,6 +22,12 @@ from datadog_lambda.tracing import (
 )
 
 function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
+
+fake_xray_header_value = (
+    "Root=1-5e272390-8c398be037738dc042009320;Parent=94ae789b969f1cc5;Sampled=1"
+)
+fake_xray_header_value_parent_decimal = "10713633173203262661"
+fake_xray_header_value_root_decimal = "3995693151288333088"
 
 
 class ClientContext(object):
@@ -50,17 +57,10 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     def setUp(self):
         global dd_tracing_enabled
         dd_tracing_enabled = False
-        patcher = patch("datadog_lambda.tracing.xray_recorder")
-        self.mock_xray_recorder = patcher.start()
-        self.mock_xray_recorder.get_trace_entity.return_value = MagicMock(
-            id="ffff", trace_id="1111", sampled=True
-        )
-        self.mock_current_subsegment = MagicMock()
-        self.mock_xray_recorder.current_subsegment.return_value = (
-            self.mock_current_subsegment
-        )
+        os.environ["_X_AMZN_TRACE_ID"] = fake_xray_header_value
+        patcher = patch("datadog_lambda.tracing.send_segment")
+        self.mock_send_segment = patcher.start()
         self.addCleanup(patcher.stop)
-
         patcher = patch("datadog_lambda.tracing.is_lambda_context")
         self.mock_is_lambda_context = patcher.start()
         self.mock_is_lambda_context.return_value = True
@@ -69,6 +69,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     def tearDown(self):
         global dd_tracing_enabled
         dd_tracing_enabled = False
+        del os.environ["_X_AMZN_TRACE_ID"]
 
     def test_without_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
@@ -76,13 +77,17 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
-            {"trace-id": "4369", "parent-id": "65535", "sampling-priority": "2"},
+            {
+                "trace-id": fake_xray_header_value_root_decimal,
+                "parent-id": fake_xray_header_value_parent_decimal,
+                "sampling-priority": "2",
+            },
         )
         self.assertDictEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "4369",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.TRACE_ID: fake_xray_header_value_root_decimal,
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "2",
             },
             {},
@@ -97,13 +102,17 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
-            {"trace-id": "4369", "parent-id": "65535", "sampling-priority": "2"},
+            {
+                "trace-id": fake_xray_header_value_root_decimal,
+                "parent-id": fake_xray_header_value_parent_decimal,
+                "sampling-priority": "2",
+            },
         )
         self.assertDictEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "4369",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.TRACE_ID: fake_xray_header_value_root_decimal,
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "2",
             },
         )
@@ -129,16 +138,15 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "123",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_xray_recorder.begin_subsegment.assert_called()
-        self.mock_current_subsegment.put_metadata.assert_called_with(
+        self.mock_send_segment.assert_called()
+        self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
             {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
-            XraySubsegment.NAMESPACE,
         )
 
     def test_with_extractor_function(self):
@@ -176,7 +184,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "123",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
@@ -201,16 +209,16 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertDictEqual(
             ctx,
             {
-                "trace-id": "4369",
-                "parent-id": "65535",
+                "trace-id": fake_xray_header_value_root_decimal,
+                "parent-id": fake_xray_header_value_parent_decimal,
                 "sampling-priority": "2",
             },
         )
         self.assertDictEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "4369",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.TRACE_ID: fake_xray_header_value_root_decimal,
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "2",
             },
         )
@@ -261,17 +269,14 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "123",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_xray_recorder.begin_subsegment.assert_called()
-        self.mock_xray_recorder.end_subsegment.assert_called()
-        self.mock_current_subsegment.put_metadata.assert_called_with(
+        self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
             {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
-            XraySubsegment.NAMESPACE,
         )
 
     def test_with_legacy_client_context_datadog_trace_data(self):
@@ -298,17 +303,15 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "666",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_xray_recorder.begin_subsegment.assert_called()
-        self.mock_xray_recorder.end_subsegment.assert_called()
-        self.mock_current_subsegment.put_metadata.assert_called_with(
+        self.mock_send_segment.assert_called()
+        self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
             {"trace-id": "666", "parent-id": "777", "sampling-priority": "1"},
-            XraySubsegment.NAMESPACE,
         )
 
     def test_with_new_client_context_datadog_trace_data(self):
@@ -333,17 +336,15 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "666",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_xray_recorder.begin_subsegment.assert_called()
-        self.mock_xray_recorder.end_subsegment.assert_called()
-        self.mock_current_subsegment.put_metadata.assert_called_with(
+        self.mock_send_segment.assert_called()
+        self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
             {"trace-id": "666", "parent-id": "777", "sampling-priority": "1"},
-            XraySubsegment.NAMESPACE,
         )
 
     def test_with_complete_datadog_trace_headers_with_mixed_casing(self):
@@ -362,7 +363,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "123",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
@@ -375,9 +376,8 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         create_dd_dummy_metadata_subsegment(
             trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
         )
-        self.mock_xray_recorder.begin_subsegment.assert_called()
-        self.mock_xray_recorder.end_subsegment.assert_called()
-        self.mock_current_subsegment.put_metadata.assert_has_calls(
+        self.mock_send_segment.assert_called()
+        self.mock_send_segment.assert_has_calls(
             [
                 call(
                     XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY,
@@ -385,7 +385,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                         "function_trigger.event_source": "sqs",
                         "function_trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
                     },
-                    XraySubsegment.NAMESPACE,
                 ),
             ]
         )
