@@ -87,7 +87,7 @@ Initialize the Datadog tracer when set to `true`. Defaults to `false`.
 
 Set to `true` to merge the X-Ray trace and the Datadog trace, when using both the X-Ray and Datadog tracing. Defaults to `false`.
 
-### DD_INFERRED_SPANS (beta)
+### DD_INFERRED_SPANS (experimental)
 
 Inferred Spans are spans that Datadog can create based on incoming event metadata. 
 Set `DD_INFERRED_SPANS` to `true` to infer spans based on Lambda events.
