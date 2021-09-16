@@ -13,9 +13,10 @@ set -e
 # Makes sure any subprocesses will be terminated with this process
 trap "pkill -P $$; exit 1;" INT
 
-PYTHON_VERSIONS_FOR_AWS_CLI=("python2.7" "python3.6" "python3.7" "python3.8")
-LAYER_PATHS=(".layers/datadog_lambda_py2.7.zip" ".layers/datadog_lambda_py3.6.zip" ".layers/datadog_lambda_py3.7.zip" ".layers/datadog_lambda_py3.8.zip")
-AVAILABLE_LAYERS=("Datadog-Python27" "Datadog-Python36" "Datadog-Python37" "Datadog-Python38")
+PYTHON_VERSIONS_FOR_AWS_CLI=("python2.7" "python3.6" "python3.7" "python3.8" "python3.8")
+LAYER_PATHS=(".layers/datadog_lambda_py-amd64-2.7.zip" ".layers/datadog_lambda_py-amd64-3.6.zip" ".layers/datadog_lambda_py-amd64-3.7.zip" ".layers/datadog_lambda_py3.8.zip" ".layers/datadog_lambda_py-arm64-3.8.zip")
+AVAILABLE_LAYERS=("Datadog-Python27" "Datadog-Python36" "Datadog-Python37" "Datadog-Python38" "Datadog-Python38-ARM")
+ARCHS=("amd64" "amd64" "amd64""amd64" "amd64" "arm64")
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 
 # Check that the layer files exist
