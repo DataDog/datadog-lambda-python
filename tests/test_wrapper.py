@@ -440,13 +440,15 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
             pass
+
         self.assertEqual(os.environ.get("DD_REQUESTS_SERVICE_NAME"), "aws.lambda")
 
     def test_dd_requests_service_name_set(self):
         os.environ["DD_SERVICE"] = "myAwesomeService"
+
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
             pass
+
         self.assertEqual(os.environ.get("DD_REQUESTS_SERVICE_NAME"), "myAwesomeService")
         del os.environ["DD_SERVICE"]
-

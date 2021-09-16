@@ -112,7 +112,9 @@ class _LambdaDecorator(object):
 
             # This prevents a breaking change in ddtrace v0.49 regarding the service name
             # in requests-related spans
-            os.environ["DD_REQUESTS_SERVICE_NAME"] = os.environ.get("DD_SERVICE", "aws.lambda")
+            os.environ["DD_REQUESTS_SERVICE_NAME"] = os.environ.get(
+                "DD_SERVICE", "aws.lambda"
+            )
             # Patch third-party libraries for tracing
             patch_all()
 
