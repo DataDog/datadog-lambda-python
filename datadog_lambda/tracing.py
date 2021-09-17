@@ -424,24 +424,24 @@ def detect_inferrable_span_type(event):
 def create_inferred_span_from_api_gateway_websocket_event(
     event, context, function_name
 ):
+    domain = event["requestContext"]["domainName"]
+    endpoint = event["requestContext"]["routeKey"]
     tags = {
         "operation_name": "aws.apigateway.websocket",
-        "service_name": event["requestContext"]["domainName"]
-        + event["requestContext"]["routeKey"],
-        "url": event["requestContext"]["domainName"],
-        "endpoint": event["requestContext"]["routeKey"],
-        "resource_names": function_name,
+        "service.name": domain,
+        "url": domain,
+        "endpoint": endpoint,
+        "resource_name": domain + endpoint,
         "request_id": context.aws_request_id,
         "connection_id": event["requestContext"]["connectionId"],
     }
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
-        "service": event["requestContext"]["domainName"],
-        "resource": function_name,
+        "resource": domain + endpoint,
         "span_type": "web",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
-    span = tracer.trace("aws.apigateway", **args)
+    span = tracer.trace("aws.apigateway.websocket", **args)
     if span:
         span.set_tags(tags)
     span.start = request_time_epoch / 1000
@@ -449,19 +449,20 @@ def create_inferred_span_from_api_gateway_websocket_event(
 
 
 def create_inferred_span_from_api_gateway_event(event, context, function_name):
+    domain = event["requestContext"]["domainName"]
+    path = event["path"]
     tags = {
-        "operation_name": "aws.apigateway",
-        "service_name": event["requestContext"]["domainName"] + event["path"],
-        "url": event["requestContext"]["domainName"],
-        "endpoint": event["path"],
+        "operation_name": "aws.apigateway.rest",
+        "service.name": domain,
+        "url": domain,
+        "endpoint": path,
         "http.method": event["httpMethod"],
-        "resource_names": function_name,
+        "resource_name": domain + path,
         "request_id": context.aws_request_id,
     }
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
-        "service": event["requestContext"]["domainName"] + event["path"],
-        "resource": function_name,
+        "resource": domain + path,
         "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
@@ -473,19 +474,20 @@ def create_inferred_span_from_api_gateway_event(event, context, function_name):
 
 
 def create_inferred_span_from_http_api_event(event, context, function_name):
+    domain = event["requestContext"]["domainName"]
+    path = event["rawPath"]
     tags = {
         "operation_name": "aws.httpapi",
-        "service_name": event["requestContext"]["domainName"] + event["rawPath"],
-        "url": event["requestContext"]["domainName"],
-        "endpoint": event["rawPath"],
+        "service.name": domain,
+        "url": domain,
+        "endpoint": path,
         "http.method": event["requestContext"]["http"]["method"],
-        "resource_names": function_name,
+        "resource_name": domain + path,
         "request_id": context.aws_request_id,
     }
     request_time_epoch = event["requestContext"]["timeEpoch"]
     args = {
-        "service": event["requestContext"]["domainName"] + event["rawPath"],
-        "resource": function_name,
+        "resource": domain + path,
         "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
@@ -522,6 +524,7 @@ def create_function_execution_span(
             else None,
             "datadog_lambda": datadog_lambda_version,
             "dd_trace": ddtrace_version,
+            "span.name": "aws.lambda",
         }
     if trace_context_source == TraceContextSource.XRAY and merge_xray_traces:
         tags["_dd.parent_source"] = trace_context_source
