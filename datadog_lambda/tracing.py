@@ -387,19 +387,13 @@ def create_inferred_span(event, context, function_name):
     try:
         if managed_service == ManagedService.API_GATEWAY:
             logger.debug("API Gateway event detected. Inferring a span")
-            return create_inferred_span_from_api_gateway_event(
-                event, context, function_name
-            )
+            return create_inferred_span_from_api_gateway_event(event, context)
         elif managed_service == ManagedService.HTTP_API:
             logger.debug("HTTP API event detected. Inferring a span")
-            return create_inferred_span_from_http_api_event(
-                event, context, function_name
-            )
+            return create_inferred_span_from_http_api_event(event, context)
         elif managed_service == ManagedService.API_GATEWAY_WEBSOCKET:
             logger.debug("API Gateway Websocket event detected. Inferring a span")
-            return create_inferred_span_from_api_gateway_websocket_event(
-                event, context, function_name
-            )
+            return create_inferred_span_from_api_gateway_websocket_event(event, context)
     except Exception as e:
         logger.debug(
             "Unable to infer span. Detected type: {}. Reason: {}", managed_service, e
@@ -421,9 +415,7 @@ def detect_inferrable_span_type(event):
     return ManagedService.UNKNOWN
 
 
-def create_inferred_span_from_api_gateway_websocket_event(
-    event, context, function_name
-):
+def create_inferred_span_from_api_gateway_websocket_event(event, context):
     domain = event["requestContext"]["domainName"]
     endpoint = event["requestContext"]["routeKey"]
     tags = {
@@ -448,7 +440,7 @@ def create_inferred_span_from_api_gateway_websocket_event(
     return span
 
 
-def create_inferred_span_from_api_gateway_event(event, context, function_name):
+def create_inferred_span_from_api_gateway_event(event, context):
     domain = event["requestContext"]["domainName"]
     path = event["path"]
     tags = {
@@ -473,7 +465,7 @@ def create_inferred_span_from_api_gateway_event(event, context, function_name):
     return span
 
 
-def create_inferred_span_from_http_api_event(event, context, function_name):
+def create_inferred_span_from_http_api_event(event, context):
     domain = event["requestContext"]["domainName"]
     path = event["rawPath"]
     tags = {
