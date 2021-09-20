@@ -362,7 +362,13 @@ def is_lambda_context():
 
 def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
     if trace_context_source == TraceContextSource.EVENT or merge_xray_traces:
-        headers = _context_obj_to_headers(dd_trace_context)
+        context = dict(dd_trace_context)
+        if merge_xray_traces:
+            xray_context = _get_xray_trace_context()
+            if xray_context != None:
+                context["parent-id"] = xray_context["parent-id"]
+
+        headers = _context_obj_to_headers(context)
         span_context = propagator.extract(headers)
         tracer.context_provider.activate(span_context)
         logger.debug(
