@@ -519,7 +519,10 @@ class TestSetTraceRootSpan(unittest.TestCase):
         dd_tracing_enabled = False
         del os.environ["_X_AMZN_TRACE_ID"]
 
-    def test_set_parent_to_incomming_dd_trace_id(self):
+    def test_mixed_parent_context_when_merging(self):
+        # When trace merging is enabled, and dd_trace headers are present,
+        # use the dd-trace trace-id and the x-ray parent-id
+        # This allows parenting relationships like dd-trace -> x-ray -> dd-trace
         lambda_ctx = get_mock_context()
         ctx, source = extract_dd_trace_context(
             {
