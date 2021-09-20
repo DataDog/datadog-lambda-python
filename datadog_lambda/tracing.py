@@ -365,7 +365,7 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
         context = dict(dd_trace_context)
         if merge_xray_traces:
             xray_context = _get_xray_trace_context()
-            if xray_context != None:
+            if xray_context is not None:
                 context["parent-id"] = xray_context["parent-id"]
 
         headers = _context_obj_to_headers(context)
