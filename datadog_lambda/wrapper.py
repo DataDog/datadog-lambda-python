@@ -32,7 +32,6 @@ from datadog_lambda.trigger import extract_trigger_tags, extract_http_status_cod
 
 logger = logging.getLogger(__name__)
 
-
 """
 Usage:
 
@@ -186,11 +185,6 @@ class _LambdaDecorator(object):
                     self.trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
                 )
 
-            if not self.flush_to_log or should_use_extension:
-                flush_stats()
-            if should_use_extension:
-                flush_extension()
-
             if self.span:
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
@@ -200,6 +194,11 @@ class _LambdaDecorator(object):
                     self.inferred_span.set_tag("http.status_code", status_code)
                 self.inferred_span.finish()
             logger.debug("datadog_lambda_wrapper _after() done")
+
+            if not self.flush_to_log or should_use_extension:
+                flush_stats()
+            if should_use_extension:
+                flush_extension()
         except Exception:
             traceback.print_exc()
 
