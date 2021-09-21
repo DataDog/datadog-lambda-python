@@ -7,6 +7,7 @@ try:
 except ImportError:
     from mock import MagicMock, patch, call
 
+import ddtrace
 from ddtrace.helpers import get_correlation_ids
 
 from datadog_lambda.constants import SamplingPriority, TraceHeader, XraySubsegment
@@ -20,6 +21,9 @@ from datadog_lambda.tracing import (
     _convert_xray_trace_id,
     _convert_xray_entity_id,
     _convert_xray_sampling,
+    InferredSpanFilter,
+    SPAN_TYPE_TAG,
+    SPAN_TYPE_INFERRED,
 )
 
 function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
@@ -624,4 +628,61 @@ class TestFunctionSpanTags(unittest.TestCase):
             self.assertEqual(
                 inferred.get_tag("service_name"),
                 "p62c47itsb.execute-api.sa-east-1.amazonaws.com$disconnect",
+            )
+
+
+class TestInferredSpanFilter(unittest.TestCase):
+    def test_process_trace(self):
+        class DataClass:
+            def __init__(
+                self,
+                name,
+                span_names,
+                span_tag_keys,
+                span_tag_vals,
+                num_expected_returned_spans,
+            ):
+                self.name = name
+
+                def new_span(name, tagKey, tagVal):
+                    sp = ddtrace.span.Span(None, name=name)
+                    sp.set_tag(tagKey, tagVal)
+                    return sp
+
+                self.spans_in = []
+                for span_name, tagKey, tagVal in zip(
+                    span_names, span_tag_keys, span_tag_vals
+                ):
+                    self.spans_in.append(new_span(span_name, tagKey, tagVal))
+                self.num_expected_returned_spans = num_expected_returned_spans
+
+        test_cases = [
+            DataClass("One regular span", ["foo"], ["someTag"], ["someVal"], 1),
+            DataClass(
+                "One inferred span",
+                ["aws.apigateway"],
+                [SPAN_TYPE_TAG],
+                [SPAN_TYPE_INFERRED],
+                1,
+            ),
+            DataClass(
+                "two regular spans",
+                ["foo", "bar"],
+                ["someTag", "someTag"],
+                ["someVal", "someVal"],
+                2,
+            ),
+            DataClass(
+                "one inferred, one regular span",
+                ["inferred", "regular"],
+                [SPAN_TYPE_TAG, "someKey"],
+                [SPAN_TYPE_INFERRED, "someVal"],
+                1,
+            ),
+        ]
+        isf = InferredSpanFilter()
+        for tc in test_cases:
+            spans_returned = isf.process_trace(tc.spans_in)
+            self.assertEqual(
+                len(spans_returned), tc.num_expected_returned_spans, tc.name
             )
