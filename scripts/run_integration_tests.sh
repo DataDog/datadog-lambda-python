@@ -208,9 +208,9 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(\"span_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"parent_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"request_id\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
-                sed -E "s/(\"duration\"\: )[0-9\.\-]+/\1XXXX/g" |
-                sed -E "s/(\"start\"\: )[0-9\.\-]+/\1XXXX/g" |
-                sed -E "s/(\"system\.pid\"\: )[0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"duration\"\: )[0-9\.\-]+/\1\"XXXX\"/g" |
+                sed -E "s/(\"start\"\: )[0-9\.\-]+/\1\"XXXX\"/g" |
+                sed -E "s/(\"system\.pid\"\: )[0-9\.\-]+/\1\"XXXX\"/g" |
                 sed -E "s/(\"runtime-id\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"datadog_lambda\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g" |
                 sed -E "s/(\"dd_trace\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g"
