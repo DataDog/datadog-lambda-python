@@ -468,13 +468,14 @@ class TestInferredSpanCreation(unittest.TestCase):
             #  - Parent ID is what we expect it to be
             #  - various tags that Alex said
             self.assertEqual(span.start, 1428582896.0)
-            self.assertEqual(span.get_tag("operation_name"), "aws.apigateway")
+            self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
             self.assertEqual(
-                span.get_tag("service_name"),
-                "70ixmpl4fl.execute-api.us-east-2.amazonaws.com/path/to/resource",
+                span.get_tag("service.name"),
+                "70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
             )
             self.assertEqual(
-                span.get_tag("url"), "70ixmpl4fl.execute-api.us-east-2.amazonaws.com"
+                span.get_tag("url"),
+                "70ixmpl4fl.execute-api.us-east-2.amazonaws.com/path/to/resource",
             )
             self.assertEqual(span.get_tag("endpoint"), "/path/to/resource")
             self.assertEqual(span.get_tag("http.method"), "POST")
@@ -489,13 +490,14 @@ class TestInferredSpanCreation(unittest.TestCase):
             #  - Parent ID is what we expect it to be
             #  - various tags that Alex said
             self.assertEqual(math.floor(span.start), 1631210915.0)
-            self.assertEqual(span.get_tag("operation_name"), "aws.apigateway")
+            self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
             self.assertEqual(
-                span.get_tag("service_name"),
-                "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
+                span.get_tag("service.name"),
+                "lgxbo6a518.execute-api.sa-east-1.amazonaws.com",
             )
             self.assertEqual(
-                span.get_tag("url"), "lgxbo6a518.execute-api.sa-east-1.amazonaws.com"
+                span.get_tag("url"),
+                "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
             )
             self.assertEqual(span.get_tag("endpoint"), "/http/get")
             self.assertEqual(span.get_tag("http.method"), "GET")
@@ -512,11 +514,12 @@ class TestInferredSpanCreation(unittest.TestCase):
             self.assertEqual(math.floor(span.start), 1631212283.0)
             self.assertEqual(span.get_tag("operation_name"), "aws.httpapi")
             self.assertEqual(
-                span.get_tag("service_name"),
-                "x02yirxc7a.execute-api.sa-east-1.amazonaws.com/httpapi/get",
+                span.get_tag("service.name"),
+                "x02yirxc7a.execute-api.sa-east-1.amazonaws.com",
             )
             self.assertEqual(
-                span.get_tag("url"), "x02yirxc7a.execute-api.sa-east-1.amazonaws.com"
+                span.get_tag("url"),
+                "x02yirxc7a.execute-api.sa-east-1.amazonaws.com/httpapi/get",
             )
             self.assertEqual(span.get_tag("endpoint"), "/httpapi/get")
             self.assertEqual(span.get_tag("http.method"), "GET")
@@ -594,8 +597,8 @@ class TestFunctionSpanTags(unittest.TestCase):
             self.assertEqual(span.parent_id, inferred.span_id)
             self.assertEqual(span.trace_id, inferred.trace_id)
             self.assertEqual(
-                inferred.get_tag("service_name"),
-                "p62c47itsb.execute-api.sa-east-1.amazonaws.com$connect",
+                inferred.get_tag("service.name"),
+                "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
             )
 
     def test_function_with_API_Gateway_websocket_default_event(self):
@@ -610,8 +613,8 @@ class TestFunctionSpanTags(unittest.TestCase):
             self.assertEqual(span.parent_id, inferred.span_id)
             self.assertEqual(span.trace_id, inferred.trace_id)
             self.assertEqual(
-                inferred.get_tag("service_name"),
-                "p62c47itsb.execute-api.sa-east-1.amazonaws.com$default",
+                inferred.get_tag("service.name"),
+                "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
             )
 
     def test_function_with_API_Gateway_websocket_disconnect_event(self):
@@ -626,8 +629,8 @@ class TestFunctionSpanTags(unittest.TestCase):
             self.assertEqual(span.parent_id, inferred.span_id)
             self.assertEqual(span.trace_id, inferred.trace_id)
             self.assertEqual(
-                inferred.get_tag("service_name"),
-                "p62c47itsb.execute-api.sa-east-1.amazonaws.com$disconnect",
+                inferred.get_tag("service.name"),
+                "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
             )
 
 
