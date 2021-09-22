@@ -99,6 +99,7 @@ class _LambdaDecorator(object):
             self.inferred_span = None
             self.make_inferred_span = (
                 os.environ.get("DD_INFERRED_SPANS", "false").lower() == "true"
+                and should_use_extension
             )
             self.response = None
 
