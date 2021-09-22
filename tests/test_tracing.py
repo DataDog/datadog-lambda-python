@@ -1,32 +1,35 @@
-import math
 import unittest
 import json
+import os
 
 try:
     from unittest.mock import MagicMock, patch, call
 except ImportError:
     from mock import MagicMock, patch, call
 
-import ddtrace
 from ddtrace.helpers import get_correlation_ids
+from ddtrace.context import Context
 
 from datadog_lambda.constants import SamplingPriority, TraceHeader, XraySubsegment
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
     create_dd_dummy_metadata_subsegment,
     create_function_execution_span,
-    create_inferred_span,
     get_dd_trace_context,
     set_correlation_ids,
+    set_dd_trace_py_root,
     _convert_xray_trace_id,
     _convert_xray_entity_id,
     _convert_xray_sampling,
-    InferredSpanFilter,
-    SPAN_TYPE_TAG,
-    SPAN_TYPE_INFERRED,
 )
 
 function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
+
+fake_xray_header_value = (
+    "Root=1-5e272390-8c398be037738dc042009320;Parent=94ae789b969f1cc5;Sampled=1"
+)
+fake_xray_header_value_parent_decimal = "10713633173203262661"
+fake_xray_header_value_root_decimal = "3995693151288333088"
 
 
 class ClientContext(object):
@@ -56,17 +59,10 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     def setUp(self):
         global dd_tracing_enabled
         dd_tracing_enabled = False
-        patcher = patch("datadog_lambda.tracing.xray_recorder")
-        self.mock_xray_recorder = patcher.start()
-        self.mock_xray_recorder.get_trace_entity.return_value = MagicMock(
-            id="ffff", trace_id="1111", sampled=True
-        )
-        self.mock_current_subsegment = MagicMock()
-        self.mock_xray_recorder.current_subsegment.return_value = (
-            self.mock_current_subsegment
-        )
+        os.environ["_X_AMZN_TRACE_ID"] = fake_xray_header_value
+        patcher = patch("datadog_lambda.tracing.send_segment")
+        self.mock_send_segment = patcher.start()
         self.addCleanup(patcher.stop)
-
         patcher = patch("datadog_lambda.tracing.is_lambda_context")
         self.mock_is_lambda_context = patcher.start()
         self.mock_is_lambda_context.return_value = True
@@ -75,6 +71,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     def tearDown(self):
         global dd_tracing_enabled
         dd_tracing_enabled = False
+        del os.environ["_X_AMZN_TRACE_ID"]
 
     def test_without_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
@@ -82,13 +79,17 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
-            {"trace-id": "4369", "parent-id": "65535", "sampling-priority": "2"},
+            {
+                "trace-id": fake_xray_header_value_root_decimal,
+                "parent-id": fake_xray_header_value_parent_decimal,
+                "sampling-priority": "2",
+            },
         )
         self.assertDictEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "4369",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.TRACE_ID: fake_xray_header_value_root_decimal,
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "2",
             },
             {},
@@ -103,13 +104,17 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
-            {"trace-id": "4369", "parent-id": "65535", "sampling-priority": "2"},
+            {
+                "trace-id": fake_xray_header_value_root_decimal,
+                "parent-id": fake_xray_header_value_parent_decimal,
+                "sampling-priority": "2",
+            },
         )
         self.assertDictEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "4369",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.TRACE_ID: fake_xray_header_value_root_decimal,
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "2",
             },
         )
@@ -135,16 +140,15 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "123",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_xray_recorder.begin_subsegment.assert_called()
-        self.mock_current_subsegment.put_metadata.assert_called_with(
+        self.mock_send_segment.assert_called()
+        self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
             {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
-            XraySubsegment.NAMESPACE,
         )
 
     def test_with_extractor_function(self):
@@ -182,7 +186,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "123",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
@@ -207,16 +211,16 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertDictEqual(
             ctx,
             {
-                "trace-id": "4369",
-                "parent-id": "65535",
+                "trace-id": fake_xray_header_value_root_decimal,
+                "parent-id": fake_xray_header_value_parent_decimal,
                 "sampling-priority": "2",
             },
         )
         self.assertDictEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "4369",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.TRACE_ID: fake_xray_header_value_root_decimal,
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "2",
             },
         )
@@ -267,17 +271,14 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "123",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_xray_recorder.begin_subsegment.assert_called()
-        self.mock_xray_recorder.end_subsegment.assert_called()
-        self.mock_current_subsegment.put_metadata.assert_called_with(
+        self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
             {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
-            XraySubsegment.NAMESPACE,
         )
 
     def test_with_legacy_client_context_datadog_trace_data(self):
@@ -304,17 +305,15 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "666",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_xray_recorder.begin_subsegment.assert_called()
-        self.mock_xray_recorder.end_subsegment.assert_called()
-        self.mock_current_subsegment.put_metadata.assert_called_with(
+        self.mock_send_segment.assert_called()
+        self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
             {"trace-id": "666", "parent-id": "777", "sampling-priority": "1"},
-            XraySubsegment.NAMESPACE,
         )
 
     def test_with_new_client_context_datadog_trace_data(self):
@@ -339,17 +338,15 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "666",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_xray_recorder.begin_subsegment.assert_called()
-        self.mock_xray_recorder.end_subsegment.assert_called()
-        self.mock_current_subsegment.put_metadata.assert_called_with(
+        self.mock_send_segment.assert_called()
+        self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
             {"trace-id": "666", "parent-id": "777", "sampling-priority": "1"},
-            XraySubsegment.NAMESPACE,
         )
 
     def test_with_complete_datadog_trace_headers_with_mixed_casing(self):
@@ -368,7 +365,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "123",
-                TraceHeader.PARENT_ID: "65535",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
@@ -381,9 +378,8 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         create_dd_dummy_metadata_subsegment(
             trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
         )
-        self.mock_xray_recorder.begin_subsegment.assert_called()
-        self.mock_xray_recorder.end_subsegment.assert_called()
-        self.mock_current_subsegment.put_metadata.assert_has_calls(
+        self.mock_send_segment.assert_called()
+        self.mock_send_segment.assert_has_calls(
             [
                 call(
                     XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY,
@@ -391,7 +387,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                         "function_trigger.event_source": "sqs",
                         "function_trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
                     },
-                    XraySubsegment.NAMESPACE,
                 ),
             ]
         )
@@ -455,79 +450,7 @@ class TestLogsInjection(unittest.TestCase):
         self.assertEqual(span_id, 456)
 
 
-class TestInferredSpanCreation(unittest.TestCase):
-    event_samples = "tests/event_samples/"
-
-    def test_function_with_api_gateway_event(self):
-        test_file = self.event_samples + "api-gateway.json"
-        with open(test_file, "r") as event:
-            event = json.load(event)
-            span = create_inferred_span(event, get_mock_context(), "some_function_name")
-            # things to assert:
-            #  - Creation time
-            #  - Parent ID is what we expect it to be
-            #  - various tags that Alex said
-            self.assertEqual(span.start, 1428582896.0)
-            self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
-            self.assertEqual(
-                span.get_tag("service.name"),
-                "70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
-            )
-            self.assertEqual(
-                span.get_tag("url"),
-                "70ixmpl4fl.execute-api.us-east-2.amazonaws.com/path/to/resource",
-            )
-            self.assertEqual(span.get_tag("endpoint"), "/path/to/resource")
-            self.assertEqual(span.get_tag("http.method"), "POST")
-
-    def test_function_with_api_gateway_non_proxy_event(self):
-        test_file = self.event_samples + "api-gateway-non-proxy.json"
-        with open(test_file, "r") as event:
-            event = json.load(event)
-            span = create_inferred_span(event, get_mock_context(), "some_function_name")
-            # things to assert:
-            #  - Creation time
-            #  - Parent ID is what we expect it to be
-            #  - various tags that Alex said
-            self.assertEqual(math.floor(span.start), 1631210915.0)
-            self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
-            self.assertEqual(
-                span.get_tag("service.name"),
-                "lgxbo6a518.execute-api.sa-east-1.amazonaws.com",
-            )
-            self.assertEqual(
-                span.get_tag("url"),
-                "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
-            )
-            self.assertEqual(span.get_tag("endpoint"), "/http/get")
-            self.assertEqual(span.get_tag("http.method"), "GET")
-
-    def test_function_with_http_api_event(self):
-        test_file = self.event_samples + "http-api.json"
-        with open(test_file, "r") as event:
-            event = json.load(event)
-            span = create_inferred_span(event, get_mock_context(), "some_function_name")
-            # things to assert:
-            #  - Creation time
-            #  - Parent ID is what we expect it to be
-            #  - various tags that Alex said
-            self.assertEqual(math.floor(span.start), 1631212283.0)
-            self.assertEqual(span.get_tag("operation_name"), "aws.httpapi")
-            self.assertEqual(
-                span.get_tag("service.name"),
-                "x02yirxc7a.execute-api.sa-east-1.amazonaws.com",
-            )
-            self.assertEqual(
-                span.get_tag("url"),
-                "x02yirxc7a.execute-api.sa-east-1.amazonaws.com/httpapi/get",
-            )
-            self.assertEqual(span.get_tag("endpoint"), "/httpapi/get")
-            self.assertEqual(span.get_tag("http.method"), "GET")
-
-
 class TestFunctionSpanTags(unittest.TestCase):
-    event_samples = "tests/event_samples/"
-
     def test_function(self):
         ctx = get_mock_context()
         span = create_function_execution_span(ctx, "", False, {"source": ""}, False, {})
@@ -573,119 +496,52 @@ class TestFunctionSpanTags(unittest.TestCase):
             span.get_tag("function_trigger.event_source"), "cloudwatch-logs"
         )
 
-    def test_function_with_API_Gateway_event(self):
-        ctx = get_mock_context()
-        test_file = self.event_samples + "api-gateway.json"
-        with open(test_file, "r") as event:
-            event = json.load(event)
-            inferred = create_inferred_span(event, ctx, "some_function_name")
-            span = create_function_execution_span(
-                ctx, "", False, {"source": ""}, False, {}, upstream=inferred
-            )
-            self.assertEqual(span.parent_id, inferred.span_id)
-            self.assertEqual(span.trace_id, inferred.trace_id)
 
-    def test_function_with_API_Gateway_websocket_connect_event(self):
-        ctx = get_mock_context()
-        test_file = self.event_samples + "api-gateway-websocket-connect.json"
-        with open(test_file, "r") as event:
-            event = json.load(event)
-            inferred = create_inferred_span(event, ctx, "some_function_name")
-            span = create_function_execution_span(
-                ctx, "", False, {"source": ""}, False, {}, upstream=inferred
-            )
-            self.assertEqual(span.parent_id, inferred.span_id)
-            self.assertEqual(span.trace_id, inferred.trace_id)
-            self.assertEqual(
-                inferred.get_tag("service.name"),
-                "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
-            )
+class TestSetTraceRootSpan(unittest.TestCase):
+    def setUp(self):
+        global dd_tracing_enabled
+        dd_tracing_enabled = False
+        os.environ["_X_AMZN_TRACE_ID"] = fake_xray_header_value
+        patcher = patch("datadog_lambda.tracing.send_segment")
+        self.mock_send_segment = patcher.start()
+        self.addCleanup(patcher.stop)
+        patcher = patch("datadog_lambda.tracing.is_lambda_context")
+        self.mock_is_lambda_context = patcher.start()
+        self.mock_is_lambda_context.return_value = True
+        self.addCleanup(patcher.stop)
+        patcher = patch("ddtrace.tracer.context_provider.activate")
+        self.mock_activate = patcher.start()
+        self.mock_activate.return_value = True
+        self.addCleanup(patcher.stop)
 
-    def test_function_with_API_Gateway_websocket_default_event(self):
-        ctx = get_mock_context()
-        test_file = self.event_samples + "api-gateway-websocket-default.json"
-        with open(test_file, "r") as event:
-            event = json.load(event)
-            inferred = create_inferred_span(event, ctx, "some_function_name")
-            span = create_function_execution_span(
-                ctx, "", False, {"source": ""}, False, {}, upstream=inferred
-            )
-            self.assertEqual(span.parent_id, inferred.span_id)
-            self.assertEqual(span.trace_id, inferred.trace_id)
-            self.assertEqual(
-                inferred.get_tag("service.name"),
-                "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
-            )
+    def tearDown(self):
+        global dd_tracing_enabled
+        dd_tracing_enabled = False
+        del os.environ["_X_AMZN_TRACE_ID"]
 
-    def test_function_with_API_Gateway_websocket_disconnect_event(self):
-        ctx = get_mock_context()
-        test_file = self.event_samples + "api-gateway-websocket-disconnect.json"
-        with open(test_file, "r") as event:
-            event = json.load(event)
-            inferred = create_inferred_span(event, ctx, "some_function_name")
-            span = create_function_execution_span(
-                ctx, "", False, {"source": ""}, False, {}, upstream=inferred
-            )
-            self.assertEqual(span.parent_id, inferred.span_id)
-            self.assertEqual(span.trace_id, inferred.trace_id)
-            self.assertEqual(
-                inferred.get_tag("service.name"),
-                "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
-            )
+    def test_mixed_parent_context_when_merging(self):
+        # When trace merging is enabled, and dd_trace headers are present,
+        # use the dd-trace trace-id and the x-ray parent-id
+        # This allows parenting relationships like dd-trace -> x-ray -> dd-trace
+        lambda_ctx = get_mock_context()
+        ctx, source = extract_dd_trace_context(
+            {
+                "headers": {
+                    TraceHeader.TRACE_ID: "123",
+                    TraceHeader.PARENT_ID: "321",
+                    TraceHeader.SAMPLING_PRIORITY: "1",
+                }
+            },
+            lambda_ctx,
+        )
+        set_dd_trace_py_root(
+            source, True
+        )  # When merging is off, always use dd-trace-context
 
-
-class TestInferredSpanFilter(unittest.TestCase):
-    def test_process_trace(self):
-        class DataClass:
-            def __init__(
-                self,
-                name,
-                span_names,
-                span_tag_keys,
-                span_tag_vals,
-                num_expected_returned_spans,
-            ):
-                self.name = name
-
-                def new_span(name, tagKey, tagVal):
-                    sp = ddtrace.span.Span(None, name=name)
-                    sp.set_tag(tagKey, tagVal)
-                    return sp
-
-                self.spans_in = []
-                for span_name, tagKey, tagVal in zip(
-                    span_names, span_tag_keys, span_tag_vals
-                ):
-                    self.spans_in.append(new_span(span_name, tagKey, tagVal))
-                self.num_expected_returned_spans = num_expected_returned_spans
-
-        test_cases = [
-            DataClass("One regular span", ["foo"], ["someTag"], ["someVal"], 1),
-            DataClass(
-                "One inferred span",
-                ["aws.apigateway"],
-                [SPAN_TYPE_TAG],
-                [SPAN_TYPE_INFERRED],
-                1,
-            ),
-            DataClass(
-                "two regular spans",
-                ["foo", "bar"],
-                ["someTag", "someTag"],
-                ["someVal", "someVal"],
-                2,
-            ),
-            DataClass(
-                "one inferred, one regular span",
-                ["inferred", "regular"],
-                [SPAN_TYPE_TAG, "someKey"],
-                [SPAN_TYPE_INFERRED, "someVal"],
-                1,
-            ),
-        ]
-        isf = InferredSpanFilter()
-        for tc in test_cases:
-            spans_returned = isf.process_trace(tc.spans_in)
-            self.assertEqual(
-                len(spans_returned), tc.num_expected_returned_spans, tc.name
-            )
+        expected_context = Context(
+            trace_id=123,  # Trace Id from incomming context
+            span_id=int(fake_xray_header_value_parent_decimal),  # Parent Id from x-ray
+            sampling_priority=1,  # Sampling priority from incomming context
+        )
+        self.mock_activate.assert_called()
+        self.mock_activate.assert_has_calls([call(expected_context)])
