@@ -261,7 +261,7 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
 
 def get_dd_trace_context():
     """
-    Return the Datadog trace context to be propogated on the outgoing requests.
+    Return the Datadog trace context to be propagated on the outgoing requests.
 
     If the Lambda function is invoked by a Datadog-traced service, a Datadog
     trace context may already exist, and it should be used. Otherwise, use the
