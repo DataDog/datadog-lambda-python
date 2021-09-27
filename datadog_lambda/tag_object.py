@@ -18,7 +18,7 @@ def tag_object(span, key, obj, depth=0):
         depth += 1
     if obj is None:
         return span.set_tag(key, obj)
-    if shouldTryString(obj):
+    if _should_try_string(obj):
         parsed = None
         try:
             parsed = json.loads(obj)
@@ -41,7 +41,7 @@ def tag_object(span, key, obj, depth=0):
         return
 
 
-def shouldTryString(obj):
+def _should_try_string(obj):
     try:
         if isinstance(obj, str) or isinstance(obj, unicode):
             return True
