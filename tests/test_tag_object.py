@@ -65,3 +65,20 @@ class TestTagObject(unittest.TestCase):
             ],
             True,
         )
+
+    def test_unicode_tag_object(self):
+        payload = {
+            "token": "world",
+            u"jsonString": u'{"stringifyThisJson":[{"here":"is","an":"object","number":1}]}'
+        }
+        spanMock = MagicMock()
+        tag_object(spanMock, "function.request", payload)
+        spanMock.set_tag.assert_has_calls(
+            [
+                call('function.request.token', 'redacted'),
+                call('function.request.jsonString.stringifyThisJson.0.here', 'is'),
+                call('function.request.jsonString.stringifyThisJson.0.an', 'object'),
+                call('function.request.jsonString.stringifyThisJson.0.number', 1)
+            ],
+            True,
+        )
