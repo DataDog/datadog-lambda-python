@@ -52,16 +52,16 @@ class TestTagObject(unittest.TestCase):
     def test_json_tag_object(self):
         payload = {
             "token": "world",
-            "jsonString": '{"stringifyThisJson":[{"here":"is","an":"object","number":1}]}'
+            "jsonString": '{"stringifyThisJson":[{"here":"is","an":"object","number":1}]}',
         }
         spanMock = MagicMock()
         tag_object(spanMock, "function.request", payload)
         spanMock.set_tag.assert_has_calls(
             [
-                call('function.request.token', 'redacted'),
-                call('function.request.jsonString.stringifyThisJson.0.here', 'is'),
-                call('function.request.jsonString.stringifyThisJson.0.an', 'object'),
-                call('function.request.jsonString.stringifyThisJson.0.number', 1)
+                call("function.request.token", "redacted"),
+                call("function.request.jsonString.stringifyThisJson.0.here", "is"),
+                call("function.request.jsonString.stringifyThisJson.0.an", "object"),
+                call("function.request.jsonString.stringifyThisJson.0.number", 1),
             ],
             True,
         )
@@ -69,16 +69,16 @@ class TestTagObject(unittest.TestCase):
     def test_unicode_tag_object(self):
         payload = {
             "token": "world",
-            u"jsonString": u'{"stringifyThisJson":[{"here":"is","an":"object","number":1}]}'
+            u"jsonString": u'{"stringifyThisJson":[{"here":"is","an":"object","number":1}]}',
         }
         spanMock = MagicMock()
         tag_object(spanMock, "function.request", payload)
         spanMock.set_tag.assert_has_calls(
             [
-                call('function.request.token', 'redacted'),
-                call('function.request.jsonString.stringifyThisJson.0.here', 'is'),
-                call('function.request.jsonString.stringifyThisJson.0.an', 'object'),
-                call('function.request.jsonString.stringifyThisJson.0.number', 1)
+                call("function.request.token", "redacted"),
+                call("function.request.jsonString.stringifyThisJson.0.here", "is"),
+                call("function.request.jsonString.stringifyThisJson.0.an", "object"),
+                call("function.request.jsonString.stringifyThisJson.0.number", 1),
             ],
             True,
         )
