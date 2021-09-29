@@ -1,10 +1,7 @@
 import os
 import unittest
 
-try:
-    from unittest.mock import patch, call
-except ImportError:
-    from mock import patch, call
+from unittest.mock import patch, call
 
 from botocore.exceptions import ClientError as BotocoreClientError
 from datadog.api.exceptions import ClientError

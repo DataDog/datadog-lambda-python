@@ -1,10 +1,7 @@
 import os
 import unittest
 
-try:
-    from unittest.mock import patch, call, ANY, MagicMock
-except ImportError:
-    from mock import patch, call, ANY, MagicMock
+from unittest.mock import patch, call, ANY, MagicMock
 
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog_lambda.metric import lambda_metric

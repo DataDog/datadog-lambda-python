@@ -1,12 +1,8 @@
 import os
-import sys
 import unittest
 import httpretty
 
-try:
-    from unittest.mock import patch
-except ImportError:
-    from mock import patch
+from unittest.mock import patch
 
 from datadog_lambda.extension import (
     is_extension_running,

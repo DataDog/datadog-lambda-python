@@ -1,10 +1,6 @@
-import sys
 import unittest
 
-try:
-    from unittest.mock import patch, MagicMock
-except ImportError:
-    from mock import patch, MagicMock
+from unittest.mock import patch, MagicMock
 
 from datadog_lambda.patch import _patch_httplib, _ensure_patch_requests
 from datadog_lambda.constants import TraceHeader

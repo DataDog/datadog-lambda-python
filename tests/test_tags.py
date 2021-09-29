@@ -1,9 +1,7 @@
 import unittest
 
-try:
-    from unittest.mock import patch, MagicMock
-except ImportError:
-    from mock import patch, MagicMock
+from unittest.mock import patch, MagicMock
+
 
 from datadog_lambda.tags import parse_lambda_tags_from_arn, get_runtime_tag
 
