@@ -6,16 +6,16 @@
 # Copyright 2019 Datadog, Inc.
 
 # Publish the datadog python lambda layer across regions, using the AWS CLI
-# Usage: VERSION=5 REGIONS=us-east-1 LAYERS=Datadog-Python27 publish_layers.sh
+# Usage: VERSION=5 REGIONS=us-east-1 LAYERS=Datadog-Python39 publish_layers.sh
 # VERSION is required.
 set -e
 
 # Makes sure any subprocesses will be terminated with this process
 trap "pkill -P $$; exit 1;" INT
 
-PYTHON_VERSIONS_FOR_AWS_CLI=("python2.7" "python3.6" "python3.7" "python3.8" "python3.9")
-LAYER_PATHS=(".layers/datadog_lambda_py2.7.zip" ".layers/datadog_lambda_py3.6.zip" ".layers/datadog_lambda_py3.7.zip" ".layers/datadog_lambda_py3.8.zip" ".layers/datadog_lambda_py3.9.zip")
-AVAILABLE_LAYERS=("Datadog-Python27" "Datadog-Python36" "Datadog-Python37" "Datadog-Python38" "Datadog-Python39")
+PYTHON_VERSIONS_FOR_AWS_CLI=("python3.6" "python3.7" "python3.8" "python3.9")
+LAYER_PATHS=(".layers/datadog_lambda_py3.6.zip" ".layers/datadog_lambda_py3.7.zip" ".layers/datadog_lambda_py3.8.zip" ".layers/datadog_lambda_py3.9.zip")
+AVAILABLE_LAYERS=("Datadog-Python36" "Datadog-Python37" "Datadog-Python38" "Datadog-Python39")
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 
 # Check that the layer files exist

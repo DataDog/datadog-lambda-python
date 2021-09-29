@@ -10,7 +10,7 @@
 
 set -e
 
-LAYER_NAMES=("Datadog-Python27" "Datadog-Python36" "Datadog-Python37" "Datadog-Python38" "Datadog-Python39")
+LAYER_NAMES=("Datadog-Python36" "Datadog-Python37" "Datadog-Python38" "Datadog-Python39")
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 LAYERS_MISSING_REGIONS=()
 

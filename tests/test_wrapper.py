@@ -63,7 +63,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         patcher = patch("datadog_lambda.tags.python_version_tuple")
         self.mock_python_version_tuple = patcher.start()
-        self.mock_python_version_tuple.return_value = ("2", "7", "10")
+        self.mock_python_version_tuple.return_value = ("3", "9", "10")
         self.addCleanup(patcher.stop)
 
         patcher = patch("datadog_lambda.metric.write_metric_point_to_stdout")
@@ -79,7 +79,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_format_dd_lambda_layer_tag = patcher.start()
         # Mock the layer version so we don't have to update tests on every version bump
         self.mock_format_dd_lambda_layer_tag.return_value = (
-            "dd_lambda_layer:datadog-python27_0.1.0"
+            "dd_lambda_layer:datadog-python39_X.X.X"
         )
         self.addCleanup(patcher.stop)
 
@@ -222,9 +222,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "resource:python-layer-test:1",
                         "cold_start:true",
                         "memorysize:256",
-                        "runtime:python2.7",
+                        "runtime:python3.9",
                         "datadog_lambda:v6.6.6",
-                        "dd_lambda_layer:datadog-python27_0.1.0",
+                        "dd_lambda_layer:datadog-python39_X.X.X",
                     ],
                     timestamp=None,
                 )
@@ -253,9 +253,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "resource:python-layer-test:1",
                         "cold_start:true",
                         "memorysize:256",
-                        "runtime:python2.7",
+                        "runtime:python3.9",
                         "datadog_lambda:v6.6.6",
-                        "dd_lambda_layer:datadog-python27_0.1.0",
+                        "dd_lambda_layer:datadog-python39_X.X.X",
                     ],
                     timestamp=None,
                 ),
@@ -269,9 +269,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "resource:python-layer-test:1",
                         "cold_start:true",
                         "memorysize:256",
-                        "runtime:python2.7",
+                        "runtime:python3.9",
                         "datadog_lambda:v6.6.6",
-                        "dd_lambda_layer:datadog-python27_0.1.0",
+                        "dd_lambda_layer:datadog-python39_X.X.X",
                     ],
                     timestamp=None,
                 ),
@@ -305,9 +305,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "resource:python-layer-test:1",
                         "cold_start:true",
                         "memorysize:256",
-                        "runtime:python2.7",
+                        "runtime:python3.9",
                         "datadog_lambda:v6.6.6",
-                        "dd_lambda_layer:datadog-python27_0.1.0",
+                        "dd_lambda_layer:datadog-python39_X.X.X",
                     ],
                     timestamp=None,
                 ),
@@ -321,9 +321,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "resource:python-layer-test:1",
                         "cold_start:false",
                         "memorysize:256",
-                        "runtime:python2.7",
+                        "runtime:python3.9",
                         "datadog_lambda:v6.6.6",
-                        "dd_lambda_layer:datadog-python27_0.1.0",
+                        "dd_lambda_layer:datadog-python39_X.X.X",
                     ],
                     timestamp=None,
                 ),
@@ -355,9 +355,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "resource:python-layer-test:Latest",
                         "cold_start:true",
                         "memorysize:256",
-                        "runtime:python2.7",
+                        "runtime:python3.9",
                         "datadog_lambda:v6.6.6",
-                        "dd_lambda_layer:datadog-python27_0.1.0",
+                        "dd_lambda_layer:datadog-python39_X.X.X",
                     ],
                     timestamp=None,
                 )
@@ -389,9 +389,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "resource:python-layer-test:My_alias-1",
                         "cold_start:true",
                         "memorysize:256",
-                        "runtime:python2.7",
+                        "runtime:python3.9",
                         "datadog_lambda:v6.6.6",
-                        "dd_lambda_layer:datadog-python27_0.1.0",
+                        "dd_lambda_layer:datadog-python39_X.X.X",
                     ],
                     timestamp=None,
                 )

@@ -14,7 +14,7 @@ set -e
 
 LAYER_DIR=".layers"
 LAYER_FILES_PREFIX="datadog_lambda_py"
-AVAILABLE_PYTHON_VERSIONS=("2.7" "3.6" "3.7" "3.8" "3.9")
+AVAILABLE_PYTHON_VERSIONS=("3.6" "3.7" "3.8" "3.9")
 
 # Determine which Python versions to build layers for
 if [ -z "$PYTHON_VERSION" ]; then

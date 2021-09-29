@@ -7,7 +7,7 @@ We love pull requests. For new features, consider opening an issue to discuss th
     git clone git@github.com:<your-username>/datadog-lambda-python.git
     git checkout -b <my-branch>
     ```
-1. Make your changes. Ensure your code is compatible with both Python 2.7 and 3.X. 
+1. Make your changes. Ensure your code is compatible with Python 3.X. 
 1. Test your Lambda function against the locally modified version of Datadog Lambda library.
    * The easiest approach is to create a soft link of the `datadog_lambda` folder in your project's root. Note, this only overrides the `datadog_lambda` module, and you still need to install the `datadog_lambda` package or the Lambda layer to have the required dependencies.
 

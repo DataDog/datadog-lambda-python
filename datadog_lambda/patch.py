@@ -115,7 +115,7 @@ def _wrap_requests_request(func, instance, args, kwargs):
 
 def _wrap_httplib_request(func, instance, args, kwargs):
     """
-    Wrap `httplib` (python2) or `http.client` (python3) to inject
+    Wrap `http.client` (python3) to inject
     the Datadog trace headers into the outgoing requests.
     """
     context = get_dd_trace_context()

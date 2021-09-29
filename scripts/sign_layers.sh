@@ -9,7 +9,6 @@ set -e
 
 LAYER_DIR=".layers"
 LAYER_FILES=(
-    "datadog_lambda_py2.7.zip"
     "datadog_lambda_py3.6.zip"
     "datadog_lambda_py3.7.zip"
     "datadog_lambda_py3.8.zip"
