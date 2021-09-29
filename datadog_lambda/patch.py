@@ -20,12 +20,8 @@ from datadog_lambda.tracing import (
 
 logger = logging.getLogger(__name__)
 
-if sys.version_info >= (3, 0, 0):
-    httplib_module = "http.client"
-    from collections.abc import MutableMapping
-else:
-    httplib_module = "httplib"
-    from collections import MutableMapping
+httplib_module = "http.client"
+from collections.abc import MutableMapping
 
 _httplib_patched = False
 _requests_patched = False

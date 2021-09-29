@@ -8,7 +8,7 @@ from datadog_lambda.cold_start import get_cold_start_tag
 
 def _format_dd_lambda_layer_tag():
     """
-    Formats the dd_lambda_layer tag, e.g., 'dd_lambda_layer:datadog-python27_1'
+    Formats the dd_lambda_layer tag, e.g., 'dd_lambda_layer:datadog-python39_1'
     """
     runtime = "python{}{}".format(sys.version_info[0], sys.version_info[1])
     return "dd_lambda_layer:datadog-{}_{}".format(runtime, __version__)

@@ -23,10 +23,8 @@ class TestPatchHTTPClients(unittest.TestCase):
 
     def test_patch_httplib(self):
         _patch_httplib()
-        if sys.version_info >= (3, 0, 0):
-            from http.client import HTTPSConnection
-        else:
-            from httplib import HTTPSConnection
+        from http.client import HTTPSConnection
+        
 
         conn = HTTPSConnection("www.datadoghq.com")
         conn.request("GET", "/")
@@ -36,11 +34,9 @@ class TestPatchHTTPClients(unittest.TestCase):
 
     def test_patch_httplib_dict_headers(self):
         _patch_httplib()
-        if sys.version_info >= (3, 0, 0):
-            from http.client import HTTPSConnection
-        else:
-            from httplib import HTTPSConnection
-
+        
+        from http.client import HTTPSConnection
+    
         headers = MagicMock(spec=dict)
         headers["fake-header"] = "fake-value"
 
@@ -53,12 +49,9 @@ class TestPatchHTTPClients(unittest.TestCase):
 
     def test_patch_httplib_dict_like_headers(self):
         _patch_httplib()
-        if sys.version_info >= (3, 0, 0):
-            from http.client import HTTPSConnection
-            from collections.abc import MutableMapping
-        else:
-            from httplib import HTTPSConnection
-            from collections import MutableMapping
+        from http.client import HTTPSConnection
+        from collections.abc import MutableMapping
+        
 
         headers = MagicMock(spec=MutableMapping)
         headers["fake-header"] = "fake-value"

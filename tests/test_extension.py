@@ -20,9 +20,6 @@ def exceptionCallback(request, uri, headers):
 
 
 class TestLambdaExtension(unittest.TestCase):
-    # do not execute tests for Python v2.x
-    __test__ = sys.version_info >= (3, 0)
-
     @patch("datadog_lambda.extension.EXTENSION_PATH", os.path.abspath(__file__))
     def test_is_extension_running_true(self):
         httpretty.enable()
