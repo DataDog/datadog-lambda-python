@@ -40,17 +40,21 @@ function docker_build_zip {
     # Args: [python version] [zip destination]
 
     destination=$(make_path_absolute $2)
+    arch=$3
 
     # Install datadogpy in a docker container to avoid the mess from switching
     # between different python runtimes.
     temp_dir=$(mktemp -d)
-    docker build -t datadog-lambda-python:$1 . --no-cache \
+    docker buildx build -t datadog-lambda-python-${arch}:$1 . --no-cache \
         --build-arg image=python:$1 \
-        --build-arg runtime=python$1
+        --build-arg runtime=python$1 \
+        --platform linux/${arch} \
+        --load
 
     # Run the image by runtime tag, tar its generatd `python` directory to sdout,
     # then extract it to a temp directory.
-    docker run datadog-lambda-python:$1 tar cf - python | tar -xf - -C $temp_dir
+    docker run datadog-lambda-python-${arch}:$1 tar cf - python | tar -xf - -C $temp_dir
+
 
     # Zip to destination, and keep directory structure as based in $temp_dir
     (cd $temp_dir && zip -q -r $destination ./)
@@ -64,8 +68,12 @@ mkdir $LAYER_DIR
 
 for python_version in "${PYTHON_VERSIONS[@]}"
 do
-    echo "Building layer for Python ${python_version}"
-    docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}${python_version}.zip
+    if [ "$python_version" == "3.8" ] || [ "$python_version" == "3.9" ]; then
+        echo "Building layer for Python ${python_version} arch=arm64"
+        docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-arm64-${python_version}.zip arm64
+    fi
+    echo "Building layer for Python ${python_version} arch=amd64"
+    docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-amd64-${python_version}.zip amd64
 done
 
 echo "Done creating layers:"
