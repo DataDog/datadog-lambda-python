@@ -95,6 +95,8 @@ class _LambdaDecorator(object):
             self.function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "function")
             self.extractor_env = os.environ.get("DD_TRACE_EXTRACTOR", None)
             self.trace_extractor = None
+            self.span = None
+            self.response = None
 
             if self.extractor_env:
                 extractor_parts = self.extractor_env.rsplit(".", 1)
@@ -108,6 +110,11 @@ class _LambdaDecorator(object):
             if self.logs_injection:
                 inject_correlation_ids()
 
+            # This prevents a breaking change in ddtrace v0.49 regarding the service name
+            # in requests-related spans
+            os.environ["DD_REQUESTS_SERVICE_NAME"] = os.environ.get(
+                "DD_SERVICE", "aws.lambda"
+            )
             # Patch third-party libraries for tracing
             patch_all()
 
@@ -117,8 +124,6 @@ class _LambdaDecorator(object):
 
     def __call__(self, event, context, **kwargs):
         """Executes when the wrapped function gets called"""
-        self.trigger_tags = extract_trigger_tags(event, context)
-        self.response = None
         self._before(event, context)
         try:
             self.response = self.func(event, context, **kwargs)
@@ -133,9 +138,9 @@ class _LambdaDecorator(object):
 
     def _before(self, event, context):
         try:
-
             set_cold_start()
             submit_invocations_metric(context)
+            self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source = extract_dd_trace_context(
                 event, context, extractor=self.trace_extractor
@@ -146,7 +151,6 @@ class _LambdaDecorator(object):
                     dd_context, XraySubsegment.TRACE_KEY
                 )
 
-            self.span = None
             if dd_tracing_enabled:
                 set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
                 self.span = create_function_execution_span(

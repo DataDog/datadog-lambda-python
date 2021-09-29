@@ -94,3 +94,4 @@ git push origin "refs/tags/v$LAYER_VERSION"
 echo
 echo "Now create a new release with the tag v${LAYER_VERSION} created"
 echo "https://github.com/DataDog/datadog-lambda-python/releases/new?tag=v$LAYER_VERSION&title=v$LAYER_VERSION"
+echo "Also, remember to update ${HOME}/go/src/github.com/datadog/documentation/layouts/shortcodes/latest-lambda-layer-version.html"

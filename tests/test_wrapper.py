@@ -7,7 +7,8 @@ except ImportError:
     from mock import patch, call, ANY, MagicMock
 
 from datadog_lambda.wrapper import datadog_lambda_wrapper
-from datadog_lambda.metric import lambda_metric, ThreadStatsWriter
+from datadog_lambda.metric import lambda_metric
+from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
 
 def get_mock_context(
@@ -434,3 +435,20 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         self.mock_patch_all.assert_called_once()
         self.mock_submit_invocations_metric.assert_called_once()
+
+    def test_dd_requests_service_name_default(self):
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            pass
+
+        self.assertEqual(os.environ.get("DD_REQUESTS_SERVICE_NAME"), "aws.lambda")
+
+    def test_dd_requests_service_name_set(self):
+        os.environ["DD_SERVICE"] = "myAwesomeService"
+
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            pass
+
+        self.assertEqual(os.environ.get("DD_REQUESTS_SERVICE_NAME"), "myAwesomeService")
+        del os.environ["DD_SERVICE"]

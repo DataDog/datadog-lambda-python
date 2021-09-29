@@ -7,13 +7,15 @@ import logging
 import os
 import json
 
-from aws_xray_sdk.core import xray_recorder
-from aws_xray_sdk.core.lambda_launcher import LambdaContext
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
-    XraySubsegment,
     TraceContextSource,
+    XrayDaemon,
+)
+from datadog_lambda.xray import (
+    send_segment,
+    parse_xray_header,
 )
 from ddtrace import tracer, patch
 from ddtrace import __version__ as ddtrace_version
@@ -57,16 +59,24 @@ def _get_xray_trace_context():
     if not is_lambda_context():
         return None
 
-    xray_trace_entity = xray_recorder.get_trace_entity()  # xray (sub)segment
+    xray_trace_entity = parse_xray_header(
+        os.environ.get(XrayDaemon.XRAY_TRACE_ID_HEADER_NAME, "")
+    )
+    if xray_trace_entity is None:
+        return None
     trace_context = {
-        "trace-id": _convert_xray_trace_id(xray_trace_entity.trace_id),
-        "parent-id": _convert_xray_entity_id(xray_trace_entity.id),
-        "sampling-priority": _convert_xray_sampling(xray_trace_entity.sampled),
+        "trace-id": _convert_xray_trace_id(xray_trace_entity["trace_id"]),
+        "parent-id": _convert_xray_entity_id(xray_trace_entity["parent_id"]),
+        "sampling-priority": _convert_xray_sampling(xray_trace_entity["sampled"]),
     }
     logger.debug(
         "Converted trace context %s from X-Ray segment %s",
         trace_context,
-        (xray_trace_entity.trace_id, xray_trace_entity.id, xray_trace_entity.sampled),
+        (
+            xray_trace_entity["trace_id"],
+            xray_trace_entity["parent_id"],
+            xray_trace_entity["sampled"],
+        ),
     )
     return trace_context
 
@@ -106,19 +116,7 @@ def create_dd_dummy_metadata_subsegment(
     tags into its metadata field, so the X-Ray trace can be converted to a Datadog
     trace in the Datadog backend with the correct context.
     """
-    try:
-        xray_recorder.begin_subsegment(XraySubsegment.NAME)
-        subsegment = xray_recorder.current_subsegment()
-        subsegment.put_metadata(
-            subsegment_metadata_key, subsegment_metadata_value, XraySubsegment.NAMESPACE
-        )
-        xray_recorder.end_subsegment()
-    except Exception as e:
-        logger.debug(
-            "failed to create dd dummy metadata subsegment with error %s",
-            e,
-            exc_info=True,
-        )
+    send_segment(subsegment_metadata_key, subsegment_metadata_value)
 
 
 def extract_context_from_lambda_context(lambda_context):
@@ -129,16 +127,27 @@ def extract_context_from_lambda_context(lambda_context):
     dd_trace libraries inject this trace context on synchronous invocations
     """
     client_context = lambda_context.client_context
-
+    trace_id = None
+    parent_id = None
+    sampling_priority = None
     if client_context and client_context.custom:
-        dd_data = client_context.custom.get("_datadog", {})
-        trace_id = dd_data.get(TraceHeader.TRACE_ID)
-        parent_id = dd_data.get(TraceHeader.PARENT_ID)
-        sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
+        if "_datadog" in client_context.custom:
+            # Legacy trace propagation dict
+            dd_data = client_context.custom.get("_datadog", {})
+            trace_id = dd_data.get(TraceHeader.TRACE_ID)
+            parent_id = dd_data.get(TraceHeader.PARENT_ID)
+            sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
+        elif (
+            TraceHeader.TRACE_ID in client_context.custom
+            and TraceHeader.PARENT_ID in client_context.custom
+            and TraceHeader.SAMPLING_PRIORITY in client_context.custom
+        ):
+            # New trace propagation keys
+            trace_id = client_context.custom.get(TraceHeader.TRACE_ID)
+            parent_id = client_context.custom.get(TraceHeader.PARENT_ID)
+            sampling_priority = client_context.custom.get(TraceHeader.SAMPLING_PRIORITY)
 
-        return trace_id, parent_id, sampling_priority
-
-    return None, None, None
+    return trace_id, parent_id, sampling_priority
 
 
 def extract_context_from_http_event_or_context(event, lambda_context):
@@ -186,7 +195,11 @@ def extract_context_custom_extractor(extractor, event, lambda_context):
     Extract Datadog trace context using a custom trace extractor function
     """
     try:
-        (trace_id, parent_id, sampling_priority,) = extractor(event, lambda_context)
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extractor(event, lambda_context)
         return trace_id, parent_id, sampling_priority
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
@@ -205,9 +218,11 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
     trace_context_source = None
 
     if extractor is not None:
-        (trace_id, parent_id, sampling_priority,) = extract_context_custom_extractor(
-            extractor, event, lambda_context
-        )
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extract_context_custom_extractor(extractor, event, lambda_context)
     elif "headers" in event:
         (
             trace_id,
@@ -319,7 +334,10 @@ def inject_correlation_ids():
     # Override the log format of the AWS provided LambdaLoggerHandler
     root_logger = logging.getLogger()
     for handler in root_logger.handlers:
-        if handler.__class__.__name__ == "LambdaLoggerHandler":
+        if (
+            handler.__class__.__name__ == "LambdaLoggerHandler"
+            and type(handler.formatter) == logging.Formatter
+        ):
             handler.setFormatter(
                 logging.Formatter(
                     "[%(levelname)s]\t%(asctime)s.%(msecs)dZ\t%(aws_request_id)s\t"
@@ -339,12 +357,18 @@ def is_lambda_context():
     Return True if the X-Ray context is `LambdaContext`, rather than the
     regular `Context` (e.g., when testing lambda functions locally).
     """
-    return type(xray_recorder.context) == LambdaContext
+    return os.environ.get(XrayDaemon.FUNCTION_NAME_HEADER_NAME, "") != ""
 
 
 def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
     if trace_context_source == TraceContextSource.EVENT or merge_xray_traces:
-        headers = _context_obj_to_headers(dd_trace_context)
+        context = dict(dd_trace_context)
+        if merge_xray_traces:
+            xray_context = _get_xray_trace_context()
+            if xray_context is not None:
+                context["parent-id"] = xray_context["parent-id"]
+
+        headers = _context_obj_to_headers(context)
         span_context = propagator.extract(headers)
         tracer.context_provider.activate(span_context)
         logger.debug(
@@ -373,6 +397,9 @@ def create_function_execution_span(
             "function_version": function_version,
             "request_id": context.aws_request_id,
             "resource_names": context.function_name,
+            "functionname": context.function_name.lower()
+            if context.function_name
+            else None,
             "datadog_lambda": datadog_lambda_version,
             "dd_trace": ddtrace_version,
         }
