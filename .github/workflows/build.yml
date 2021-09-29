@@ -17,7 +17,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt install -y qemu-user-static binfmt-support
           pip install virtualenv
           virtualenv venv
           source venv/bin/activate
@@ -84,6 +83,8 @@ jobs:
 
       - name: Install Serverless Framework
         run: sudo yarn global add serverless --prefix /usr/local
+      - name: Install Crossbuild Deps
+        run: sudo apt install -y qemu-user-static binfmt-support
 
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
