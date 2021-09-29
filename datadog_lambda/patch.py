@@ -17,11 +17,11 @@ from datadog_lambda.tracing import (
     get_dd_trace_context,
     dd_tracing_enabled,
 )
+from collections.abc import MutableMapping
 
 logger = logging.getLogger(__name__)
 
 httplib_module = "http.client"
-from collections.abc import MutableMapping
 
 _httplib_patched = False
 _requests_patched = False
