@@ -5,6 +5,7 @@ from unittest.mock import patch, MagicMock
 from datadog_lambda.patch import _patch_httplib, _ensure_patch_requests
 from datadog_lambda.constants import TraceHeader
 
+
 class TestPatchHTTPClients(unittest.TestCase):
     def setUp(self):
         patcher = patch("datadog_lambda.patch.get_dd_trace_context")
@@ -29,7 +30,7 @@ class TestPatchHTTPClients(unittest.TestCase):
     def test_patch_httplib_dict_headers(self):
         _patch_httplib()
         from http.client import HTTPSConnection
-    
+
         headers = MagicMock(spec=dict)
         headers["fake-header"] = "fake-value"
 
