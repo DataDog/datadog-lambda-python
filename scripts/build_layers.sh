@@ -68,7 +68,7 @@ mkdir $LAYER_DIR
 
 for python_version in "${PYTHON_VERSIONS[@]}"
 do
-    if [ "$python_version" == "3.8" ]; then
+    if [ "$python_version" == "3.8" ] || [ "$python_version" == "3.9" ]; then
         echo "Building layer for Python ${python_version} arch=arm64"
         docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-arm64-${python_version}.zip arm64
     fi
