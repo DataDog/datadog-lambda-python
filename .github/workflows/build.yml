@@ -17,6 +17,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt install -y qemu-user-static binfmt-support
           pip install virtualenv
           virtualenv venv
           source venv/bin/activate
