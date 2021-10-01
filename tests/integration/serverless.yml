@@ -28,7 +28,7 @@ provider:
 layers:
   python:
     package:
-      artifact: ../../.layers/datadog_lambda_py${env:PYTHON_VERSION}.zip
+      artifact: ../../.layers/datadog_lambda_py-amd64-${env:PYTHON_VERSION}.zip
 
 functions:
   # async-metrics (flushed to logs)
