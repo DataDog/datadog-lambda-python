@@ -21,9 +21,7 @@ from collections.abc import MutableMapping
 
 logger = logging.getLogger(__name__)
 
-httplib_module = "http.client"
-
-_httplib_patched = False
+_http_patched = False
 _requests_patched = False
 _integration_tests_patched = False
 
@@ -37,7 +35,7 @@ def patch_all():
     if dd_tracing_enabled:
         patch_all_dd()
     else:
-        _patch_httplib()
+        _patch_http()
         _ensure_patch_requests()
 
 
@@ -52,17 +50,17 @@ def _patch_for_integration_tests():
         _integration_tests_patched = True
 
 
-def _patch_httplib():
+def _patch_http():
     """
-    Patch the Python built-in `httplib` (Python 2) or
-    `http.client` (Python 3) module.
+    Patch `http.client` (Python 3) module.
     """
-    global _httplib_patched
-    if not _httplib_patched:
-        _httplib_patched = True
-        wrap(httplib_module, "HTTPConnection.request", _wrap_httplib_request)
+    global _http_patched
+    http_module = "http.client"
+    if not _http_patched:
+        _http_patched = True
+        wrap(http_module, "HTTPConnection.request", _wrap_http_request)
 
-    logger.debug("Patched %s", httplib_module)
+    logger.debug("Patched %s", http_module)
 
 
 def _ensure_patch_requests():
@@ -109,7 +107,7 @@ def _wrap_requests_request(func, instance, args, kwargs):
     return func(*args, **kwargs)
 
 
-def _wrap_httplib_request(func, instance, args, kwargs):
+def _wrap_http_request(func, instance, args, kwargs):
     """
     Wrap `http.client` (python3) to inject
     the Datadog trace headers into the outgoing requests.
