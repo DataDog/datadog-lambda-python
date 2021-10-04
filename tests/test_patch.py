@@ -2,7 +2,7 @@ import unittest
 
 from unittest.mock import patch, MagicMock
 
-from datadog_lambda.patch import _patch_httplib, _ensure_patch_requests
+from datadog_lambda.patch import _patch_http, _ensure_patch_requests
 from datadog_lambda.constants import TraceHeader
 
 
@@ -17,8 +17,8 @@ class TestPatchHTTPClients(unittest.TestCase):
         }
         self.addCleanup(patcher.stop)
 
-    def test_patch_httplib(self):
-        _patch_httplib()
+    def test_patch_http(self):
+        _patch_http()
         from http.client import HTTPSConnection
 
         conn = HTTPSConnection("www.datadoghq.com")
@@ -27,8 +27,8 @@ class TestPatchHTTPClients(unittest.TestCase):
 
         self.mock_get_dd_trace_context.assert_called()
 
-    def test_patch_httplib_dict_headers(self):
-        _patch_httplib()
+    def test_patch_http_dict_headers(self):
+        _patch_http()
         from http.client import HTTPSConnection
 
         headers = MagicMock(spec=dict)
@@ -41,8 +41,8 @@ class TestPatchHTTPClients(unittest.TestCase):
         self.mock_get_dd_trace_context.assert_called()
         headers.update.assert_called()
 
-    def test_patch_httplib_dict_like_headers(self):
-        _patch_httplib()
+    def test_patch_http_dict_like_headers(self):
+        _patch_http()
         from http.client import HTTPSConnection
         from collections.abc import MutableMapping
 
