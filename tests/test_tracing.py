@@ -2,10 +2,7 @@ import unittest
 import json
 import os
 
-try:
-    from unittest.mock import MagicMock, patch, call
-except ImportError:
-    from mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch, call
 
 from ddtrace.helpers import get_correlation_ids
 from ddtrace.context import Context

@@ -3,11 +3,11 @@
 We love pull requests. For new features, consider opening an issue to discuss the idea first. When you're ready to open a pull request, here's a quick guide.
 
 1. Fork, clone and branch off `main`:
-   ```bash
-   git clone git@github.com:<your-username>/datadog-lambda-python.git
-   git checkout -b <my-branch>
-   ```
-1. Make your changes. Ensure your code is compatible with both Python 2.7 and 3.X.
+    ```bash
+    git clone git@github.com:<your-username>/datadog-lambda-python.git
+    git checkout -b <my-branch>
+    ```
+1. Make your changes. Ensure your code is compatible with Python 3.X. 
 1. Test your Lambda function against the locally modified version of Datadog Lambda library.
 
    - The easiest approach is to create a soft link of the `datadog_lambda` folder in your project's root. Note, this only overrides the `datadog_lambda` module, and you still need to install the `datadog_lambda` package or the Lambda layer to have the required dependencies.
