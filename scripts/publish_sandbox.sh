@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Usage: VERSION=5 aws-vault exec sandbox-account-admin -- ./scripts/publish_sandbox.sh
+# Usage: VERSION=5 ./scripts/publish_sandbox.sh
 set -e
 
 ./scripts/build_layers.sh
