@@ -20,7 +20,7 @@ jobs:
       - name: Update Dependencies
         run: |
           pip install
-          poetry upgrade
+          poetry update
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v3
