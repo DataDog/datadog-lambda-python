@@ -31,7 +31,6 @@ setup(
         "datadog==0.41.0",
         "ddtrace==0.53.0",
         "wrapt==1.11.2",
-        "setuptools>=54.2.0; python_version >= '3.0'",
     ],
     extras_require={
         "dev": [
