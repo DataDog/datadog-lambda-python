@@ -1,149 +1,50 @@
-service: integration
+# IAM permissions require service name to begin with 'integration-tests'
+service: integration-tests-python
+
+# As of mid-August 2021, the Serverless framework does not support Python 3.9
+# and complains about an invalid configuration when we deploy Python 3.9 functions.
+# This option suppresses the warning.
+# Remove this when the Serverless framework supports Python 3.9.
+configValidationMode: off
 
 provider:
   name: aws
+  region: sa-east-1
   tracing:
-    lambda: true
-    apiGateway: true
+    lambda: "PassThrough"
   environment:
     DD_INTEGRATION_TEST: true
+    DD_TRACE_ENABLED: true
     DD_API_KEY: ${env:DD_API_KEY}
+    DD_CAPTURE_LAMBDA_PAYLOAD: true
+  lambdaHashingVersion: 20201221
+  timeout: 15
+  deploymentBucket:
+    name: integration-tests-deployment-bucket
+  iam:
+    # IAM permissions require that all functions are deployed with this role
+    role: "arn:aws:iam::601427279990:role/serverless-integration-test-lambda-role"
 
 layers:
-  python27:
+  python:
     package:
-      artifact: ../../.layers/datadog_lambda_py2.7.zip
-  python36:
-    package:
-      artifact: ../../.layers/datadog_lambda_py3.6.zip
-  python37:
-    package:
-      artifact: ../../.layers/datadog_lambda_py3.7.zip
-  python38:
-    package:
-      artifact: ../../.layers/datadog_lambda_py3.8.zip
+      artifact: ../../.layers/datadog_lambda_py-amd64-${env:PYTHON_VERSION}.zip
 
 functions:
-  # async-metrics
-  async-metrics_python27:
+  # async-metrics (flushed to logs)
+  async-metrics_python:
+    name: integration-tests-python-${sls:stage}-async-metrics_${env:RUNTIME}
     handler: handle.handle
-    runtime: python2.7
+    runtime: ${env:SERVERLESS_RUNTIME}
     layers:
-      - { Ref: Python27LambdaLayer }
+      - { Ref: PythonLambdaLayer }
     environment:
       DD_FLUSH_TO_LOG: true
 
-  async-metrics_python36:
+  # sync-metrics (sent via API)
+  sync-metrics_python:
+    name: integration-tests-python-${sls:stage}-sync-metrics_${env:RUNTIME}
     handler: handle.handle
-    runtime: python3.6
+    runtime: ${env:SERVERLESS_RUNTIME}
     layers:
-      - { Ref: Python36LambdaLayer }
-    environment:
-      DD_FLUSH_TO_LOG: true
-
-  async-metrics_python37:
-    handler: handle.handle
-    runtime: python3.7
-    layers:
-      - { Ref: Python37LambdaLayer }
-    environment:
-      DD_FLUSH_TO_LOG: true
-
-  async-metrics_python38:
-    handler: handle.handle
-    runtime: python3.8
-    layers:
-      - { Ref: Python38LambdaLayer }
-    environment:
-      DD_FLUSH_TO_LOG: true
-
-  # sync-metrics
-  sync-metrics_python27:
-    handler: handle.handle
-    runtime: python2.7
-    layers:
-      - { Ref: Python27LambdaLayer }
-
-  sync-metrics_python36:
-    handler: handle.handle
-    runtime: python3.6
-    layers:
-      - { Ref: Python36LambdaLayer }
-
-  sync-metrics_python37:
-    handler: handle.handle
-    runtime: python3.7
-    layers:
-      - { Ref: Python37LambdaLayer }
-
-  sync-metrics_python38:
-    handler: handle.handle
-    runtime: python3.8
-    layers:
-      - { Ref: Python38LambdaLayer }
-
-  # http-requests
-  http-requests_python27:
-    handler: http_requests.handle
-    runtime: python2.7
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python27LambdaLayer }
-
-  http-requests_python36:
-    handler: http_requests.handle
-    runtime: python3.6
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python36LambdaLayer }
-
-  http-requests_python37:
-    handler: http_requests.handle
-    runtime: python3.7
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python37LambdaLayer }
-
-  http-requests_python38:
-    handler: http_requests.handle
-    runtime: python3.8
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python38LambdaLayer }
-
-# http-error
-  http-error_python27:
-    handler: http_error.handle
-    runtime: python2.7
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python27LambdaLayer }
-
-  http-error_python36:
-    handler: http_error.handle
-    runtime: python3.6
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python36LambdaLayer }
-
-  http-error_python37:
-    handler: http_error.handle
-    runtime: python3.7
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python37LambdaLayer }
-
-  http-error_python38:
-    handler: http_error.handle
-    runtime: python3.8
-    environment:
-      DD_TRACE_ENABLED: true
-    layers:
-      - { Ref: Python38LambdaLayer }
+      - { Ref: PythonLambdaLayer }

@@ -1,0 +1,31 @@
+name: check-size
+
+on: pull_request
+
+jobs:
+  check-size:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install Crossbuild Deps
+        run: sudo apt install -y qemu-user-static binfmt-support
+
+      - name: Install dependencies
+        run: |
+          pip install virtualenv
+          virtualenv venv
+          source venv/bin/activate
+          pip install .[dev]
+
+      - name: Build Layers
+        run: ./scripts/build_layers.sh
+
+      - name: Check Size
+        run: ./scripts/check_layer_size.sh

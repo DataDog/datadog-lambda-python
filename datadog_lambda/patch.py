@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import logging
+import zlib
 
 from wrapt import wrap_function_wrapper as wrap
 from wrapt.importer import when_imported
@@ -16,17 +17,11 @@ from datadog_lambda.tracing import (
     get_dd_trace_context,
     dd_tracing_enabled,
 )
+from collections.abc import MutableMapping
 
 logger = logging.getLogger(__name__)
 
-if sys.version_info >= (3, 0, 0):
-    httplib_module = "http.client"
-    from collections.abc import MutableMapping
-else:
-    httplib_module = "httplib"
-    from collections import MutableMapping
-
-_httplib_patched = False
+_http_patched = False
 _requests_patched = False
 _integration_tests_patched = False
 
@@ -40,7 +35,7 @@ def patch_all():
     if dd_tracing_enabled:
         patch_all_dd()
     else:
-        _patch_httplib()
+        _patch_http()
         _ensure_patch_requests()
 
 
@@ -55,17 +50,17 @@ def _patch_for_integration_tests():
         _integration_tests_patched = True
 
 
-def _patch_httplib():
+def _patch_http():
     """
-    Patch the Python built-in `httplib` (Python 2) or
-    `http.client` (Python 3) module.
+    Patch `http.client` (Python 3) module.
     """
-    global _httplib_patched
-    if not _httplib_patched:
-        _httplib_patched = True
-        wrap(httplib_module, "HTTPConnection.request", _wrap_httplib_request)
+    global _http_patched
+    http_module = "http.client"
+    if not _http_patched:
+        _http_patched = True
+        wrap(http_module, "HTTPConnection.request", _wrap_http_request)
 
-    logger.debug("Patched %s", httplib_module)
+    logger.debug("Patched %s", http_module)
 
 
 def _ensure_patch_requests():
@@ -112,9 +107,9 @@ def _wrap_requests_request(func, instance, args, kwargs):
     return func(*args, **kwargs)
 
 
-def _wrap_httplib_request(func, instance, args, kwargs):
+def _wrap_http_request(func, instance, args, kwargs):
     """
-    Wrap `httplib` (python2) or `http.client` (python3) to inject
+    Wrap `http.client` (python3) to inject
     the Datadog trace headers into the outgoing requests.
     """
     context = get_dd_trace_context()
@@ -144,6 +139,9 @@ def _print_request_string(request):
 
     # Sort the datapoints POSTed by their name so that snapshots always align
     data = request.body or "{}"
+    # If payload is compressed, decompress it so we can parse it
+    if request.headers.get("Content-Encoding") == "deflate":
+        data = zlib.decompress(data)
     data_dict = json.loads(data)
     data_dict.get("series", []).sort(key=lambda series: series.get("metric"))
     sorted_data = json.dumps(data_dict)

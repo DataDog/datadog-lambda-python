@@ -8,7 +8,7 @@ from datadog_lambda.cold_start import get_cold_start_tag
 
 def _format_dd_lambda_layer_tag():
     """
-    Formats the dd_lambda_layer tag, e.g., 'dd_lambda_layer:datadog-python27_1'
+    Formats the dd_lambda_layer tag, e.g., 'dd_lambda_layer:datadog-python39_1'
     """
     runtime = "python{}{}".format(sys.version_info[0], sys.version_info[1])
     return "dd_lambda_layer:datadog-{}_{}".format(runtime, __version__)
@@ -69,8 +69,7 @@ def parse_lambda_tags_from_arn(lambda_context):
 
 
 def get_runtime_tag():
-    """Get the runtime tag from the current Python version
-    """
+    """Get the runtime tag from the current Python version"""
     major_version, minor_version, _ = python_version_tuple()
 
     return "runtime:python{major}.{minor}".format(
@@ -79,14 +78,12 @@ def get_runtime_tag():
 
 
 def get_library_version_tag():
-    """Get datadog lambda library tag
-    """
+    """Get datadog lambda library tag"""
     return "datadog_lambda:v{}".format(__version__)
 
 
 def get_enhanced_metrics_tags(lambda_context):
-    """Get the list of tags to apply to enhanced metrics
-    """
+    """Get the list of tags to apply to enhanced metrics"""
     return parse_lambda_tags_from_arn(lambda_context) + [
         get_cold_start_tag(),
         "memorysize:{}".format(lambda_context.memory_limit_in_mb),
@@ -96,7 +93,9 @@ def get_enhanced_metrics_tags(lambda_context):
 
 
 def check_if_number(alias):
-    """ Check if the alias is a version or number. Python 2 has no easy way to test this like Python 3
+    """
+    Check if the alias is a version or number.
+    Python 2 has no easy way to test this like Python 3
     """
     try:
         float(alias)

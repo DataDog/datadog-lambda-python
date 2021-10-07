@@ -6,16 +6,17 @@
 # Copyright 2019 Datadog, Inc.
 
 # Publish the datadog python lambda layer across regions, using the AWS CLI
-# Usage: publish_layer.sh [region] [layer]
-# Specifying the region and layer arg will publish the specified layer to the specified region
+# Usage: VERSION=5 REGIONS=us-east-1 LAYERS=Datadog-Python39 publish_layers.sh
+# VERSION is required.
 set -e
 
 # Makes sure any subprocesses will be terminated with this process
 trap "pkill -P $$; exit 1;" INT
 
-PYTHON_VERSIONS_FOR_AWS_CLI=("python2.7" "python3.6" "python3.7" "python3.8")
-LAYER_PATHS=(".layers/datadog_lambda_py2.7.zip" ".layers/datadog_lambda_py3.6.zip" ".layers/datadog_lambda_py3.7.zip" ".layers/datadog_lambda_py3.8.zip")
-AVAILABLE_LAYER_NAMES=("Datadog-Python27" "Datadog-Python36" "Datadog-Python37" "Datadog-Python38")
+PYTHON_VERSIONS_FOR_AWS_CLI=("python3.6" "python3.7" "python3.8" "python3.8" "python3.9" "python3.9")
+LAYER_PATHS=(".layers/datadog_lambda_py-amd64-3.6.zip" ".layers/datadog_lambda_py-amd64-3.7.zip" ".layers/datadog_lambda_py-amd64-3.8.zip" ".layers/datadog_lambda_py-arm64-3.8.zip" ".layers/datadog_lambda_py-amd64-3.9.zip" ".layers/datadog_lambda_py-arm64-3.9.zip")
+AVAILABLE_LAYERS=("Datadog-Python36" "Datadog-Python37" "Datadog-Python38" "Datadog-Python38-ARM" "Datadog-Python39" "Datadog-Python39-ARM")
+ARCHS=("amd64" "amd64" "amd64""amd64" "amd64" "arm64")
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 
 # Check that the layer files exist
@@ -27,42 +28,58 @@ do
     fi
 done
 
-# Check region arg
-if [ -z "$1" ]; then
-    echo "Region parameter not specified, running for all available regions."
+# Determine the target regions
+if [ -z "$REGIONS" ]; then
+    echo "Region not specified, running for all available regions."
     REGIONS=$AVAILABLE_REGIONS
 else
-    echo "Region parameter specified: $1"
-    if [[ ! "$AVAILABLE_REGIONS" == *"$1"* ]]; then
-        echo "Could not find $1 in available regions: $AVAILABLE_REGIONS"
+    echo "Region specified: $REGIONS"
+    if [[ ! "$AVAILABLE_REGIONS" == *"$REGIONS"* ]]; then
+        echo "Could not find $REGIONS in available regions: $AVAILABLE_REGIONS"
         echo ""
         echo "EXITING SCRIPT."
         exit 1
     fi
-    REGIONS=($1)
 fi
 
-echo "Starting publishing layers for regions: $REGIONS"
-
-# Check layer_name arg
-if [ -z "$2" ]; then
-    echo "Layer name parameter not specified, running for all layer names."
-    LAYER_NAMES=("${AVAILABLE_LAYER_NAMES[@]}")
+# Determine the target layers
+if [ -z "$LAYERS" ]; then
+    echo "Layer not specified, running for all layers."
+    LAYERS=("${AVAILABLE_LAYERS[@]}")
 else
-    echo "Layer name parameter specified: $2"
-    if [[ ! " ${AVAILABLE_LAYER_NAMES[@]} " =~ " ${2} " ]]; then
-        echo "Could not find $2 in available layer names: ${AVAILABLE_LAYER_NAMES[@]}"
+    echo "Layer specified: $LAYERS"
+    if [[ ! " ${AVAILABLE_LAYERS[@]} " =~ " ${LAYERS} " ]]; then
+        echo "Could not find $LAYERS in available layers: ${AVAILABLE_LAYERS[@]}"
         echo ""
         echo "EXITING SCRIPT."
         exit 1
     fi
-    LAYER_NAMES=($2)
 fi
 
+# Determine the target layer version
+if [ -z "$VERSION" ]; then
+    echo "Layer version not specified"
+    echo ""
+    echo "EXITING SCRIPT."
+    exit 1
+else
+    echo "Layer version specified: $VERSION"
+fi
 
+read -p "Ready to publish version $VERSION of layers ${LAYERS[*]} to regions ${REGIONS[*]} (y/n)?" CONT
+if [ "$CONT" != "y" ]; then
+    echo "Exiting"
+    exit 1
+fi
 
-
-echo "Publishing layers: ${LAYER_NAMES[*]}"
+index_of_layer() {
+    layer_name=$1
+    for i in "${!AVAILABLE_LAYERS[@]}"; do
+        if [[ "${AVAILABLE_LAYERS[$i]}" = "${layer_name}" ]]; then
+            echo "${i}";
+        fi
+    done
+}
 
 publish_layer() {
     region=$1
@@ -76,46 +93,50 @@ publish_layer() {
         --compatible-runtimes $aws_version_key \
                         | jq -r '.Version')
 
-    aws lambda add-layer-version-permission --layer-name $layer_name \
+    permission=$(aws lambda add-layer-version-permission --layer-name $layer_name \
         --version-number $version_nbr \
         --statement-id "release-$version_nbr" \
         --action lambda:GetLayerVersion --principal "*" \
-        --region $region
+        --region $region)
 
-    echo "Published layer for region $region, python version $aws_version_key, layer_name $layer_name, layer_version $version_nbr"
-}
-
-BATCH_SIZE=1
-PIDS=()
-
-wait_for_processes() {
-    for pid in "${PIDS[@]}"; do
-        wait $pid
-    done
-    PIDS=()
+    echo $version_nbr
 }
 
 for region in $REGIONS
 do
     echo "Starting publishing layer for region $region..."
-
     # Publish the layers for each version of python
-    i=0
-    for layer_name in "${LAYER_NAMES[@]}"; do
-        aws_version_key="${PYTHON_VERSIONS_FOR_AWS_CLI[$i]}"
-        layer_path="${LAYER_PATHS[$i]}"
-
-        publish_layer $region $layer_name $aws_version_key $layer_path &
-        PIDS+=($!)
-        if [ ${#PIDS[@]} -eq $BATCH_SIZE ]; then
-            wait_for_processes
+    for layer_name in "${LAYERS[@]}"; do
+        latest_version=$(aws lambda list-layer-versions --region $region --layer-name $layer_name --query 'LayerVersions[0].Version || `0`')
+        if [ $latest_version -ge $VERSION ]; then
+            echo "Layer $layer_name version $VERSION already exists in region $region, skipping..."
+            continue
+        elif [ $latest_version -lt $((VERSION-1)) ]; then
+            read -p "WARNING: The latest version of layer $layer_name in region $region is $latest_version, publish all the missing versions including $VERSION or EXIT the script (y/n)?" CONT
+            if [ "$CONT" != "y" ]; then
+                echo "Exiting"
+                exit 1
+            fi
         fi
 
-        i=$(expr $i + 1)
+        index=$(index_of_layer $layer_name)
+        aws_version_key="${PYTHON_VERSIONS_FOR_AWS_CLI[$index]}"
+        layer_path="${LAYER_PATHS[$index]}"
 
+        while [ $latest_version -lt $VERSION ]; do
+            latest_version=$(publish_layer $region $layer_name $aws_version_key $layer_path)
+            echo "Published version $latest_version for layer $layer_name in region $region"
+
+            # This shouldn't happen unless someone manually deleted the latest version, say 28
+            # and then try to republish it again. The published version is actually be 29, because
+            # Lambda layers are immutable and AWS will skip deleted version and use the next number. 
+            if [ $latest_version -gt $VERSION ]; then
+                echo "ERROR: Published version $latest_version is greater than the desired version $VERSION!"
+                echo "Exiting"
+                exit 1
+            fi
+        done
     done
 done
-
-wait_for_processes
 
 echo "Done !"

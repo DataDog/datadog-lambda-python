@@ -22,7 +22,8 @@ class TraceHeader(object):
 # X-Ray subsegment to save Datadog trace metadata
 class XraySubsegment(object):
     NAME = "datadog-metadata"
-    KEY = "trace"
+    TRACE_KEY = "trace"
+    LAMBDA_FUNCTION_TAGS_KEY = "lambda_function_tags"
     NAMESPACE = "datadog"
 
 
@@ -33,3 +34,10 @@ class TraceContextSource(object):
     XRAY = "xray"
     EVENT = "event"
     DDTRACE = "ddtrace"
+
+
+# X-Ray deamon
+class XrayDaemon(object):
+    XRAY_TRACE_ID_HEADER_NAME = "_X_AMZN_TRACE_ID"
+    XRAY_DAEMON_ADDRESS = "AWS_XRAY_DAEMON_ADDRESS"
+    FUNCTION_NAME_HEADER_NAME = "AWS_LAMBDA_FUNCTION_NAME"

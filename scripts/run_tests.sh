@@ -8,7 +8,7 @@
 # Run unit tests in Docker
 set -e
 
-PYTHON_VERSIONS=("2.7" "3.6" "3.7" "3.8")
+PYTHON_VERSIONS=("3.6" "3.7" "3.8" "3.9")
 
 for python_version in "${PYTHON_VERSIONS[@]}"
 do
@@ -23,5 +23,5 @@ do
     docker run -v `pwd`:/datadog-lambda-python \
         -w /datadog-lambda-python \
         datadog-lambda-python-test:$python_version \
-        flake8
+        flake8 datadog_lambda/
 done
