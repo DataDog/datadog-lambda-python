@@ -32,7 +32,8 @@ boto3 = { version = "^1.10.33", optional = true }
 requests = { version ="^2.22.0", optional = true }
 nose2 = { version= "^0.9.1", optional = true }
 flake8 = { version = "^3.7.9", optional = true }
-importlib-metadata = {version = "^1.0", python = "<3.8", optional = true }
+httpretty = {version = "^1.1.4", optional = true }
+importlib_metadata = {version = "^1.0", python = "<3.8", optional = true }
 
 
 [tool.poetry.extras]
@@ -41,7 +42,8 @@ dev = [
     "requests",
     "nose2",
     "flake8",
-    "importlib-metadata"
+    "httpretty",
+    "importlib_metadata"
 ]
 
 [build-system]
