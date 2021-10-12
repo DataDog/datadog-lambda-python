@@ -43,8 +43,6 @@ if [ "$CONT" != "y" ]; then
     exit 1
 fi
 
-VERSION_LINE=$(sed -E -n 's/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/"\1.\2.\3"/p' ./datadog_lambda/__init__.py)
-# CURRENT_VERSION=$(echo "$VERSION_LINE" | cut -d '"' -f 2)
 CURRENT_VERSION=$(poetry version --short)
 LAYER_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
 
