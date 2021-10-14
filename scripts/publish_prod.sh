@@ -43,8 +43,7 @@ if [ "$CONT" != "y" ]; then
     exit 1
 fi
 
-VERSION_LINE=$(sed -E -n 's/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/"\1.\2.\3"/p' ./datadog_lambda/__init__.py)
-CURRENT_VERSION=$(echo "$VERSION_LINE" | cut -d '"' -f 2)
+CURRENT_VERSION=$(poetry version --short)
 LAYER_VERSION=$(echo $NEW_VERSION | cut -d '.' -f 2)
 
 read -p "Ready to update the library version from $CURRENT_VERSION to $NEW_VERSION and publish layer version $LAYER_VERSION (y/n)?" CONT
@@ -54,9 +53,10 @@ if [ "$CONT" != "y" ]; then
 fi
 
 echo
-echo "Replacing __version__ in ./datadog_lambda/__init__.py"
+echo "Replacing version in pyproject.toml"
 echo
-sed -i "" -E "s/\"(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\"/\"$NEW_VERSION\"/" ./datadog_lambda/__init__.py
+
+poetry version ${NEW_VERSION}
 
 echo
 echo "Building layers..."
