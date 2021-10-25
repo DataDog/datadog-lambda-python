@@ -29,8 +29,13 @@ from datadog_lambda.tracing import (
     create_inferred_span,
 )
 from datadog_lambda.trigger import extract_trigger_tags, extract_http_status_code_tag
+from datadog_lambda.tag_object import tag_object
 
 logger = logging.getLogger(__name__)
+
+dd_capture_lambda_payload_enabled = (
+    os.environ.get("DD_CAPTURE_LAMBDA_PAYLOAD", "false").lower() == "true"
+)
 
 """
 Usage:
@@ -192,6 +197,10 @@ class _LambdaDecorator(object):
                 )
 
             if self.span:
+                if dd_capture_lambda_payload_enabled:
+                    tag_object(self.span, "function.request", event)
+                    tag_object(self.span, "function.response", self.response)
+
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
                 self.span.finish()

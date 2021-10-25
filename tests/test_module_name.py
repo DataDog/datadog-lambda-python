@@ -1,11 +1,6 @@
-import sys
-import os
 import unittest
 
-try:
-    from unittest.mock import patch, call, MagicMock
-except ImportError:
-    from mock import patch, call, MagicMock
+from unittest.mock import patch, call, MagicMock
 
 from datadog_lambda.module_name import modify_module_name
 

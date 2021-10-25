@@ -1,12 +1,8 @@
-import sys
 import unittest
 
-try:
-    from unittest.mock import patch, MagicMock
-except ImportError:
-    from mock import patch, MagicMock
+from unittest.mock import patch, MagicMock
 
-from datadog_lambda.patch import _patch_httplib, _ensure_patch_requests
+from datadog_lambda.patch import _patch_http, _ensure_patch_requests
 from datadog_lambda.constants import TraceHeader
 
 
@@ -21,12 +17,9 @@ class TestPatchHTTPClients(unittest.TestCase):
         }
         self.addCleanup(patcher.stop)
 
-    def test_patch_httplib(self):
-        _patch_httplib()
-        if sys.version_info >= (3, 0, 0):
-            from http.client import HTTPSConnection
-        else:
-            from httplib import HTTPSConnection
+    def test_patch_http(self):
+        _patch_http()
+        from http.client import HTTPSConnection
 
         conn = HTTPSConnection("www.datadoghq.com")
         conn.request("GET", "/")
@@ -34,12 +27,9 @@ class TestPatchHTTPClients(unittest.TestCase):
 
         self.mock_get_dd_trace_context.assert_called()
 
-    def test_patch_httplib_dict_headers(self):
-        _patch_httplib()
-        if sys.version_info >= (3, 0, 0):
-            from http.client import HTTPSConnection
-        else:
-            from httplib import HTTPSConnection
+    def test_patch_http_dict_headers(self):
+        _patch_http()
+        from http.client import HTTPSConnection
 
         headers = MagicMock(spec=dict)
         headers["fake-header"] = "fake-value"
@@ -51,14 +41,10 @@ class TestPatchHTTPClients(unittest.TestCase):
         self.mock_get_dd_trace_context.assert_called()
         headers.update.assert_called()
 
-    def test_patch_httplib_dict_like_headers(self):
-        _patch_httplib()
-        if sys.version_info >= (3, 0, 0):
-            from http.client import HTTPSConnection
-            from collections.abc import MutableMapping
-        else:
-            from httplib import HTTPSConnection
-            from collections import MutableMapping
+    def test_patch_http_dict_like_headers(self):
+        _patch_http()
+        from http.client import HTTPSConnection
+        from collections.abc import MutableMapping
 
         headers = MagicMock(spec=MutableMapping)
         headers["fake-header"] = "fake-value"

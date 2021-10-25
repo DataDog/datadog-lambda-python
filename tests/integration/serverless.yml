@@ -17,6 +17,7 @@ provider:
     DD_TRACE_ENABLED: true
     DD_API_KEY: ${env:DD_API_KEY}
     DD_INFERRED_SPANS: true
+    DD_CAPTURE_LAMBDA_PAYLOAD: true
   lambdaHashingVersion: 20201221
   timeout: 15
   deploymentBucket:
@@ -28,7 +29,7 @@ provider:
 layers:
   python:
     package:
-      artifact: ../../.layers/datadog_lambda_py${env:PYTHON_VERSION}.zip
+      artifact: ../../.layers/datadog_lambda_py-amd64-${env:PYTHON_VERSION}.zip
 
 functions:
   # async-metrics (flushed to logs)

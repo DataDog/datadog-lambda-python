@@ -1,11 +1,7 @@
-import os
 import unittest
 import json
 
-try:
-    from unittest.mock import MagicMock, patch, call
-except ImportError:
-    from mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 from datadog_lambda.xray import get_xray_host_port, build_segment_payload, build_segment
 

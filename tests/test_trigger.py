@@ -1,11 +1,7 @@
 import unittest
 import json
 
-try:
-    from unittest.mock import MagicMock
-except ImportError:
-    from mock import MagicMock
-
+from unittest.mock import MagicMock
 
 from datadog_lambda.trigger import (
     parse_event_source,
