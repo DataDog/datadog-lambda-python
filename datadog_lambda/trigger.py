@@ -20,7 +20,8 @@ EVENT_SOURCES_WITH_EXTRA_AWS = [
 
 class _stringTypedEnum(Enum):
     """
-    _stringTypedEnum provides a type-hinted convenience function for getting the string value of an enum.
+    _stringTypedEnum provides a type-hinted convenience function for getting the string value of
+    an enum.
     """
 
     def get_string(self) -> str:
@@ -44,8 +45,10 @@ class EventTypes(_stringTypedEnum):
 class EventSubtypes(_stringTypedEnum):
     """
     EventSubtypes is an enum of Lambda event subtypes.
-    Currently, only API Gateway events have subtypes, but I imagine we might see more in the future.
-    This was added to support the difference in handling of e.g. HTTP-API and Websocket events vs vanilla API-Gateway events.
+    Currently, only API Gateway events have subtypes, but I imagine we might see more in the
+    future.
+    This was added to support the difference in handling of e.g. HTTP-API and Websocket events vs
+    vanilla API-Gateway events.
     """
 
     NONE = "none"
@@ -78,7 +81,8 @@ class _EventSource:
         """
         to_string returns the string representation of an _EventSource.
         If the event type is unknown, the unknown_event_type will be returned.
-        Since to_string was added to support trigger tagging, the event's subtype will never be included in the string.
+        Since to_string was added to support trigger tagging, the event's subtype will never be
+        included in the string.
         """
         if self.event_type == EventTypes.UNKNOWN:
             return self.unknown_event_type
@@ -88,7 +92,8 @@ class _EventSource:
         self, event_type: EventTypes, subtype: EventSubtypes = EventSubtypes.NONE
     ) -> bool:
         """
-        equals provides syntactic sugar to determine whether this _EventSource has a given type and subtype.
+        equals provides syntactic sugar to determine whether this _EventSource has a given type
+        and subtype.
         Unknown events will never equal other events.
         """
         if self.event_type == EventTypes.UNKNOWN:
