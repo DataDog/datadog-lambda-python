@@ -7,15 +7,97 @@ import base64
 import gzip
 import json
 from io import BytesIO, BufferedReader
+from enum import Enum
 
-
-EVENT_SOURCES = [
+EVENT_SOURCES_WITH_EXTRA_AWS = [
     "aws:dynamodb",
     "aws:kinesis",
     "aws:s3",
     "aws:sns",
     "aws:sqs",
 ]
+
+
+class _stringTypedEnum(Enum):
+    """
+    _stringTypedEnum provides a type-hinted convenience function for getting the string value of an enum.
+    """
+
+    def get_string(self) -> str:
+        return self.value
+
+
+class EventTypes(_stringTypedEnum):
+    """
+    EventTypes is an enum of Lambda event types we care about.
+    """
+
+    UNKNOWN = "unknown"
+    API_GATEWAY = "api-gateway"
+    APPSYNC = "appsync"
+    ALB = "application-load-balancer"
+    CLOUDWATCH_LOGS = "cloudwatch-logs"
+    CLOUDWATCH_EVENTS = "cloudwatch-events"
+    CLOUDFRONT = "cloudfront"
+
+
+class EventSubtypes(_stringTypedEnum):
+    """
+    EventSubtypes is an enum of Lambda event subtypes.
+    Currently, only API Gateway events have subtypes, but I imagine we might see more in the future.
+    This was added to support the difference in handling of e.g. HTTP-API and Websocket events vs vanilla API-Gateway events.
+    """
+
+    NONE = "none"
+    API_GATEWAY = "api-gateway"  # regular API Gateway
+    WEBSOCKET = "websocket"
+    HTTP_API = "http-api"
+
+
+class _EventSource:
+    """
+    _EventSource holds an event's type and subtype.
+    If the event is of type UNKNOWN, an unknown_event_name may be provided.
+    Unknown_event_name will be discarded otherwise.
+    """
+
+    def __init__(
+        self,
+        event_type: EventTypes,
+        subtype: EventSubtypes = EventSubtypes.NONE,
+        unknown_event_name: str = "",
+    ):
+        if event_type == EventTypes.UNKNOWN:
+            if unknown_event_name in EVENT_SOURCES_WITH_EXTRA_AWS:
+                unknown_event_name = unknown_event_name.replace("aws:", "")
+            self.unknown_event_type = unknown_event_name
+        self.event_type = event_type
+        self.subtype = subtype
+
+    def to_string(self) -> str:
+        """
+        to_string returns the string representation of an _EventSource.
+        If the event type is unknown, the unknown_event_type will be returned.
+        Since to_string was added to support trigger tagging, the event's subtype will never be included in the string.
+        """
+        if self.event_type == EventTypes.UNKNOWN:
+            return self.unknown_event_type
+        return self.event_type.get_string()
+
+    def equals(
+        self, event_type: EventTypes, subtype: EventSubtypes = EventSubtypes.NONE
+    ) -> bool:
+        """
+        equals provides syntactic sugar to determine whether this _EventSource has a given type and subtype.
+        Unknown events will never equal other events.
+        """
+        if self.event_type == EventTypes.UNKNOWN:
+            return False
+        if self.event_type != event_type:
+            return False
+        if self.subtype != subtype:
+            return False
+        return True
 
 
 def get_aws_partition_by_region(region):
@@ -32,7 +114,7 @@ def get_first_record(event):
         return records[0]
 
 
-def parse_event_source(event):
+def parse_event_source(event) -> _EventSource:
     """Determines the source of the trigger event
 
     Possible Returns:
@@ -40,23 +122,32 @@ def parse_event_source(event):
         cloudwatch-events | cloudfront | dynamodb | kinesis | s3 | sns | sqs
     """
     if type(event) is not dict:
-        return
-    event_source = event.get("eventSource") or event.get("EventSource")
+        return _EventSource(EventTypes.UNKNOWN)
+    event_source = _EventSource(
+        EventTypes.UNKNOWN,
+        unknown_event_name=event.get("eventSource") or event.get("EventSource"),
+    )
 
     request_context = event.get("requestContext")
     if request_context and request_context.get("stage"):
-        event_source = "api-gateway"
+        event_source = _EventSource(EventTypes.API_GATEWAY)
+        if "httpMethod" in event:
+            event_source.subtype = EventSubtypes.API_GATEWAY
+        if "routeKey" in event:
+            event_source.subtype = EventSubtypes.HTTP_API
+        if "requestContext" in event and "messageDirection" in event["requestContext"]:
+            event_source.subtype = EventSubtypes.WEBSOCKET
 
     if request_context and request_context.get("elb"):
-        event_source = "application-load-balancer"
+        event_source = _EventSource(EventTypes.ALB)
 
     if event.get("awslogs"):
-        event_source = "cloudwatch-logs"
+        event_source = _EventSource(EventTypes.CLOUDWATCH_LOGS)
 
     event_detail = event.get("detail")
     cw_event_categories = event_detail and event_detail.get("EventCategories")
     if event.get("source") == "aws.events" or cw_event_categories:
-        event_source = "cloudwatch-events"
+        event_source = _EventSource(EventTypes.CLOUDWATCH_EVENTS)
 
     event_record = get_first_record(event)
     if event_record:
@@ -64,10 +155,8 @@ def parse_event_source(event):
             "EventSource"
         )
         if event_record.get("cf"):
-            event_source = "cloudfront"
+            event_source = _EventSource(EventTypes.CLOUDFRONT)
 
-    if event_source in EVENT_SOURCES:
-        event_source = event_source.replace("aws:", "")
     return event_source
 
 
@@ -180,7 +269,7 @@ def extract_trigger_tags(event, context):
     trigger_tags = {}
     event_source = parse_event_source(event)
     if event_source:
-        trigger_tags["function_trigger.event_source"] = event_source
+        trigger_tags["function_trigger.event_source"] = event_source.to_string()
 
         event_source_arn = get_event_source_arn(event_source, event, context)
         if event_source_arn:

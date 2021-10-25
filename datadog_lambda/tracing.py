@@ -20,9 +20,9 @@ from datadog_lambda.xray import (
 )
 from ddtrace import tracer, patch
 from ddtrace import __version__ as ddtrace_version
-from ddtrace.filters import TraceFilter
 from ddtrace.propagation.http import HTTPPropagator
 from datadog_lambda import __version__ as datadog_lambda_version
+from datadog_lambda.trigger import parse_event_source, EventTypes, EventSubtypes
 
 logger = logging.getLogger(__name__)
 
@@ -34,14 +34,6 @@ dd_trace_context = {}
 dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
 
 propagator = HTTPPropagator()
-
-
-class ManagedService(Enum):
-    UNKNOWN = 0
-    API_GATEWAY = 1
-    API_GATEWAY_WEBSOCKET = 2
-    HTTP_API = 3
-    APPSYNC = 4
 
 
 def _convert_xray_trace_id(xray_trace_id):
@@ -392,36 +384,32 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
 
 
 def create_inferred_span(event, context, function_name):
-    managed_service = detect_inferrable_span_type(event)
+    event_source = parse_event_source(event)
     try:
-        if managed_service == ManagedService.API_GATEWAY:
+        if event_source.equals(
+            EventTypes.API_GATEWAY, subtype=EventSubtypes.API_GATEWAY
+        ):
             logger.debug("API Gateway event detected. Inferring a span")
             return create_inferred_span_from_api_gateway_event(event, context)
-        elif managed_service == ManagedService.HTTP_API:
+        elif event_source.equals(
+            EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API
+        ):
             logger.debug("HTTP API event detected. Inferring a span")
             return create_inferred_span_from_http_api_event(event, context)
-        elif managed_service == ManagedService.API_GATEWAY_WEBSOCKET:
+        elif event_source.equals(
+            EventTypes.API_GATEWAY, subtype=EventSubtypes.WEBSOCKET
+        ):
             logger.debug("API Gateway Websocket event detected. Inferring a span")
             return create_inferred_span_from_api_gateway_websocket_event(event, context)
     except Exception as e:
         logger.debug(
-            "Unable to infer span. Detected type: {}. Reason: {}", managed_service, e
+            "Unable to infer span. Detected type: {}. Reason: {}",
+            event_source.to_string(),
+            e,
         )
         return None
     logger.debug("Unable to infer a span: unknown event type")
     return None
-
-
-def detect_inferrable_span_type(event):
-    if "httpMethod" in event:  # likely some kind of API Gateway event
-        return ManagedService.API_GATEWAY
-    if "routeKey" in event:  # likely HTTP API
-        return ManagedService.HTTP_API
-    if (
-        "requestContext" in event and "messageDirection" in event["requestContext"]
-    ):  # likely a websocket API
-        return ManagedService.API_GATEWAY_WEBSOCKET
-    return ManagedService.UNKNOWN
 
 
 def create_inferred_span_from_api_gateway_websocket_event(event, context):
@@ -430,7 +418,7 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
     tags = {
         "operation_name": "aws.apigateway.websocket",
         "service.name": domain,
-        "url": domain + endpoint,
+        "http.url": domain + endpoint,
         "endpoint": endpoint,
         "resource_name": domain + endpoint,
         "request_id": context.aws_request_id,
@@ -456,7 +444,7 @@ def create_inferred_span_from_api_gateway_event(event, context):
     tags = {
         "operation_name": "aws.apigateway.rest",
         "service.name": domain,
-        "url": domain + path,
+        "http.url": domain + path,
         "endpoint": path,
         "http.method": event["httpMethod"],
         "resource_name": domain + path,
@@ -482,7 +470,7 @@ def create_inferred_span_from_http_api_event(event, context):
     tags = {
         "operation_name": "aws.httpapi",
         "service.name": domain,
-        "url": domain + path,
+        "http.url": domain + path,
         "endpoint": path,
         "http.method": event["requestContext"]["http"]["method"],
         "resource_name": domain + path,

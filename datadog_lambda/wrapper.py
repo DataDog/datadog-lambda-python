@@ -199,12 +199,12 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.inferred_span.set_tag("http.status_code", status_code)
                 self.inferred_span.finish()
-            logger.debug("datadog_lambda_wrapper _after() done")
 
             if not self.flush_to_log or should_use_extension:
                 flush_stats()
             if should_use_extension:
                 flush_extension()
+            logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
             traceback.print_exc()
 
