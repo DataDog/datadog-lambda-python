@@ -30,24 +30,6 @@ logger = logging.getLogger(__name__)
 SPAN_TYPE_TAG = "_dd.span_type"
 SPAN_TYPE_INFERRED = "inferred"
 
-
-class InferredSpanFilter(TraceFilter):
-    def process_trace(self, trace):
-        logger.debug("InferredSpanFilter got a trace of length {}".format(len(trace)))
-        trace_to_send = []
-        for span in trace:
-            if span.get_tag(SPAN_TYPE_TAG) == SPAN_TYPE_INFERRED and len(trace) > 1:
-                logger.debug(
-                    "Found an inferred span. Filtering it out and writing it separately."
-                )
-                tracer.write([span])
-            else:
-                logger.debug("Appending a span to the returned trace")
-                trace_to_send.append(span)
-        return trace_to_send
-
-
-tracer.configure(settings={"FILTERS": [InferredSpanFilter()]})
 dd_trace_context = {}
 dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
 
