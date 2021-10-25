@@ -6,7 +6,6 @@
 import logging
 import os
 import json
-from enum import Enum
 
 from datadog_lambda.constants import (
     SamplingPriority,
