@@ -271,8 +271,6 @@ def extract_trigger_tags(event: dict, context: Any) -> dict:
     """
     trigger_tags = {}
     event_source = parse_event_source(event)
-    print("AGOCS")
-    print(event_source)
     if event_source.to_string() is not None:
         trigger_tags["function_trigger.event_source"] = event_source.to_string()
 
