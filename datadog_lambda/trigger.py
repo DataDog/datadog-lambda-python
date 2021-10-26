@@ -8,6 +8,7 @@ import gzip
 import json
 from io import BytesIO, BufferedReader
 from enum import Enum
+from typing import Any
 
 EVENT_SOURCES_WITH_EXTRA_AWS = [
     "aws:dynamodb",
@@ -68,7 +69,7 @@ class _EventSource:
         self,
         event_type: EventTypes,
         subtype: EventSubtypes = EventSubtypes.NONE,
-        unknown_event_name: str = "",
+        unknown_event_name: str = None,
     ):
         if event_type == EventTypes.UNKNOWN:
             if unknown_event_name in EVENT_SOURCES_WITH_EXTRA_AWS:
@@ -119,20 +120,15 @@ def get_first_record(event):
         return records[0]
 
 
-def parse_event_source(event) -> _EventSource:
-    """Determines the source of the trigger event
-
-    Possible Returns:
-        api-gateway | application-load-balancer | cloudwatch-logs |
-        cloudwatch-events | cloudfront | dynamodb | kinesis | s3 | sns | sqs
-    """
+def parse_event_source(event: dict) -> _EventSource:
+    """Determines the source of the trigger event"""
     if type(event) is not dict:
         return _EventSource(EventTypes.UNKNOWN)
+
     event_source = _EventSource(
         EventTypes.UNKNOWN,
         unknown_event_name=event.get("eventSource") or event.get("EventSource"),
     )
-
     request_context = event.get("requestContext")
     if request_context and request_context.get("stage"):
         event_source = _EventSource(EventTypes.API_GATEWAY)
@@ -156,8 +152,10 @@ def parse_event_source(event) -> _EventSource:
 
     event_record = get_first_record(event)
     if event_record:
-        event_source = event_record.get("eventSource") or event_record.get(
-            "EventSource"
+        event_source = _EventSource(
+            EventTypes.UNKNOWN,
+            unknown_event_name=event_record.get("eventSource")
+            or event_record.get("EventSource"),
         )
         if event_record.get("cf"):
             event_source = _EventSource(EventTypes.CLOUDFRONT)
@@ -165,7 +163,7 @@ def parse_event_source(event) -> _EventSource:
     return event_source
 
 
-def parse_event_source_arn(source, event, context):
+def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> str:
     """
     Parses the trigger event for an available ARN. If an ARN field is not provided
     in the event we stitch it together.
@@ -177,34 +175,34 @@ def parse_event_source_arn(source, event, context):
 
     event_record = get_first_record(event)
     # e.g. arn:aws:s3:::lambda-xyz123-abc890
-    if source == "s3":
+    if source.to_string() == "s3":
         return event_record.get("s3")["bucket"]["arn"]
 
     # e.g. arn:aws:sns:us-east-1:123456789012:sns-lambda
-    if source == "sns":
+    if source.to_string() == "sns":
         return event_record.get("Sns")["TopicArn"]
 
     # e.g. arn:aws:cloudfront::123456789012:distribution/ABC123XYZ
-    if source == "cloudfront":
+    if source.event_type == EventTypes.CLOUDFRONT:
         distribution_id = event_record.get("cf")["config"]["distributionId"]
         return "arn:{}:cloudfront::{}:distribution/{}".format(
             aws_arn, account_id, distribution_id
         )
 
     # e.g. arn:aws:apigateway:us-east-1::/restapis/xyz123/stages/default
-    if source == "api-gateway":
+    if source.event_type == EventTypes.API_GATEWAY:
         request_context = event.get("requestContext")
         return "arn:{}:apigateway:{}::/restapis/{}/stages/{}".format(
             aws_arn, region, request_context["apiId"], request_context["stage"]
         )
 
     # e.g. arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/lambda-xyz/123
-    if source == "application-load-balancer":
+    if source.event_type == EventTypes.ALB:
         request_context = event.get("requestContext")
         return request_context.get("elb")["targetGroupArn"]
 
     # e.g. arn:aws:logs:us-west-1:123456789012:log-group:/my-log-group-xyz
-    if source == "cloudwatch-logs":
+    if source.event_type == EventTypes.CLOUDWATCH_LOGS:
         with gzip.GzipFile(
             fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
         ) as decompress_stream:
@@ -216,11 +214,11 @@ def parse_event_source_arn(source, event, context):
         )
 
     # e.g. arn:aws:events:us-east-1:123456789012:rule/my-schedule
-    if source == "cloudwatch-events" and event.get("resources"):
+    if source.event_type == EventTypes.CLOUDWATCH_EVENTS and event.get("resources"):
         return event.get("resources")[0]
 
 
-def get_event_source_arn(source, event, context):
+def get_event_source_arn(source: _EventSource, event: dict, context: Any) -> str:
     event_source_arn = event.get("eventSourceARN") or event.get("eventSourceArn")
 
     event_record = get_first_record(event)
@@ -267,20 +265,22 @@ def extract_http_tags(event):
     return http_tags
 
 
-def extract_trigger_tags(event, context):
+def extract_trigger_tags(event: dict, context: Any) -> dict:
     """
     Parses the trigger event object to get tags to be added to the span metadata
     """
     trigger_tags = {}
     event_source = parse_event_source(event)
-    if event_source:
+    print("AGOCS")
+    print(event_source)
+    if event_source.to_string() is not None:
         trigger_tags["function_trigger.event_source"] = event_source.to_string()
 
         event_source_arn = get_event_source_arn(event_source, event, context)
         if event_source_arn:
             trigger_tags["function_trigger.event_source_arn"] = event_source_arn
 
-    if event_source in ["api-gateway", "application-load-balancer"]:
+    if event_source.event_type in [EventTypes.API_GATEWAY, EventTypes.ALB]:
         trigger_tags.update(extract_http_tags(event))
 
     return trigger_tags
