@@ -87,6 +87,17 @@ Initialize the Datadog tracer when set to `true`. Defaults to `false`.
 
 Set to `true` to merge the X-Ray trace and the Datadog trace, when using both the X-Ray and Datadog tracing. Defaults to `false`.
 
+### DD_INFERRED_SPANS (experimental)
+
+Inferred Spans are spans that Datadog can create based on incoming event metadata. 
+Set `DD_INFERRED_SPANS` to `true` to infer spans based on Lambda events.
+Inferring upstream spans is only supported if you are using the [Datadog Lambda Extension](https://docs.datadoghq.com/serverless/libraries_integrations/extension/). 
+Defaults to `false`.
+Infers spans for:
+- API Gateway REST events
+- API Gateway websocket events
+- HTTP API events
+
 ## Opening Issues
 
 If you encounter a bug with this package, we want to hear about it. Before opening a new issue, search the existing issues to avoid duplicates.

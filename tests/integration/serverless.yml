@@ -16,6 +16,7 @@ provider:
     DD_INTEGRATION_TEST: true
     DD_TRACE_ENABLED: true
     DD_API_KEY: ${env:DD_API_KEY}
+    DD_INFERRED_SPANS: true
     DD_CAPTURE_LAMBDA_PAYLOAD: true
   lambdaHashingVersion: 20201221
   timeout: 15

@@ -21,8 +21,13 @@ from ddtrace import tracer, patch
 from ddtrace import __version__ as ddtrace_version
 from ddtrace.propagation.http import HTTPPropagator
 from datadog_lambda import __version__ as datadog_lambda_version
+from datadog_lambda.trigger import parse_event_source, EventTypes, EventSubtypes
 
 logger = logging.getLogger(__name__)
+
+
+SPAN_TYPE_TAG = "_dd.span_type"
+SPAN_TYPE_INFERRED = "inferred"
 
 dd_trace_context = {}
 dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
@@ -377,6 +382,113 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
         )
 
 
+def create_inferred_span(event, context, function_name):
+    event_source = parse_event_source(event)
+    try:
+        if event_source.equals(
+            EventTypes.API_GATEWAY, subtype=EventSubtypes.API_GATEWAY
+        ):
+            logger.debug("API Gateway event detected. Inferring a span")
+            return create_inferred_span_from_api_gateway_event(event, context)
+        elif event_source.equals(
+            EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API
+        ):
+            logger.debug("HTTP API event detected. Inferring a span")
+            return create_inferred_span_from_http_api_event(event, context)
+        elif event_source.equals(
+            EventTypes.API_GATEWAY, subtype=EventSubtypes.WEBSOCKET
+        ):
+            logger.debug("API Gateway Websocket event detected. Inferring a span")
+            return create_inferred_span_from_api_gateway_websocket_event(event, context)
+    except Exception as e:
+        logger.debug(
+            "Unable to infer span. Detected type: {}. Reason: {}",
+            event_source.to_string(),
+            e,
+        )
+        return None
+    logger.debug("Unable to infer a span: unknown event type")
+    return None
+
+
+def create_inferred_span_from_api_gateway_websocket_event(event, context):
+    domain = event["requestContext"]["domainName"]
+    endpoint = event["requestContext"]["routeKey"]
+    tags = {
+        "operation_name": "aws.apigateway.websocket",
+        "service.name": domain,
+        "http.url": domain + endpoint,
+        "endpoint": endpoint,
+        "resource_name": domain + endpoint,
+        "request_id": context.aws_request_id,
+        "connection_id": event["requestContext"]["connectionId"],
+        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
+    }
+    request_time_epoch = event["requestContext"]["requestTimeEpoch"]
+    args = {
+        "resource": domain + endpoint,
+        "span_type": "web",
+    }
+    tracer.set_tags({"_dd.origin": "lambda"})
+    span = tracer.trace("aws.apigateway.websocket", **args)
+    if span:
+        span.set_tags(tags)
+    span.start = request_time_epoch / 1000
+    return span
+
+
+def create_inferred_span_from_api_gateway_event(event, context):
+    domain = event["requestContext"]["domainName"]
+    path = event["path"]
+    tags = {
+        "operation_name": "aws.apigateway.rest",
+        "service.name": domain,
+        "http.url": domain + path,
+        "endpoint": path,
+        "http.method": event["httpMethod"],
+        "resource_name": domain + path,
+        "request_id": context.aws_request_id,
+        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
+    }
+    request_time_epoch = event["requestContext"]["requestTimeEpoch"]
+    args = {
+        "resource": domain + path,
+        "span_type": "http",
+    }
+    tracer.set_tags({"_dd.origin": "lambda"})
+    span = tracer.trace("aws.apigateway", **args)
+    if span:
+        span.set_tags(tags)
+    span.start = request_time_epoch / 1000
+    return span
+
+
+def create_inferred_span_from_http_api_event(event, context):
+    domain = event["requestContext"]["domainName"]
+    path = event["rawPath"]
+    tags = {
+        "operation_name": "aws.httpapi",
+        "service.name": domain,
+        "http.url": domain + path,
+        "endpoint": path,
+        "http.method": event["requestContext"]["http"]["method"],
+        "resource_name": domain + path,
+        "request_id": context.aws_request_id,
+        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
+    }
+    request_time_epoch = event["requestContext"]["timeEpoch"]
+    args = {
+        "resource": domain + path,
+        "span_type": "http",
+    }
+    tracer.set_tags({"_dd.origin": "lambda"})
+    span = tracer.trace("aws.httpapi", **args)
+    if span:
+        span.set_tags(tags)
+    span.start = request_time_epoch / 1000
+    return span
+
+
 def create_function_execution_span(
     context,
     function_name,
@@ -384,6 +496,7 @@ def create_function_execution_span(
     trace_context_source,
     merge_xray_traces,
     trigger_tags,
+    upstream=None,
 ):
     tags = {}
     if context:
@@ -402,6 +515,7 @@ def create_function_execution_span(
             else None,
             "datadog_lambda": datadog_lambda_version,
             "dd_trace": ddtrace_version,
+            "span.name": "aws.lambda",
         }
     if trace_context_source == TraceContextSource.XRAY and merge_xray_traces:
         tags["_dd.parent_source"] = trace_context_source
@@ -415,4 +529,6 @@ def create_function_execution_span(
     span = tracer.trace("aws.lambda", **args)
     if span:
         span.set_tags(tags)
+    if upstream:
+        span.parent_id = upstream.span_id
     return span
