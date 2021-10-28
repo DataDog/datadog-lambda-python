@@ -170,7 +170,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             lambda_ctx,
             extractor=extractor_foo,
         )
-        self.assertEquals(ctx_source, "event")
+        self.assertEqual(ctx_source, "event")
         self.assertDictEqual(
             ctx,
             {
@@ -204,7 +204,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             lambda_ctx,
             extractor=extractor_raiser,
         )
-        self.assertEquals(ctx_source, "xray")
+        self.assertEqual(ctx_source, "xray")
         self.assertDictEqual(
             ctx,
             {
