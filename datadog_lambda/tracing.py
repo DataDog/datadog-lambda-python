@@ -26,7 +26,7 @@ from datadog_lambda.trigger import parse_event_source, EventTypes, EventSubtypes
 logger = logging.getLogger(__name__)
 
 
-SPAN_TYPE_TAG = "_dd.span_type"
+SPAN_TYPE_TAG = "span_type"
 SPAN_TYPE_INFERRED = "inferred"
 
 dd_trace_context = {}
