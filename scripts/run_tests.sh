@@ -8,7 +8,8 @@
 # Run unit tests in Docker
 set -e
 
-PYTHON_VERSIONS=("3.6" "3.7" "3.8" "3.9")
+# PYTHON_VERSIONS=("3.6" "3.7" "3.8" "3.9")
+PYTHON_VERSIONS=("3.6")
 
 for python_version in "${PYTHON_VERSIONS[@]}"
 do
@@ -16,12 +17,10 @@ do
     docker build -t datadog-lambda-python-test:$python_version \
         -f tests/Dockerfile . \
         --build-arg python_version=$python_version
-    docker run -v `pwd`:/datadog-lambda-python \
-        -w /datadog-lambda-python \
+    docker run -w /test \
         datadog-lambda-python-test:$python_version \
-        nose2 -v
-    docker run -v `pwd`:/datadog-lambda-python \
-        -w /datadog-lambda-python \
+        poetry run nose2 -v tests.test_trigger.GetTriggerTags
+    docker run -w /test \
         datadog-lambda-python-test:$python_version \
-        flake8 datadog_lambda/
+        poetry run flake8 datadog_lambda/
 done
