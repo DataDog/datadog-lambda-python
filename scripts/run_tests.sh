@@ -16,12 +16,10 @@ do
     docker build -t datadog-lambda-python-test:$python_version \
         -f tests/Dockerfile . \
         --build-arg python_version=$python_version
-    docker run -v `pwd`:/datadog-lambda-python \
-        -w /datadog-lambda-python \
+    docker run -w /test \
         datadog-lambda-python-test:$python_version \
-        nose2 -v
-    docker run -v `pwd`:/datadog-lambda-python \
-        -w /datadog-lambda-python \
+        poetry run nose2 -v 
+    docker run -w /test \
         datadog-lambda-python-test:$python_version \
-        flake8 datadog_lambda/
+        poetry run flake8 datadog_lambda/
 done
