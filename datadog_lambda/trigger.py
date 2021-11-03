@@ -28,10 +28,10 @@ class EventTypes(_stringTypedEnum):
 
     UNKNOWN = "unknown"
     API_GATEWAY = "api-gateway"
-    APPSYNC = "appsync"
     ALB = "application-load-balancer"
-    CLOUDWATCH_LOGS = "cloudwatch-logs"
+    APPSYNC = "appsync"
     CLOUDWATCH_EVENTS = "cloudwatch-events"
+    CLOUDWATCH_LOGS = "cloudwatch-logs"
     CLOUDFRONT = "cloudfront"
     DYNAMODB = "dynamodb"
     KINESIS = "kinesis"
@@ -49,8 +49,9 @@ class EventSubtypes(_stringTypedEnum):
 
     NONE = "none"
     API_GATEWAY = "api-gateway"  # regular API Gateway
-    WEBSOCKET = "websocket"
     HTTP_API = "http-api"
+    LAMBDA_FUNCTION_URL = "lambda-function-url"
+    WEBSOCKET = "websocket"
 
 
 class _EventSource:
@@ -118,12 +119,14 @@ def parse_event_source(event: dict) -> _EventSource:
     event_source = _EventSource(EventTypes.UNKNOWN)
 
     request_context = event.get("requestContext")
-    if request_context and request_context.get("stage"):
+    if request_context and request_context.get("stage"):  # Some kind of API Gateway
         event_source = _EventSource(EventTypes.API_GATEWAY)
         if "httpMethod" in event:
             event_source.subtype = EventSubtypes.API_GATEWAY
-        if "routeKey" in event:
+        if "routeKey" in event and event.get("route_key") is not None:
             event_source.subtype = EventSubtypes.HTTP_API
+        if "routeKey" in event and event.get("route_key") is None:
+            event_source.subtype = EventSubtypes.LAMBDA_FUNCTION_URL  # maybe
         if "requestContext" in event and "messageDirection" in event["requestContext"]:
             event_source.subtype = EventSubtypes.WEBSOCKET
 
