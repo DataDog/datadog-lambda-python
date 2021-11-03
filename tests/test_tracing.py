@@ -549,6 +549,34 @@ class TestSetTraceRootSpan(unittest.TestCase):
 
 class TestInferredSpans(unittest.TestCase):
     def test_create_inferred_span_from_api_gateway_event(self):
+        event_sample_source = "api-gateway"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
+        self.assertEqual(
+            span.get_tag("service.name"),
+            "70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "70ixmpl4fl.execute-api.us-east-2.amazonaws.com/path/to/resource",
+        )
+        self.assertEqual(span.get_tag("endpoint"), "/path/to/resource")
+        self.assertEqual(span.get_tag("http.method"), "POST")
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "70ixmpl4fl.execute-api.us-east-2.amazonaws.com/path/to/resource",
+        )
+        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(span.get_tag("span_type"), "inferred")
+        self.assertEqual(span.start, 1428582896.0)
+        self.assertEqual(span.span_type, "http")
+
+    def test_create_inferred_span_from_api_gateway_non_proxy_event(self):
         event_sample_source = "api-gateway-non-proxy"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
