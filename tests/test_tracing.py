@@ -9,6 +9,7 @@ from ddtrace.context import Context
 
 from datadog_lambda.constants import SamplingPriority, TraceHeader, XraySubsegment
 from datadog_lambda.tracing import (
+    create_inferred_span,
     extract_dd_trace_context,
     create_dd_dummy_metadata_subsegment,
     create_function_execution_span,
@@ -27,6 +28,8 @@ fake_xray_header_value = (
 )
 fake_xray_header_value_parent_decimal = "10713633173203262661"
 fake_xray_header_value_root_decimal = "3995693151288333088"
+
+event_samples = "tests/event_samples/"
 
 
 class ClientContext(object):
@@ -542,3 +545,201 @@ class TestSetTraceRootSpan(unittest.TestCase):
         )
         self.mock_activate.assert_called()
         self.mock_activate.assert_has_calls([call(expected_context)])
+
+
+class TestInferredSpans(unittest.TestCase):
+    def test_create_inferred_span_from_api_gateway_event(self):
+        event_sample_source = "api-gateway-non-proxy"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
+        self.assertEqual(
+            span.get_tag("service.name"),
+            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
+        )
+        self.assertEqual(span.get_tag("endpoint"), "/http/get")
+        self.assertEqual(span.get_tag("http.method"), "GET")
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
+        )
+        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(span.get_tag("_dd.span_type"), "inferred")
+        self.assertEqual(span.start, 1631210915.2509997)
+        self.assertEqual(span.span_type, "http")
+
+    def test_create_inferred_span_from_http_api_event(self):
+        event_sample_source = "http-api"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.httpapi")
+        self.assertEqual(
+            span.get_tag("service.name"),
+            "x02yirxc7a.execute-api.sa-east-1.amazonaws.com",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "x02yirxc7a.execute-api.sa-east-1.amazonaws.com/httpapi/get",
+        )
+        self.assertEqual(span.get_tag("endpoint"), "/httpapi/get")
+        self.assertEqual(span.get_tag("http.method"), "GET")
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "x02yirxc7a.execute-api.sa-east-1.amazonaws.com/httpapi/get",
+        )
+        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(span.get_tag("_dd.span_type"), "inferred")
+        self.assertEqual(span.start, 1631212283.738)
+        self.assertEqual(span.span_type, "http")
+
+    def test_create_inferred_span_from_api_gateway_websocket_default_event(self):
+        event_sample_source = "api-gateway-websocket-default"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.websocket")
+        self.assertEqual(
+            span.get_tag("service.name"),
+            "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "p62c47itsb.execute-api.sa-east-1.amazonaws.com$default",
+        )
+        self.assertEqual(span.get_tag("endpoint"), "$default")
+        self.assertEqual(span.get_tag("http.method"), None)
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "p62c47itsb.execute-api.sa-east-1.amazonaws.com$default",
+        )
+        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(span.get_tag("_dd.span_type"), "inferred")
+        self.assertEqual(span.start, 1631285061.365)
+        self.assertEqual(span.span_type, "web")
+
+    def test_create_inferred_span_from_api_gateway_websocket_connect_event(self):
+        event_sample_source = "api-gateway-websocket-connect"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.websocket")
+        self.assertEqual(
+            span.get_tag("service.name"),
+            "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "p62c47itsb.execute-api.sa-east-1.amazonaws.com$connect",
+        )
+        self.assertEqual(span.get_tag("endpoint"), "$connect")
+        self.assertEqual(span.get_tag("http.method"), None)
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "p62c47itsb.execute-api.sa-east-1.amazonaws.com$connect",
+        )
+        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(span.get_tag("_dd.span_type"), "inferred")
+        self.assertEqual(span.start, 1631284003.071)
+        self.assertEqual(span.span_type, "web")
+
+    def test_create_inferred_span_from_api_gateway_websocket_disconnect_event(self):
+        event_sample_source = "api-gateway-websocket-disconnect"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.websocket")
+        self.assertEqual(
+            span.get_tag("service.name"),
+            "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "p62c47itsb.execute-api.sa-east-1.amazonaws.com$disconnect",
+        )
+        self.assertEqual(span.get_tag("endpoint"), "$disconnect")
+        self.assertEqual(span.get_tag("http.method"), None)
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "p62c47itsb.execute-api.sa-east-1.amazonaws.com$disconnect",
+        )
+        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(span.get_tag("_dd.span_type"), "inferred")
+        self.assertEqual(span.start, 1631284034.737)
+        self.assertEqual(span.span_type, "web")
+
+    def test_create_inferred_span_from_sqs_event(self):
+        event_sample_source = "sqs"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.sqs")
+        self.assertEqual(
+            span.get_tag("service.name"),
+            "sqs",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            None,
+        )
+        self.assertEqual(span.get_tag("endpoint"), None)
+        self.assertEqual(span.get_tag("http.method"), None)
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "MyQueue",
+        )
+        self.assertEqual(span.get_tag("request_id"), None)
+        self.assertEqual(span.get_tag("_dd.span_type"), "inferred")
+        self.assertEqual(span.start, 1523232000.0)
+        self.assertEqual(span.span_type, "web")
+
+    def test_create_inferred_span_from_sns_event(self):
+        event_sample_source = "sns"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.sns")
+        self.assertEqual(
+            span.get_tag("service.name"),
+            "sns",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            None,
+        )
+        self.assertEqual(span.get_tag("endpoint"), None)
+        self.assertEqual(span.get_tag("http.method"), None)
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "ExampleTopic",
+        )
+        self.assertEqual(span.get_tag("request_id"), None)
+        self.assertEqual(span.get_tag("_dd.span_type"), "inferred")
+        self.assertEqual(span.start, 18000.0)
+        self.assertEqual(span.span_type, "web")
