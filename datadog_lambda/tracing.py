@@ -408,10 +408,10 @@ def create_inferred_span(event, context):
             return create_inferred_span_from_api_gateway_websocket_event(event, context)
         elif event_source.equals(EventTypes.SQS):
             logger.debug("SQS event detected. Inferring a span")
-            return create_inferred_span_from_sqs_event(get_first_record(event), context)
+            return create_inferred_span_from_sqs_event(event, context)
         elif event_source.equals(EventTypes.SNS):
             logger.debug("SNS event detected. Inferring a span")
-            return create_inferred_span_from_sns_event(get_first_record(event), context)
+            return create_inferred_span_from_sns_event(event, context)
 
     except Exception as e:
         logger.debug(
@@ -502,7 +502,8 @@ def create_inferred_span_from_http_api_event(event, context):
     return span
 
 
-def create_inferred_span_from_sqs_event(event_record, context):
+def create_inferred_span_from_sqs_event(event, context):
+    event_record = get_first_record(event)
     queue_name = event_record["eventSourceARN"].split(":")[-1]
     tags = {
         "operation_name": "aws.sqs",
@@ -523,7 +524,8 @@ def create_inferred_span_from_sqs_event(event_record, context):
     return span
 
 
-def create_inferred_span_from_sns_event(event_record, context):
+def create_inferred_span_from_sns_event(event, context):
+    event_record = get_first_record(event)
     topic_name = event_record["Sns"]["TopicArn"].split(":")[-1]
     tags = {
         "operation_name": "aws.sns",
