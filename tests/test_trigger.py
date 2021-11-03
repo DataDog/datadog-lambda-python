@@ -29,7 +29,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source, event_sample_source)
+        self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(
             event_source_arn,
             "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod",
@@ -43,7 +43,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source, event_sample_source)
+        self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(
             event_source_arn,
             "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
@@ -57,7 +57,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source, event_sample_source)
+        self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(
             event_source_arn, "arn:aws:cloudfront::123457598159:distribution/EXAMPLE"
         )
@@ -70,7 +70,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source, event_sample_source)
+        self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(
             event_source_arn, "arn:aws:events:us-east-1:123456789012:rule/ExampleRule"
         )
@@ -83,7 +83,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source, event_sample_source)
+        self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(
             event_source_arn,
             "arn:aws:logs:us-west-1:123457598159:log-group:testLogGroup",
@@ -97,7 +97,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source, event_sample_source)
+        self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(
             event_source_arn,
             "arn:aws:dynamodb:us-east-1:123456789012:table/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
@@ -111,7 +111,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source, event_sample_source)
+        self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(event_source_arn, "arn:aws:kinesis:EXAMPLE")
 
     def test_event_source_s3(self):
@@ -122,7 +122,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source, event_sample_source)
+        self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(event_source_arn, "arn:aws:s3:::example-bucket")
 
     def test_event_source_sns(self):
@@ -133,7 +133,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source, event_sample_source)
+        self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(
             event_source_arn, "arn:aws:sns:us-east-1:123456789012:ExampleTopic"
         )
@@ -146,7 +146,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source, event_sample_source)
+        self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(event_source_arn, "arn:aws:sqs:us-east-1:123456789012:MyQueue")
 
     def test_event_source_unsupported(self):
@@ -157,7 +157,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source, None)
+        self.assertEqual(event_source.to_string(), None)
         self.assertEqual(event_source_arn, None)
 
 
