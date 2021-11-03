@@ -10,14 +10,6 @@ from io import BytesIO, BufferedReader
 from enum import Enum
 from typing import Any
 
-EVENT_SOURCES_WITH_EXTRA_AWS = [
-    "aws:dynamodb",
-    "aws:kinesis",
-    "aws:s3",
-    "aws:sns",
-    "aws:sqs",
-]
-
 
 class _stringTypedEnum(Enum):
     """
@@ -41,6 +33,11 @@ class EventTypes(_stringTypedEnum):
     CLOUDWATCH_LOGS = "cloudwatch-logs"
     CLOUDWATCH_EVENTS = "cloudwatch-events"
     CLOUDFRONT = "cloudfront"
+    DYNAMODB = "dynamodb"
+    KINESIS = "kinesis"
+    S3 = "s3"
+    SNS = "sns"
+    SQS = "sqs"
 
 
 class EventSubtypes(_stringTypedEnum):
@@ -61,20 +58,13 @@ class EventSubtypes(_stringTypedEnum):
 class _EventSource:
     """
     _EventSource holds an event's type and subtype.
-    If the event is of type UNKNOWN, an unknown_event_name may be provided.
-    Unknown_event_name will be discarded otherwise.
     """
 
     def __init__(
         self,
         event_type: EventTypes,
         subtype: EventSubtypes = EventSubtypes.NONE,
-        unknown_event_name: str = None,
     ):
-        if event_type == EventTypes.UNKNOWN:
-            if unknown_event_name in EVENT_SOURCES_WITH_EXTRA_AWS:
-                unknown_event_name = unknown_event_name.replace("aws:", "")
-            self.unknown_event_type = unknown_event_name
         self.event_type = event_type
         self.subtype = subtype
 
@@ -85,8 +75,6 @@ class _EventSource:
         Since to_string was added to support trigger tagging, the event's subtype will never be
         included in the string.
         """
-        if self.event_type == EventTypes.UNKNOWN:
-            return self.unknown_event_type
         return self.event_type.get_string()
 
     def equals(
@@ -125,10 +113,6 @@ def parse_event_source(event: dict) -> _EventSource:
     if type(event) is not dict:
         return _EventSource(EventTypes.UNKNOWN)
 
-    event_source = _EventSource(
-        EventTypes.UNKNOWN,
-        unknown_event_name=event.get("eventSource") or event.get("EventSource"),
-    )
     request_context = event.get("requestContext")
     if request_context and request_context.get("stage"):
         event_source = _EventSource(EventTypes.API_GATEWAY)
@@ -152,11 +136,21 @@ def parse_event_source(event: dict) -> _EventSource:
 
     event_record = get_first_record(event)
     if event_record:
-        event_source = _EventSource(
-            EventTypes.UNKNOWN,
-            unknown_event_name=event_record.get("eventSource")
-            or event_record.get("EventSource"),
+        aws_event_source = event_record.get(
+            "eventSource", event_record.get("EventSource")
         )
+
+        if aws_event_source == "aws:dynamodb":
+            event_source = _EventSource(EventTypes.DYNAMODB)
+        if aws_event_source == "aws:kinesis":
+            event_source = _EventSource(EventTypes.KINESIS)
+        if aws_event_source == "aws:s3":
+            event_source = _EventSource(EventTypes.S3)
+        if aws_event_source == "aws:sns":
+            event_source = _EventSource(EventTypes.SNS)
+        if aws_event_source == "aws:sqs":
+            event_source = _EventSource(EventTypes.SQS)
+
         if event_record.get("cf"):
             event_source = _EventSource(EventTypes.CLOUDFRONT)
 
