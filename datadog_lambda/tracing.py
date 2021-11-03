@@ -388,7 +388,7 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
         )
 
 
-def create_inferred_span(event, context, function_name):
+def create_inferred_span(event, context):
     event_source = parse_event_source(event)
     try:
         if event_source.equals(
@@ -432,7 +432,7 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
         "service.name": domain,
         "http.url": domain + endpoint,
         "endpoint": endpoint,
-        "resource_name": domain + endpoint,
+        "resource_names": domain + endpoint,
         "request_id": context.aws_request_id,
         "connection_id": event["requestContext"]["connectionId"],
         SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
@@ -459,7 +459,7 @@ def create_inferred_span_from_api_gateway_event(event, context):
         "http.url": domain + path,
         "endpoint": path,
         "http.method": event["httpMethod"],
-        "resource_name": domain + path,
+        "resource_names": domain + path,
         "request_id": context.aws_request_id,
         SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
     }
@@ -485,7 +485,7 @@ def create_inferred_span_from_http_api_event(event, context):
         "http.url": domain + path,
         "endpoint": path,
         "http.method": event["requestContext"]["http"]["method"],
-        "resource_name": domain + path,
+        "resource_names": domain + path,
         "request_id": context.aws_request_id,
         SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
     }
@@ -554,7 +554,7 @@ def create_function_execution_span(
     trace_context_source,
     merge_xray_traces,
     trigger_tags,
-    upstream=None,
+    parent_span=None,
 ):
     tags = {}
     if context:
@@ -587,6 +587,6 @@ def create_function_execution_span(
     span = tracer.trace("aws.lambda", **args)
     if span:
         span.set_tags(tags)
-    if upstream:
-        span.parent_id = upstream.span_id
+    if parent_span:
+        span.parent_id = parent_span.span_id
     return span
