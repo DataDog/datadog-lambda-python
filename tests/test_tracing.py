@@ -752,7 +752,6 @@ class TestInferredSpans(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
         span = create_inferred_span(event, ctx)
-        print(span.pprint())
         self.assertEqual(span.get_tag("operation_name"), "aws.sns")
         self.assertEqual(
             span.get_tag("service.name"),
@@ -770,5 +769,6 @@ class TestInferredSpans(unittest.TestCase):
         )
         self.assertEqual(span.get_tag("request_id"), None)
         self.assertEqual(span.get_tag("span_type"), "inferred")
+        # TODO FIXME: investigate why this is flaky
         # self.assertEqual(span.start, 18000.0)
         self.assertEqual(span.span_type, "web")
