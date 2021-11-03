@@ -43,10 +43,8 @@ class EventTypes(_stringTypedEnum):
 class EventSubtypes(_stringTypedEnum):
     """
     EventSubtypes is an enum of Lambda event subtypes.
-    Currently, only API Gateway events have subtypes, but I imagine we might see more in the
-    future.
-    This was added to support the difference in handling of e.g. HTTP-API and Websocket events vs
-    vanilla API-Gateway events.
+    Currently, API Gateway events subtypes are supported,
+    e.g. HTTP-API and Websocket events vs vanilla API-Gateway events.
     """
 
     NONE = "none"
@@ -71,9 +69,8 @@ class _EventSource:
     def to_string(self) -> str:
         """
         to_string returns the string representation of an _EventSource.
-        If the event type is unknown, the unknown_event_type will be returned.
-        Since to_string was added to support trigger tagging, the event's subtype will never be
-        included in the string.
+        Since to_string was added to support trigger tagging,
+        the event's subtype will never be included in the string.
         """
         return self.event_type.get_string()
 
@@ -112,6 +109,8 @@ def parse_event_source(event: dict) -> _EventSource:
     """Determines the source of the trigger event"""
     if type(event) is not dict:
         return _EventSource(EventTypes.UNKNOWN)
+
+    event_source = _EventSource(EventTypes.UNKNOWN)
 
     request_context = event.get("requestContext")
     if request_context and request_context.get("stage"):
@@ -265,7 +264,7 @@ def extract_trigger_tags(event: dict, context: Any) -> dict:
     """
     trigger_tags = {}
     event_source = parse_event_source(event)
-    if event_source.to_string() is not None:
+    if event_source.to_string() is not None and event_source.to_string() != "unknown":
         trigger_tags["function_trigger.event_source"] = event_source.to_string()
 
         event_source_arn = get_event_source_arn(event_source, event, context)
