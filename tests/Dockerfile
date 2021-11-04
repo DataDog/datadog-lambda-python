@@ -12,9 +12,7 @@ COPY pyproject.toml .
 COPY README.md .
 COPY datadog_lambda/__init__.py datadog_lambda/__init__.py 
 
-RUN pip install poetry
-RUN poetry install
-RUN poetry install -E dev
+RUN pip install .[dev]
 
 # Install datadog-lambda with dev dependencies from local
 COPY . .

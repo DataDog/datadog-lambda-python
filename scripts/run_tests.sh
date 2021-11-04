@@ -18,8 +18,8 @@ do
         --build-arg python_version=$python_version
     docker run -w /test \
         datadog-lambda-python-test:$python_version \
-        poetry run nose2 -v 
+        nose2 -v 
     docker run -w /test \
         datadog-lambda-python-test:$python_version \
-        poetry run flake8 datadog_lambda/
+        flake8 datadog_lambda/
 done
