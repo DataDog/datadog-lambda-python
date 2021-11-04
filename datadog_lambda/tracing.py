@@ -415,6 +415,9 @@ def create_inferred_span(event, context):
         elif event_source.equals(EventTypes.KINESIS):
             logger.debug("Kinesis event detected. Inferring a span")
             return create_inferred_span_from_kinesis_event(event, context)
+        elif event_source.equals(EventTypes.DYNAMODB):
+            logger.debug("Dynamodb event detected. Inferring a span")
+            return create_inferred_span_from_dynamodb_event(event, context)
 
     except Exception as e:
         logger.debug(
@@ -569,6 +572,29 @@ def create_inferred_span_from_kinesis_event(event, context):
     }
     tracer.set_tags({"_dd.origin": "lambda"})
     span = tracer.trace("aws.kinesis", **args)
+    if span:
+        span.set_tags(tags)
+    span.start = int(request_time_epoch)
+    return span
+
+
+def create_inferred_span_from_dynamodb_event(event, context):
+    event_record = get_first_record(event)
+    table_name = event_record["eventSourceARN"].split("/")[1]
+    tags = {
+        "operation_name": "aws.dynamodb",
+        "service.name": "dynamodb",
+        "resource_names": table_name,
+        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
+    }
+    request_time_epoch = event_record['dynamodb']["ApproximateCreationDateTime"]
+
+    args = {
+        "resource": table_name,
+        "span_type": "web",
+    }
+    tracer.set_tags({"_dd.origin": "lambda"})
+    span = tracer.trace("aws.dynamodb", **args)
     if span:
         span.set_tags(tags)
     span.start = int(request_time_epoch)
