@@ -421,6 +421,9 @@ def create_inferred_span(event, context):
         elif event_source.equals(EventTypes.S3):
             logger.debug("S3 event detected. Inferring a span")
             return create_inferred_span_from_s3_event(event, context)
+        elif event_source.equals(EventTypes.EVENTBRIDGE):
+            logger.debug("Eventbridge event detected. Inferring a span")
+            return create_inferred_span_from_eventbridge_event(event, context)
 
     except Exception as e:
         logger.debug(
@@ -428,6 +431,7 @@ def create_inferred_span(event, context):
             event_source.to_string(),
             e,
         )
+        print(e)
         return None
     logger.debug("Unable to infer a span: unknown event type")
     return None
@@ -613,9 +617,9 @@ def create_inferred_span_from_s3_event(event, context):
         "resource_names": bucket_name,
         SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
     }
-    sns_dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
+    dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
     timestamp = event_record["eventTime"]
-    request_time_epoch = datetime.strptime(timestamp, sns_dt_format)
+    request_time_epoch = datetime.strptime(timestamp, dt_format)
 
     args = {
         "resource": bucket_name,
@@ -623,6 +627,30 @@ def create_inferred_span_from_s3_event(event, context):
     }
     tracer.set_tags({"_dd.origin": "lambda"})
     span = tracer.trace("aws.s3", **args)
+    if span:
+        span.set_tags(tags)
+    span.start = int(request_time_epoch.strftime("%s"))
+    return span
+
+
+def create_inferred_span_from_eventbridge_event(event, context):
+    source = event["source"]
+    tags = {
+        "operation_name": "aws.eventbridge",
+        "service.name": "eventbridge",
+        "resource_names": source,
+        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
+    }
+    dt_format = "%Y-%m-%dT%H:%M:%SZ"
+    timestamp = event["time"]
+    request_time_epoch = datetime.strptime(timestamp, dt_format)
+
+    args = {
+        "resource": source,
+        "span_type": "web",
+    }
+    tracer.set_tags({"_dd.origin": "lambda"})
+    span = tracer.trace("aws.eventbridge", **args)
     if span:
         span.set_tags(tags)
     span.start = int(request_time_epoch.strftime("%s"))

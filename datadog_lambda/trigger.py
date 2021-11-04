@@ -38,6 +38,7 @@ class EventTypes(_stringTypedEnum):
     S3 = "s3"
     SNS = "sns"
     SQS = "sqs"
+    EVENTBRIDGE = "eventbridge"
 
 
 class EventSubtypes(_stringTypedEnum):
@@ -127,6 +128,9 @@ def parse_event_source(event: dict) -> _EventSource:
 
     if event.get("awslogs"):
         event_source = _EventSource(EventTypes.CLOUDWATCH_LOGS)
+
+    if event.get("detail-type"):
+        event_source = _EventSource(EventTypes.EVENTBRIDGE)
 
     event_detail = event.get("detail")
     cw_event_categories = event_detail and event_detail.get("EventCategories")
