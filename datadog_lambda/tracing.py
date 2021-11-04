@@ -420,7 +420,10 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
         "resource": domain + path,
         "span_type": "http",
     }
-    tracer.set_tags({"_dd.origin": "lambda"})
+    tracer.set_tags(
+        {"_dd.origin": "lambda"}
+    )  # function urs don't count as lambda_inferred,
+    # because they're in the same service as the inferring lambda function
     span = tracer.trace("aws.httpapi", **args)
     if span:
         span.set_tags(tags)
