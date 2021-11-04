@@ -25,9 +25,6 @@ from datadog_lambda import __version__ as datadog_lambda_version
 
 logger = logging.getLogger(__name__)
 
-SPAN_TYPE_TAG = "span_type"
-SPAN_TYPE_INFERRED = "inferred"
-
 dd_trace_context = {}
 dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
 
@@ -422,7 +419,7 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
     }
     tracer.set_tags(
         {"_dd.origin": "lambda"}
-    )  # function urs don't count as lambda_inferred,
+    )  # function urls don't count as lambda_inferred,
     # because they're in the same service as the inferring lambda function
     span = tracer.trace("aws.httpapi", **args)
     if span:
