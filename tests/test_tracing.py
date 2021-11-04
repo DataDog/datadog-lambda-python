@@ -828,3 +828,31 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 1428537600.0)
         self.assertEqual(span.span_type, "web")
+
+    def test_create_inferred_span_from_s3_event(self):
+        event_sample_source = "s3"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.s3")
+        self.assertEqual(
+            span.get_tag("service.name"),
+            "s3",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            None,
+        )
+        self.assertEqual(span.get_tag("endpoint"), None)
+        self.assertEqual(span.get_tag("http.method"), None)
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "example-bucket",
+        )
+        self.assertEqual(span.get_tag("request_id"), None)
+        self.assertEqual(span.get_tag("span_type"), "inferred")
+        self.assertEqual(span.start, 18000.0)
+        self.assertEqual(span.span_type, "web")
