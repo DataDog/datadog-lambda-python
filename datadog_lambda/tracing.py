@@ -412,6 +412,9 @@ def create_inferred_span(event, context):
         elif event_source.equals(EventTypes.SNS):
             logger.debug("SNS event detected. Inferring a span")
             return create_inferred_span_from_sns_event(event, context)
+        elif event_source.equals(EventTypes.KINESIS):
+            logger.debug("Kinesis event detected. Inferring a span")
+            return create_inferred_span_from_kinesis_event(event, context)
 
     except Exception as e:
         logger.debug(
@@ -546,6 +549,29 @@ def create_inferred_span_from_sns_event(event, context):
     if span:
         span.set_tags(tags)
     span.start = int(request_time_epoch.strftime("%s"))
+    return span
+
+
+def create_inferred_span_from_kinesis_event(event, context):
+    event_record = get_first_record(event)
+    stream_name = event_record["eventSourceARN"].split(":")[-1]
+    tags = {
+        "operation_name": "aws.kinesis",
+        "service.name": "kinesis",
+        "resource_names": stream_name,
+        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
+    }
+    request_time_epoch = event_record['kinesis']["approximateArrivalTimestamp"]
+
+    args = {
+        "resource": stream_name,
+        "span_type": "web",
+    }
+    tracer.set_tags({"_dd.origin": "lambda"})
+    span = tracer.trace("aws.kinesis", **args)
+    if span:
+        span.set_tags(tags)
+    span.start = int(request_time_epoch)
     return span
 
 
