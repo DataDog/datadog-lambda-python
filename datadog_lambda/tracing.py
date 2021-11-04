@@ -431,7 +431,6 @@ def create_inferred_span(event, context):
             event_source.to_string(),
             e,
         )
-        print(e)
         return None
     logger.debug("Unable to infer a span: unknown event type")
     return None
