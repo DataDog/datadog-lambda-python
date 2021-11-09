@@ -421,7 +421,7 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
         {"_dd.origin": "lambda"}
     )  # function urls don't count as lambda_inferred,
     # because they're in the same service as the inferring lambda function
-    span = tracer.trace("aws.httpapi", **args)
+    span = tracer.trace("aws.lambda.url", **args)
     if span:
         span.set_tags(tags)
     span.start = request_time_epoch / 1000
