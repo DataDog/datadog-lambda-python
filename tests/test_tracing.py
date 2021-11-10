@@ -769,8 +769,7 @@ class TestInferredSpans(unittest.TestCase):
         )
         self.assertEqual(span.get_tag("request_id"), None)
         self.assertEqual(span.get_tag("span_type"), "inferred")
-        # TODO FIXME: investigate why this is flaky
-        # self.assertEqual(span.start, 18000.0)
+        self.assertEqual(span.start, 0.0)
         self.assertEqual(span.span_type, "web")
 
     def test_create_inferred_span_from_kinesis_event(self):
@@ -854,8 +853,7 @@ class TestInferredSpans(unittest.TestCase):
         )
         self.assertEqual(span.get_tag("request_id"), None)
         self.assertEqual(span.get_tag("span_type"), "inferred")
-        # TODO FIXME: investigate why this is flaky
-        # self.assertEqual(span.start, 18000.0)
+        self.assertEqual(span.start, 0.0)
         self.assertEqual(span.span_type, "web")
 
     def test_create_inferred_span_from_eventbridge_event(self):
@@ -883,6 +881,5 @@ class TestInferredSpans(unittest.TestCase):
         )
         self.assertEqual(span.get_tag("request_id"), None)
         self.assertEqual(span.get_tag("span_type"), "inferred")
-        # TODO FIXME: investigate why this is flaky
-        # self.assertEqual(span.start, 1636004265.0)
+        self.assertEqual(span.start, 1635989865.0)
         self.assertEqual(span.span_type, "web")

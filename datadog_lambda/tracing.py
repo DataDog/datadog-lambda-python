@@ -27,7 +27,7 @@ from datadog_lambda.trigger import (
     EventTypes,
     EventSubtypes,
 )
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -547,7 +547,7 @@ def create_inferred_span_from_sns_event(event, context):
     }
     sns_dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
     timestamp = event_record["Sns"]["Timestamp"]
-    request_time_epoch = datetime.strptime(timestamp, sns_dt_format)
+    dt = datetime.strptime(timestamp, sns_dt_format)
 
     args = {
         "resource": topic_name,
@@ -557,7 +557,7 @@ def create_inferred_span_from_sns_event(event, context):
     span = tracer.trace("aws.sns", **args)
     if span:
         span.set_tags(tags)
-    span.start = int(request_time_epoch.strftime("%s"))
+    span.start = dt.replace(tzinfo=timezone.utc).timestamp()
     return span
 
 
@@ -618,7 +618,7 @@ def create_inferred_span_from_s3_event(event, context):
     }
     dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
     timestamp = event_record["eventTime"]
-    request_time_epoch = datetime.strptime(timestamp, dt_format)
+    dt = datetime.strptime(timestamp, dt_format)
 
     args = {
         "resource": bucket_name,
@@ -628,7 +628,7 @@ def create_inferred_span_from_s3_event(event, context):
     span = tracer.trace("aws.s3", **args)
     if span:
         span.set_tags(tags)
-    span.start = int(request_time_epoch.strftime("%s"))
+    span.start = dt.replace(tzinfo=timezone.utc).timestamp()
     return span
 
 
@@ -642,7 +642,7 @@ def create_inferred_span_from_eventbridge_event(event, context):
     }
     dt_format = "%Y-%m-%dT%H:%M:%SZ"
     timestamp = event["time"]
-    request_time_epoch = datetime.strptime(timestamp, dt_format)
+    dt = datetime.strptime(timestamp, dt_format)
 
     args = {
         "resource": source,
@@ -652,7 +652,7 @@ def create_inferred_span_from_eventbridge_event(event, context):
     span = tracer.trace("aws.eventbridge", **args)
     if span:
         span.set_tags(tags)
-    span.start = int(request_time_epoch.strftime("%s"))
+    span.start = dt.replace(tzinfo=timezone.utc).timestamp()
     return span
 
 
