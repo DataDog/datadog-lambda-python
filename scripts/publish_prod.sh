@@ -86,7 +86,6 @@ echo "Publishing to https://pypi.org/project/datadog-lambda/"
 
 echo
 echo 'Publishing updates to github'
-git commit ./datadog_lambda/__init__.py -m "Update module version to ${NEW_VERSION}"
 git push origin main
 git tag "v$LAYER_VERSION"
 git push origin "refs/tags/v$LAYER_VERSION"
