@@ -117,15 +117,18 @@ def parse_event_source(event: dict) -> _EventSource:
         return _EventSource(EventTypes.UNKNOWN)
 
     event_source = _EventSource(EventTypes.UNKNOWN)
-
+    print("AGOCS! Detecting event type")
+    if "routeKey" in event:
+        print("YES ROUTE KEY")
+        print(event.get("routeKey"))
     request_context = event.get("requestContext")
-    if request_context and request_context.get("stage"):  # Some kind of API Gateway
+    if request_context and "stage" in request_context:  # Some kind of API Gateway
         event_source = _EventSource(EventTypes.API_GATEWAY)
         if "httpMethod" in event:
             event_source.subtype = EventSubtypes.API_GATEWAY
-        if "routeKey" in event and event.get("route_key") is not None:
+        if "routeKey" in event and event.get("routeKey") is not None:
             event_source.subtype = EventSubtypes.HTTP_API
-        if "routeKey" in event and event.get("route_key") is None:
+        if "routeKey" in event and event.get("routeKey") is None:
             event_source.subtype = EventSubtypes.LAMBDA_FUNCTION_URL  # maybe
         if "requestContext" in event and "messageDirection" in event["requestContext"]:
             event_source.subtype = EventSubtypes.WEBSOCKET
@@ -189,6 +192,18 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
         return "arn:{}:cloudfront::{}:distribution/{}".format(
             aws_arn, account_id, distribution_id
         )
+
+    # e.g. arn:aws:lambda:<region>:<account_id>:url:<function-name>:<function-qualifier>
+    if source.equals(EventTypes.API_GATEWAY, EventSubtypes.LAMBDA_FUNCTION_URL):
+        function_name = ""
+        if len(split_function_arn) >= 7:
+            function_name = split_function_arn[6]
+        function_arn = f"arn:aws:lambda:{region}:{account_id}:url:{function_name}"
+        function_qualifier = ""
+        if len(split_function_arn) >= 8:
+            function_qualifier = split_function_arn[7]
+            function_arn = function_arn + f":{function_qualifier}"
+        return function_arn
 
     # e.g. arn:aws:apigateway:us-east-1::/restapis/xyz123/stages/default
     if source.event_type == EventTypes.API_GATEWAY:

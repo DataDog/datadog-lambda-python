@@ -8,6 +8,8 @@ from datadog_lambda.trigger import (
     get_event_source_arn,
     extract_trigger_tags,
     extract_http_status_code_tag,
+    EventTypes,
+    EventSubtypes,
 )
 
 event_samples = "tests/event_samples/"
@@ -33,6 +35,27 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         self.assertEqual(
             event_source_arn,
             "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod",
+        )
+
+    def test_event_source_function_url(self):
+        event_sample_source = "function-url"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        event_source = parse_event_source(event)
+        if event_source.to_string() is None:
+            print("AGOCS! NONE EVENT SOURCE!!")
+        self.assertTrue(
+            event_source.equals(
+                EventTypes.API_GATEWAY, EventSubtypes.LAMBDA_FUNCTION_URL
+            )
+        )
+        event_source_arn = get_event_source_arn(event_source, event, ctx)
+        self.assertEqual(event_source.to_string(), "api-gateway")
+        self.assertEqual(
+            event_source_arn,
+            "arn:aws:lambda:us-west-1:123457598159:url:python-layer-test",
         )
 
     def test_event_source_application_load_balancer(self):
