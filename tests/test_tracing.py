@@ -7,7 +7,12 @@ from unittest.mock import MagicMock, patch, call
 from ddtrace.helpers import get_correlation_ids
 from ddtrace.context import Context
 
-from datadog_lambda.constants import SamplingPriority, TraceHeader, XraySubsegment
+from datadog_lambda.constants import (
+    SamplingPriority,
+    TraceHeader,
+    XraySubsegment,
+    IS_ASYNC_TAG,
+)
 from datadog_lambda.tracing import (
     create_inferred_span,
     extract_dd_trace_context,
@@ -575,8 +580,38 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 1428582896.0)
         self.assertEqual(span.span_type, "http")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "False")
 
-    def test_create_inferred_span_from_api_gateway_non_proxy_event(self):
+    def test_create_inferred_span_from_api_gateway_non_proxy_event_async(self):
+        event_sample_source = "api-gateway-non-proxy-async"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
+        self.assertEqual(
+            span.get_tag("service.name"),
+            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
+        )
+        self.assertEqual(span.get_tag("endpoint"), "/http/get")
+        self.assertEqual(span.get_tag("http.method"), "GET")
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
+        )
+        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(span.get_tag("span_type"), "inferred")
+        self.assertEqual(span.start, 1631210915.2509997)
+        self.assertEqual(span.span_type, "http")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "True")
+
+    def test_create_inferred_span_from_api_gateway_non_proxy_event_sync(self):
         event_sample_source = "api-gateway-non-proxy"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -603,6 +638,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 1631210915.2509997)
         self.assertEqual(span.span_type, "http")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "False")
 
     def test_create_inferred_span_from_http_api_event(self):
         event_sample_source = "http-api"
@@ -631,6 +667,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 1631212283.738)
         self.assertEqual(span.span_type, "http")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "False")
 
     def test_create_inferred_span_from_api_gateway_websocket_default_event(self):
         event_sample_source = "api-gateway-websocket-default"
@@ -659,6 +696,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 1631285061.365)
         self.assertEqual(span.span_type, "web")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "False")
 
     def test_create_inferred_span_from_api_gateway_websocket_connect_event(self):
         event_sample_source = "api-gateway-websocket-connect"
@@ -687,6 +725,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 1631284003.071)
         self.assertEqual(span.span_type, "web")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "False")
 
     def test_create_inferred_span_from_api_gateway_websocket_disconnect_event(self):
         event_sample_source = "api-gateway-websocket-disconnect"
@@ -715,6 +754,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 1631284034.737)
         self.assertEqual(span.span_type, "web")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "False")
 
     def test_create_inferred_span_from_sqs_event(self):
         event_sample_source = "sqs"
@@ -743,6 +783,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 1523232000.0)
         self.assertEqual(span.span_type, "web")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "True")
 
     def test_create_inferred_span_from_sns_event(self):
         event_sample_source = "sns"
@@ -771,6 +812,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 0.0)
         self.assertEqual(span.span_type, "web")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "True")
 
     def test_create_inferred_span_from_kinesis_event(self):
         event_sample_source = "kinesis"
@@ -799,6 +841,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 1428537600.0)
         self.assertEqual(span.span_type, "web")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "True")
 
     def test_create_inferred_span_from_dynamodb_event(self):
         event_sample_source = "dynamodb"
@@ -827,6 +870,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 1428537600.0)
         self.assertEqual(span.span_type, "web")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "True")
 
     def test_create_inferred_span_from_s3_event(self):
         event_sample_source = "s3"
@@ -855,6 +899,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 0.0)
         self.assertEqual(span.span_type, "web")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "True")
 
     def test_create_inferred_span_from_eventbridge_event(self):
         event_sample_source = "eventbridge-custom"
@@ -883,3 +928,4 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("span_type"), "inferred")
         self.assertEqual(span.start, 1635989865.0)
         self.assertEqual(span.span_type, "web")
+        self.assertEqual(span.get_tag(IS_ASYNC_TAG), "True")

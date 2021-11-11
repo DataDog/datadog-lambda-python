@@ -10,7 +10,11 @@ from importlib import import_module
 
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
-from datadog_lambda.constants import XraySubsegment, TraceContextSource
+from datadog_lambda.constants import (
+    XraySubsegment,
+    TraceContextSource,
+    IS_ASYNC_TAG,
+)
 from datadog_lambda.metric import (
     flush_stats,
     submit_invocations_metric,
@@ -201,10 +205,15 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
                 self.span.finish()
+
             if self.inferred_span:
                 if status_code:
                     self.inferred_span.set_tag("http.status_code", status_code)
-                self.inferred_span.finish()
+
+                if self.inferred_span.get_tag(IS_ASYNC_TAG) == "True" and self.span:
+                    self.inferred_span.finish(finish_time=self.span.start)
+                else:
+                    self.inferred_span.finish()
 
             if not self.flush_to_log or should_use_extension:
                 flush_stats()
