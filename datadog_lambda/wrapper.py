@@ -207,8 +207,6 @@ class _LambdaDecorator(object):
                 self.span.finish()
 
             if self.inferred_span:
-                # TODO FIXME: should we move this logic to
-                # the inferred span methods where this is relevant?
                 if status_code:
                     self.inferred_span.set_tag("http.status_code", status_code)
 

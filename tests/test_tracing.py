@@ -810,6 +810,7 @@ class TestInferredSpans(unittest.TestCase):
         )
         self.assertEqual(span.get_tag("request_id"), None)
         self.assertEqual(span.get_tag("span_type"), "inferred")
+        self.assertEqual(span.start, 0.0)
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(IS_ASYNC_TAG), "True")
 
