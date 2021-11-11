@@ -212,7 +212,7 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.inferred_span.set_tag("http.status_code", status_code)
 
-                if self.inferred_span.get_tag(IS_ASYNC_TAG) and self.span:
+                if self.inferred_span.get_tag(IS_ASYNC_TAG) == "True" and self.span:
                     self.inferred_span.finish(finish_time=self.span.start)
                 else:
                     self.inferred_span.finish()
