@@ -563,7 +563,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
         )
         self.assertEqual(
@@ -592,7 +592,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "lgxbo6a518.execute-api.sa-east-1.amazonaws.com",
         )
         self.assertEqual(
@@ -621,7 +621,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "lgxbo6a518.execute-api.sa-east-1.amazonaws.com",
         )
         self.assertEqual(
@@ -650,7 +650,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.httpapi")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "x02yirxc7a.execute-api.sa-east-1.amazonaws.com",
         )
         self.assertEqual(
@@ -679,7 +679,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.websocket")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
         )
         self.assertEqual(
@@ -708,7 +708,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.websocket")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
         )
         self.assertEqual(
@@ -737,7 +737,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.websocket")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
         )
         self.assertEqual(
@@ -766,7 +766,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.sqs")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "sqs",
         )
         self.assertEqual(
@@ -795,7 +795,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.sns")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "sns",
         )
         self.assertEqual(
@@ -824,7 +824,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.kinesis")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "kinesis",
         )
         self.assertEqual(
@@ -853,7 +853,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.dynamodb")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "dynamodb",
         )
         self.assertEqual(
@@ -882,7 +882,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.s3")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "s3",
         )
         self.assertEqual(
@@ -911,7 +911,7 @@ class TestInferredSpans(unittest.TestCase):
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.eventbridge")
         self.assertEqual(
-            span.get_tag("service.name"),
+            span.get_tag("service"),
             "eventbridge",
         )
         self.assertEqual(

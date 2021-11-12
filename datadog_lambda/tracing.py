@@ -450,7 +450,6 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
     endpoint = event["requestContext"]["routeKey"]
     tags = {
         "operation_name": "aws.apigateway.websocket",
-        "service.name": domain,
         "http.url": domain + endpoint,
         "endpoint": endpoint,
         "resource_names": domain + endpoint,
@@ -461,6 +460,7 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
     }
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
+        "service": domain,
         "resource": domain + endpoint,
         "span_type": "web",
     }
@@ -477,7 +477,6 @@ def create_inferred_span_from_api_gateway_event(event, context):
     path = event["path"]
     tags = {
         "operation_name": "aws.apigateway.rest",
-        "service.name": domain,
         "http.url": domain + path,
         "endpoint": path,
         "http.method": event["httpMethod"],
@@ -488,6 +487,7 @@ def create_inferred_span_from_api_gateway_event(event, context):
     }
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
+        "service": domain,
         "resource": domain + path,
         "span_type": "http",
     }
@@ -504,7 +504,6 @@ def create_inferred_span_from_http_api_event(event, context):
     path = event["rawPath"]
     tags = {
         "operation_name": "aws.httpapi",
-        "service.name": domain,
         "http.url": domain + path,
         "endpoint": path,
         "http.method": event["requestContext"]["http"]["method"],
@@ -515,6 +514,7 @@ def create_inferred_span_from_http_api_event(event, context):
     }
     request_time_epoch = event["requestContext"]["timeEpoch"]
     args = {
+        "service": domain,
         "resource": domain + path,
         "span_type": "http",
     }
@@ -531,13 +531,13 @@ def create_inferred_span_from_sqs_event(event, context):
     queue_name = event_record["eventSourceARN"].split(":")[-1]
     tags = {
         "operation_name": "aws.sqs",
-        "service.name": "sqs",
         "resource_names": queue_name,
         SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
         IS_ASYNC_TAG: True,
     }
     request_time_epoch = event_record["attributes"]["SentTimestamp"]
     args = {
+        "service": "sqs",
         "resource": queue_name,
         "span_type": "web",
     }
@@ -554,7 +554,6 @@ def create_inferred_span_from_sns_event(event, context):
     topic_name = event_record["Sns"]["TopicArn"].split(":")[-1]
     tags = {
         "operation_name": "aws.sns",
-        "service.name": "sns",
         "resource_names": topic_name,
         SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
         IS_ASYNC_TAG: True,
@@ -564,6 +563,7 @@ def create_inferred_span_from_sns_event(event, context):
     dt = datetime.strptime(timestamp, sns_dt_format)
 
     args = {
+        "service": "sns",
         "resource": topic_name,
         "span_type": "web",
     }
@@ -580,7 +580,6 @@ def create_inferred_span_from_kinesis_event(event, context):
     stream_name = event_record["eventSourceARN"].split(":")[-1]
     tags = {
         "operation_name": "aws.kinesis",
-        "service.name": "kinesis",
         "resource_names": stream_name,
         SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
         IS_ASYNC_TAG: True,
@@ -588,6 +587,7 @@ def create_inferred_span_from_kinesis_event(event, context):
     request_time_epoch = event_record["kinesis"]["approximateArrivalTimestamp"]
 
     args = {
+        "service": "kinesis",
         "resource": stream_name,
         "span_type": "web",
     }
@@ -604,7 +604,6 @@ def create_inferred_span_from_dynamodb_event(event, context):
     table_name = event_record["eventSourceARN"].split("/")[1]
     tags = {
         "operation_name": "aws.dynamodb",
-        "service.name": "dynamodb",
         "resource_names": table_name,
         SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
         IS_ASYNC_TAG: True,
@@ -612,6 +611,7 @@ def create_inferred_span_from_dynamodb_event(event, context):
     request_time_epoch = event_record["dynamodb"]["ApproximateCreationDateTime"]
 
     args = {
+        "service": "dynamodb",
         "resource": table_name,
         "span_type": "web",
     }
@@ -628,7 +628,6 @@ def create_inferred_span_from_s3_event(event, context):
     bucket_name = event_record["s3"]["bucket"]["name"]
     tags = {
         "operation_name": "aws.s3",
-        "service.name": "s3",
         "resource_names": bucket_name,
         SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
         IS_ASYNC_TAG: True,
@@ -638,6 +637,7 @@ def create_inferred_span_from_s3_event(event, context):
     dt = datetime.strptime(timestamp, dt_format)
 
     args = {
+        "service": "s3",
         "resource": bucket_name,
         "span_type": "web",
     }
@@ -653,7 +653,6 @@ def create_inferred_span_from_eventbridge_event(event, context):
     source = event["source"]
     tags = {
         "operation_name": "aws.eventbridge",
-        "service.name": "eventbridge",
         "resource_names": source,
         SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
         IS_ASYNC_TAG: True,
@@ -663,6 +662,7 @@ def create_inferred_span_from_eventbridge_event(event, context):
     dt = datetime.strptime(timestamp, dt_format)
 
     args = {
+        "service": "eventbridge",
         "resource": source,
         "span_type": "web",
     }
