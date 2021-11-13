@@ -43,4 +43,6 @@ class XrayDaemon(object):
     FUNCTION_NAME_HEADER_NAME = "AWS_LAMBDA_FUNCTION_NAME"
 
 
-IS_ASYNC_TAG = "is_async"
+class InferredSpanTags(object):
+    IS_ASYNC_TAG = "inferred_span.is_async"
+    INHERIT_LAMBDA_TAG = "inferred_span.inherit_lambda"

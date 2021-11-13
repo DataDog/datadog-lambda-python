@@ -13,7 +13,7 @@ from datadog_lambda.constants import (
     TraceHeader,
     TraceContextSource,
     XrayDaemon,
-    IS_ASYNC_TAG,
+    InferredSpanTags,
 )
 from datadog_lambda.xray import (
     send_segment,
@@ -31,10 +31,6 @@ from datadog_lambda.trigger import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-SPAN_TYPE_TAG = "span_type"
-SPAN_TYPE_INFERRED = "inferred"
 
 dd_trace_context = {}
 dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
@@ -455,8 +451,8 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
         "resource_names": domain + endpoint,
         "request_id": context.aws_request_id,
         "connection_id": event["requestContext"]["connectionId"],
-        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
-        IS_ASYNC_TAG: is_api_gateway_invocation_async(event),
+        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
+        InferredSpanTags.IS_ASYNC_TAG: is_api_gateway_invocation_async(event),
     }
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
@@ -482,8 +478,8 @@ def create_inferred_span_from_api_gateway_event(event, context):
         "http.method": event["httpMethod"],
         "resource_names": domain + path,
         "request_id": context.aws_request_id,
-        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
-        IS_ASYNC_TAG: is_api_gateway_invocation_async(event),
+        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
+        InferredSpanTags.IS_ASYNC_TAG: is_api_gateway_invocation_async(event),
     }
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
@@ -509,8 +505,8 @@ def create_inferred_span_from_http_api_event(event, context):
         "http.method": event["requestContext"]["http"]["method"],
         "resource_names": domain + path,
         "request_id": context.aws_request_id,
-        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
-        IS_ASYNC_TAG: is_api_gateway_invocation_async(event),
+        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
+        InferredSpanTags.IS_ASYNC_TAG: is_api_gateway_invocation_async(event),
     }
     request_time_epoch = event["requestContext"]["timeEpoch"]
     args = {
@@ -532,8 +528,8 @@ def create_inferred_span_from_sqs_event(event, context):
     tags = {
         "operation_name": "aws.sqs",
         "resource_names": queue_name,
-        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
-        IS_ASYNC_TAG: True,
+        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
+        InferredSpanTags.IS_ASYNC_TAG: True,
     }
     request_time_epoch = event_record["attributes"]["SentTimestamp"]
     args = {
@@ -555,8 +551,8 @@ def create_inferred_span_from_sns_event(event, context):
     tags = {
         "operation_name": "aws.sns",
         "resource_names": topic_name,
-        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
-        IS_ASYNC_TAG: True,
+        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
+        InferredSpanTags.IS_ASYNC_TAG: True,
     }
     sns_dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
     timestamp = event_record["Sns"]["Timestamp"]
@@ -581,8 +577,8 @@ def create_inferred_span_from_kinesis_event(event, context):
     tags = {
         "operation_name": "aws.kinesis",
         "resource_names": stream_name,
-        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
-        IS_ASYNC_TAG: True,
+        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
+        InferredSpanTags.IS_ASYNC_TAG: True,
     }
     request_time_epoch = event_record["kinesis"]["approximateArrivalTimestamp"]
 
@@ -605,8 +601,8 @@ def create_inferred_span_from_dynamodb_event(event, context):
     tags = {
         "operation_name": "aws.dynamodb",
         "resource_names": table_name,
-        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
-        IS_ASYNC_TAG: True,
+        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
+        InferredSpanTags.IS_ASYNC_TAG: True,
     }
     request_time_epoch = event_record["dynamodb"]["ApproximateCreationDateTime"]
 
@@ -629,8 +625,8 @@ def create_inferred_span_from_s3_event(event, context):
     tags = {
         "operation_name": "aws.s3",
         "resource_names": bucket_name,
-        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
-        IS_ASYNC_TAG: True,
+        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
+        InferredSpanTags.IS_ASYNC_TAG: True,
     }
     dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
     timestamp = event_record["eventTime"]
@@ -654,8 +650,8 @@ def create_inferred_span_from_eventbridge_event(event, context):
     tags = {
         "operation_name": "aws.eventbridge",
         "resource_names": source,
-        SPAN_TYPE_TAG: SPAN_TYPE_INFERRED,
-        IS_ASYNC_TAG: True,
+        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
+        InferredSpanTags.IS_ASYNC_TAG: True,
     }
     dt_format = "%Y-%m-%dT%H:%M:%SZ"
     timestamp = event["time"]
