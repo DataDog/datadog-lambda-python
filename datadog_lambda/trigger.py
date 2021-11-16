@@ -35,6 +35,7 @@ class EventTypes(_stringTypedEnum):
     CLOUDFRONT = "cloudfront"
     DYNAMODB = "dynamodb"
     KINESIS = "kinesis"
+    LAMBDA_FUNCTION_URL = "lambda-function-url"
     S3 = "s3"
     SNS = "sns"
     SQS = "sqs"
@@ -50,7 +51,6 @@ class EventSubtypes(_stringTypedEnum):
     NONE = "none"
     API_GATEWAY = "api-gateway"  # regular API Gateway
     HTTP_API = "http-api"
-    LAMBDA_FUNCTION_URL = "lambda-function-url"
     WEBSOCKET = "websocket"
 
 
@@ -117,21 +117,27 @@ def parse_event_source(event: dict) -> _EventSource:
         return _EventSource(EventTypes.UNKNOWN)
 
     event_source = _EventSource(EventTypes.UNKNOWN)
-    print("AGOCS! Detecting event type")
-    if "routeKey" in event:
-        print("YES ROUTE KEY")
-        print(event.get("routeKey"))
     request_context = event.get("requestContext")
     if request_context and "stage" in request_context:  # Some kind of API Gateway
-        event_source = _EventSource(EventTypes.API_GATEWAY)
+        if "domainName" in request_context and detect_lambda_function_url_domain(
+            request_context.get("domainName")
+        ):
+            return _EventSource(EventTypes.LAMBDA_FUNCTION_URL)
         if "httpMethod" in event:
+            event_source = _EventSource(EventTypes.API_GATEWAY)
             event_source.subtype = EventSubtypes.API_GATEWAY
+            return event_source
         if "routeKey" in event and event.get("routeKey") is not None:
+            event_source = _EventSource(EventTypes.API_GATEWAY)
             event_source.subtype = EventSubtypes.HTTP_API
+            return event_source
         if "routeKey" in event and event.get("routeKey") is None:
-            event_source.subtype = EventSubtypes.LAMBDA_FUNCTION_URL  # maybe
+            event_source = _EventSource(EventTypes.LAMBDA_FUNCTION_URL)
+            return event_source
         if "requestContext" in event and "messageDirection" in event["requestContext"]:
+            event_source = _EventSource(EventTypes.API_GATEWAY)
             event_source.subtype = EventSubtypes.WEBSOCKET
+            return event_source
 
     if request_context and request_context.get("elb"):
         event_source = _EventSource(EventTypes.ALB)
@@ -167,6 +173,14 @@ def parse_event_source(event: dict) -> _EventSource:
     return event_source
 
 
+def detect_lambda_function_url_domain(domain: str) -> bool:
+    #  e.g. "etsn5fibjr.lambda-url.eu-south-1.amazonaws.com"
+    domain_parts = domain.split(".")
+    if len(domain_parts) < 2:
+        return False
+    return domain_parts[1] == "lambda-url"
+
+
 def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> str:
     """
     Parses the trigger event for an available ARN. If an ARN field is not provided
@@ -194,7 +208,7 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
         )
 
     # e.g. arn:aws:lambda:<region>:<account_id>:url:<function-name>:<function-qualifier>
-    if source.equals(EventTypes.API_GATEWAY, EventSubtypes.LAMBDA_FUNCTION_URL):
+    if source.equals(EventTypes.LAMBDA_FUNCTION_URL):
         function_name = ""
         if len(split_function_arn) >= 7:
             function_name = split_function_arn[6]
@@ -294,7 +308,11 @@ def extract_trigger_tags(event: dict, context: Any) -> dict:
         if event_source_arn:
             trigger_tags["function_trigger.event_source_arn"] = event_source_arn
 
-    if event_source.event_type in [EventTypes.API_GATEWAY, EventTypes.ALB]:
+    if event_source.event_type in [
+        EventTypes.API_GATEWAY,
+        EventTypes.ALB,
+        EventTypes.LAMBDA_FUNCTION_URL,
+    ]:
         trigger_tags.update(extract_http_tags(event))
 
     return trigger_tags

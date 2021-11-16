@@ -9,7 +9,7 @@ from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
     EventTypes,
-    EventSubtypes,
+    detect_lambda_function_url_domain,
 )
 
 event_samples = "tests/event_samples/"
@@ -44,15 +44,8 @@ class TestGetEventSourceAndARN(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         event_source = parse_event_source(event)
-        if event_source.to_string() is None:
-            print("AGOCS! NONE EVENT SOURCE!!")
-        self.assertTrue(
-            event_source.equals(
-                EventTypes.API_GATEWAY, EventSubtypes.LAMBDA_FUNCTION_URL
-            )
-        )
+        self.assertTrue(event_source.equals(EventTypes.LAMBDA_FUNCTION_URL))
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source.to_string(), "api-gateway")
         self.assertEqual(
             event_source_arn,
             "arn:aws:lambda:us-west-1:123457598159:url:python-layer-test",
@@ -182,6 +175,24 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source.to_string(), None)
         self.assertEqual(event_source_arn, None)
+
+    def test_detect_lambda_function_url_domain(self):
+        class test_case:
+            def __init__(self, domain: str, expected: bool):
+                self.domain = domain
+                self.expected = expected
+
+        test_cases = [
+            test_case("", False),
+            test_case(".", False),
+            test_case("foo.bar", False),
+            test_case("etsn5fibjr.lambda-url.eu-south-1.amazonaws.com", True),
+            test_case("etsn5fibjr.lambda-url.us-gov-west-1.amazonaws.com.cn", True),
+        ]
+
+        for tc in test_cases:
+            result = detect_lambda_function_url_domain(tc.domain)
+            self.assertEqual(result, tc.expected)
 
 
 class GetTriggerTags(unittest.TestCase):

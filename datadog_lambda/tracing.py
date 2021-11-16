@@ -379,13 +379,9 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
 
 
 def create_inferred_span(event, context, make_inferred_spans):
-    logger.debug("AGOCS! Starting inferred span logic")
     event_source = parse_event_source(event)
-    logger.debug("AGOCS! Got event source: " + event_source.to_string())
     try:
-        if event_source.equals(
-            EventTypes.API_GATEWAY, subtype=EventSubtypes.LAMBDA_FUNCTION_URL
-        ):
+        if event_source.equals(EventTypes.LAMBDA_FUNCTION_URL):
             logger.debug("Function URL event detected. Inferring a span")
             return create_inferred_span_from_lambda_function_url_event(event, context)
         if not make_inferred_spans:
@@ -403,15 +399,14 @@ def create_inferred_span(event, context, make_inferred_spans):
 
 
 def create_inferred_span_from_lambda_function_url_event(event, context):
-    # todo(agocs): validate these assumptions
     domain = event["requestContext"]["domainName"]
     path = event["rawPath"]
     tags = {
-        "operation_name": "aws.lambda.url",
+        "operation_name": "aws.lambda.function.url",
         "http.url": domain + path,
         "endpoint": path,
         "http.method": event["requestContext"]["http"]["method"],
-        "resource_name": domain + path,
+        "resource_names": domain + path,
         "request_id": context.aws_request_id,
     }
     request_time_epoch = event["requestContext"]["timeEpoch"]
