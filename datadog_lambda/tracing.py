@@ -408,6 +408,7 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
         "http.method": event["requestContext"]["http"]["method"],
         "resource_names": domain + path,
         "request_id": context.aws_request_id,
+        "span": "aws.lambda",
     }
     request_time_epoch = event["requestContext"]["timeEpoch"]
     args = {
