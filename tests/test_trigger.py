@@ -1,5 +1,6 @@
 import unittest
 import json
+from typing import Optional
 
 from unittest.mock import MagicMock
 
@@ -380,3 +381,26 @@ class ExtractHTTPStatusCodeTag(unittest.TestCase):
         response.status_code = 403
         status_code = extract_http_status_code_tag(trigger_tags, response)
         self.assertEqual(status_code, "403")
+
+    def test_extract_http_status_code_tag_from_various_events(self):
+        class _TestCase:
+            def __init__(
+                self, event_type: EventTypes, expected_status_code: Optional[str]
+            ):
+                self.event_type = event_type
+                self.expected_status_code = expected_status_code
+
+        test_cases = [
+            _TestCase(EventTypes.LAMBDA_FUNCTION_URL, "403"),
+            _TestCase(EventTypes.API_GATEWAY, "403"),
+            _TestCase(EventTypes.ALB, "403"),
+            _TestCase(EventTypes.CLOUDWATCH_EVENTS, None),
+            _TestCase(EventTypes.APPSYNC, None),
+        ]
+
+        for tc in test_cases:
+            trigger_tags = {"function_trigger.event_source": tc.event_type.value}
+            response = MagicMock(spec=["status_code"])
+            response.status_code = 403
+            status_code = extract_http_status_code_tag(trigger_tags, response)
+            self.assertEqual(status_code, tc.expected_status_code)

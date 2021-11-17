@@ -323,12 +323,19 @@ def extract_http_status_code_tag(trigger_tags, response):
     If the Lambda was triggered by API Gateway or ALB add the returned status code
     as a tag to the function execution span.
     """
-    is_http_trigger = trigger_tags and (
-        trigger_tags.get("function_trigger.event_source") == "api-gateway"
-        or trigger_tags.get("function_trigger.event_source")
-        == "application-load-balancer"
-    )
-    if not is_http_trigger:
+    if trigger_tags is None:
+        return
+    str_event_source = trigger_tags.get("function_trigger.event_source")
+    # it would be cleaner if each event type was a constant object that knew some properties about itself like this.
+    str_http_triggers = [
+        et.value
+        for et in [
+            EventTypes.API_GATEWAY,
+            EventTypes.LAMBDA_FUNCTION_URL,
+            EventTypes.ALB,
+        ]
+    ]
+    if str_event_source not in str_http_triggers:
         return
 
     status_code = "200"
