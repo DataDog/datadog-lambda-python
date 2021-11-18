@@ -22,7 +22,7 @@
   "pathParameters": null,
   "isBase64Encoded": false,
   "rawPath": "/",
-  "routeKey": null,
+  "routeKey": "$default",
   "requestContext": {
     "accountId": "601427279990",
     "timeEpoch": 1636642746342,
