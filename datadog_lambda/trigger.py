@@ -193,7 +193,7 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
 
     event_record = get_first_record(event)
     # e.g. arn:aws:s3:::lambda-xyz123-abc890
-    if source.to_string() == "s3":
+    if source.event_type == EventTypes.S3:
         return event_record.get("s3")["bucket"]["arn"]
 
     # e.g. arn:aws:sns:us-east-1:123456789012:sns-lambda
