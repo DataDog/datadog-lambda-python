@@ -452,7 +452,6 @@ def create_function_execution_span(
             else None,
             "datadog_lambda": datadog_lambda_version,
             "dd_trace": ddtrace_version,
-            "span.name": "aws.lambda",
         }
     if trace_context_source == TraceContextSource.XRAY and merge_xray_traces:
         tags["_dd.parent_source"] = trace_context_source
