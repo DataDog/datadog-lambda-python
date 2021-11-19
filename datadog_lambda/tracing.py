@@ -433,7 +433,7 @@ def create_function_execution_span(
     trace_context_source,
     merge_xray_traces,
     trigger_tags,
-    upstream=None,
+    parent_span=None,
 ):
     tags = {}
     if context:
