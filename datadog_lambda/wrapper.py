@@ -173,7 +173,7 @@ class _LambdaDecorator(object):
                     trace_context_source,
                     self.merge_xray_traces,
                     self.trigger_tags,
-                    upstream=self.inferred_span,
+                    parent_span=self.inferred_span,
                 )
             else:
                 set_correlation_ids()
