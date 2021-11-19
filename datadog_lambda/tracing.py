@@ -13,6 +13,7 @@ from datadog_lambda.constants import (
     TraceContextSource,
     XrayDaemon,
 )
+from datadog_lambda.trigger import parse_event_source, EventTypes
 from datadog_lambda.xray import (
     send_segment,
     parse_xray_header,
@@ -377,6 +378,54 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
         )
 
 
+def create_inferred_span(event, context, make_inferred_spans):
+    event_source = parse_event_source(event)
+    try:
+        if event_source.equals(EventTypes.LAMBDA_FUNCTION_URL):
+            logger.debug("Function URL event detected. Inferring a span")
+            return create_inferred_span_from_lambda_function_url_event(event, context)
+        if not make_inferred_spans:
+            return None
+        # the rest of the inferred span logic goes here
+    except Exception as e:
+        logger.debug(
+            "Unable to infer span. Detected type: {}. Reason: {}",
+            event_source.to_string(),
+            e,
+        )
+        return None
+    logger.debug("Unable to infer a span: unknown event type")
+    return None
+
+
+def create_inferred_span_from_lambda_function_url_event(event, context):
+    domain = event["requestContext"]["domainName"]
+    path = event["rawPath"]
+    tags = {
+        "operation_name": "aws.lambda.url",
+        "http.url": domain + path,
+        "endpoint": path,
+        "http.method": event["requestContext"]["http"]["method"],
+        "resource_names": domain + path,
+        "request_id": context.aws_request_id,
+        "service": "aws.lambda",
+    }
+    request_time_epoch = event["requestContext"]["timeEpoch"]
+    args = {
+        "resource": domain + path,
+        "span_type": "http",
+    }
+    tracer.set_tags(
+        {"_dd.origin": "lambda"}
+    )  # function urls don't count as lambda_inferred,
+    # because they're in the same service as the inferring lambda function
+    span = tracer.trace("aws.lambda.url", **args)
+    if span:
+        span.set_tags(tags)
+    span.start = request_time_epoch / 1000
+    return span
+
+
 def create_function_execution_span(
     context,
     function_name,
@@ -384,6 +433,7 @@ def create_function_execution_span(
     trace_context_source,
     merge_xray_traces,
     trigger_tags,
+    parent_span=None,
 ):
     tags = {}
     if context:
@@ -415,4 +465,6 @@ def create_function_execution_span(
     span = tracer.trace("aws.lambda", **args)
     if span:
         span.set_tags(tags)
+    if parent_span:
+        span.parent_id = parent_span.span_id
     return span
