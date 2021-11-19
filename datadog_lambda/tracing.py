@@ -13,7 +13,7 @@ from datadog_lambda.constants import (
     TraceContextSource,
     XrayDaemon,
 )
-from datadog_lambda.trigger import parse_event_source, EventTypes, EventSubtypes
+from datadog_lambda.trigger import parse_event_source, EventTypes
 from datadog_lambda.xray import (
     send_segment,
     parse_xray_header,
