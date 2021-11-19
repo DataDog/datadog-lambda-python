@@ -148,7 +148,6 @@ class _LambdaDecorator(object):
 
     def _before(self, event, context):
         try:
-
             set_cold_start()
             submit_invocations_metric(context)
             self.trigger_tags = extract_trigger_tags(event, context)
