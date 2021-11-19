@@ -402,7 +402,7 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
     domain = event["requestContext"]["domainName"]
     path = event["rawPath"]
     tags = {
-        "operation_name": "aws.lambda.function.url",
+        "operation_name": "aws.lambda.url",
         "http.url": domain + path,
         "endpoint": path,
         "http.method": event["requestContext"]["http"]["method"],
