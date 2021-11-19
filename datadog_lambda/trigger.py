@@ -320,13 +320,15 @@ def extract_trigger_tags(event: dict, context: Any) -> dict:
 
 def extract_http_status_code_tag(trigger_tags, response):
     """
-    If the Lambda was triggered by Lambda Function URL, API Gateway or ALB add the returned status code
+    If the Lambda was triggered by Lambda Function URL,
+    API Gateway or ALB add the returned status code
     as a tag to the function execution span.
     """
     if trigger_tags is None:
         return
     str_event_source = trigger_tags.get("function_trigger.event_source")
-    # it would be cleaner if each event type was a constant object that knew some properties about itself like this.
+    # it would be cleaner if each event type was a constant object that
+    # knew some properties about itself like this.
     str_http_triggers = [
         et.value
         for et in [
