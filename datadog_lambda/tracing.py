@@ -465,6 +465,6 @@ def create_function_execution_span(
     span = tracer.trace("aws.lambda", **args)
     if span:
         span.set_tags(tags)
-    if upstream:
-        span.parent_id = upstream.span_id
+    if parent_span:
+        span.parent_id = parent_span.span_id
     return span
