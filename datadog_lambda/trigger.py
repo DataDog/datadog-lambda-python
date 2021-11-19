@@ -197,7 +197,7 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
         return event_record.get("s3")["bucket"]["arn"]
 
     # e.g. arn:aws:sns:us-east-1:123456789012:sns-lambda
-    if source.to_string() == "sns":
+    if source.event_type == EventTypes.SNS:
         return event_record.get("Sns")["TopicArn"]
 
     # e.g. arn:aws:cloudfront::123456789012:distribution/ABC123XYZ
