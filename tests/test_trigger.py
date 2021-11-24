@@ -1,6 +1,5 @@
 import unittest
 import json
-from typing import Optional
 
 from unittest.mock import MagicMock
 
@@ -9,8 +8,6 @@ from datadog_lambda.trigger import (
     get_event_source_arn,
     extract_trigger_tags,
     extract_http_status_code_tag,
-    EventTypes,
-    detect_lambda_function_url_domain,
 )
 
 event_samples = "tests/event_samples/"
@@ -32,24 +29,10 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source.to_string(), event_sample_source)
+        self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
             event_source_arn,
             "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod",
-        )
-
-    def test_event_source_function_url(self):
-        event_sample_source = "function-url"
-        test_file = event_samples + event_sample_source + ".json"
-        with open(test_file, "r") as event:
-            event = json.load(event)
-        ctx = get_mock_context()
-        event_source = parse_event_source(event)
-        self.assertTrue(event_source.equals(EventTypes.LAMBDA_FUNCTION_URL))
-        event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(
-            event_source_arn,
-            "arn:aws:lambda:us-west-1:123457598159:url:python-layer-test",
         )
 
     def test_event_source_application_load_balancer(self):
@@ -60,7 +43,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source.to_string(), event_sample_source)
+        self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
             event_source_arn,
             "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
@@ -74,7 +57,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source.to_string(), event_sample_source)
+        self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
             event_source_arn, "arn:aws:cloudfront::123457598159:distribution/EXAMPLE"
         )
@@ -87,7 +70,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source.to_string(), event_sample_source)
+        self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
             event_source_arn, "arn:aws:events:us-east-1:123456789012:rule/ExampleRule"
         )
@@ -100,7 +83,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source.to_string(), event_sample_source)
+        self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
             event_source_arn,
             "arn:aws:logs:us-west-1:123457598159:log-group:testLogGroup",
@@ -114,7 +97,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source.to_string(), event_sample_source)
+        self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
             event_source_arn,
             "arn:aws:dynamodb:us-east-1:123456789012:table/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
@@ -128,7 +111,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source.to_string(), event_sample_source)
+        self.assertEqual(event_source, event_sample_source)
         self.assertEqual(event_source_arn, "arn:aws:kinesis:EXAMPLE")
 
     def test_event_source_s3(self):
@@ -139,7 +122,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source.to_string(), event_sample_source)
+        self.assertEqual(event_source, event_sample_source)
         self.assertEqual(event_source_arn, "arn:aws:s3:::example-bucket")
 
     def test_event_source_sns(self):
@@ -150,7 +133,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source.to_string(), event_sample_source)
+        self.assertEqual(event_source, event_sample_source)
         self.assertEqual(
             event_source_arn, "arn:aws:sns:us-east-1:123456789012:ExampleTopic"
         )
@@ -163,7 +146,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source.to_string(), event_sample_source)
+        self.assertEqual(event_source, event_sample_source)
         self.assertEqual(event_source_arn, "arn:aws:sqs:us-east-1:123456789012:MyQueue")
 
     def test_event_source_unsupported(self):
@@ -174,26 +157,8 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         ctx = get_mock_context()
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
-        self.assertEqual(event_source.to_string(), None)
+        self.assertEqual(event_source, None)
         self.assertEqual(event_source_arn, None)
-
-    def test_detect_lambda_function_url_domain(self):
-        class test_case:
-            def __init__(self, domain: str, expected: bool):
-                self.domain = domain
-                self.expected = expected
-
-        test_cases = [
-            test_case("", False),
-            test_case(".", False),
-            test_case("foo.bar", False),
-            test_case("etsn5fibjr.lambda-url.eu-south-1.amazonaws.com", True),
-            test_case("etsn5fibjr.lambda-url.us-gov-west-1.amazonaws.com.cn", True),
-        ]
-
-        for tc in test_cases:
-            result = detect_lambda_function_url_domain(tc.domain)
-            self.assertEqual(result, tc.expected)
 
 
 class GetTriggerTags(unittest.TestCase):
@@ -381,26 +346,3 @@ class ExtractHTTPStatusCodeTag(unittest.TestCase):
         response.status_code = 403
         status_code = extract_http_status_code_tag(trigger_tags, response)
         self.assertEqual(status_code, "403")
-
-    def test_extract_http_status_code_tag_from_various_events(self):
-        class _TestCase:
-            def __init__(
-                self, event_type: EventTypes, expected_status_code: Optional[str]
-            ):
-                self.event_type = event_type
-                self.expected_status_code = expected_status_code
-
-        test_cases = [
-            _TestCase(EventTypes.LAMBDA_FUNCTION_URL, "403"),
-            _TestCase(EventTypes.API_GATEWAY, "403"),
-            _TestCase(EventTypes.ALB, "403"),
-            _TestCase(EventTypes.CLOUDWATCH_EVENTS, None),
-            _TestCase(EventTypes.APPSYNC, None),
-        ]
-
-        for tc in test_cases:
-            trigger_tags = {"function_trigger.event_source": tc.event_type.value}
-            response = MagicMock(spec=["status_code"])
-            response.status_code = 403
-            status_code = extract_http_status_code_tag(trigger_tags, response)
-            self.assertEqual(status_code, tc.expected_status_code)

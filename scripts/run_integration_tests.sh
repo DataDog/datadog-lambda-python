@@ -185,7 +185,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 # Remove blank lines
                 sed '/^$/d' |
                 # Normalize Lambda runtime REPORT logs
-                sed -E 's/(RequestId|TraceId|SegmentId|Duration|Memory Used|"e"): [a-z0-9\.\-]+/\1: 1234/g' |
+                sed -E 's/(RequestId|TraceId|SegmentId|Duration|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g' |
                 # Normalize HTTP headers
                 sed -E "s/(x-datadog-parent-id:|x-datadog-trace-id:|Content-Length:)[0-9]+/\1XXXX/g" |
                 # Remove Account ID
@@ -207,9 +207,9 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(\"span_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"parent_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"request_id\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
-                sed -E "s/(\"duration\"\: )[0-9\.\-]+/\11234/g" |
-                sed -E "s/(\"start\"\: )[0-9\.\-]+/\11234/g" |
-                sed -E "s/(\"system\.pid\"\: )[0-9\.\-]+/\11234/g" |
+                sed -E "s/(\"duration\"\: )[0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"start\"\: )[0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"system\.pid\"\: )[0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"runtime-id\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"datadog_lambda\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g" |
                 sed -E "s/(\"dd_trace\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g" |
@@ -230,16 +230,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
             # Compare new logs to snapshots
             diff_output=$(echo "$logs" | diff - $function_snapshot_path)
             if [ $? -eq 1 ]; then
-                echo
-                echo
-                echo
-                echo "Failed: Mismatch found between new $function_name logs (first) and snapshot (second)"
-                if [[ $OSTYPE == darwin* ]]; then
-                  # probably running on a developer laptop; ok to write temp files
-                  tempfile=$(mktemp)
-                  echo "$logs" > $tempfile
-                  echo "Log output written to ${tempfile}"
-                fi
+                echo "Failed: Mismatch found between new $function_name logs (first) and snapshot (second):"
                 echo "$diff_output"
                 mismatch_found=true
             else
@@ -253,7 +244,7 @@ set -e
 if [ "$mismatch_found" = true ]; then
     echo "FAILURE: A mismatch between new data and a snapshot was found and printed above."
     echo "If the change is expected, generate new snapshots by running 'UPDATE_SNAPSHOTS=true DD_API_KEY=XXXX ./scripts/run_integration_tests.sh'"
-    echo "Make sure https://httpstat.us/400/ is UP for \`http_error\` test case"
+    echo "Make sure https://httpstat.us/400/ is UP for `http_error` test case"
     exit 1
 fi
 
