@@ -7,94 +7,15 @@ import base64
 import gzip
 import json
 from io import BytesIO, BufferedReader
-from enum import Enum
-from typing import Any, Optional
 
 
-class _stringTypedEnum(Enum):
-    """
-    _stringTypedEnum provides a type-hinted convenience function for getting the string value of
-    an enum.
-    """
-
-    def get_string(self) -> str:
-        return self.value
-
-
-class EventTypes(_stringTypedEnum):
-    """
-    EventTypes is an enum of Lambda event types we care about.
-    """
-
-    UNKNOWN = "unknown"
-    API_GATEWAY = "api-gateway"
-    ALB = "application-load-balancer"
-    APPSYNC = "appsync"
-    CLOUDWATCH_EVENTS = "cloudwatch-events"
-    CLOUDWATCH_LOGS = "cloudwatch-logs"
-    CLOUDFRONT = "cloudfront"
-    DYNAMODB = "dynamodb"
-    KINESIS = "kinesis"
-    LAMBDA_FUNCTION_URL = "lambda-function-url"
-    S3 = "s3"
-    SNS = "sns"
-    SQS = "sqs"
-
-
-class EventSubtypes(_stringTypedEnum):
-    """
-    EventSubtypes is an enum of Lambda event subtypes.
-    Currently, API Gateway events subtypes are supported,
-    e.g. HTTP-API and Websocket events vs vanilla API-Gateway events.
-    """
-
-    NONE = "none"
-    API_GATEWAY = "api-gateway"  # regular API Gateway
-    HTTP_API = "http-api"
-    WEBSOCKET = "websocket"
-
-
-class _EventSource:
-    """
-    _EventSource holds an event's type and subtype.
-    """
-
-    def __init__(
-        self,
-        event_type: EventTypes,
-        subtype: EventSubtypes = EventSubtypes.NONE,
-    ):
-        if event_type is None:
-            self.event_type = EventTypes.UNKNOWN
-        else:
-            self.event_type = event_type
-        self.subtype = subtype
-
-    def to_string(self) -> Optional[str]:
-        """
-        to_string returns the string representation of an _EventSource.
-        Since to_string was added to support trigger tagging,
-        the event's subtype will never be included in the string.
-        """
-        if self.event_type == EventTypes.UNKNOWN:
-            return None
-        return self.event_type.get_string()
-
-    def equals(
-        self, event_type: EventTypes, subtype: EventSubtypes = EventSubtypes.NONE
-    ) -> bool:
-        """
-        equals provides syntactic sugar to determine whether this _EventSource has a given type
-        and subtype.
-        Unknown events will never equal other events.
-        """
-        if self.event_type == EventTypes.UNKNOWN:
-            return False
-        if self.event_type != event_type:
-            return False
-        if self.subtype != subtype:
-            return False
-        return True
+EVENT_SOURCES = [
+    "aws:dynamodb",
+    "aws:kinesis",
+    "aws:s3",
+    "aws:sns",
+    "aws:sqs",
+]
 
 
 def get_aws_partition_by_region(region):
@@ -111,77 +32,46 @@ def get_first_record(event):
         return records[0]
 
 
-def parse_event_source(event: dict) -> _EventSource:
-    """Determines the source of the trigger event"""
-    if type(event) is not dict:
-        return _EventSource(EventTypes.UNKNOWN)
+def parse_event_source(event):
+    """Determines the source of the trigger event
 
-    event_source = _EventSource(EventTypes.UNKNOWN)
+    Possible Returns:
+        api-gateway | application-load-balancer | cloudwatch-logs |
+        cloudwatch-events | cloudfront | dynamodb | kinesis | s3 | sns | sqs
+    """
+    if type(event) is not dict:
+        return
+    event_source = event.get("eventSource") or event.get("EventSource")
+
     request_context = event.get("requestContext")
-    if request_context and "stage" in request_context:  # Some kind of API Gateway
-        if "domainName" in request_context and detect_lambda_function_url_domain(
-            request_context.get("domainName")
-        ):
-            return _EventSource(EventTypes.LAMBDA_FUNCTION_URL)
-        if "httpMethod" in event:
-            event_source = _EventSource(EventTypes.API_GATEWAY)
-            event_source.subtype = EventSubtypes.API_GATEWAY
-            return event_source
-        if "routeKey" in event and event.get("routeKey") is not None:
-            event_source = _EventSource(EventTypes.API_GATEWAY)
-            event_source.subtype = EventSubtypes.HTTP_API
-            return event_source
-        if "routeKey" in event and event.get("routeKey") is None:
-            event_source = _EventSource(EventTypes.LAMBDA_FUNCTION_URL)
-            return event_source
-        if "requestContext" in event and "messageDirection" in event["requestContext"]:
-            event_source = _EventSource(EventTypes.API_GATEWAY)
-            event_source.subtype = EventSubtypes.WEBSOCKET
-            return event_source
+    if request_context and request_context.get("stage"):
+        event_source = "api-gateway"
 
     if request_context and request_context.get("elb"):
-        event_source = _EventSource(EventTypes.ALB)
+        event_source = "application-load-balancer"
 
     if event.get("awslogs"):
-        event_source = _EventSource(EventTypes.CLOUDWATCH_LOGS)
+        event_source = "cloudwatch-logs"
 
     event_detail = event.get("detail")
     cw_event_categories = event_detail and event_detail.get("EventCategories")
     if event.get("source") == "aws.events" or cw_event_categories:
-        event_source = _EventSource(EventTypes.CLOUDWATCH_EVENTS)
+        event_source = "cloudwatch-events"
 
     event_record = get_first_record(event)
     if event_record:
-        aws_event_source = event_record.get(
-            "eventSource", event_record.get("EventSource")
+        event_source = event_record.get("eventSource") or event_record.get(
+            "EventSource"
         )
-
-        if aws_event_source == "aws:dynamodb":
-            event_source = _EventSource(EventTypes.DYNAMODB)
-        if aws_event_source == "aws:kinesis":
-            event_source = _EventSource(EventTypes.KINESIS)
-        if aws_event_source == "aws:s3":
-            event_source = _EventSource(EventTypes.S3)
-        if aws_event_source == "aws:sns":
-            event_source = _EventSource(EventTypes.SNS)
-        if aws_event_source == "aws:sqs":
-            event_source = _EventSource(EventTypes.SQS)
-
         if event_record.get("cf"):
-            event_source = _EventSource(EventTypes.CLOUDFRONT)
+            event_source = "cloudfront"
 
+    if event_source in EVENT_SOURCES:
+        event_source = event_source.replace("aws:", "")
     return event_source
 
 
-def detect_lambda_function_url_domain(domain: str) -> bool:
-    #  e.g. "etsn5fibjr.lambda-url.eu-south-1.amazonaws.com"
-    domain_parts = domain.split(".")
-    if len(domain_parts) < 2:
-        return False
-    return domain_parts[1] == "lambda-url"
-
-
-def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> str:
+def parse_event_source_arn(source, event, context):
     """
     Parses the trigger event for an available ARN. If an ARN field is not provided
     in the event we stitch it together.
@@ -193,46 +83,34 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
 
     event_record = get_first_record(event)
     # e.g. arn:aws:s3:::lambda-xyz123-abc890
-    if source.event_type == EventTypes.S3:
+    if source == "s3":
         return event_record.get("s3")["bucket"]["arn"]
 
     # e.g. arn:aws:sns:us-east-1:123456789012:sns-lambda
-    if source.event_type == EventTypes.SNS:
+    if source == "sns":
         return event_record.get("Sns")["TopicArn"]
 
     # e.g. arn:aws:cloudfront::123456789012:distribution/ABC123XYZ
-    if source.event_type == EventTypes.CLOUDFRONT:
+    if source == "cloudfront":
         distribution_id = event_record.get("cf")["config"]["distributionId"]
         return "arn:{}:cloudfront::{}:distribution/{}".format(
             aws_arn, account_id, distribution_id
         )
 
-    # e.g. arn:aws:lambda:<region>:<account_id>:url:<function-name>:<function-qualifier>
-    if source.equals(EventTypes.LAMBDA_FUNCTION_URL):
-        function_name = ""
-        if len(split_function_arn) >= 7:
-            function_name = split_function_arn[6]
-        function_arn = f"arn:aws:lambda:{region}:{account_id}:url:{function_name}"
-        function_qualifier = ""
-        if len(split_function_arn) >= 8:
-            function_qualifier = split_function_arn[7]
-            function_arn = function_arn + f":{function_qualifier}"
-        return function_arn
-
     # e.g. arn:aws:apigateway:us-east-1::/restapis/xyz123/stages/default
-    if source.event_type == EventTypes.API_GATEWAY:
+    if source == "api-gateway":
         request_context = event.get("requestContext")
         return "arn:{}:apigateway:{}::/restapis/{}/stages/{}".format(
             aws_arn, region, request_context["apiId"], request_context["stage"]
         )
 
     # e.g. arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/lambda-xyz/123
-    if source.event_type == EventTypes.ALB:
+    if source == "application-load-balancer":
         request_context = event.get("requestContext")
         return request_context.get("elb")["targetGroupArn"]
 
     # e.g. arn:aws:logs:us-west-1:123456789012:log-group:/my-log-group-xyz
-    if source.event_type == EventTypes.CLOUDWATCH_LOGS:
+    if source == "cloudwatch-logs":
         with gzip.GzipFile(
             fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
         ) as decompress_stream:
@@ -244,11 +122,11 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
         )
 
     # e.g. arn:aws:events:us-east-1:123456789012:rule/my-schedule
-    if source.event_type == EventTypes.CLOUDWATCH_EVENTS and event.get("resources"):
+    if source == "cloudwatch-events" and event.get("resources"):
         return event.get("resources")[0]
 
 
-def get_event_source_arn(source: _EventSource, event: dict, context: Any) -> str:
+def get_event_source_arn(source, event, context):
     event_source_arn = event.get("eventSourceARN") or event.get("eventSourceArn")
 
     event_record = get_first_record(event)
@@ -295,24 +173,20 @@ def extract_http_tags(event):
     return http_tags
 
 
-def extract_trigger_tags(event: dict, context: Any) -> dict:
+def extract_trigger_tags(event, context):
     """
     Parses the trigger event object to get tags to be added to the span metadata
     """
     trigger_tags = {}
     event_source = parse_event_source(event)
-    if event_source.event_type != EventTypes.UNKNOWN:
-        trigger_tags["function_trigger.event_source"] = event_source.to_string()
+    if event_source:
+        trigger_tags["function_trigger.event_source"] = event_source
 
         event_source_arn = get_event_source_arn(event_source, event, context)
         if event_source_arn:
             trigger_tags["function_trigger.event_source_arn"] = event_source_arn
 
-    if event_source.event_type in [
-        EventTypes.API_GATEWAY,
-        EventTypes.ALB,
-        EventTypes.LAMBDA_FUNCTION_URL,
-    ]:
+    if event_source in ["api-gateway", "application-load-balancer"]:
         trigger_tags.update(extract_http_tags(event))
 
     return trigger_tags
@@ -320,24 +194,15 @@ def extract_trigger_tags(event: dict, context: Any) -> dict:
 
 def extract_http_status_code_tag(trigger_tags, response):
     """
-    If the Lambda was triggered by Lambda Function URL,
-    API Gateway or ALB add the returned status code
+    If the Lambda was triggered by API Gateway or ALB add the returned status code
     as a tag to the function execution span.
     """
-    if trigger_tags is None:
-        return
-    str_event_source = trigger_tags.get("function_trigger.event_source")
-    # it would be cleaner if each event type was a constant object that
-    # knew some properties about itself like this.
-    str_http_triggers = [
-        et.value
-        for et in [
-            EventTypes.API_GATEWAY,
-            EventTypes.LAMBDA_FUNCTION_URL,
-            EventTypes.ALB,
-        ]
-    ]
-    if str_event_source not in str_http_triggers:
+    is_http_trigger = trigger_tags and (
+        trigger_tags.get("function_trigger.event_source") == "api-gateway"
+        or trigger_tags.get("function_trigger.event_source")
+        == "application-load-balancer"
+    )
+    if not is_http_trigger:
         return
 
     status_code = "200"
