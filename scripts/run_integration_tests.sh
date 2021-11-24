@@ -212,7 +212,10 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(\"system\.pid\"\: )[0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"runtime-id\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"datadog_lambda\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g" |
-                sed -E "s/(\"dd_trace\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g"
+                sed -E "s/(\"dd_trace\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g" |
+                # Strip out main started and init completed
+                sed "/main started at epoch/d" |
+                sed "/init complete at epoch/d"
         )
 
         if [ ! -f $function_snapshot_path ]; then
