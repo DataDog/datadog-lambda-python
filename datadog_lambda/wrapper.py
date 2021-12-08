@@ -13,7 +13,6 @@ from datadog_lambda.cold_start import set_cold_start, is_cold_start
 from datadog_lambda.constants import (
     XraySubsegment,
     TraceContextSource,
-    InferredSpanTags,
 )
 from datadog_lambda.metric import (
     flush_stats,
@@ -31,6 +30,7 @@ from datadog_lambda.tracing import (
     set_dd_trace_py_root,
     create_function_execution_span,
     create_inferred_span,
+    InferredSpanInfo,
 )
 from datadog_lambda.trigger import extract_trigger_tags, extract_http_status_code_tag
 from datadog_lambda.tag_object import tag_object
@@ -211,7 +211,8 @@ class _LambdaDecorator(object):
                     self.inferred_span.set_tag("http.status_code", status_code)
 
                 if (
-                    self.inferred_span.get_tag(InferredSpanTags.IS_ASYNC_TAG) == "True"
+                    self.inferred_span.get_tag(InferredSpanInfo.SYNCHRONICITY)
+                    == "async"
                     and self.span
                 ):
                     self.inferred_span.finish(finish_time=self.span.start)
