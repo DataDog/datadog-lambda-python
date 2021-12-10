@@ -577,7 +577,7 @@ class TestInferredSpans(unittest.TestCase):
             "70ixmpl4fl.execute-api.us-east-2.amazonaws.com/path/to/resource",
         )
         self.assertEqual(span.get_tag("request_id"), "123")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1428582896.0)
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
@@ -606,7 +606,7 @@ class TestInferredSpans(unittest.TestCase):
             "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
         )
         self.assertEqual(span.get_tag("request_id"), "123")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1631210915.2509997)
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
@@ -635,7 +635,7 @@ class TestInferredSpans(unittest.TestCase):
             "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
         )
         self.assertEqual(span.get_tag("request_id"), "123")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1631210915.2509997)
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
@@ -664,7 +664,7 @@ class TestInferredSpans(unittest.TestCase):
             "x02yirxc7a.execute-api.sa-east-1.amazonaws.com/httpapi/get",
         )
         self.assertEqual(span.get_tag("request_id"), "123")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1631212283.738)
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
@@ -693,7 +693,7 @@ class TestInferredSpans(unittest.TestCase):
             "p62c47itsb.execute-api.sa-east-1.amazonaws.com$default",
         )
         self.assertEqual(span.get_tag("request_id"), "123")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1631285061.365)
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
@@ -722,7 +722,7 @@ class TestInferredSpans(unittest.TestCase):
             "p62c47itsb.execute-api.sa-east-1.amazonaws.com$connect",
         )
         self.assertEqual(span.get_tag("request_id"), "123")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1631284003.071)
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
@@ -751,7 +751,7 @@ class TestInferredSpans(unittest.TestCase):
             "p62c47itsb.execute-api.sa-east-1.amazonaws.com$disconnect",
         )
         self.assertEqual(span.get_tag("request_id"), "123")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1631284034.737)
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
@@ -780,7 +780,7 @@ class TestInferredSpans(unittest.TestCase):
             "MyQueue",
         )
         self.assertEqual(span.get_tag("request_id"), None)
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1523232000.0)
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
@@ -809,7 +809,7 @@ class TestInferredSpans(unittest.TestCase):
             "ExampleTopic",
         )
         self.assertEqual(span.get_tag("request_id"), None)
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 0.0)
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
@@ -838,7 +838,7 @@ class TestInferredSpans(unittest.TestCase):
             "EXAMPLE",
         )
         self.assertEqual(span.get_tag("request_id"), None)
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1428537600.0)
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
@@ -867,7 +867,7 @@ class TestInferredSpans(unittest.TestCase):
             "ExampleTableWithStream",
         )
         self.assertEqual(span.get_tag("request_id"), None)
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1428537600.0)
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
@@ -896,7 +896,7 @@ class TestInferredSpans(unittest.TestCase):
             "example-bucket",
         )
         self.assertEqual(span.get_tag("request_id"), None)
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 0.0)
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
@@ -925,7 +925,7 @@ class TestInferredSpans(unittest.TestCase):
             "eventbridge.custom.event.sender",
         )
         self.assertEqual(span.get_tag("request_id"), None)
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_ORIGIN), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1635989865.0)
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")

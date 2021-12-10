@@ -453,9 +453,9 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
         "connection_id": event["requestContext"]["connectionId"],
     }
     if is_api_gateway_invocation_async(event):
-        InferredSpanInfo.set_tags(tags, tag_origin="self", synchronicity="async")
+        InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
-        InferredSpanInfo.set_tags(tags, tag_origin="self", synchronicity="sync")
+        InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
         "service": domain,
@@ -482,9 +482,9 @@ def create_inferred_span_from_api_gateway_event(event, context):
         "request_id": context.aws_request_id,
     }
     if is_api_gateway_invocation_async(event):
-        InferredSpanInfo.set_tags(tags, tag_origin="self", synchronicity="async")
+        InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
-        InferredSpanInfo.set_tags(tags, tag_origin="self", synchronicity="sync")
+        InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
         "service": domain,
@@ -511,9 +511,9 @@ def create_inferred_span_from_http_api_event(event, context):
         "request_id": context.aws_request_id,
     }
     if is_api_gateway_invocation_async(event):
-        InferredSpanInfo.set_tags(tags, tag_origin="self", synchronicity="async")
+        InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
-        InferredSpanInfo.set_tags(tags, tag_origin="self", synchronicity="sync")
+        InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     request_time_epoch = event["requestContext"]["timeEpoch"]
     args = {
         "service": domain,
@@ -535,7 +535,7 @@ def create_inferred_span_from_sqs_event(event, context):
         "operation_name": "aws.sqs",
         "resource_names": queue_name,
     }
-    InferredSpanInfo.set_tags(tags, tag_origin="self", synchronicity="async")
+    InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     request_time_epoch = event_record["attributes"]["SentTimestamp"]
     args = {
         "service": "sqs",
@@ -557,7 +557,7 @@ def create_inferred_span_from_sns_event(event, context):
         "operation_name": "aws.sns",
         "resource_names": topic_name,
     }
-    InferredSpanInfo.set_tags(tags, tag_origin="self", synchronicity="async")
+    InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     sns_dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
     timestamp = event_record["Sns"]["Timestamp"]
     dt = datetime.strptime(timestamp, sns_dt_format)
@@ -582,7 +582,7 @@ def create_inferred_span_from_kinesis_event(event, context):
         "operation_name": "aws.kinesis",
         "resource_names": stream_name,
     }
-    InferredSpanInfo.set_tags(tags, tag_origin="self", synchronicity="async")
+    InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     request_time_epoch = event_record["kinesis"]["approximateArrivalTimestamp"]
 
     args = {
@@ -605,7 +605,7 @@ def create_inferred_span_from_dynamodb_event(event, context):
         "operation_name": "aws.dynamodb",
         "resource_names": table_name,
     }
-    InferredSpanInfo.set_tags(tags, synchronicity="async", tag_origin="self")
+    InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
     request_time_epoch = event_record["dynamodb"]["ApproximateCreationDateTime"]
 
     args = {
@@ -628,7 +628,7 @@ def create_inferred_span_from_s3_event(event, context):
         "operation_name": "aws.s3",
         "resource_names": bucket_name,
     }
-    InferredSpanInfo.set_tags(tags, synchronicity="async", tag_origin="self")
+    InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
     dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
     timestamp = event_record["eventTime"]
     dt = datetime.strptime(timestamp, dt_format)
@@ -655,7 +655,7 @@ def create_inferred_span_from_eventbridge_event(event, context):
     InferredSpanInfo.set_tags(
         tags,
         synchronicity="async",
-        tag_origin="self",
+        tag_source="self",
     )
     dt_format = "%Y-%m-%dT%H:%M:%SZ"
     timestamp = event["time"]
@@ -722,16 +722,16 @@ def create_function_execution_span(
 class InferredSpanInfo(object):
     BASE_NAME = "inferred_span"
     SYNCHRONICITY = f"{BASE_NAME}.synchronicity"
-    TAG_ORIGIN = f"{BASE_NAME}.tag_origin"
+    TAG_SOURCE = f"{BASE_NAME}.tag_source"
 
     @classmethod
     def set_tags(
         cls,
         tags: Dict[str, str],
         synchronicity: Optional[Literal["sync", "async"]] = None,
-        tag_origin: Optional[Literal["labmda", "self"]] = None,
+        tag_source: Optional[Literal["labmda", "self"]] = None,
     ):
         if synchronicity is not None:
             tags[cls.SYNCHRONICITY] = str(synchronicity)
-        if tag_origin is not None:
-            tags[cls.TAG_ORIGIN] = str(tag_origin)
+        if tag_source is not None:
+            tags[cls.TAG_SOURCE] = str(tag_source)
