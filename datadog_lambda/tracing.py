@@ -621,14 +621,23 @@ def create_inferred_span_from_kinesis_event(event, context):
 
 def create_inferred_span_from_dynamodb_event(event, context):
     event_record = get_first_record(event)
-    table_name = event_record["eventSourceARN"].split("/")[1]
+    event_source_arn = event_record["eventSourceARN"]
+    table_name = event_source_arn.split("/")[1]
+    dynamodb_message = event_record["dynamodb"]
     tags = {
         "operation_name": "aws.dynamodb",
         "resource_names": table_name,
+        "tablename": table_name,
+        "event_source_arn": event_source_arn,
+        "event_id": event_record["eventID"],
+        "event_name": event_record["eventName"],
+        "event_version": event_record["eventVersion"],
+        "stream_view_type": dynamodb_message["StreamViewType"],
+        "size_bytes": dynamodb_message["SizeBytes"],
         InferredSpanTags.INHERIT_LAMBDA_TAG: False,
         InferredSpanTags.IS_ASYNC_TAG: True,
     }
-    request_time_epoch = event_record["dynamodb"]["ApproximateCreationDateTime"]
+    request_time_epoch = dynamodb_message["ApproximateCreationDateTime"]
 
     args = {
         "service": "dynamodb",
