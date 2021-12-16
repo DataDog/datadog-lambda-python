@@ -564,6 +564,7 @@ def create_inferred_span_from_sns_event(event, context):
         "type": sns_message["Type"],
         "message": sns_message["Message"],
         "subject": sns_message["Subject"],
+        "event_subscription_arn": event_record["EventSubscriptionArn"],
         InferredSpanTags.INHERIT_LAMBDA_TAG: False,
         InferredSpanTags.IS_ASYNC_TAG: True,
     }
