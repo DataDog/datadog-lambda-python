@@ -476,14 +476,15 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
 
 def create_inferred_span_from_api_gateway_event(event, context):
     request_context = event["requestContext"]
-    domain = ["domainName"]
+    domain = request_context["domainName"]
+    method = event["httpMethod"]
     path = event["path"]
     tags = {
         "operation_name": "aws.apigateway.rest",
         "http.url": domain + path,
         "endpoint": path,
-        "http.method": event["httpMethod"],
-        "resource_names": domain + path,
+        "http.method": method,
+        "resource_names": method + path,
         "apiid": request_context["apiId"],
         "apiname": request_context["apiId"],
         "stage": request_context["stage"],
@@ -494,7 +495,7 @@ def create_inferred_span_from_api_gateway_event(event, context):
     request_time_epoch = request_context["requestTimeEpoch"]
     args = {
         "service": domain,
-        "resource": domain + path,
+        "resource": method + path,
         "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
