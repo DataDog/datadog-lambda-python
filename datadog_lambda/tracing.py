@@ -524,10 +524,15 @@ def create_inferred_span_from_http_api_event(event, context):
 
 def create_inferred_span_from_sqs_event(event, context):
     event_record = get_first_record(event)
-    queue_name = event_record["eventSourceARN"].split(":")[-1]
+    event_source_arn = event_record["eventSourceARN"]
+    queue_name = event_source_arn.split(":")[-1]
     tags = {
         "operation_name": "aws.sqs",
         "resource_names": queue_name,
+        "queuename": queue_name,
+        "event_source_arn": event_source_arn,
+        "receipt_handle": event_record["receiptHandle"],
+        "sender_id": event_record["attributes"]["SenderId"],
         InferredSpanTags.INHERIT_LAMBDA_TAG: False,
         InferredSpanTags.IS_ASYNC_TAG: True,
     }
