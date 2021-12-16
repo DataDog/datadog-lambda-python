@@ -3,8 +3,9 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
-
 # Datadog trace sampling priority
+
+
 class SamplingPriority(object):
     USER_REJECT = -1
     AUTO_REJECT = 0
@@ -41,8 +42,3 @@ class XrayDaemon(object):
     XRAY_TRACE_ID_HEADER_NAME = "_X_AMZN_TRACE_ID"
     XRAY_DAEMON_ADDRESS = "AWS_XRAY_DAEMON_ADDRESS"
     FUNCTION_NAME_HEADER_NAME = "AWS_LAMBDA_FUNCTION_NAME"
-
-
-class InferredSpanTags(object):
-    IS_ASYNC_TAG = "inferred_span.is_async"
-    INHERIT_LAMBDA_TAG = "inferred_span.inherit_lambda"

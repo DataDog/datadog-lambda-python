@@ -7,13 +7,13 @@ import logging
 import os
 import json
 from datetime import datetime, timezone
+from typing import Optional, Literal, Dict
 
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
     TraceContextSource,
     XrayDaemon,
-    InferredSpanTags,
 )
 from datadog_lambda.xray import (
     send_segment,
@@ -457,10 +457,12 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
         "connection_id": request_context["connectionId"],
         "event_type": request_context["eventType"],
         "message_direction": request_context["messageDirection"],
-        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
-        InferredSpanTags.IS_ASYNC_TAG: is_api_gateway_invocation_async(event),
     }
     request_time_epoch = request_context["requestTimeEpoch"]
+    if is_api_gateway_invocation_async(event):
+        InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
+    else:
+        InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     args = {
         "service": domain,
         "resource": endpoint,
@@ -489,10 +491,12 @@ def create_inferred_span_from_api_gateway_event(event, context):
         "apiname": request_context["apiId"],
         "stage": request_context["stage"],
         "request_id": request_context["requestId"],
-        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
-        InferredSpanTags.IS_ASYNC_TAG: is_api_gateway_invocation_async(event),
     }
     request_time_epoch = request_context["requestTimeEpoch"]
+    if is_api_gateway_invocation_async(event):
+        InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
+    else:
+        InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     args = {
         "service": domain,
         "resource": method + path,
@@ -524,10 +528,12 @@ def create_inferred_span_from_http_api_event(event, context):
         "apiid": request_context["apiId"],
         "apiname": request_context["apiId"],
         "stage": request_context["stage"],
-        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
-        InferredSpanTags.IS_ASYNC_TAG: is_api_gateway_invocation_async(event),
     }
     request_time_epoch = request_context["timeEpoch"]
+    if is_api_gateway_invocation_async(event):
+        InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
+    else:
+        InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     args = {
         "service": domain,
         "resource": method + path,
@@ -552,9 +558,8 @@ def create_inferred_span_from_sqs_event(event, context):
         "event_source_arn": event_source_arn,
         "receipt_handle": event_record["receiptHandle"],
         "sender_id": event_record["attributes"]["SenderId"],
-        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
-        InferredSpanTags.IS_ASYNC_TAG: True,
     }
+    InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     request_time_epoch = event_record["attributes"]["SentTimestamp"]
     args = {
         "service": "sqs",
@@ -584,9 +589,8 @@ def create_inferred_span_from_sns_event(event, context):
         "message": sns_message["Message"],
         "subject": sns_message["Subject"],
         "event_subscription_arn": event_record["EventSubscriptionArn"],
-        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
-        InferredSpanTags.IS_ASYNC_TAG: True,
     }
+    InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     sns_dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
     timestamp = event_record["Sns"]["Timestamp"]
     dt = datetime.strptime(timestamp, sns_dt_format)
@@ -620,9 +624,8 @@ def create_inferred_span_from_kinesis_event(event, context):
         "event_name": event_record["eventName"],
         "event_version": event_record["eventVersion"],
         "partition_key": event_record["kinesis"]["partitionKey"],
-        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
-        InferredSpanTags.IS_ASYNC_TAG: True,
     }
+    InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     request_time_epoch = event_record["kinesis"]["approximateArrivalTimestamp"]
 
     args = {
@@ -653,10 +656,8 @@ def create_inferred_span_from_dynamodb_event(event, context):
         "event_version": event_record["eventVersion"],
         "stream_view_type": dynamodb_message["StreamViewType"],
         "size_bytes": dynamodb_message["SizeBytes"],
-        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
-        InferredSpanTags.IS_ASYNC_TAG: True,
     }
-    request_time_epoch = dynamodb_message["ApproximateCreationDateTime"]
+    InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
 
     args = {
         "service": "dynamodb",
@@ -683,9 +684,8 @@ def create_inferred_span_from_s3_event(event, context):
         "object_key": event_record["s3"]["object"]["key"],
         "object_size": event_record["s3"]["object"]["size"],
         "object_etag": event_record["s3"]["bucket"],
-        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
-        InferredSpanTags.IS_ASYNC_TAG: True,
     }
+    InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
     dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
     timestamp = event_record["eventTime"]
     dt = datetime.strptime(timestamp, dt_format)
@@ -709,9 +709,12 @@ def create_inferred_span_from_eventbridge_event(event, context):
         "operation_name": "aws.eventbridge",
         "resource_names": source,
         "detail_type": event["detail-type"],
-        InferredSpanTags.INHERIT_LAMBDA_TAG: False,
-        InferredSpanTags.IS_ASYNC_TAG: True,
     }
+    InferredSpanInfo.set_tags(
+        tags,
+        synchronicity="async",
+        tag_source="self",
+    )
     dt_format = "%Y-%m-%dT%H:%M:%SZ"
     timestamp = event["time"]
     dt = datetime.strptime(timestamp, dt_format)
@@ -772,3 +775,21 @@ def create_function_execution_span(
     if parent_span:
         span.parent_id = parent_span.span_id
     return span
+
+
+class InferredSpanInfo(object):
+    BASE_NAME = "inferred_span"
+    SYNCHRONICITY = f"{BASE_NAME}.synchronicity"
+    TAG_SOURCE = f"{BASE_NAME}.tag_source"
+
+    @classmethod
+    def set_tags(
+        cls,
+        tags: Dict[str, str],
+        synchronicity: Optional[Literal["sync", "async"]] = None,
+        tag_source: Optional[Literal["labmda", "self"]] = None,
+    ):
+        if synchronicity is not None:
+            tags[cls.SYNCHRONICITY] = str(synchronicity)
+        if tag_source is not None:
+            tags[cls.TAG_SOURCE] = str(tag_source)
