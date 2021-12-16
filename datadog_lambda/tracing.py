@@ -720,7 +720,7 @@ def create_function_execution_span(
 
 
 class InferredSpanInfo(object):
-    BASE_NAME = "inferred_span"
+    BASE_NAME = "_inferred_span"
     SYNCHRONICITY = f"{BASE_NAME}.synchronicity"
     TAG_SOURCE = f"{BASE_NAME}.tag_source"
 
