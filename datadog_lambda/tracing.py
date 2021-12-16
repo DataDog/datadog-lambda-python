@@ -587,10 +587,20 @@ def create_inferred_span_from_sns_event(event, context):
 
 def create_inferred_span_from_kinesis_event(event, context):
     event_record = get_first_record(event)
-    stream_name = event_record["eventSourceARN"].split(":")[-1]
+    event_source_arn = event_record["eventSourceARN"]
+    event_id = event_record["eventID"]
+    stream_name = event_source_arn.split(":")[-1]
+    shard_id = event_id.split(":")[0]
     tags = {
         "operation_name": "aws.kinesis",
         "resource_names": stream_name,
+        "streamname": stream_name,
+        "shardid": shard_id,
+        "event_source_arn": event_source_arn,
+        "event_id": event_id,
+        "event_name": event_record["eventName"],
+        "event_version": event_record["eventVersion"],
+        "partition_key": event_record["kinesis"]["partitionKey"],
         InferredSpanTags.INHERIT_LAMBDA_TAG: False,
         InferredSpanTags.IS_ASYNC_TAG: True,
     }
