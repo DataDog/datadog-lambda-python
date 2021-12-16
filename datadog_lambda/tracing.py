@@ -658,6 +658,12 @@ def create_inferred_span_from_s3_event(event, context):
     tags = {
         "operation_name": "aws.s3",
         "resource_names": bucket_name,
+        "event_name": event_record["eventName"],
+        "bucketname": bucket_name,
+        "bucket_arn": event_record["s3"]["bucket"]["arn"],
+        "object_key": event_record["s3"]["object"]["key"],
+        "object_size": event_record["s3"]["object"]["size"],
+        "object_etag": event_record["s3"]["bucket"],
         InferredSpanTags.INHERIT_LAMBDA_TAG: False,
         InferredSpanTags.IS_ASYNC_TAG: True,
     }
