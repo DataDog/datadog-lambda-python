@@ -689,6 +689,7 @@ def create_inferred_span_from_eventbridge_event(event, context):
     tags = {
         "operation_name": "aws.eventbridge",
         "resource_names": source,
+        "detail_type": event["detail-type"],
         InferredSpanTags.INHERIT_LAMBDA_TAG: False,
         InferredSpanTags.IS_ASYNC_TAG: True,
     }
