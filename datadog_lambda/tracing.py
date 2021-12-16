@@ -552,10 +552,18 @@ def create_inferred_span_from_sqs_event(event, context):
 
 def create_inferred_span_from_sns_event(event, context):
     event_record = get_first_record(event)
-    topic_name = event_record["Sns"]["TopicArn"].split(":")[-1]
+    sns_message = event_record["Sns"]
+    topic_arn = event_record["Sns"]["TopicArn"]
+    topic_name = topic_arn.split(":")[-1]
     tags = {
         "operation_name": "aws.sns",
         "resource_names": topic_name,
+        "topicname": topic_name,
+        "topic_arn": topic_arn,
+        "message_id": sns_message["MessageId"],
+        "type": sns_message["Type"],
+        "message": sns_message["Message"],
+        "subject": sns_message["Subject"],
         InferredSpanTags.INHERIT_LAMBDA_TAG: False,
         InferredSpanTags.IS_ASYNC_TAG: True,
     }
