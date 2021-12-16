@@ -442,22 +442,29 @@ def is_api_gateway_invocation_async(event):
 
 
 def create_inferred_span_from_api_gateway_websocket_event(event, context):
-    domain = event["requestContext"]["domainName"]
-    endpoint = event["requestContext"]["routeKey"]
+    request_context = event["requestContext"]
+    domain = request_context["domainName"]
+    endpoint = request_context["routeKey"]
+    connection_id = request_context["connectionId"]
     tags = {
         "operation_name": "aws.apigateway.websocket",
         "http.url": domain + endpoint,
         "endpoint": endpoint,
-        "resource_names": domain + endpoint,
-        "request_id": context.aws_request_id,
-        "connection_id": event["requestContext"]["connectionId"],
+        "resource_names": connection_id + endpoint,
+        "apiid": request_context["apiId"],
+        "apiname": request_context["apiId"],
+        "stage": request_context["stage"],
+        "request_id": request_context["requestId"],
+        "connection_id": connection_id,
+        "event_type": request_context["eventType"],
+        "message_direction": request_context["messageDirection"],
         InferredSpanTags.INHERIT_LAMBDA_TAG: False,
         InferredSpanTags.IS_ASYNC_TAG: is_api_gateway_invocation_async(event),
     }
-    request_time_epoch = event["requestContext"]["requestTimeEpoch"]
+    request_time_epoch = request_context["requestTimeEpoch"]
     args = {
         "service": domain,
-        "resource": domain + endpoint,
+        "resource": connection_id + endpoint,
         "span_type": "web",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
