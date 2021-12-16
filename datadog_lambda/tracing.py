@@ -506,22 +506,30 @@ def create_inferred_span_from_api_gateway_event(event, context):
 
 
 def create_inferred_span_from_http_api_event(event, context):
-    domain = event["requestContext"]["domainName"]
+    request_context = event["requestContext"]
+    domain = request_context["domainName"]
+    method = request_context["http"]["method"]
     path = event["rawPath"]
     tags = {
         "operation_name": "aws.httpapi",
-        "http.url": domain + path,
         "endpoint": path,
-        "http.method": event["requestContext"]["http"]["method"],
-        "resource_names": domain + path,
+        "http.url": method + path,
+        "http.method": request_context["http"]["method"],
+        "http.protocol": request_context["http"]["protocol"],
+        "http.source_ip": request_context["http"]["sourceIp"],
+        "http.user_agent": request_context["http"]["userAgent"],
+        "resource_names": method + path,
         "request_id": context.aws_request_id,
+        "apiid": request_context["apiId"],
+        "apiname": request_context["apiId"],
+        "stage": request_context["stage"],
         InferredSpanTags.INHERIT_LAMBDA_TAG: False,
         InferredSpanTags.IS_ASYNC_TAG: is_api_gateway_invocation_async(event),
     }
-    request_time_epoch = event["requestContext"]["timeEpoch"]
+    request_time_epoch = request_context["timeEpoch"]
     args = {
         "service": domain,
-        "resource": domain + path,
+        "resource": method + path,
         "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
