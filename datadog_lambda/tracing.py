@@ -7,7 +7,13 @@ import logging
 import os
 import json
 from datetime import datetime, timezone
-from typing import Optional, Literal, Dict
+from typing import Optional, Dict
+
+try:
+    from typing import Literal
+except ImportError:
+    # Literal was added to typing in python 3.8
+    from typing_extensions import Literal
 
 from datadog_lambda.constants import (
     SamplingPriority,
