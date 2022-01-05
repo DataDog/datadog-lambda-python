@@ -178,7 +178,7 @@ def extract_context_from_http_event_or_context(event, lambda_context):
     return trace_id, parent_id, sampling_priority
 
 
-def extract_context_from_sqs_event_or_context(event, lambda_context):
+def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     """
     Extract Datadog trace context from the first SQS message attributes.
 
@@ -186,8 +186,11 @@ def extract_context_from_sqs_event_or_context(event, lambda_context):
     """
     try:
         first_record = event["Records"][0]
-        msg_attributes = first_record.get("messageAttributes", {})
-        dd_json_data = msg_attributes.get("_datadog", {}).get("stringValue", r"{}")
+        msg_attributes = first_record.get(
+            "messageAttributes", first_record.get("MessageAttributes", {})
+        )
+        dd_payload = msg_attributes.get("_datadog", {})
+        dd_json_data = dd_payload.get("stringValue", dd_payload.get("Value", r"{}"))
         dd_data = json.loads(dd_json_data)
         trace_id = dd_data.get(TraceHeader.TRACE_ID)
         parent_id = dd_data.get(TraceHeader.PARENT_ID)
@@ -242,7 +245,7 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
             trace_id,
             parent_id,
             sampling_priority,
-        ) = extract_context_from_sqs_event_or_context(event, lambda_context)
+        ) = extract_context_from_sqs_or_sns_event_or_context(event, lambda_context)
     else:
         trace_id, parent_id, sampling_priority = extract_context_from_lambda_context(
             lambda_context
