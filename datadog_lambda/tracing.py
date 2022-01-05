@@ -481,12 +481,13 @@ def create_inferred_span_from_api_gateway_event(event, context):
     domain = request_context["domainName"]
     method = event["httpMethod"]
     path = event["path"]
+    resource = "{0} {1}".format(method, path)
     tags = {
         "operation_name": "aws.apigateway.rest",
         "http.url": domain + path,
         "endpoint": path,
         "http.method": method,
-        "resource_names": method + path,
+        "resource_names": resource,
         "apiid": request_context["apiId"],
         "apiname": request_context["apiId"],
         "stage": request_context["stage"],
@@ -499,7 +500,7 @@ def create_inferred_span_from_api_gateway_event(event, context):
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     args = {
         "service": domain,
-        "resource": method + path,
+        "resource": resource,
         "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
@@ -515,15 +516,16 @@ def create_inferred_span_from_http_api_event(event, context):
     domain = request_context["domainName"]
     method = request_context["http"]["method"]
     path = event["rawPath"]
+    resource = "{0} {1}".format(method, path)
     tags = {
         "operation_name": "aws.httpapi",
         "endpoint": path,
-        "http.url": method + path,
+        "http.url": domain + path,
         "http.method": request_context["http"]["method"],
         "http.protocol": request_context["http"]["protocol"],
         "http.source_ip": request_context["http"]["sourceIp"],
         "http.user_agent": request_context["http"]["userAgent"],
-        "resource_names": method + path,
+        "resource_names": resource,
         "request_id": context.aws_request_id,
         "apiid": request_context["apiId"],
         "apiname": request_context["apiId"],
@@ -536,7 +538,7 @@ def create_inferred_span_from_http_api_event(event, context):
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     args = {
         "service": domain,
-        "resource": method + path,
+        "resource": resource,
         "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
