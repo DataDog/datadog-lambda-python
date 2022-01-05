@@ -1,6 +1,4 @@
 START RequestId: XXXX Version: $LATEST
-05 Jan 2022 15:49:41,170 [INFO] (/var/runtime/bootstrap.py) main started at epoch 1641397781171
-05 Jan 2022 15:49:41,825 [INFO] (/var/runtime/bootstrap.py) init complete at epoch 1641397781826
 {"m": "aws.lambda.enhanced.invocations", "v": 1, "e": XXXX, "t": ["region:sa-east-1", "account_id:XXXX", "functionname:integration-tests-python-XXXX-async-metrics_python36", "resource:integration-tests-python-XXXX-async-metrics_python36", "cold_start:true", "memorysize:1024", "runtime:python3.6", "datadog_lambda:vXX", "dd_lambda_layer:datadog-python36_X.X.X"]}
 {"m": "hello.dog", "v": 1, "e": XXXX, "t": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python36_X.X.X"]}
 {"m": "tests.integration.count", "v": 21, "e": XXXX, "t": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python36_X.X.X"]}
