@@ -658,7 +658,7 @@ def create_inferred_span_from_dynamodb_event(event, context):
         "size_bytes": dynamodb_message["SizeBytes"],
     }
     InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
-
+    request_time_epoch = event_record["dynamodb"]["ApproximateCreationDateTime"]
     args = {
         "service": "dynamodb",
         "resource": table_name,
