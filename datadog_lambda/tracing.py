@@ -187,7 +187,8 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     try:
         first_record = event["Records"][0]
         msg_attributes = first_record.get(
-            "messageAttributes", first_record.get("MessageAttributes", {})
+            "messageAttributes",
+            first_record.get("Sns", {}).get("MessageAttributes", {}),
         )
         dd_payload = msg_attributes.get("_datadog", {})
         dd_json_data = dd_payload.get("stringValue", dd_payload.get("Value", r"{}"))
