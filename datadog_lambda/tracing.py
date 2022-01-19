@@ -198,6 +198,21 @@ def extract_context_from_sqs_event_or_context(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
+def extract_context_from_eventbridge_event(event, lambda_context):
+    """
+    Extract datadog trace context from an EventBridge message's Details.
+    Details is often a weirdly escaped almost-JSON string. Here we have to correct for that.
+    """
+    try:
+        detail = event["detail"]
+        trace_id = detail.get(TraceHeader.TRACE_ID)
+        parent_id = detail.get(TraceHeader.PARENT_ID)
+        sampling_priority = detail.get(TraceHeader.SAMPLING_PRIORITY)
+        return trace_id, parent_id, sampling_priority
+    except Exception:
+        return extract_context_from_lambda_context(lambda_context)
+
+
 def extract_context_custom_extractor(extractor, event, lambda_context):
     """
     Extract Datadog trace context using a custom trace extractor function
@@ -225,6 +240,8 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
     global dd_trace_context
     trace_context_source = None
 
+    event_source = parse_event_source(event)
+
     if extractor is not None:
         (
             trace_id,
@@ -243,6 +260,12 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
             parent_id,
             sampling_priority,
         ) = extract_context_from_sqs_event_or_context(event, lambda_context)
+    elif event_source == EventTypes.EVENTBRIDGE:
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extract_context_from_eventbridge_event(event, lambda_context)
     else:
         trace_id, parent_id, sampling_priority = extract_context_from_lambda_context(
             lambda_context
