@@ -239,7 +239,6 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
     """
     global dd_trace_context
     trace_context_source = None
-
     event_source = parse_event_source(event)
 
     if extractor is not None:
@@ -260,7 +259,7 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
             parent_id,
             sampling_priority,
         ) = extract_context_from_sqs_event_or_context(event, lambda_context)
-    elif event_source == EventTypes.EVENTBRIDGE:
+    elif event_source.equals(EventTypes.EVENTBRIDGE):
         (
             trace_id,
             parent_id,

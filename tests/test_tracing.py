@@ -940,4 +940,14 @@ class TestInferredSpans(unittest.TestCase):
         trace, parent, sampling = extract_context_from_eventbridge_event(event, ctx)
         self.assertEqual(trace, "12345")
         self.assertEqual(parent, "67890"),
-        self.assertEqual(sampling, None)
+        self.assertEqual(sampling, "2")
+
+    def test_extract_dd_trace_context_for_eventbridge(self):
+        event_sample_source = "eventbridge-custom"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        context, source = extract_dd_trace_context(event, ctx)
+        self.assertEqual(context["trace-id"], "12345")
+        self.assertEqual(context["parent-id"], "67890")
