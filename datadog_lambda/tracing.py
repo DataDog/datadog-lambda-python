@@ -211,9 +211,13 @@ def extract_context_from_eventbridge_event(event, lambda_context):
     """
     try:
         detail = event["detail"]
-        trace_id = detail.get(TraceHeader.TRACE_ID)
-        parent_id = detail.get(TraceHeader.PARENT_ID)
-        sampling_priority = detail.get(TraceHeader.SAMPLING_PRIORITY)
+        dd_context = detail.get("_datadog")
+        print(f"dd_context is {dd_context}")
+        if not dd_context:
+            return extract_context_from_lambda_context(lambda_context)
+        trace_id = dd_context.get(TraceHeader.TRACE_ID)
+        parent_id = dd_context.get(TraceHeader.PARENT_ID)
+        sampling_priority = dd_context.get(TraceHeader.SAMPLING_PRIORITY)
         return trace_id, parent_id, sampling_priority
     except Exception:
         return extract_context_from_lambda_context(lambda_context)

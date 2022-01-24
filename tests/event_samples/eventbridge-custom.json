@@ -9,8 +9,10 @@
   "resources": [],
   "detail": {
     "foo": "bar",
-    "x-datadog-trace-id": "12345",
-    "x-datadog-parent-id": "67890",
-    "x-datadog-sampling-priority": "2"
+    "_datadog": {
+      "x-datadog-trace-id": "12345",
+      "x-datadog-parent-id": "67890",
+      "x-datadog-sampling-priority": "2"
+    }
   }
 }
