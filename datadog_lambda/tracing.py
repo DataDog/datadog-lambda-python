@@ -594,7 +594,6 @@ def create_inferred_span_from_sns_event(event, context):
         "topic_arn": topic_arn,
         "message_id": sns_message["MessageId"],
         "type": sns_message["Type"],
-        "message": sns_message["Message"],
         "subject": sns_message["Subject"],
         "event_subscription_arn": event_record["EventSubscriptionArn"],
     }
@@ -676,6 +675,7 @@ def create_inferred_span_from_dynamodb_event(event, context):
     span = tracer.trace("aws.dynamodb", **args)
     if span:
         span.set_tags(tags)
+
     span.start = int(request_time_epoch)
     return span
 
@@ -691,7 +691,7 @@ def create_inferred_span_from_s3_event(event, context):
         "bucket_arn": event_record["s3"]["bucket"]["arn"],
         "object_key": event_record["s3"]["object"]["key"],
         "object_size": event_record["s3"]["object"]["size"],
-        "object_etag": event_record["s3"]["bucket"],
+        "object_etag": event_record["s3"]["etag"],
     }
     InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
     dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
