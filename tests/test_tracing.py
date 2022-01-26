@@ -575,9 +575,11 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("http.method"), "POST")
         self.assertEqual(
             span.get_tag("resource_names"),
-            "70ixmpl4fl.execute-api.us-east-2.amazonaws.com/path/to/resource",
+            "POST /path/to/resource",
         )
-        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(
+            span.get_tag("request_id"), "c6af9ac6-7b61-11e6-9a41-93e8deadbeef"
+        )
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1428582896.0)
         self.assertEqual(span.span_type, "http")
@@ -604,9 +606,11 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("http.method"), "GET")
         self.assertEqual(
             span.get_tag("resource_names"),
-            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
+            "GET /http/get",
         )
-        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(
+            span.get_tag("request_id"), "7bf3b161-f698-432c-a639-6fef8b445137"
+        )
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1631210915.2509997)
         self.assertEqual(span.span_type, "http")
@@ -633,9 +637,11 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("http.method"), "GET")
         self.assertEqual(
             span.get_tag("resource_names"),
-            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
+            "GET /http/get",
         )
-        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(
+            span.get_tag("request_id"), "7bf3b161-f698-432c-a639-6fef8b445137"
+        )
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1631210915.2509997)
         self.assertEqual(span.span_type, "http")
@@ -662,7 +668,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("http.method"), "GET")
         self.assertEqual(
             span.get_tag("resource_names"),
-            "x02yirxc7a.execute-api.sa-east-1.amazonaws.com/httpapi/get",
+            "GET /httpapi/get",
         )
         self.assertEqual(span.get_tag("request_id"), "123")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
@@ -691,9 +697,9 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("http.method"), None)
         self.assertEqual(
             span.get_tag("resource_names"),
-            "p62c47itsb.execute-api.sa-east-1.amazonaws.com$default",
+            "$default",
         )
-        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(span.get_tag("request_id"), "Fc5S3EvdGjQFtsQ=")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1631285061.365)
         self.assertEqual(span.span_type, "web")
@@ -720,9 +726,9 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("http.method"), None)
         self.assertEqual(
             span.get_tag("resource_names"),
-            "p62c47itsb.execute-api.sa-east-1.amazonaws.com$connect",
+            "$connect",
         )
-        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(span.get_tag("request_id"), "Fc2tgH1RmjQFnOg=")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1631284003.071)
         self.assertEqual(span.span_type, "web")
@@ -749,9 +755,9 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("http.method"), None)
         self.assertEqual(
             span.get_tag("resource_names"),
-            "p62c47itsb.execute-api.sa-east-1.amazonaws.com$disconnect",
+            "$disconnect",
         )
-        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(span.get_tag("request_id"), "Fc2ydE4LmjQFhdg=")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.start, 1631284034.737)
         self.assertEqual(span.span_type, "web")
