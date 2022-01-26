@@ -8,6 +8,11 @@
   "region": "sa-east-1",
   "resources": [],
   "detail": {
-    "foo": "bar"
+    "foo": "bar",
+    "_datadog": {
+      "x-datadog-trace-id": "12345",
+      "x-datadog-parent-id": "67890",
+      "x-datadog-sampling-priority": "2"
+    }
   }
 }

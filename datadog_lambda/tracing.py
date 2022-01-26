@@ -7,7 +7,13 @@ import logging
 import os
 import json
 from datetime import datetime, timezone
-from typing import Optional, Literal, Dict
+from typing import Optional, Dict
+
+try:
+    from typing import Literal
+except ImportError:
+    # Literal was added to typing in python 3.8
+    from typing_extensions import Literal
 
 from datadog_lambda.constants import (
     SamplingPriority,
@@ -227,6 +233,25 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
+def extract_context_from_eventbridge_event(event, lambda_context):
+    """
+    Extract datadog trace context from an EventBridge message's Details.
+    Details is often a weirdly escaped almost-JSON string. Here we have to correct for that.
+    """
+    try:
+        detail = event["detail"]
+        dd_context = detail.get("_datadog")
+        print(f"dd_context is {dd_context}")
+        if not dd_context:
+            return extract_context_from_lambda_context(lambda_context)
+        trace_id = dd_context.get(TraceHeader.TRACE_ID)
+        parent_id = dd_context.get(TraceHeader.PARENT_ID)
+        sampling_priority = dd_context.get(TraceHeader.SAMPLING_PRIORITY)
+        return trace_id, parent_id, sampling_priority
+    except Exception:
+        return extract_context_from_lambda_context(lambda_context)
+
+
 def extract_context_custom_extractor(extractor, event, lambda_context):
     """
     Extract Datadog trace context using a custom trace extractor function
@@ -253,6 +278,7 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
     """
     global dd_trace_context
     trace_context_source = None
+    event_source = parse_event_source(event)
 
     if extractor is not None:
         (
@@ -272,6 +298,12 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
             parent_id,
             sampling_priority,
         ) = extract_context_from_sqs_or_sns_event_or_context(event, lambda_context)
+    elif event_source.equals(EventTypes.EVENTBRIDGE):
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extract_context_from_eventbridge_event(event, lambda_context)
     else:
         trace_id, parent_id, sampling_priority = extract_context_from_lambda_context(
             lambda_context
@@ -775,7 +807,7 @@ def create_function_execution_span(
 
 
 class InferredSpanInfo(object):
-    BASE_NAME = "inferred_span"
+    BASE_NAME = "_inferred_span"
     SYNCHRONICITY = f"{BASE_NAME}.synchronicity"
     TAG_SOURCE = f"{BASE_NAME}.tag_source"
 
