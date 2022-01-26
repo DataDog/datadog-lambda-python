@@ -7,7 +7,13 @@ import logging
 import os
 import json
 from datetime import datetime, timezone
-from typing import Optional, Literal, Dict
+from typing import Optional, Dict
+
+try:
+    from typing import Literal
+except ImportError:
+    # Literal was added to typing in python 3.8
+    from typing_extensions import Literal
 
 from datadog_lambda.constants import (
     SamplingPriority,
@@ -442,24 +448,30 @@ def is_api_gateway_invocation_async(event):
 
 
 def create_inferred_span_from_api_gateway_websocket_event(event, context):
-    domain = event["requestContext"]["domainName"]
-    endpoint = event["requestContext"]["routeKey"]
+    request_context = event["requestContext"]
+    domain = request_context["domainName"]
+    endpoint = request_context["routeKey"]
     tags = {
         "operation_name": "aws.apigateway.websocket",
         "http.url": domain + endpoint,
         "endpoint": endpoint,
-        "resource_names": domain + endpoint,
-        "request_id": context.aws_request_id,
-        "connection_id": event["requestContext"]["connectionId"],
+        "resource_names": endpoint,
+        "apiid": request_context["apiId"],
+        "apiname": request_context["apiId"],
+        "stage": request_context["stage"],
+        "request_id": request_context["requestId"],
+        "connection_id": request_context["connectionId"],
+        "event_type": request_context["eventType"],
+        "message_direction": request_context["messageDirection"],
     }
+    request_time_epoch = request_context["requestTimeEpoch"]
     if is_api_gateway_invocation_async(event):
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
-    request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
         "service": domain,
-        "resource": domain + endpoint,
+        "resource": endpoint,
         "span_type": "web",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
@@ -471,24 +483,30 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
 
 
 def create_inferred_span_from_api_gateway_event(event, context):
-    domain = event["requestContext"]["domainName"]
+    request_context = event["requestContext"]
+    domain = request_context["domainName"]
+    method = event["httpMethod"]
     path = event["path"]
+    resource = "{0} {1}".format(method, path)
     tags = {
         "operation_name": "aws.apigateway.rest",
         "http.url": domain + path,
         "endpoint": path,
-        "http.method": event["httpMethod"],
-        "resource_names": domain + path,
-        "request_id": context.aws_request_id,
+        "http.method": method,
+        "resource_names": resource,
+        "apiid": request_context["apiId"],
+        "apiname": request_context["apiId"],
+        "stage": request_context["stage"],
+        "request_id": request_context["requestId"],
     }
+    request_time_epoch = request_context["requestTimeEpoch"]
     if is_api_gateway_invocation_async(event):
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
-    request_time_epoch = event["requestContext"]["requestTimeEpoch"]
     args = {
         "service": domain,
-        "resource": domain + path,
+        "resource": resource,
         "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
@@ -500,24 +518,33 @@ def create_inferred_span_from_api_gateway_event(event, context):
 
 
 def create_inferred_span_from_http_api_event(event, context):
-    domain = event["requestContext"]["domainName"]
+    request_context = event["requestContext"]
+    domain = request_context["domainName"]
+    method = request_context["http"]["method"]
     path = event["rawPath"]
+    resource = "{0} {1}".format(method, path)
     tags = {
         "operation_name": "aws.httpapi",
-        "http.url": domain + path,
         "endpoint": path,
-        "http.method": event["requestContext"]["http"]["method"],
-        "resource_names": domain + path,
+        "http.url": domain + path,
+        "http.method": request_context["http"]["method"],
+        "http.protocol": request_context["http"]["protocol"],
+        "http.source_ip": request_context["http"]["sourceIp"],
+        "http.user_agent": request_context["http"]["userAgent"],
+        "resource_names": resource,
         "request_id": context.aws_request_id,
+        "apiid": request_context["apiId"],
+        "apiname": request_context["apiId"],
+        "stage": request_context["stage"],
     }
+    request_time_epoch = request_context["timeEpoch"]
     if is_api_gateway_invocation_async(event):
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
-    request_time_epoch = event["requestContext"]["timeEpoch"]
     args = {
         "service": domain,
-        "resource": domain + path,
+        "resource": resource,
         "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
@@ -530,10 +557,15 @@ def create_inferred_span_from_http_api_event(event, context):
 
 def create_inferred_span_from_sqs_event(event, context):
     event_record = get_first_record(event)
-    queue_name = event_record["eventSourceARN"].split(":")[-1]
+    event_source_arn = event_record["eventSourceARN"]
+    queue_name = event_source_arn.split(":")[-1]
     tags = {
         "operation_name": "aws.sqs",
         "resource_names": queue_name,
+        "queuename": queue_name,
+        "event_source_arn": event_source_arn,
+        "receipt_handle": event_record["receiptHandle"],
+        "sender_id": event_record["attributes"]["SenderId"],
     }
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     request_time_epoch = event_record["attributes"]["SentTimestamp"]
@@ -552,10 +584,18 @@ def create_inferred_span_from_sqs_event(event, context):
 
 def create_inferred_span_from_sns_event(event, context):
     event_record = get_first_record(event)
-    topic_name = event_record["Sns"]["TopicArn"].split(":")[-1]
+    sns_message = event_record["Sns"]
+    topic_arn = event_record["Sns"]["TopicArn"]
+    topic_name = topic_arn.split(":")[-1]
     tags = {
         "operation_name": "aws.sns",
         "resource_names": topic_name,
+        "topicname": topic_name,
+        "topic_arn": topic_arn,
+        "message_id": sns_message["MessageId"],
+        "type": sns_message["Type"],
+        "subject": sns_message["Subject"],
+        "event_subscription_arn": event_record["EventSubscriptionArn"],
     }
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     sns_dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -577,10 +617,20 @@ def create_inferred_span_from_sns_event(event, context):
 
 def create_inferred_span_from_kinesis_event(event, context):
     event_record = get_first_record(event)
-    stream_name = event_record["eventSourceARN"].split(":")[-1]
+    event_source_arn = event_record["eventSourceARN"]
+    event_id = event_record["eventID"]
+    stream_name = event_source_arn.split(":")[-1]
+    shard_id = event_id.split(":")[0]
     tags = {
         "operation_name": "aws.kinesis",
         "resource_names": stream_name,
+        "streamname": stream_name,
+        "shardid": shard_id,
+        "event_source_arn": event_source_arn,
+        "event_id": event_id,
+        "event_name": event_record["eventName"],
+        "event_version": event_record["eventVersion"],
+        "partition_key": event_record["kinesis"]["partitionKey"],
     }
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     request_time_epoch = event_record["kinesis"]["approximateArrivalTimestamp"]
@@ -600,14 +650,22 @@ def create_inferred_span_from_kinesis_event(event, context):
 
 def create_inferred_span_from_dynamodb_event(event, context):
     event_record = get_first_record(event)
-    table_name = event_record["eventSourceARN"].split("/")[1]
+    event_source_arn = event_record["eventSourceARN"]
+    table_name = event_source_arn.split("/")[1]
+    dynamodb_message = event_record["dynamodb"]
     tags = {
         "operation_name": "aws.dynamodb",
         "resource_names": table_name,
+        "tablename": table_name,
+        "event_source_arn": event_source_arn,
+        "event_id": event_record["eventID"],
+        "event_name": event_record["eventName"],
+        "event_version": event_record["eventVersion"],
+        "stream_view_type": dynamodb_message["StreamViewType"],
+        "size_bytes": dynamodb_message["SizeBytes"],
     }
     InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
     request_time_epoch = event_record["dynamodb"]["ApproximateCreationDateTime"]
-
     args = {
         "service": "dynamodb",
         "resource": table_name,
@@ -617,6 +675,7 @@ def create_inferred_span_from_dynamodb_event(event, context):
     span = tracer.trace("aws.dynamodb", **args)
     if span:
         span.set_tags(tags)
+
     span.start = int(request_time_epoch)
     return span
 
@@ -627,6 +686,12 @@ def create_inferred_span_from_s3_event(event, context):
     tags = {
         "operation_name": "aws.s3",
         "resource_names": bucket_name,
+        "event_name": event_record["eventName"],
+        "bucketname": bucket_name,
+        "bucket_arn": event_record["s3"]["bucket"]["arn"],
+        "object_key": event_record["s3"]["object"]["key"],
+        "object_size": event_record["s3"]["object"]["size"],
+        "object_etag": event_record["s3"]["etag"],
     }
     InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
     dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -651,6 +716,7 @@ def create_inferred_span_from_eventbridge_event(event, context):
     tags = {
         "operation_name": "aws.eventbridge",
         "resource_names": source,
+        "detail_type": event["detail-type"],
     }
     InferredSpanInfo.set_tags(
         tags,
