@@ -184,7 +184,19 @@ def extract_context_from_http_event_or_context(event, lambda_context):
     return trace_id, parent_id, sampling_priority
 
 
-def extract_context_from_sqs_event_or_context(event, lambda_context):
+def create_sns_event(message):
+    return {
+        "Records": [
+            {
+                "EventSource": "aws:sns",
+                "EventVersion": "1.0",
+                "Sns": message,
+            }
+        ]
+    }
+
+
+def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     """
     Extract Datadog trace context from the first SQS message attributes.
 
@@ -192,8 +204,25 @@ def extract_context_from_sqs_event_or_context(event, lambda_context):
     """
     try:
         first_record = event["Records"][0]
-        msg_attributes = first_record.get("messageAttributes", {})
-        dd_json_data = msg_attributes.get("_datadog", {}).get("stringValue", r"{}")
+
+        # logic to deal with SNS => SQS event
+        if "body" in first_record:
+            body_str = first_record.get("body", {})
+            try:
+                body = json.loads(body_str)
+                if body.get("Type", "") == "Notification" and "TopicArn" in body:
+                    logger.debug("Found SNS message inside SQS event")
+                    first_record = get_first_record(create_sns_event(body))
+            except Exception:
+                first_record = event["Records"][0]
+                pass
+
+        msg_attributes = first_record.get(
+            "messageAttributes",
+            first_record.get("Sns", {}).get("MessageAttributes", {}),
+        )
+        dd_payload = msg_attributes.get("_datadog", {})
+        dd_json_data = dd_payload.get("stringValue", dd_payload.get("Value", r"{}"))
         dd_data = json.loads(dd_json_data)
         trace_id = dd_data.get(TraceHeader.TRACE_ID)
         parent_id = dd_data.get(TraceHeader.PARENT_ID)
@@ -268,7 +297,7 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
             trace_id,
             parent_id,
             sampling_priority,
-        ) = extract_context_from_sqs_event_or_context(event, lambda_context)
+        ) = extract_context_from_sqs_or_sns_event_or_context(event, lambda_context)
     elif event_source.equals(EventTypes.EVENTBRIDGE):
         (
             trace_id,
@@ -561,6 +590,8 @@ def create_inferred_span_from_http_api_event(event, context):
 
 
 def create_inferred_span_from_sqs_event(event, context):
+    trace_ctx = tracer.current_trace_context()
+
     event_record = get_first_record(event)
     queue_name = event_record["eventSourceARN"].split(":")[-1]
     tags = {
@@ -574,11 +605,35 @@ def create_inferred_span_from_sqs_event(event, context):
         "resource": queue_name,
         "span_type": "web",
     }
+    start_time = int(request_time_epoch) / 1000
+
+    # logic to deal with SNS => SQS event
+    sns_span = None
+    if "body" in event_record:
+        body_str = event_record.get("body", {})
+        try:
+            body = json.loads(body_str)
+            if body.get("Type", "") == "Notification" and "TopicArn" in body:
+                logger.debug("Found SNS message inside SQS event")
+                sns_span = create_inferred_span_from_sns_event(
+                    create_sns_event(body), context
+                )
+                sns_span.finish(finish_time=start_time)
+        except Exception:
+            logger.debug("Unable to create SNS span from SQS message")
+            pass
+
+    # trace context needs to be set again as it is reset
+    # when sns_span.finish executes
+    tracer.context_provider.activate(trace_ctx)
     tracer.set_tags({"_dd.origin": "lambda"})
     span = tracer.trace("aws.sqs", **args)
     if span:
         span.set_tags(tags)
-    span.start = int(request_time_epoch) / 1000
+    span.start = start_time
+    if sns_span:
+        span.parent_id = sns_span.span_id
+
     return span
 
 
