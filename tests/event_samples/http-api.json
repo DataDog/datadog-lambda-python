@@ -11,7 +11,10 @@
         "x-amzn-trace-id": "Root=1-613a52fb-4c43cfc95e0241c1471bfa05",
         "x-forwarded-for": "38.122.226.210",
         "x-forwarded-port": "443",
-        "x-forwarded-proto": "https"
+        "x-forwarded-proto": "https",
+        "x-datadog-trace-id": "12345",
+        "x-datadog-parent-id": "67890",
+        "x-datadog-sampling-priority": "2"
     },
     "requestContext": {
         "accountId": "601427279990",

@@ -188,7 +188,10 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source.to_string(), event_sample_source)
-        self.assertEqual(event_source_arn, "arn:aws:kinesis:EXAMPLE")
+        self.assertEqual(
+            event_source_arn,
+            "arn:aws:kinesis:sa-east-1:601427279990:stream/kinesisStream",
+        )
 
     def test_event_source_s3(self):
         event_sample_source = "s3"
@@ -211,7 +214,8 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(
-            event_source_arn, "arn:aws:sns:us-east-1:123456789012:ExampleTopic"
+            event_source_arn,
+            "arn:aws:sns:sa-east-1:601427279990:serverlessTracingTopicPy",
         )
 
     def test_event_source_sqs(self):
@@ -223,7 +227,10 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source.to_string(), event_sample_source)
-        self.assertEqual(event_source_arn, "arn:aws:sqs:us-east-1:123456789012:MyQueue")
+        self.assertEqual(
+            event_source_arn,
+            "arn:aws:sqs:sa-east-1:601427279990:InferredSpansQueueNode",
+        )
 
     def test_event_source_unsupported(self):
         event_sample_source = "custom"
@@ -428,7 +435,7 @@ class GetTriggerTags(unittest.TestCase):
             tags,
             {
                 "function_trigger.event_source": "kinesis",
-                "function_trigger.event_source_arn": "arn:aws:kinesis:EXAMPLE",
+                "function_trigger.event_source_arn": "arn:aws:kinesis:sa-east-1:601427279990:stream/kinesisStream",
             },
         )
 
@@ -458,7 +465,7 @@ class GetTriggerTags(unittest.TestCase):
             tags,
             {
                 "function_trigger.event_source": "sns",
-                "function_trigger.event_source_arn": "arn:aws:sns:us-east-1:123456789012:ExampleTopic",
+                "function_trigger.event_source_arn": "arn:aws:sns:sa-east-1:601427279990:serverlessTracingTopicPy",
             },
         )
 
@@ -473,7 +480,7 @@ class GetTriggerTags(unittest.TestCase):
             tags,
             {
                 "function_trigger.event_source": "sqs",
-                "function_trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
+                "function_trigger.event_source_arn": "arn:aws:sqs:sa-east-1:601427279990:InferredSpansQueueNode",
             },
         )
 

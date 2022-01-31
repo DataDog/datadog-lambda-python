@@ -21,7 +21,10 @@
         "x-forwarded-for": "72.12.164.125",
         "x-forwarded-port": "80",
         "x-forwarded-proto": "http",
-        "x-imforwards": "20"
+        "x-imforwards": "20",
+        "x-datadog-trace-id": "12345",
+        "x-datadog-parent-id": "67890",
+        "x-datadog-sampling-priority": "2"
     },
     "body": "",
     "isBase64Encoded": false

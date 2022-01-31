@@ -1,4 +1,27 @@
 {
+    "headers": {
+        "Host": "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
+        "x-api-key": "",
+        "X-Forwarded-For": "",
+        "x-restapi": "",
+        "x-datadog-trace-id": "12345",
+        "x-datadog-parent-id": "67890",
+        "x-datadog-sampling-priority": "2"
+    },
+    "multiValueHeaders": {
+        "Host": [
+            "p62c47itsb.execute-api.sa-east-1.amazonaws.com"
+        ],
+        "x-api-key": [
+            ""
+        ],
+        "X-Forwarded-For": [
+            ""
+        ],
+        "x-restapi": [
+            ""
+        ]
+    },
     "requestContext": {
         "routeKey": "$default",
         "messageId": "Fc5S3coemjQCJlg=",

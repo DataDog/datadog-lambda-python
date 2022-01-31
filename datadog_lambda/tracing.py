@@ -714,7 +714,7 @@ def create_inferred_span_from_sns_event(event, context):
     }
 
     # Subject not available in SNS => SQS scenario
-    if "Subject" in sns_message:
+    if "Subject" in sns_message and sns_message["Subject"]:
         tags["subject"] = sns_message["Subject"]
 
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
@@ -782,7 +782,7 @@ def create_inferred_span_from_dynamodb_event(event, context):
         "event_name": event_record["eventName"],
         "event_version": event_record["eventVersion"],
         "stream_view_type": dynamodb_message["StreamViewType"],
-        "size_bytes": dynamodb_message["SizeBytes"],
+        "size_bytes": str(dynamodb_message["SizeBytes"]),
     }
     InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
     request_time_epoch = event_record["dynamodb"]["ApproximateCreationDateTime"]
@@ -810,7 +810,7 @@ def create_inferred_span_from_s3_event(event, context):
         "bucketname": bucket_name,
         "bucket_arn": event_record["s3"]["bucket"]["arn"],
         "object_key": event_record["s3"]["object"]["key"],
-        "object_size": event_record["s3"]["object"]["size"],
+        "object_size": str(event_record["s3"]["object"]["size"]),
         "object_etag": event_record["s3"]["object"]["eTag"],
     }
     InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
