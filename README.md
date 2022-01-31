@@ -6,7 +6,7 @@
 [![Slack](https://chat.datadoghq.com/badge.svg?bg=632CA6)](https://chat.datadoghq.com/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DataDog/datadog-lambda-python/blob/main/LICENSE)
 
-Datadog Lambda Library for Python (3.6, 3.7, 3.8, and 3.9) enables enhanced Lambda metrics, distributed tracing, and custom metric submission from AWS Lambda functions.  
+Datadog Lambda Library for Python (3.6, 3.7, 3.8, and 3.9) enables enhanced Lambda metrics, distributed tracing, and custom metric submission from AWS Lambda functions.
 
 **IMPORTANT NOTE:** AWS Lambda is expected to receive a [breaking change](https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/) on **March 31, 2021**. If you are using Datadog Python Lambda layer version 7 or below, please upgrade to the latest.
 
@@ -89,11 +89,12 @@ Set to `true` to merge the X-Ray trace and the Datadog trace, when using both th
 
 ### DD_INFERRED_SPANS (experimental)
 
-Inferred Spans are spans that Datadog can create based on incoming event metadata. 
+Inferred Spans are spans that Datadog can create based on incoming event metadata.
 Set `DD_INFERRED_SPANS` to `true` to infer spans based on Lambda events.
-Inferring upstream spans is only supported if you are using the [Datadog Lambda Extension](https://docs.datadoghq.com/serverless/libraries_integrations/extension/). 
+Inferring upstream spans is only supported if you are using the [Datadog Lambda Extension](https://docs.datadoghq.com/serverless/libraries_integrations/extension/).
 Defaults to `false`.
 Infers spans for:
+
 - API Gateway REST events
 - API Gateway websocket events
 - HTTP API events

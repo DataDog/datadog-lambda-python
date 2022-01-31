@@ -6,6 +6,7 @@
 import logging
 import os
 import json
+import base64
 from datetime import datetime, timezone
 from typing import Optional, Dict
 
@@ -184,7 +185,19 @@ def extract_context_from_http_event_or_context(event, lambda_context):
     return trace_id, parent_id, sampling_priority
 
 
-def extract_context_from_sqs_event_or_context(event, lambda_context):
+def create_sns_event(message):
+    return {
+        "Records": [
+            {
+                "EventSource": "aws:sns",
+                "EventVersion": "1.0",
+                "Sns": message,
+            }
+        ]
+    }
+
+
+def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     """
     Extract Datadog trace context from the first SQS message attributes.
 
@@ -192,15 +205,78 @@ def extract_context_from_sqs_event_or_context(event, lambda_context):
     """
     try:
         first_record = event["Records"][0]
-        msg_attributes = first_record.get("messageAttributes", {})
-        dd_json_data = msg_attributes.get("_datadog", {}).get("stringValue", r"{}")
+
+        # logic to deal with SNS => SQS event
+        if "body" in first_record:
+            body_str = first_record.get("body", {})
+            try:
+                body = json.loads(body_str)
+                if body.get("Type", "") == "Notification" and "TopicArn" in body:
+                    logger.debug("Found SNS message inside SQS event")
+                    first_record = get_first_record(create_sns_event(body))
+            except Exception:
+                first_record = event["Records"][0]
+                pass
+
+        msg_attributes = first_record.get(
+            "messageAttributes",
+            first_record.get("Sns", {}).get("MessageAttributes", {}),
+        )
+        dd_payload = msg_attributes.get("_datadog", {})
+        dd_json_data = dd_payload.get("stringValue", dd_payload.get("Value", r"{}"))
         dd_data = json.loads(dd_json_data)
         trace_id = dd_data.get(TraceHeader.TRACE_ID)
         parent_id = dd_data.get(TraceHeader.PARENT_ID)
         sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
 
         return trace_id, parent_id, sampling_priority
-    except Exception:
+    except Exception as e:
+        logger.debug("The trace extractor returned with error %s", e)
+        return extract_context_from_lambda_context(lambda_context)
+
+
+def extract_context_from_eventbridge_event(event, lambda_context):
+    """
+    Extract datadog trace context from an EventBridge message's Details.
+    Details is often a weirdly escaped almost-JSON string. Here we have to correct for that.
+    """
+    try:
+        detail = event["detail"]
+        dd_context = detail.get("_datadog")
+        if not dd_context:
+            return extract_context_from_lambda_context(lambda_context)
+        trace_id = dd_context.get(TraceHeader.TRACE_ID)
+        parent_id = dd_context.get(TraceHeader.PARENT_ID)
+        sampling_priority = dd_context.get(TraceHeader.SAMPLING_PRIORITY)
+        return trace_id, parent_id, sampling_priority
+    except Exception as e:
+        logger.debug("The trace extractor returned with error %s", e)
+        return extract_context_from_lambda_context(lambda_context)
+
+
+def extract_context_from_kinesis_event(event, lambda_context):
+    """
+    Extract datadog trace context from a Kinesis Stream's base64 encoded data string
+    """
+    try:
+        record = get_first_record(event)
+        data = record.get("kinesis", {}).get("data", None)
+        if data:
+            b64_bytes = data.encode("ascii")
+            str_bytes = base64.b64decode(b64_bytes)
+            data_str = str_bytes.decode("ascii")
+            data_obj = json.loads(data_str)
+            dd_ctx = data_obj.get("_datadog")
+
+        if not dd_ctx:
+            return extract_context_from_lambda_context(lambda_context)
+
+        trace_id = dd_ctx.get(TraceHeader.TRACE_ID)
+        parent_id = dd_ctx.get(TraceHeader.PARENT_ID)
+        sampling_priority = dd_ctx.get(TraceHeader.SAMPLING_PRIORITY)
+        return trace_id, parent_id, sampling_priority
+    except Exception as e:
+        logger.debug("The trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)
 
 
@@ -230,6 +306,7 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
     """
     global dd_trace_context
     trace_context_source = None
+    event_source = parse_event_source(event)
 
     if extractor is not None:
         (
@@ -243,12 +320,24 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
             parent_id,
             sampling_priority,
         ) = extract_context_from_http_event_or_context(event, lambda_context)
-    elif "Records" in event:
+    elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
         (
             trace_id,
             parent_id,
             sampling_priority,
-        ) = extract_context_from_sqs_event_or_context(event, lambda_context)
+        ) = extract_context_from_sqs_or_sns_event_or_context(event, lambda_context)
+    elif event_source.equals(EventTypes.EVENTBRIDGE):
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extract_context_from_eventbridge_event(event, lambda_context)
+    elif event_source.equals(EventTypes.KINESIS):
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extract_context_from_kinesis_event(event, lambda_context)
     else:
         trace_id, parent_id, sampling_priority = extract_context_from_lambda_context(
             lambda_context
@@ -556,6 +645,8 @@ def create_inferred_span_from_http_api_event(event, context):
 
 
 def create_inferred_span_from_sqs_event(event, context):
+    trace_ctx = tracer.current_trace_context()
+
     event_record = get_first_record(event)
     event_source_arn = event_record["eventSourceARN"]
     queue_name = event_source_arn.split(":")[-1]
@@ -574,11 +665,37 @@ def create_inferred_span_from_sqs_event(event, context):
         "resource": queue_name,
         "span_type": "web",
     }
+    start_time = int(request_time_epoch) / 1000
+
+    # logic to deal with SNS => SQS event
+    sns_span = None
+    if "body" in event_record:
+        body_str = event_record.get("body", {})
+        try:
+            body = json.loads(body_str)
+            if body.get("Type", "") == "Notification" and "TopicArn" in body:
+                logger.debug("Found SNS message inside SQS event")
+                sns_span = create_inferred_span_from_sns_event(
+                    create_sns_event(body), context
+                )
+                sns_span.finish(finish_time=start_time)
+        except Exception as e:
+            logger.debug(
+                "Unable to create SNS span from SQS message, with error %s" % e
+            )
+            pass
+
+    # trace context needs to be set again as it is reset
+    # when sns_span.finish executes
+    tracer.context_provider.activate(trace_ctx)
     tracer.set_tags({"_dd.origin": "lambda"})
     span = tracer.trace("aws.sqs", **args)
     if span:
         span.set_tags(tags)
-    span.start = int(request_time_epoch) / 1000
+    span.start = start_time
+    if sns_span:
+        span.parent_id = sns_span.span_id
+
     return span
 
 
@@ -594,9 +711,12 @@ def create_inferred_span_from_sns_event(event, context):
         "topic_arn": topic_arn,
         "message_id": sns_message["MessageId"],
         "type": sns_message["Type"],
-        "subject": sns_message["Subject"],
-        "event_subscription_arn": event_record["EventSubscriptionArn"],
     }
+
+    # Subject not available in SNS => SQS scenario
+    if "Subject" in sns_message and sns_message["Subject"]:
+        tags["subject"] = sns_message["Subject"]
+
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     sns_dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
     timestamp = event_record["Sns"]["Timestamp"]
@@ -644,7 +764,7 @@ def create_inferred_span_from_kinesis_event(event, context):
     span = tracer.trace("aws.kinesis", **args)
     if span:
         span.set_tags(tags)
-    span.start = int(request_time_epoch)
+    span.start = request_time_epoch
     return span
 
 
@@ -662,7 +782,7 @@ def create_inferred_span_from_dynamodb_event(event, context):
         "event_name": event_record["eventName"],
         "event_version": event_record["eventVersion"],
         "stream_view_type": dynamodb_message["StreamViewType"],
-        "size_bytes": dynamodb_message["SizeBytes"],
+        "size_bytes": str(dynamodb_message["SizeBytes"]),
     }
     InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
     request_time_epoch = event_record["dynamodb"]["ApproximateCreationDateTime"]
@@ -690,8 +810,8 @@ def create_inferred_span_from_s3_event(event, context):
         "bucketname": bucket_name,
         "bucket_arn": event_record["s3"]["bucket"]["arn"],
         "object_key": event_record["s3"]["object"]["key"],
-        "object_size": event_record["s3"]["object"]["size"],
-        "object_etag": event_record["s3"]["etag"],
+        "object_size": str(event_record["s3"]["object"]["size"]),
+        "object_etag": event_record["s3"]["object"]["eTag"],
     }
     InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
     dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -786,7 +906,7 @@ def create_function_execution_span(
 
 
 class InferredSpanInfo(object):
-    BASE_NAME = "inferred_span"
+    BASE_NAME = "_inferred_span"
     SYNCHRONICITY = f"{BASE_NAME}.synchronicity"
     TAG_SOURCE = f"{BASE_NAME}.tag_source"
 

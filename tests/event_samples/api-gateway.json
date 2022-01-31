@@ -38,7 +38,8 @@
         "X-Forwarded-Port": "443",
         "X-Forwarded-Proto": "https",
         "X-Datadog-Trace-Id": "12345",
-        "X-Datadog-Parent-Id": "67890"
+        "X-Datadog-Parent-Id": "67890",
+        "x-datadog-sampling-priority": "2"
     },
     "multiValueHeaders": {
         "Accept": [

@@ -7,7 +7,10 @@
         "X-Amzn-Trace-Id": "Root=1-613b6b23-34ae0ce37f8d09ae19095835",
         "X-Forwarded-For": "38.122.226.210",
         "X-Forwarded-Port": "443",
-        "X-Forwarded-Proto": "https"
+        "X-Forwarded-Proto": "https",
+        "x-datadog-trace-id": "12345",
+        "x-datadog-parent-id": "67890",
+        "x-datadog-sampling-priority": "2"
     },
     "multiValueHeaders": {
         "Host": [
