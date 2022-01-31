@@ -36,6 +36,22 @@ Once [installed](#installation), you should be able to view enhanced metrics for
 
 Check out the official documentation on [Datadog Lambda enhanced metrics](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#real-time-enhanced-lambda-metrics).
 
+## Advanced Configurations
+
+### Handler Wrapper
+
+In order to instrument individual invocations, the Datadog Lambda library needs to wrap around your Lambda handler function. This is usually achieved by setting your function's handler to the Datadog handler function (`datadog_lambda.handler.handler`) and setting the environment variable `DD_LAMBDA_HANDLER` with your original handler function to be called by the Datadog handler.
+
+If this method doesn't work for you, instead of setting the handler and the `DD_LAMBDA_HANDLER` environment variable, you can apply the Datadog Lambda library wrapper in your function code like below:
+
+```python
+from datadog_lambda.wrapper import datadog_lambda_wrapper
+
+@datadog_lambda_wrapper
+def my_lambda_handle(event, context):
+    # your function code
+```
+
 ## Environment Variables
 
 ### DD_FLUSH_TO_LOG
