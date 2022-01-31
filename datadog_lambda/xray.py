@@ -10,11 +10,11 @@ from datadog_lambda.constants import XrayDaemon, XraySubsegment, TraceContextSou
 logger = logging.getLogger(__name__)
 
 
-def get_xray_host_port(adress):
-    if adress == "":
+def get_xray_host_port(address):
+    if address == "":
         logger.debug("X-Ray daemon env var not set, not sending sub-segment")
         return None
-    parts = adress.split(":")
+    parts = address.split(":")
     if len(parts) <= 1:
         logger.debug("X-Ray daemon env var not set, not sending sub-segment")
         return None
@@ -107,6 +107,11 @@ def send_segment(key, metadata):
         logger.debug(
             "Failed to create segment since it was not possible to get trace context from header"
         )
+        return None
+
+    # Skip adding segment, if the xray trace is going to be sampled away.
+    if context["sampled"] == "0":
+        logger.debug("Skipping sending metadata, x-ray trace was sampled out")
         return None
     segment = build_segment(context, key, metadata)
     segment_payload = build_segment_payload(segment)
