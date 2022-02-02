@@ -117,7 +117,7 @@ Infers spans for:
 - SQS
 - SNS (SNS messaged delivered via SQS are also supported)
 - Kinesis Streams (if data is a JSON string or base64 encoded JSON string)
-- EventBridge (custom events)
+- EventBridge (custom events, where Details is a JSON string)
 - S3
 - DynamoDB
 

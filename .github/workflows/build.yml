@@ -98,7 +98,7 @@ jobs:
           pip install .[dev]
 
       - name: Install Serverless Framework
-        run: sudo yarn global add serverless --prefix /usr/local
+        run: sudo yarn global add serverless@^2.72.2 --prefix /usr/local
       - name: Install Crossbuild Deps
         run: sudo apt install -y qemu-user-static binfmt-support
 

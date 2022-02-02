@@ -238,7 +238,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 def extract_context_from_eventbridge_event(event, lambda_context):
     """
     Extract datadog trace context from an EventBridge message's Details.
-    Details is often a weirdly escaped almost-JSON string. Here we have to correct for that.
+    This is only possible if Details is a JSON string.
     """
     try:
         detail = event["detail"]
