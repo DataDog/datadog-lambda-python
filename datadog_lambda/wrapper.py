@@ -107,7 +107,7 @@ class _LambdaDecorator(object):
             self.span = None
             self.inferred_span = None
             self.make_inferred_span = (
-                os.environ.get("DD_TRACE_MANAGED_SERVICES", "false").lower() == "true"
+                os.environ.get("DD_TRACE_MANAGED_SERVICES", "true").lower() == "true"
             )
             self.response = None
 
