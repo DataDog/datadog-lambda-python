@@ -7,15 +7,89 @@ import base64
 import gzip
 import json
 from io import BytesIO, BufferedReader
+from enum import Enum
+from typing import Any
 
 
-EVENT_SOURCES = [
-    "aws:dynamodb",
-    "aws:kinesis",
-    "aws:s3",
-    "aws:sns",
-    "aws:sqs",
-]
+class _stringTypedEnum(Enum):
+    """
+    _stringTypedEnum provides a type-hinted convenience function for getting the string value of
+    an enum.
+    """
+
+    def get_string(self) -> str:
+        return self.value
+
+
+class EventTypes(_stringTypedEnum):
+    """
+    EventTypes is an enum of Lambda event types we care about.
+    """
+
+    UNKNOWN = "unknown"
+    API_GATEWAY = "api-gateway"
+    APPSYNC = "appsync"
+    ALB = "application-load-balancer"
+    CLOUDWATCH_LOGS = "cloudwatch-logs"
+    CLOUDWATCH_EVENTS = "cloudwatch-events"
+    CLOUDFRONT = "cloudfront"
+    DYNAMODB = "dynamodb"
+    KINESIS = "kinesis"
+    S3 = "s3"
+    SNS = "sns"
+    SQS = "sqs"
+    EVENTBRIDGE = "eventbridge"
+
+
+class EventSubtypes(_stringTypedEnum):
+    """
+    EventSubtypes is an enum of Lambda event subtypes.
+    Currently, API Gateway events subtypes are supported,
+    e.g. HTTP-API and Websocket events vs vanilla API-Gateway events.
+    """
+
+    NONE = "none"
+    API_GATEWAY = "api-gateway"  # regular API Gateway
+    WEBSOCKET = "websocket"
+    HTTP_API = "http-api"
+
+
+class _EventSource:
+    """
+    _EventSource holds an event's type and subtype.
+    """
+
+    def __init__(
+        self,
+        event_type: EventTypes,
+        subtype: EventSubtypes = EventSubtypes.NONE,
+    ):
+        self.event_type = event_type
+        self.subtype = subtype
+
+    def to_string(self) -> str:
+        """
+        to_string returns the string representation of an _EventSource.
+        Since to_string was added to support trigger tagging,
+        the event's subtype will never be included in the string.
+        """
+        return self.event_type.get_string()
+
+    def equals(
+        self, event_type: EventTypes, subtype: EventSubtypes = EventSubtypes.NONE
+    ) -> bool:
+        """
+        equals provides syntactic sugar to determine whether this _EventSource has a given type
+        and subtype.
+        Unknown events will never equal other events.
+        """
+        if self.event_type == EventTypes.UNKNOWN:
+            return False
+        if self.event_type != event_type:
+            return False
+        if self.subtype != subtype:
+            return False
+        return True
 
 
 def get_aws_partition_by_region(region):
@@ -32,46 +106,61 @@ def get_first_record(event):
         return records[0]
 
 
-def parse_event_source(event):
-    """Determines the source of the trigger event
-
-    Possible Returns:
-        api-gateway | application-load-balancer | cloudwatch-logs |
-        cloudwatch-events | cloudfront | dynamodb | kinesis | s3 | sns | sqs
-    """
+def parse_event_source(event: dict) -> _EventSource:
+    """Determines the source of the trigger event"""
     if type(event) is not dict:
-        return
-    event_source = event.get("eventSource") or event.get("EventSource")
+        return _EventSource(EventTypes.UNKNOWN)
+
+    event_source = _EventSource(EventTypes.UNKNOWN)
 
     request_context = event.get("requestContext")
     if request_context and request_context.get("stage"):
-        event_source = "api-gateway"
+        event_source = _EventSource(EventTypes.API_GATEWAY)
+        if "httpMethod" in event:
+            event_source.subtype = EventSubtypes.API_GATEWAY
+        if "routeKey" in event:
+            event_source.subtype = EventSubtypes.HTTP_API
+        if "requestContext" in event and "messageDirection" in event["requestContext"]:
+            event_source.subtype = EventSubtypes.WEBSOCKET
 
     if request_context and request_context.get("elb"):
-        event_source = "application-load-balancer"
+        event_source = _EventSource(EventTypes.ALB)
 
     if event.get("awslogs"):
-        event_source = "cloudwatch-logs"
+        event_source = _EventSource(EventTypes.CLOUDWATCH_LOGS)
+
+    if event.get("detail-type"):
+        event_source = _EventSource(EventTypes.EVENTBRIDGE)
 
     event_detail = event.get("detail")
     cw_event_categories = event_detail and event_detail.get("EventCategories")
     if event.get("source") == "aws.events" or cw_event_categories:
-        event_source = "cloudwatch-events"
+        event_source = _EventSource(EventTypes.CLOUDWATCH_EVENTS)
 
     event_record = get_first_record(event)
     if event_record:
-        event_source = event_record.get("eventSource") or event_record.get(
-            "EventSource"
+        aws_event_source = event_record.get(
+            "eventSource", event_record.get("EventSource")
         )
-        if event_record.get("cf"):
-            event_source = "cloudfront"
 
-    if event_source in EVENT_SOURCES:
-        event_source = event_source.replace("aws:", "")
+        if aws_event_source == "aws:dynamodb":
+            event_source = _EventSource(EventTypes.DYNAMODB)
+        if aws_event_source == "aws:kinesis":
+            event_source = _EventSource(EventTypes.KINESIS)
+        if aws_event_source == "aws:s3":
+            event_source = _EventSource(EventTypes.S3)
+        if aws_event_source == "aws:sns":
+            event_source = _EventSource(EventTypes.SNS)
+        if aws_event_source == "aws:sqs":
+            event_source = _EventSource(EventTypes.SQS)
+
+        if event_record.get("cf"):
+            event_source = _EventSource(EventTypes.CLOUDFRONT)
+
     return event_source
 
 
-def parse_event_source_arn(source, event, context):
+def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> str:
     """
     Parses the trigger event for an available ARN. If an ARN field is not provided
     in the event we stitch it together.
@@ -83,34 +172,34 @@ def parse_event_source_arn(source, event, context):
 
     event_record = get_first_record(event)
     # e.g. arn:aws:s3:::lambda-xyz123-abc890
-    if source == "s3":
+    if source.to_string() == "s3":
         return event_record.get("s3")["bucket"]["arn"]
 
     # e.g. arn:aws:sns:us-east-1:123456789012:sns-lambda
-    if source == "sns":
+    if source.to_string() == "sns":
         return event_record.get("Sns")["TopicArn"]
 
     # e.g. arn:aws:cloudfront::123456789012:distribution/ABC123XYZ
-    if source == "cloudfront":
+    if source.event_type == EventTypes.CLOUDFRONT:
         distribution_id = event_record.get("cf")["config"]["distributionId"]
         return "arn:{}:cloudfront::{}:distribution/{}".format(
             aws_arn, account_id, distribution_id
         )
 
     # e.g. arn:aws:apigateway:us-east-1::/restapis/xyz123/stages/default
-    if source == "api-gateway":
+    if source.event_type == EventTypes.API_GATEWAY:
         request_context = event.get("requestContext")
         return "arn:{}:apigateway:{}::/restapis/{}/stages/{}".format(
             aws_arn, region, request_context["apiId"], request_context["stage"]
         )
 
     # e.g. arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/lambda-xyz/123
-    if source == "application-load-balancer":
+    if source.event_type == EventTypes.ALB:
         request_context = event.get("requestContext")
         return request_context.get("elb")["targetGroupArn"]
 
     # e.g. arn:aws:logs:us-west-1:123456789012:log-group:/my-log-group-xyz
-    if source == "cloudwatch-logs":
+    if source.event_type == EventTypes.CLOUDWATCH_LOGS:
         with gzip.GzipFile(
             fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
         ) as decompress_stream:
@@ -122,11 +211,11 @@ def parse_event_source_arn(source, event, context):
         )
 
     # e.g. arn:aws:events:us-east-1:123456789012:rule/my-schedule
-    if source == "cloudwatch-events" and event.get("resources"):
+    if source.event_type == EventTypes.CLOUDWATCH_EVENTS and event.get("resources"):
         return event.get("resources")[0]
 
 
-def get_event_source_arn(source, event, context):
+def get_event_source_arn(source: _EventSource, event: dict, context: Any) -> str:
     event_source_arn = event.get("eventSourceARN") or event.get("eventSourceArn")
 
     event_record = get_first_record(event)
@@ -173,20 +262,20 @@ def extract_http_tags(event):
     return http_tags
 
 
-def extract_trigger_tags(event, context):
+def extract_trigger_tags(event: dict, context: Any) -> dict:
     """
     Parses the trigger event object to get tags to be added to the span metadata
     """
     trigger_tags = {}
     event_source = parse_event_source(event)
-    if event_source:
-        trigger_tags["function_trigger.event_source"] = event_source
+    if event_source.to_string() is not None and event_source.to_string() != "unknown":
+        trigger_tags["function_trigger.event_source"] = event_source.to_string()
 
         event_source_arn = get_event_source_arn(event_source, event, context)
         if event_source_arn:
             trigger_tags["function_trigger.event_source_arn"] = event_source_arn
 
-    if event_source in ["api-gateway", "application-load-balancer"]:
+    if event_source.event_type in [EventTypes.API_GATEWAY, EventTypes.ALB]:
         trigger_tags.update(extract_http_tags(event))
 
     return trigger_tags

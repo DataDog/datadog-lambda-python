@@ -2,19 +2,19 @@
     "Records": [
         {
             "kinesis": {
-                "partitionKey": "partitionKey-03",
                 "kinesisSchemaVersion": "1.0",
-                "data": "SGVsbG8sIHRoaXMgaXMgYSB0ZXN0IDEyMy4=",
-                "sequenceNumber": "49545115243490985018280067714973144582180062593244200961",
-                "approximateArrivalTimestamp": 1428537600
+                "partitionKey": "partitionkey",
+                "sequenceNumber": "49624230154685806402418173680709770494154422022871973922",
+                "data": "eyJmb28iOiAiYmFyIiwgIl9kYXRhZG9nIjogeyJ4LWRhdGFkb2ctdHJhY2UtaWQiOiAiNDk0ODM3NzMxNjM1NzI5MTQyMSIsICJ4LWRhdGFkb2ctcGFyZW50LWlkIjogIjI4NzYyNTMzODAwMTg2ODEwMjYiLCAieC1kYXRhZG9nLXNhbXBsaW5nLXByaW9yaXR5IjogIjEifX0=",
+                "approximateArrivalTimestamp": 1643638425.163
             },
             "eventSource": "aws:kinesis",
-            "eventID": "shardId-000000000000:49545115243490985018280067714973144582180062593244200961",
-            "invokeIdentityArn": "arn:aws:iam::EXAMPLE",
             "eventVersion": "1.0",
+            "eventID": "shardId-000000000002:49624230154685806402418173680709770494154422022871973922",
             "eventName": "aws:kinesis:record",
-            "eventSourceARN": "arn:aws:kinesis:EXAMPLE",
-            "awsRegion": "us-east-1"
+            "invokeIdentityArn": "arn:aws:iam::601427279990:role/inferred-spans-python-dev-sa-east-1-lambdaRole",
+            "awsRegion": "sa-east-1",
+            "eventSourceARN": "arn:aws:kinesis:sa-east-1:601427279990:stream/kinesisStream"
         }
     ]
 }

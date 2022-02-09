@@ -10,7 +10,10 @@ from importlib import import_module
 
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
-from datadog_lambda.constants import XraySubsegment, TraceContextSource
+from datadog_lambda.constants import (
+    XraySubsegment,
+    TraceContextSource,
+)
 from datadog_lambda.metric import (
     flush_stats,
     submit_invocations_metric,
@@ -26,6 +29,8 @@ from datadog_lambda.tracing import (
     set_correlation_ids,
     set_dd_trace_py_root,
     create_function_execution_span,
+    create_inferred_span,
+    InferredSpanInfo,
 )
 from datadog_lambda.trigger import extract_trigger_tags, extract_http_status_code_tag
 from datadog_lambda.tag_object import tag_object
@@ -100,6 +105,10 @@ class _LambdaDecorator(object):
             self.extractor_env = os.environ.get("DD_TRACE_EXTRACTOR", None)
             self.trace_extractor = None
             self.span = None
+            self.inferred_span = None
+            self.make_inferred_span = (
+                os.environ.get("DD_TRACE_MANAGED_SERVICES", "true").lower() == "true"
+            )
             self.response = None
 
             if self.extractor_env:
@@ -142,6 +151,7 @@ class _LambdaDecorator(object):
 
     def _before(self, event, context):
         try:
+
             set_cold_start()
             submit_invocations_metric(context)
             self.trigger_tags = extract_trigger_tags(event, context)
@@ -157,6 +167,8 @@ class _LambdaDecorator(object):
 
             if dd_tracing_enabled:
                 set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
+                if self.make_inferred_span:
+                    self.inferred_span = create_inferred_span(event, context)
                 self.span = create_function_execution_span(
                     context,
                     self.function_name,
@@ -164,6 +176,7 @@ class _LambdaDecorator(object):
                     trace_context_source,
                     self.merge_xray_traces,
                     self.trigger_tags,
+                    parent_span=self.inferred_span,
                 )
             else:
                 set_correlation_ids()
@@ -184,11 +197,6 @@ class _LambdaDecorator(object):
                     self.trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
                 )
 
-            if not self.flush_to_log or should_use_extension:
-                flush_stats()
-            if should_use_extension:
-                flush_extension()
-
             if self.span:
                 if dd_capture_lambda_payload_enabled:
                     tag_object(self.span, "function.request", event)
@@ -197,6 +205,24 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
                 self.span.finish()
+
+            if self.inferred_span:
+                if status_code:
+                    self.inferred_span.set_tag("http.status_code", status_code)
+
+                if (
+                    self.inferred_span.get_tag(InferredSpanInfo.SYNCHRONICITY)
+                    == "async"
+                    and self.span
+                ):
+                    self.inferred_span.finish(finish_time=self.span.start)
+                else:
+                    self.inferred_span.finish()
+
+            if not self.flush_to_log or should_use_extension:
+                flush_stats()
+            if should_use_extension:
+                flush_extension()
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
             traceback.print_exc()
