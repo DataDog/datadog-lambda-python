@@ -88,9 +88,8 @@ function remove_stack() {
 
 
 trap remove_stack EXIT
-
+yarn
 for parameters_set in "${PARAMETERS_SETS[@]}"; do
-    
     serverless_runtime=$parameters_set[0]
     python_version=$parameters_set[1]
     run_id=$parameters_set[2]
@@ -104,7 +103,6 @@ python version : ${!python_version} and run id : ${!run_id}"
     echo "Invoking functions for runtime $parameters_set"
     set +e # Don't exit this script if an invocation fails or there's a diff
     for handler_name in "${LAMBDA_HANDLERS[@]}"; do
-        
         function_name="${handler_name}_python"
         echo "$function_name"
         # Invoke function once for each input event
