@@ -26,8 +26,7 @@ def handle(event, context):
     )
 
     # Make HTTP calls to test ddtrace instrumentation
-    requests.get("https://httpstat.us/200/")
-    requests.get("https://httpstat.us/400/")
+    requests.get("https://datadoghq.com")
 
     return {
         "statusCode": 200,
