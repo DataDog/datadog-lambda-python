@@ -88,7 +88,7 @@ function remove_stack() {
 
 
 trap remove_stack EXIT
-yarn
+yarn install
 for parameters_set in "${PARAMETERS_SETS[@]}"; do
     serverless_runtime=$parameters_set[0]
     python_version=$parameters_set[1]
