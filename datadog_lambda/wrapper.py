@@ -2,18 +2,19 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
+import sys
+from ddtrace.profiling import profiler
+from datadog_lambda.cold_start import set_cold_start, is_cold_start
 
 import os
+
+
 import logging
 import traceback
 from importlib import import_module
 
 from datadog_lambda.extension import should_use_extension, flush_extension
-from datadog_lambda.cold_start import set_cold_start, is_cold_start
-from datadog_lambda.constants import (
-    XraySubsegment,
-    TraceContextSource,
-)
+from datadog_lambda.constants import XraySubsegment, TraceContextSource
 from datadog_lambda.metric import (
     flush_stats,
     submit_invocations_metric,
@@ -34,12 +35,21 @@ from datadog_lambda.tracing import (
 )
 from datadog_lambda.trigger import extract_trigger_tags, extract_http_status_code_tag
 from datadog_lambda.tag_object import tag_object
+print("my lambda layer")
+
 
 logger = logging.getLogger(__name__)
 
 dd_capture_lambda_payload_enabled = (
     os.environ.get("DD_CAPTURE_LAMBDA_PAYLOAD", "false").lower() == "true"
 )
+
+prof = None
+invocationNumber = 0
+profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "true"
+print (type(profiling_env_var))
+print(profiling_env_var)
+service_env_var = os.environ.get("DD_SERVICE", "DefaultServiceName")
 
 """
 Usage:
@@ -93,6 +103,19 @@ class _LambdaDecorator(object):
     def __init__(self, func):
         """Executes when the wrapped function gets wrapped"""
         try:
+            if profiling_env_var==True:
+                print("profiling enabled in wrapper")
+                global prof
+                prof = profiler.Profiler(
+                    env="stage",
+                    service=service_env_var,
+                    version="1.0.0"
+                    )#More config that the Profiler class can take https://github.com/DataDog/dd-trace-py/blob/1dc5f8a43c5dd663ca9505ff2432a5482417e5e2/ddtrace/profiling/profiler.py#L119
+                print("done init profiler")
+            else:
+                print("prof not enabled in wrapper")
+
+
             self.func = func
             self.flush_to_log = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
             self.logs_injection = (
@@ -137,6 +160,10 @@ class _LambdaDecorator(object):
 
     def __call__(self, event, context, **kwargs):
         """Executes when the wrapped function gets called"""
+        global invocationNumber
+        invocationNumber += 1
+        print("invocationNumber"+str(invocationNumber))
+
         self._before(event, context)
         try:
             self.response = self.func(event, context, **kwargs)
@@ -151,8 +178,13 @@ class _LambdaDecorator(object):
 
     def _before(self, event, context):
         try:
+            print("is_cold_start():"+str(is_cold_start()))
 
             set_cold_start()
+            if profiling_env_var==True:
+                global prof
+                print("starting profiler in _before() in wrapper")
+                prof.start(stop_on_exit=False, profile_children=True)
             submit_invocations_metric(context)
             self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
@@ -197,6 +229,16 @@ class _LambdaDecorator(object):
                     self.trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
                 )
 
+            if profiling_env_var==True:
+                global prof
+                logger.debug("datadog_lambda_wrapper stopping profiler before we call flush_extension()")
+                prof.stop(flush=True)
+
+            if not self.flush_to_log or should_use_extension:
+                flush_stats()
+            if should_use_extension:
+                flush_extension()
+
             if self.span:
                 if dd_capture_lambda_payload_enabled:
                     tag_object(self.span, "function.request", event)
@@ -205,24 +247,7 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
                 self.span.finish()
-
-            if self.inferred_span:
-                if status_code:
-                    self.inferred_span.set_tag("http.status_code", status_code)
-
-                if (
-                    self.inferred_span.get_tag(InferredSpanInfo.SYNCHRONICITY)
-                    == "async"
-                    and self.span
-                ):
-                    self.inferred_span.finish(finish_time=self.span.start)
-                else:
-                    self.inferred_span.finish()
-
-            if not self.flush_to_log or should_use_extension:
-                flush_stats()
-            if should_use_extension:
-                flush_extension()
+            
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
             traceback.print_exc()
