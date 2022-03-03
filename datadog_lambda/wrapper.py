@@ -163,6 +163,12 @@ class _LambdaDecorator(object):
         global invocationNumber
         invocationNumber += 1
         print("invocationNumber"+str(invocationNumber))
+        aws_request_id = context.aws_request_id
+        invoked_function_arn = context.invoked_function_arn
+        function_name = context.function_name
+        # We have a problem setting the arn as a tag because the env var expects the tags to be in a string like this "tag1:val1,tag2:val2" and arns have ':' in them
+        #os.environ["DD_PROFILING_TAGS"] = f"aws_request_id:{aws_request_id},invoked_function_arn:{invoked_function_arn},function_name:{function_name},host: None"
+        os.environ["DD_PROFILING_TAGS"] = f"aws_request_id:{aws_request_id},function_name:{function_name}"
 
         self._before(event, context)
         try:
