@@ -206,7 +206,8 @@ class TestGetEventSourceAndARN(unittest.TestCase):
 
     def test_event_source_sns(self):
         event_sample_source = "sns"
-        test_file = event_samples + event_sample_source + ".json"
+        event_sample_name = "sns-string-msg-attribute"
+        test_file = event_samples + event_sample_name + ".json"
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
@@ -220,7 +221,8 @@ class TestGetEventSourceAndARN(unittest.TestCase):
 
     def test_event_source_sqs(self):
         event_sample_source = "sqs"
-        test_file = event_samples + event_sample_source + ".json"
+        event_sample_name = "sqs-string-msg-attribute"
+        test_file = event_samples + event_sample_name + ".json"
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
@@ -455,8 +457,8 @@ class GetTriggerTags(unittest.TestCase):
         )
 
     def test_extract_trigger_tags_sns(self):
-        event_sample_source = "sns"
-        test_file = event_samples + event_sample_source + ".json"
+        event_sample_name = "sns-string-msg-attribute"
+        test_file = event_samples + event_sample_name + ".json"
         ctx = get_mock_context()
         with open(test_file, "r") as event:
             event = json.load(event)
@@ -470,8 +472,8 @@ class GetTriggerTags(unittest.TestCase):
         )
 
     def test_extract_trigger_tags_sqs(self):
-        event_sample_source = "sqs"
-        test_file = event_samples + event_sample_source + ".json"
+        event_sample_name = "sqs-string-msg-attribute"
+        test_file = event_samples + event_sample_name + ".json"
         ctx = get_mock_context()
         with open(test_file, "r") as event:
             event = json.load(event)

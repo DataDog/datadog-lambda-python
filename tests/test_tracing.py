@@ -796,9 +796,9 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
 
-    def test_create_inferred_span_from_sqs_event(self):
-        event_sample_source = "sqs"
-        test_file = event_samples + event_sample_source + ".json"
+    def test_create_inferred_span_from_sqs_event_string_msg_attr(self):
+        event_sample_name = "sqs-string-msg-attribute"
+        test_file = event_samples + event_sample_name + ".json"
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
@@ -834,9 +834,85 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
 
-    def test_create_inferred_span_from_sns_event(self):
-        event_sample_source = "sns"
-        test_file = event_samples + event_sample_source + ".json"
+    def test_create_inferred_span_from_sqs_event_b64_msg_attr(self):
+        event_sample_name = "sqs-b64-msg-attribute"
+        test_file = event_samples + event_sample_name + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.sqs")
+        self.assertEqual(
+            span.service,
+            "sqs",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            None,
+        )
+        self.assertEqual(span.get_tag("endpoint"), None)
+        self.assertEqual(span.get_tag("http.method"), None)
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "InferredSpansQueueNode",
+        )
+        self.assertEqual(span.get_tag("request_id"), None)
+        self.assertEqual(span.get_tag("queuename"), "InferredSpansQueueNode")
+        self.assertEqual(
+            span.get_tag("event_source_arn"),
+            "arn:aws:sqs:sa-east-1:601427279990:InferredSpansQueueNode",
+        )
+        self.assertEqual(
+            span.get_tag("sender_id"),
+            "AROAYYB64AB3LSVUYFP5T:harv-inferred-spans-dev-initSender",
+        )
+        self.assertEqual(span.start, 1634662094.538)
+        self.assertEqual(span.span_type, "web")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
+
+    def test_create_inferred_span_from_sns_event_string_msg_attr(self):
+        event_sample_name = "sns-string-msg-attribute"
+        test_file = event_samples + event_sample_name + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.sns")
+        self.assertEqual(
+            span.service,
+            "sns",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            None,
+        )
+        self.assertEqual(span.get_tag("endpoint"), None)
+        self.assertEqual(span.get_tag("http.method"), None)
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "serverlessTracingTopicPy",
+        )
+        self.assertEqual(span.get_tag("topicname"), "serverlessTracingTopicPy")
+        self.assertEqual(
+            span.get_tag("topic_arn"),
+            "arn:aws:sns:sa-east-1:601427279990:serverlessTracingTopicPy",
+        )
+        self.assertEqual(
+            span.get_tag("message_id"), "87056a47-f506-5d77-908b-303605d3b197"
+        )
+        self.assertEqual(span.get_tag("type"), "Notification")
+        self.assertEqual(span.get_tag("subject"), None)
+        self.assertEqual(span.start, 1643638421.637)
+        self.assertEqual(span.span_type, "web")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
+
+    def test_create_inferred_span_from_sns_event_b64_msg_attr(self):
+        event_sample_name = "sns-b64-msg-attribute"
+        test_file = event_samples + event_sample_name + ".json"
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
@@ -1040,8 +1116,19 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(context["trace-id"], "12345")
         self.assertEqual(context["parent-id"], "67890")
 
-    def test_extract_context_from_sqs_event(self):
-        event_sample_source = "sqs"
+    def test_extract_context_from_sqs_event_with_string_msg_attr(self):
+        event_sample_source = "sqs-string-msg-attribute"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        context, source = extract_dd_trace_context(event, ctx)
+        self.assertEqual(context["trace-id"], "2684756524522091840")
+        self.assertEqual(context["parent-id"], "7431398482019833808")
+        self.assertEqual(context["sampling-priority"], "1")
+
+    def test_extract_context_from_sqs_event_with_b64_msg_attr(self):
+        event_sample_source = "sqs-b64-msg-attribute"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
             event = json.load(event)
@@ -1062,8 +1149,19 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(context["parent-id"], "7431398482019833808")
         self.assertEqual(context["sampling-priority"], "1")
 
-    def test_extract_context_from_sns_event(self):
-        event_sample_source = "sns"
+    def test_extract_context_from_sns_event_with_string_msg_attr(self):
+        event_sample_source = "sns-string-msg-attribute"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        context, source = extract_dd_trace_context(event, ctx)
+        self.assertEqual(context["trace-id"], "4948377316357291421")
+        self.assertEqual(context["parent-id"], "6746998015037429512")
+        self.assertEqual(context["sampling-priority"], "1")
+
+    def test_extract_context_from_sns_event_with_b64_msg_attr(self):
+        event_sample_source = "sns-b64-msg-attribute"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
             event = json.load(event)

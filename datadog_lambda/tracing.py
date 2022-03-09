@@ -223,7 +223,18 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
             first_record.get("Sns", {}).get("MessageAttributes", {}),
         )
         dd_payload = msg_attributes.get("_datadog", {})
-        dd_json_data = dd_payload.get("stringValue", dd_payload.get("Value", r"{}"))
+        #SQS uses dataType and ...Value i.e. binaryValue or stringValue
+        #SNS uses Type and Value
+        dd_json_data_type = dd_payload.get("Type", dd_payload.get("dataType", ""))
+        if dd_json_data_type == "Binary":
+            dd_json_data = dd_payload.get("binaryValue", dd_payload.get("Value", r"{}"))
+            base64_bytes = dd_json_data.encode('ascii')
+            message_bytes = base64.b64decode(base64_bytes)
+            dd_json_data = message_bytes.decode('ascii')
+        else:
+            #dd_json_data_type is "String"
+            dd_json_data = dd_payload.get("stringValue", dd_payload.get("Value", r"{}"))
+            
         dd_data = json.loads(dd_json_data)
         trace_id = dd_data.get(TraceHeader.TRACE_ID)
         parent_id = dd_data.get(TraceHeader.PARENT_ID)
