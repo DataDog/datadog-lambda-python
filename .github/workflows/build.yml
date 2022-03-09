@@ -100,7 +100,9 @@ jobs:
       - name: Install Serverless Framework
         run: sudo yarn global add serverless@^2.72.2 --prefix /usr/local
       - name: Install Crossbuild Deps
-        run: sudo apt install -y qemu-user-static binfmt-support
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static binfmt-support
 
       - name: Install dependencies
         if: steps.cache-node-modules.outputs.cache-hit != 'true'
