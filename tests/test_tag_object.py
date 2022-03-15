@@ -89,5 +89,8 @@ class TestTagObject(unittest.TestCase):
         spanMock = MagicMock()
         tag_object(spanMock, "function.request", payload)
         spanMock.set_tag.assert_has_calls(
-            [call("function.request.myValue", Decimal(500.50)),], True,
+            [
+                call("function.request.myValue", Decimal(500.50)),
+            ],
+            True,
         )
