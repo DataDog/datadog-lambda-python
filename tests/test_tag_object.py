@@ -85,14 +85,9 @@ class TestTagObject(unittest.TestCase):
         )
 
     def test_decimal_tag_object(self):
-        payload = {
-            "myValue": Decimal(500.50)
-        }
+        payload = {"myValue": Decimal(500.50)}
         spanMock = MagicMock()
         tag_object(spanMock, "function.request", payload)
         spanMock.set_tag.assert_has_calls(
-            [
-                call("function.request.myValue", Decimal(500.50)),
-            ],
-            True,
+            [call("function.request.myValue", Decimal(500.50)),], True,
         )
