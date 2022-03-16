@@ -15,7 +15,9 @@ jobs:
           python-version: 3.7
 
       - name: Install Crossbuild Deps
-        run: sudo apt install -y qemu-user-static binfmt-support
+        run: |
+          sudo apt-get update --allow-releaseinfo-change --fix-missing
+          sudo apt install -y qemu-user-static binfmt-support
 
       - name: Install dependencies
         run: |
