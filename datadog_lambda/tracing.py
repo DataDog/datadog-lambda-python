@@ -225,15 +225,24 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         dd_payload = msg_attributes.get("_datadog", {})
         # SQS uses dataType and binaryValue/stringValue
         # SNS uses Type and Value
-        dd_json_data_type = dd_payload.get("Type", dd_payload.get("dataType", ""))
+        dd_json_data_type = dd_payload.get(
+            "Type", dd_payload.get("dataType", dd_payload.get("DataType", ""))
+        )
         if dd_json_data_type == "Binary":
-            dd_json_data = dd_payload.get("binaryValue", dd_payload.get("Value", r"{}"))
+            dd_json_data = dd_payload.get(
+                "binaryValue",
+                dd_payload.get("BinaryValue", dd_payload.get("Value", r"{}")),
+            )
             dd_json_data = base64.b64decode(dd_json_data)
         elif dd_json_data_type == "String":
-            dd_json_data = dd_payload.get("stringValue", dd_payload.get("Value", r"{}"))
+            dd_json_data = dd_payload.get(
+                "stringValue",
+                dd_payload.get("StringValue", dd_payload.get("Value", r"{}")),
+            )
         else:
-            raise Exception("Skip extract context from sqs or sns message attributes that are not String or Binary")
-
+            raise Exception(
+                "Skip extract context from sqs or sns message attributes if not String or Binary"
+            )
         dd_data = json.loads(dd_json_data)
         trace_id = dd_data.get(TraceHeader.TRACE_ID)
         parent_id = dd_data.get(TraceHeader.PARENT_ID)
