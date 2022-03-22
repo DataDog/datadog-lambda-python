@@ -1,12 +1,6 @@
 # IAM permissions require service name to begin with 'integration-tests'
 service: integration-tests-python
 
-# As of mid-August 2021, the Serverless framework does not support Python 3.9
-# and complains about an invalid configuration when we deploy Python 3.9 functions.
-# This option suppresses the warning.
-# Remove this when the Serverless framework supports Python 3.9.
-configValidationMode: off
-
 provider:
   name: aws
   region: sa-east-1
@@ -17,7 +11,6 @@ provider:
     DD_TRACE_ENABLED: true
     DD_API_KEY: ${env:DD_API_KEY}
     DD_TRACE_MANAGED_SERVICES: true
-  lambdaHashingVersion: 20201221
   timeout: 15
   deploymentBucket:
     name: integration-tests-deployment-bucket
