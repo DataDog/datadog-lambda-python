@@ -183,7 +183,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 # Remove blank lines
                 sed '/^$/d' |
                 # Normalize Lambda runtime REPORT logs
-                sed -E 's/(RequestId|TraceId|SegmentId|Duration|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g' |
+                sed -E 's/(RequestId|TraceId|SegmentId|Duration|init|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g' |
                 # Normalize HTTP headers
                 sed -E "s/(x-datadog-parent-id:|x-datadog-trace-id:|Content-Length:)[0-9]+/\1XXXX/g" |
                 # Remove Account ID
