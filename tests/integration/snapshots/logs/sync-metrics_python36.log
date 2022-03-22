@@ -165,7 +165,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
     ]
   ]
 }
-END Duration: XXXX ms (init: 889.38 ms) Memory Used: XXXX MB
+END Duration: XXXX ms (init: XXXX ms) Memory Used: XXXX MB
 START
 {
   "m": "aws.lambda.enhanced.invocations",

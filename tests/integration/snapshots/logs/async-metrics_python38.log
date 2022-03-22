@@ -152,7 +152,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-END Duration: XXXX ms (init: 636.59 ms) Memory Used: XXXX MB
+END Duration: XXXX ms (init: XXXX ms) Memory Used: XXXX MB
 START
 {
   "m": "aws.lambda.enhanced.invocations",
