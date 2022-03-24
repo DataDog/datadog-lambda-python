@@ -1088,7 +1088,6 @@ START
 }
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-trace-id:XXXX"] Data: {}
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-trace-id:XXXX"] Data: {}
-
 {
   "traces": [
     [
