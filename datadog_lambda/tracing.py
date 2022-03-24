@@ -199,7 +199,7 @@ def create_sns_event(message):
 
 def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     """
-    Extract Datadog trace context from the first SQS message attributes. gh action
+    Extract Datadog trace context from the first SQS message attributes.
 
     Falls back to lambda context if no trace data is found in the SQS message attributes.
     """
