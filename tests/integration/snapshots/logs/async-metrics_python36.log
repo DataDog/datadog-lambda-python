@@ -603,7 +603,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-END Duration: XXXX ms Memory Used: XXXX MB	
+END Duration: XXXX ms Memory Used: XXXX MB
 START
 {
   "m": "aws.lambda.enhanced.invocations",
