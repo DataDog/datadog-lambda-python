@@ -3,6 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2021 Datadog, Inc.
 
+from decimal import Decimal
 import json
 import logging
 
@@ -26,7 +27,7 @@ def tag_object(span, key, obj, depth=0):
         except ValueError:
             redacted = _redact_val(key, obj[0:5000])
             return span.set_tag(key, redacted)
-    if isinstance(obj, int) or isinstance(obj, float):
+    if isinstance(obj, int) or isinstance(obj, float) or isinstance(obj, Decimal):
         return span.set_tag(key, obj)
     if isinstance(obj, list):
         for k, v in enumerate(obj):

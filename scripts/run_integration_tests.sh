@@ -175,6 +175,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
         # Replace invocation-specific data like timestamps and IDs with XXXX to normalize logs across executions
         logs=$(
             echo "$raw_logs" |
+                node parse-json.js |
                 # Filter serverless cli errors
                 sed '/Serverless: Recoverable error occurred/d' |
                 # Remove RequestsDependencyWarning from botocore/vendored/requests/__init__.py
@@ -182,7 +183,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 # Remove blank lines
                 sed '/^$/d' |
                 # Normalize Lambda runtime REPORT logs
-                sed -E 's/(RequestId|TraceId|SegmentId|Duration|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g' |
+                sed -E 's/(RequestId|TraceId|SegmentId|Duration|init|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g' |
                 # Normalize HTTP headers
                 sed -E "s/(x-datadog-parent-id:|x-datadog-trace-id:|Content-Length:)[0-9]+/\1XXXX/g" |
                 # Remove Account ID
@@ -204,12 +205,29 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(\"span_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"parent_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"request_id\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"http.source_ip\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"http.user_agent\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"function_trigger.event_source_arn\"\: \")[A-Za-z0-9\/\.\:\-]+/\1XXXX/g" |
                 sed -E "s/(\"duration\"\: )[0-9\.\-]+/\1\"XXXX\"/g" |
                 sed -E "s/(\"start\"\: )[0-9\.\-]+/\1\"XXXX\"/g" |
                 sed -E "s/(\"system\.pid\"\: )[0-9\.\-]+/\1\"XXXX\"/g" |
                 sed -E "s/(\"runtime-id\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/([a-zA-Z0-9]+)(\.execute-api\.[a-z0-9\-]+\.amazonaws\.com)/XXXX\2/g" |
+                sed -E "s/(\"apiid\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"apiname\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(\"function_trigger.event_source_arn\"\: \")[a-z0-9\.\-\:]+/\1XXXX/g" |
+                sed -E "s/(\"event_id\"\: \")[a-zA-Z0-9\:\-]+/\1XXXX/g" |
+                sed -E "s/(\"message_id\"\: \")[a-zA-Z0-9\:\-]+/\1XXXX/g" |
+                sed -E "s/(\"request_id\"\:\ \")[a-zA-Z0-9\-\=]+/\1XXXX/g" |
+                sed -E "s/(\"connection_id\"\:\ \")[a-zA-Z0-9\-]+/\1XXXX/g" |
+                sed -E "s/(\"shardId\-)([0-9]+)\:([a-zA-Z0-9]+)[a-zA-Z0-9]/\1XXXX:XXXX/g" |
+                sed -E "s/(\"shardId\-)[0-9a-zA-Z]+/\1XXXX/g" |
                 sed -E "s/(\"datadog_lambda\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g" |
+                sed -E "s/(\"partition_key\"\:\ \")[a-zA-Z0-9\-]+/\1XXXX/g" |
+                sed -E "s/(\"object_etag\"\:\ \")[a-zA-Z0-9\-]+/\1XXXX/g" |
                 sed -E "s/(\"dd_trace\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g" |
+                # Parse out account ID in ARN
+                sed -E "s/([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9\-]+):([a-zA-Z0-9\-\:]+)/\1:\2:\3:\4:XXXX:\4/g" |
                 sed -E "/init complete at epoch/d" |
                 sed -E "/main started at epoch/d"
         )
@@ -240,7 +258,7 @@ set -e
 if [ "$mismatch_found" = true ]; then
     echo "FAILURE: A mismatch between new data and a snapshot was found and printed above."
     echo "If the change is expected, generate new snapshots by running 'UPDATE_SNAPSHOTS=true DD_API_KEY=XXXX ./scripts/run_integration_tests.sh'"
-    echo "Make sure https://httpstat.us/400/ is UP for `http_error` test case"
+    echo "Make sure https://httpstat.us/400/ is UP for 'http_error' test case"
     exit 1
 fi
 

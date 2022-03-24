@@ -1,4 +1,5 @@
 import unittest
+from decimal import Decimal
 
 try:
     from unittest.mock import MagicMock, patch, call
@@ -79,6 +80,17 @@ class TestTagObject(unittest.TestCase):
                 call("function.request.jsonString.stringifyThisJson.0.here", "is"),
                 call("function.request.jsonString.stringifyThisJson.0.an", "object"),
                 call("function.request.jsonString.stringifyThisJson.0.number", 1),
+            ],
+            True,
+        )
+
+    def test_decimal_tag_object(self):
+        payload = {"myValue": Decimal(500.50)}
+        spanMock = MagicMock()
+        tag_object(spanMock, "function.request", payload)
+        spanMock.set_tag.assert_has_calls(
+            [
+                call("function.request.myValue", Decimal(500.50)),
             ],
             True,
         )
