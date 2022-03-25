@@ -1114,6 +1114,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self"
         },
         "metrics": {
+          "_dd.agent_psr": 1,
           "system.pid": "XXXX",
           "_sampling_priority_v1": 1,
           "_dd.top_level": 1
