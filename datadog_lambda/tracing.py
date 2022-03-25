@@ -238,7 +238,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                 dd_payload.get("Value", r"{}"),
             )
         else: 
-            logger.warn("Datadog Lambda Python only supports extracting trace context from String or Binary SQS/SNS message attributes ")
+            logger.warn("Datadog Lambda Python only supports extracting trace context from String or Binary SQS/SNS message attributes")
         dd_data = json.loads(dd_json_data)
         trace_id = dd_data.get(TraceHeader.TRACE_ID)
         parent_id = dd_data.get(TraceHeader.PARENT_ID)
