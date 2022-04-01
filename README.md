@@ -6,78 +6,33 @@
 [![Slack](https://chat.datadoghq.com/badge.svg?bg=632CA6)](https://chat.datadoghq.com/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](https://github.com/DataDog/datadog-lambda-python/blob/main/LICENSE)
 
-Datadog Lambda Library for Python (3.6, 3.7, 3.8, and 3.9) enables enhanced Lambda metrics, distributed tracing, and custom metric submission from AWS Lambda functions.
-
-**IMPORTANT NOTE:** AWS Lambda is expected to receive a [breaking change](https://aws.amazon.com/blogs/compute/upcoming-changes-to-the-python-sdk-in-aws-lambda/) on **March 31, 2021**. If you are using Datadog Python Lambda layer version 7 or below, please upgrade to the latest.
+Datadog Lambda Library for Python (3.6, 3.7, 3.8, and 3.9) enables [enhanced Lambda metrics](https://docs.datadoghq.com/serverless/enhanced_lambda_metrics), [distributed tracing](https://docs.datadoghq.com/serverless/distributed_tracing), and [custom metric submission](https://docs.datadoghq.com/serverless/custom_metrics) from AWS Lambda functions.
 
 ## Installation
 
 Follow the [installation instructions](https://docs.datadoghq.com/serverless/installation/python/), and view your function's enhanced metrics, traces and logs in Datadog.
 
-## Custom Metrics
+For advanced distributed tracing use cases, check out the [official documentation for Datadog APM client](https://ddtrace.readthedocs.io).
 
-Once [installed](#installation), you should be able to submit custom metrics from your Lambda function.
-
-Check out the instructions for [submitting custom metrics from AWS Lambda functions](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#custom-metrics).
-
-## Tracing
-
-Once [installed](#installation), you should be able to view your function's traces in Datadog, and your function's logs should be automatically connected to the traces.
-
-For additional details on trace collection, take a look at [collecting traces from AWS Lambda functions](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#trace-collection).
-
-For additional details on trace and log connection, see [connecting logs and traces](https://docs.datadoghq.com/tracing/connect_logs_and_traces/python/).
-
-For additional details on the tracer, check out the [official documentation for Datadog trace client](http://pypi.datadoghq.com/trace/docs/index.html).
-
-## Enhanced Metrics
-
-Once [installed](#installation), you should be able to view enhanced metrics for your Lambda function in Datadog.
-
-Check out the official documentation on [Datadog Lambda enhanced metrics](https://docs.datadoghq.com/integrations/amazon_lambda/?tab=python#real-time-enhanced-lambda-metrics).
-
-## Advanced Configurations
-
-### Handler Wrapper
-
-In order to instrument individual invocations, the Datadog Lambda library needs to wrap around your Lambda handler function. This is usually achieved by setting your function's handler to the Datadog handler function (`datadog_lambda.handler.handler`) and setting the environment variable `DD_LAMBDA_HANDLER` with your original handler function to be called by the Datadog handler.
-
-If this method doesn't work for you, instead of setting the handler and the `DD_LAMBDA_HANDLER` environment variable, you can apply the Datadog Lambda library wrapper in your function code like below:
-
-```python
-from datadog_lambda.wrapper import datadog_lambda_wrapper
-
-@datadog_lambda_wrapper
-def my_lambda_handle(event, context):
-    # your function code
-```
+To connect traces and logs using a custom logger, see [connecting logs and traces](https://docs.datadoghq.com/tracing/connect_logs_and_traces/python/).
 
 ## Environment Variables
 
-### DD_FLUSH_TO_LOG
-
-Set to `true` (recommended) to send custom metrics asynchronously (with no added latency to your Lambda function executions) through CloudWatch Logs with the help of [Datadog Forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/main/aws/logs_monitoring). Defaults to `false`. If set to `false`, you also need to set `DD_API_KEY` and `DD_SITE`.
-
 ### DD_API_KEY
 
-If `DD_FLUSH_TO_LOG` is set to `false` (not recommended), the Datadog API Key must be defined by setting one of the following environment variables:
+If you are using the [Datadog Lambda Extension](https://docs.datadoghq.com/serverless/libraries_integrations/extension/), the Datadog API Key must be defined by setting one of the following environment variables:
 
 - DD_API_KEY - the Datadog API Key in plain-text, NOT recommended
 - DD_KMS_API_KEY - the KMS-encrypted API Key, requires the `kms:Decrypt` permission
 - DD_API_KEY_SECRET_ARN - the Secret ARN to fetch API Key from the Secrets Manager, requires the `secretsmanager:GetSecretValue` permission (and `kms:Decrypt` if using a customer managed CMK)
-- DD_API_KEY_SSM_NAME - the Parameter Name to fetch API Key from the Systems Manager Parameter Store, requires the `ssm:GetParameter` permission (and `kms:Decrypt` if using a SecureString with a customer managed CMK)
 
-You can also supply or override the API key at runtime (not recommended):
-
-```python
-# Override DD API Key after importing datadog_lambda packages
-from datadog import api
-api._api_key = "MY_API_KEY"
-```
+If you are using the [Datadog Forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/main/aws/logs_monitoring), you must set the Datadog API Key on the Datadog Forwarder instead of your own Lambda function.
 
 ### DD_SITE
 
-If `DD_FLUSH_TO_LOG` is set to `false` (not recommended), you must set `DD_SITE`. Possible values are `datadoghq.com`, `datadoghq.eu`, `us3.datadoghq.com`, `us5.datadoghq.com`, and `ddog-gov.com`. The default is `datadoghq.com`.
+If you are using the [Datadog Lambda Extension](https://docs.datadoghq.com/serverless/libraries_integrations/extension/), you must set `DD_SITE` on your Lambda function based on your [Datadog site](https://docs.datadoghq.com/getting_started/site/). The default is `datadoghq.com`. 
+
+If you are using the [Datadog Forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/main/aws/logs_monitoring), you must set this on the Datadog Forwarder instead of your own Lambda function.
 
 ### DD_LOGS_INJECTION
 
@@ -93,7 +48,17 @@ Generate enhanced Datadog Lambda integration metrics, such as, `aws.lambda.enhan
 
 ### DD_LAMBDA_HANDLER
 
-Your original Lambda handler.
+In order to instrument individual invocations, the Datadog Lambda library needs to wrap around your Lambda handler function. This is usually achieved by setting your function's handler to the Datadog handler function (`datadog_lambda.handler.handler`) and setting the environment variable `DD_LAMBDA_HANDLER` with your original handler function to be called by the Datadog handler.
+
+For some advanced use cases, instead of overriding the handler setting and the `DD_LAMBDA_HANDLER` environment variable, you can apply the Datadog Lambda library wrapper in your function code like below:
+
+```python
+from datadog_lambda.wrapper import datadog_lambda_wrapper
+
+@datadog_lambda_wrapper
+def my_lambda_handle(event, context):
+    # your function code
+```
 
 ### DD_TRACE_ENABLED
 
@@ -120,6 +85,12 @@ Infers spans for:
 - EventBridge (custom events, where Details is a JSON string)
 - S3
 - DynamoDB
+
+### DD_FLUSH_TO_LOG (Deprecated)
+
+When the [Datadog Forwarder](https://github.com/DataDog/datadog-serverless-functions/tree/main/aws/logs_monitoring) was launched previously, `DD_FLUSH_TO_LOG` was introduced to control whether to send custom metrics synchronously from your own Lambda function directly to Datadog with added latency (set `DD_FLUSH_TO_LOG` to `false` and you also need to set `DD_API_KEY` and `DD_SITE`) or asynchronously through CloudWatch logs (set `DD_FLUSH_TO_LOG` to `true`).
+
+Now you should consider adopting the [Datadog Lambda Extension](https://docs.datadoghq.com/serverless/libraries_integrations/extension/) for sending custom metrics. When the Datadog Lambda Extension is installed and detected, `DD_FLUSH_TO_LOG` is ignored. If you wish to Defaults to `false`. If set to `false`, you also need to set `DD_API_KEY` and `DD_SITE`.
 
 ## Opening Issues
 
