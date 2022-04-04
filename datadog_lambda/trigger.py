@@ -164,12 +164,14 @@ def parse_event_source(event: dict) -> _EventSource:
 
     return event_source
 
+
 def detect_lambda_function_url_domain(domain: str) -> bool:
     #  e.g. "etsn5fibjr.lambda-url.eu-south-1.amazonaws.com"
     domain_parts = domain.split(".")
     if len(domain_parts) < 2:
         return False
     return domain_parts[1] == "lambda-url"
+
 
 def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> str:
     """
@@ -298,7 +300,11 @@ def extract_trigger_tags(event: dict, context: Any) -> dict:
         if event_source_arn:
             trigger_tags["function_trigger.event_source_arn"] = event_source_arn
 
-    if event_source.event_type in [EventTypes.API_GATEWAY, EventTypes.ALB, EventTypes.LAMBDA_FUNCTION_URL]:
+    if event_source.event_type in [
+        EventTypes.API_GATEWAY,
+        EventTypes.ALB,
+        EventTypes.LAMBDA_FUNCTION_URL,
+    ]:
         trigger_tags.update(extract_http_tags(event))
 
     return trigger_tags

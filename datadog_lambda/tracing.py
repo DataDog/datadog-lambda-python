@@ -548,6 +548,7 @@ def create_inferred_span(event, context):
     logger.debug("Unable to infer a span: unknown event type")
     return None
 
+
 def create_inferred_span_from_lambda_function_url_event(event, context):
     request_context = event["requestContext"]
     domain = request_context["domainName"]
@@ -578,6 +579,7 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
         span.set_tags(tags)
     span.start = request_time_epoch / 1000
     return span
+
 
 def is_api_gateway_invocation_async(event):
     return (
