@@ -506,6 +506,9 @@ def create_inferred_span(event, context):
         ):
             logger.debug("API Gateway event detected. Inferring a span")
             return create_inferred_span_from_api_gateway_event(event, context)
+        elif event_source.equals(EventTypes.LAMBDA_FUNCTION_URL):
+            logger.debug("Function URL event detected. Inferring a span")
+            return create_inferred_span_from_lambda_function_url_event(event, context)
         elif event_source.equals(
             EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API
         ):
@@ -544,6 +547,38 @@ def create_inferred_span(event, context):
         return None
     logger.debug("Unable to infer a span: unknown event type")
     return None
+
+
+def create_inferred_span_from_lambda_function_url_event(event, context):
+    request_context = event["requestContext"]
+    domain = request_context["domainName"]
+    method = request_context["http"]["method"]
+    path = request_context["http"]["path"]
+    resource = "{0} {1}".format(method, path)
+    tags = {
+        "operation_name": "aws.lambda.url",
+        "http.url": domain + path,
+        "endpoint": path,
+        "http.method": method,
+        "resource_names": domain + path,
+        "request_id": context.aws_request_id,
+    }
+    request_time_epoch = request_context["timeEpoch"]
+    args = {
+        "service": domain,
+        "resource": resource,
+        "span_type": "http",
+    }
+    tracer.set_tags(
+        {"_dd.origin": "lambda"}
+    )  # function urls don't count as lambda_inferred,
+    # because they're in the same service as the inferring lambda function
+    span = tracer.trace("aws.lambda.url", **args)
+    InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
+    if span:
+        span.set_tags(tags)
+    span.start = request_time_epoch / 1000
+    return span
 
 
 def is_api_gateway_invocation_async(event):

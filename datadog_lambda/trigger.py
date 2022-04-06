@@ -35,6 +35,7 @@ class EventTypes(_stringTypedEnum):
     CLOUDFRONT = "cloudfront"
     DYNAMODB = "dynamodb"
     KINESIS = "kinesis"
+    LAMBDA_FUNCTION_URL = "lambda-function-url"
     S3 = "s3"
     SNS = "sns"
     SQS = "sqs"
@@ -115,6 +116,10 @@ def parse_event_source(event: dict) -> _EventSource:
 
     request_context = event.get("requestContext")
     if request_context and request_context.get("stage"):
+        if "domainName" in request_context and detect_lambda_function_url_domain(
+            request_context.get("domainName")
+        ):
+            return _EventSource(EventTypes.LAMBDA_FUNCTION_URL)
         event_source = _EventSource(EventTypes.API_GATEWAY)
         if "httpMethod" in event:
             event_source.subtype = EventSubtypes.API_GATEWAY
@@ -160,6 +165,14 @@ def parse_event_source(event: dict) -> _EventSource:
     return event_source
 
 
+def detect_lambda_function_url_domain(domain: str) -> bool:
+    #  e.g. "etsn5fibjr.lambda-url.eu-south-1.amazonaws.com"
+    domain_parts = domain.split(".")
+    if len(domain_parts) < 2:
+        return False
+    return domain_parts[1] == "lambda-url"
+
+
 def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> str:
     """
     Parses the trigger event for an available ARN. If an ARN field is not provided
@@ -185,6 +198,18 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
         return "arn:{}:cloudfront::{}:distribution/{}".format(
             aws_arn, account_id, distribution_id
         )
+
+    # e.g. arn:aws:lambda:<region>:<account_id>:url:<function-name>:<function-qualifier>
+    if source.equals(EventTypes.LAMBDA_FUNCTION_URL):
+        function_name = ""
+        if len(split_function_arn) >= 7:
+            function_name = split_function_arn[6]
+        function_arn = f"arn:aws:lambda:{region}:{account_id}:url:{function_name}"
+        function_qualifier = ""
+        if len(split_function_arn) >= 8:
+            function_qualifier = split_function_arn[7]
+            function_arn = function_arn + f":{function_qualifier}"
+        return function_arn
 
     # e.g. arn:aws:apigateway:us-east-1::/restapis/xyz123/stages/default
     if source.event_type == EventTypes.API_GATEWAY:
@@ -275,7 +300,11 @@ def extract_trigger_tags(event: dict, context: Any) -> dict:
         if event_source_arn:
             trigger_tags["function_trigger.event_source_arn"] = event_source_arn
 
-    if event_source.event_type in [EventTypes.API_GATEWAY, EventTypes.ALB]:
+    if event_source.event_type in [
+        EventTypes.API_GATEWAY,
+        EventTypes.ALB,
+        EventTypes.LAMBDA_FUNCTION_URL,
+    ]:
         trigger_tags.update(extract_http_tags(event))
 
     return trigger_tags
@@ -283,15 +312,23 @@ def extract_trigger_tags(event: dict, context: Any) -> dict:
 
 def extract_http_status_code_tag(trigger_tags, response):
     """
-    If the Lambda was triggered by API Gateway or ALB add the returned status code
+    If the Lambda was triggered by API Gateway, Lambda Function URL, or ALB add the returned status code
     as a tag to the function execution span.
     """
-    is_http_trigger = trigger_tags and (
-        trigger_tags.get("function_trigger.event_source") == "api-gateway"
-        or trigger_tags.get("function_trigger.event_source")
-        == "application-load-balancer"
-    )
-    if not is_http_trigger:
+    if trigger_tags is None:
+        return
+    str_event_source = trigger_tags.get("function_trigger.event_source")
+    # it would be cleaner if each event type was a constant object that
+    # knew some properties about itself like this.
+    str_http_triggers = [
+        et.value
+        for et in [
+            EventTypes.API_GATEWAY,
+            EventTypes.LAMBDA_FUNCTION_URL,
+            EventTypes.ALB,
+        ]
+    ]
+    if str_event_source not in str_http_triggers:
         return
 
     status_code = "200"
