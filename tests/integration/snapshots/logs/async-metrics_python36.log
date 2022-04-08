@@ -69,8 +69,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "metrics": {
           "_dd.agent_psr": 1,
           "system.pid": "XXXX",
-          "_sampling_priority_v1": 1,
-          "_dd.top_level": 1
+          "_sampling_priority_v1": 1
         },
         "type": "http"
       },
@@ -101,9 +100,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "http.url_details.path": "/Prod/",
           "http.method": "GET",
           "http.status_code": "200"
-        },
-        "metrics": {
-          "_dd.top_level": 1
         },
         "type": "serverless"
       },
@@ -223,8 +219,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "metrics": {
           "_dd.agent_psr": 1,
           "system.pid": "XXXX",
-          "_sampling_priority_v1": 1,
-          "_dd.top_level": 1
+          "_sampling_priority_v1": 1
         },
         "type": "web"
       },
@@ -251,9 +246,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.name": "aws.lambda",
           "function_trigger.event_source": "dynamodb",
           "function_trigger.event_source_arn": "XXXX"
-        },
-        "metrics": {
-          "_dd.top_level": 1
         },
         "type": "serverless"
       },
@@ -367,8 +359,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "metrics": {
           "_dd.agent_psr": 1,
           "system.pid": "XXXX",
-          "_sampling_priority_v1": 1,
-          "_dd.top_level": 1
+          "_sampling_priority_v1": 1
         },
         "type": "web"
       },
@@ -394,9 +385,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
           "function_trigger.event_source": "eventbridge"
-        },
-        "metrics": {
-          "_dd.top_level": 1
         },
         "type": "serverless"
       },
@@ -520,8 +508,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "metrics": {
           "_dd.agent_psr": 1,
           "system.pid": "XXXX",
-          "_sampling_priority_v1": 1,
-          "_dd.top_level": 1
+          "_sampling_priority_v1": 1
         },
         "type": "http"
       },
@@ -552,9 +539,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "http.url_details.path": "/httpapi/get",
           "http.method": "GET",
           "http.status_code": "200"
-        },
-        "metrics": {
-          "_dd.top_level": 1
         },
         "type": "serverless"
       },
@@ -674,8 +658,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "metrics": {
           "_dd.agent_psr": 1,
           "system.pid": "XXXX",
-          "_sampling_priority_v1": 1,
-          "_dd.top_level": 1
+          "_sampling_priority_v1": 1
         },
         "type": "web"
       },
@@ -702,9 +685,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.name": "aws.lambda",
           "function_trigger.event_source": "kinesis",
           "function_trigger.event_source_arn": "XXXX"
-        },
-        "metrics": {
-          "_dd.top_level": 1
         },
         "type": "serverless"
       },
@@ -821,8 +801,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "metrics": {
           "_dd.agent_psr": 1,
           "system.pid": "XXXX",
-          "_sampling_priority_v1": 1,
-          "_dd.top_level": 1
+          "_sampling_priority_v1": 1
         },
         "type": "web"
       },
@@ -849,9 +828,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.name": "aws.lambda",
           "function_trigger.event_source": "s3",
           "function_trigger.event_source_arn": "XXXX"
-        },
-        "metrics": {
-          "_dd.top_level": 1
         },
         "type": "serverless"
       },
@@ -969,8 +945,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "metrics": {
           "_dd.agent_psr": 1,
           "system.pid": "XXXX",
-          "_sampling_priority_v1": 1,
-          "_dd.top_level": 1
+          "_sampling_priority_v1": 1
         },
         "type": "web"
       },
@@ -997,9 +972,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.name": "aws.lambda",
           "function_trigger.event_source": "sns",
           "function_trigger.event_source_arn": "XXXX"
-        },
-        "metrics": {
-          "_dd.top_level": 1
         },
         "type": "serverless"
       },
@@ -1114,10 +1086,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self"
         },
         "metrics": {
-          "_dd.agent_psr": 1,
           "system.pid": "XXXX",
-          "_sampling_priority_v1": 1,
-          "_dd.top_level": 1
+          "_sampling_priority_v1": 1
         },
         "type": "web"
       },
@@ -1144,9 +1114,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.name": "aws.lambda",
           "function_trigger.event_source": "sqs",
           "function_trigger.event_source_arn": "XXXX"
-        },
-        "metrics": {
-          "_dd.top_level": 1
         },
         "type": "serverless"
       },
@@ -1269,8 +1236,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "metrics": {
           "_dd.agent_psr": 1,
           "system.pid": "XXXX",
-          "_sampling_priority_v1": 1,
-          "_dd.top_level": 1
+          "_sampling_priority_v1": 1
         },
         "type": "web"
       },
@@ -1299,9 +1265,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "function_trigger.event_source_arn": "XXXX",
           "http.url": "XXXX.execute-api.sa-east-1.amazonaws.com",
           "http.status_code": "200"
-        },
-        "metrics": {
-          "_dd.top_level": 1
         },
         "type": "serverless"
       },

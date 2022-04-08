@@ -1184,8 +1184,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(
             span.get_tag("request_id"), "c6af9ac6-7b61-11e6-9a41-93e8deadbeef"
         )
-        self.assertEqual(span.get_tag("apiid"), 'None')
-        self.assertEqual(span.get_tag("apiname"), 'None')
+        self.assertEqual(span.get_tag("apiid"), "None")
+        self.assertEqual(span.get_tag("apiname"), "None")
         self.assertEqual(span.get_tag("stage"), "prod")
         self.assertEqual(span.start, 1428582896.0)
         self.assertEqual(span.span_type, "http")

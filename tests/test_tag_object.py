@@ -70,7 +70,7 @@ class TestTagObject(unittest.TestCase):
     def test_unicode_tag_object(self):
         payload = {
             "token": "world",
-            u"jsonString": u'{"stringifyThisJson":[{"here":"is","an":"object","number":1}]}',
+            "jsonString": '{"stringifyThisJson":[{"here":"is","an":"object","number":1}]}',
         }
         spanMock = MagicMock()
         tag_object(spanMock, "function.request", payload)

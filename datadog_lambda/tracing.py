@@ -410,7 +410,9 @@ def get_dd_trace_context():
     elif xray_context and dd_trace_context:
         context = dd_trace_context.copy()
         context["parent-id"] = xray_context.get("parent-id")
-        logger.debug("Set parent id from xray trace context: %s", context.get("parent-id"))
+        logger.debug(
+            "Set parent id from xray trace context: %s", context.get("parent-id")
+        )
 
     if dd_tracing_enabled:
         dd_trace_py_context = _get_dd_trace_py_context()
