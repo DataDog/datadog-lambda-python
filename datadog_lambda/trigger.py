@@ -312,8 +312,8 @@ def extract_trigger_tags(event: dict, context: Any) -> dict:
 
 def extract_http_status_code_tag(trigger_tags, response):
     """
-    If the Lambda was triggered by API Gateway, Lambda Function URL, or ALB add the returned status code
-    as a tag to the function execution span.
+    If the Lambda was triggered by API Gateway, Lambda Function URL, or ALB,
+    add the returned status code as a tag to the function execution span.
     """
     if trigger_tags is None:
         return
