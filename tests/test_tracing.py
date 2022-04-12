@@ -1155,3 +1155,39 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(context["trace-id"], "4948377316357291421")
         self.assertEqual(context["parent-id"], "2876253380018681026")
         self.assertEqual(context["sampling-priority"], "1")
+
+    def test_create_inferred_span_from_api_gateway_event_no_apiid(self):
+        event_sample_source = "api-gateway-no-apiid"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        print(event)
+        span = create_inferred_span(event, ctx)
+        print(span)
+        self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
+        self.assertEqual(
+            span.service,
+            "70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "70ixmpl4fl.execute-api.us-east-2.amazonaws.com/path/to/resource",
+        )
+        self.assertEqual(span.get_tag("endpoint"), "/path/to/resource")
+        self.assertEqual(span.get_tag("http.method"), "POST")
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "POST /path/to/resource",
+        )
+        self.assertEqual(
+            span.get_tag("request_id"), "c6af9ac6-7b61-11e6-9a41-93e8deadbeef"
+        )
+        self.assertEqual(span.get_tag("apiid"), "None")
+        self.assertEqual(span.get_tag("apiname"), "None")
+        self.assertEqual(span.get_tag("stage"), "prod")
+        self.assertEqual(span.start, 1428582896.0)
+        self.assertEqual(span.span_type, "http")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
