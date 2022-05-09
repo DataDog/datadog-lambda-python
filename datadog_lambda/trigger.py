@@ -125,7 +125,7 @@ def parse_event_source(event: dict) -> _EventSource:
             event_source.subtype = EventSubtypes.API_GATEWAY
         if "routeKey" in event:
             event_source.subtype = EventSubtypes.HTTP_API
-        if "requestContext" in event and "messageDirection" in event["requestContext"]:
+        if event.get("requestContext", {}).get("messageDirection"):
             event_source.subtype = EventSubtypes.WEBSOCKET
 
     if request_context and request_context.get("elb"):
@@ -186,15 +186,17 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
     event_record = get_first_record(event)
     # e.g. arn:aws:s3:::lambda-xyz123-abc890
     if source.to_string() == "s3":
-        return event_record.get("s3")["bucket"]["arn"]
+        return event_record.get("s3", {}).get("bucket", {}).get("arn")
 
     # e.g. arn:aws:sns:us-east-1:123456789012:sns-lambda
     if source.to_string() == "sns":
-        return event_record.get("Sns")["TopicArn"]
+        return event_record.get("Sns", {}).get("TopicArn")
 
     # e.g. arn:aws:cloudfront::123456789012:distribution/ABC123XYZ
     if source.event_type == EventTypes.CLOUDFRONT:
-        distribution_id = event_record.get("cf")["config"]["distributionId"]
+        distribution_id = (
+            event_record.get("cf", {}).get("config", {}).get("distributionId")
+        )
         return "arn:{}:cloudfront::{}:distribution/{}".format(
             aws_arn, account_id, distribution_id
         )
@@ -215,18 +217,18 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
     if source.event_type == EventTypes.API_GATEWAY:
         request_context = event.get("requestContext")
         return "arn:{}:apigateway:{}::/restapis/{}/stages/{}".format(
-            aws_arn, region, request_context["apiId"], request_context["stage"]
+            aws_arn, region, request_context.get("apiId"), request_context.get("stage")
         )
 
     # e.g. arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/lambda-xyz/123
     if source.event_type == EventTypes.ALB:
         request_context = event.get("requestContext")
-        return request_context.get("elb")["targetGroupArn"]
+        return request_context.get("elb", {}).get("targetGroupArn")
 
     # e.g. arn:aws:logs:us-west-1:123456789012:log-group:/my-log-group-xyz
     if source.event_type == EventTypes.CLOUDWATCH_LOGS:
         with gzip.GzipFile(
-            fileobj=BytesIO(base64.b64decode(event["awslogs"]["data"]))
+            fileobj=BytesIO(base64.b64decode(event.get("awslogs", {}).get("data")))
         ) as decompress_stream:
             data = b"".join(BufferedReader(decompress_stream))
         logs = json.loads(data)
@@ -265,7 +267,7 @@ def extract_http_tags(event):
     method = event.get("httpMethod")
     if request_context and request_context.get("stage"):
         if request_context.get("domainName"):
-            http_tags["http.url"] = request_context["domainName"]
+            http_tags["http.url"] = request_context.get("domainName")
 
         path = request_context.get("path")
         method = request_context.get("httpMethod")
@@ -282,7 +284,7 @@ def extract_http_tags(event):
 
     headers = event.get("headers")
     if headers and headers.get("Referer"):
-        http_tags["http.referer"] = headers["Referer"]
+        http_tags["http.referer"] = headers.get("Referer")
 
     return http_tags
 
