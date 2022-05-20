@@ -20,4 +20,4 @@ RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
 
 # Remove profiling (7MB) to reduce package size.
 # Continous profiling is not yet supported anyway.
-RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/profiling
+# RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/profiling
