@@ -110,6 +110,7 @@ class _LambdaDecorator(object):
                 os.environ.get("DD_TRACE_MANAGED_SERVICES", "true").lower() == "true"
             )
             self.response = None
+            self.already_submitted_errors_metric_before = False
 
             if self.extractor_env:
                 extractor_parts = self.extractor_env.rsplit(".", 1)
@@ -143,6 +144,7 @@ class _LambdaDecorator(object):
             return self.response
         except Exception:
             submit_errors_metric(context)
+            self.already_submitted_errors_metric_before = True
             if self.span:
                 self.span.set_traceback()
             raise
@@ -190,6 +192,9 @@ class _LambdaDecorator(object):
             status_code = extract_http_status_code_tag(self.trigger_tags, self.response)
             if status_code:
                 self.trigger_tags["http.status_code"] = status_code
+                if not self.already_submitted_errors_metric_before:
+                    if len(status_code) == 3 and status_code.startswith("5"):
+                        submit_errors_metric(context)
             # Create a new dummy Datadog subsegment for function trigger tags so we
             # can attach them to X-Ray spans when hybrid tracing is used
             if self.trigger_tags:
