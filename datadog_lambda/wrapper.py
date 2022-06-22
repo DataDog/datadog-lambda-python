@@ -186,7 +186,7 @@ class _LambdaDecorator(object):
                 )
             else:
                 set_correlation_ids()
-            if profiling_env_var == True and not is_cold_start():
+            if profiling_env_var == True and is_cold_start():
                 print("starting profiler in _before()")
                 self.prof.start(stop_on_exit=False, profile_children=True)
             logger.debug("datadog_lambda_wrapper _before() done")
@@ -195,9 +195,6 @@ class _LambdaDecorator(object):
 
     def _after(self, event, context):
         try:
-            if profiling_env_var == True:
-                print("stopping profiler in _after()")
-                self.prof.stop(flush=True)
             status_code = extract_http_status_code_tag(self.trigger_tags, self.response)
             if status_code:
                 self.trigger_tags["http.status_code"] = status_code
