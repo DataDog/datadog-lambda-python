@@ -356,7 +356,7 @@ dev = ["boto3", "requests", "nose2", "flake8", "httpretty"]
 [metadata]
 lock-version = "1.1"
 python-versions = ">=3.6.0,<4"
-content-hash = "48c6e38b716b2ce193af0ffb0430a159c6ba7e0acce29be0a07289a91adeea73"
+content-hash = "ca4755fbb4131d3113797f829d9b3423e7d4b44bf756d5aed1fe3af2d475c376"
 
 [metadata.files]
 attrs = [
