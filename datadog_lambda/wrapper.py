@@ -203,8 +203,7 @@ class _LambdaDecorator(object):
                             {
                                 ERROR_TYPE: "5xx Server Errors",
                                 ERROR_MSG: SERVER_ERRORS_STATUS_CODES.get(
-                                    status_code,
-                                    "5xx Server Errors"),
+                                    status_code, "5xx Server Errors"),
                             }
                         )
             # Create a new dummy Datadog subsegment for function trigger tags so we
