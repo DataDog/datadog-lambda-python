@@ -153,9 +153,8 @@ class _LambdaDecorator(object):
             self._after(event, context)
 
     def _before(self, event, context):
-        self.response = None
         try:
-
+            self.response = None
             set_cold_start()
             submit_invocations_metric(context)
             self.trigger_tags = extract_trigger_tags(event, context)
