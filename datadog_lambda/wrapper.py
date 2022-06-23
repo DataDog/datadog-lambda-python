@@ -8,11 +8,14 @@ import logging
 import traceback
 from importlib import import_module
 
+from ddtrace.constants import ERROR_MSG, ERROR_STACK, ERROR_TYPE
+
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
 from datadog_lambda.constants import (
-    XraySubsegment,
+    SERVER_ERRORS_STATUS_CODES,
     TraceContextSource,
+    XraySubsegment,
 )
 from datadog_lambda.metric import (
     flush_stats,
@@ -194,6 +197,12 @@ class _LambdaDecorator(object):
                     submit_errors_metric(context)
                     if self.span:
                         self.span.set_traceback()
+                        self.span.error = 1
+                        self.span.set_tags({
+                            ERROR_TYPE: "5xx Server Errors",
+                            ERROR_MSG: SERVER_ERRORS_STATUS_CODES.get(status_code,
+                                                                      "5xx Server Errors"),
+                        })
             # Create a new dummy Datadog subsegment for function trigger tags so we
             # can attach them to X-Ray spans when hybrid tracing is used
             if self.trigger_tags:

@@ -275,6 +275,64 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             ]
         )
 
+    @patch('datadog_lambda.wrapper.extract_trigger_tags')
+    def test_5xx_sends_errors_metric_and_set_tags(self, mock_extract_trigger_tags):
+        mock_extract_trigger_tags.return_value = {
+            "function_trigger.event_source": "api-gateway",
+            "function_trigger.event_source_arn":
+                "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod",
+            "http.url": "70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
+            "http.url_details.path": "/prod/path/to/resource",
+            "http.method": "GET",
+        }
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return {
+                "statusCode": 500,
+                "body": "fake response body"
+            }
+
+        lambda_event = {}
+
+        lambda_handler(lambda_event, get_mock_context())
+
+        self.mock_write_metric_point_to_stdout.assert_has_calls(
+            [
+                call(
+                    "aws.lambda.enhanced.invocations",
+                    1,
+                    tags=[
+                        "region:us-west-1",
+                        "account_id:123457598159",
+                        "functionname:python-layer-test",
+                        "resource:python-layer-test:1",
+                        "cold_start:true",
+                        "memorysize:256",
+                        "runtime:python3.9",
+                        "datadog_lambda:v6.6.6",
+                        "dd_lambda_layer:datadog-python39_X.X.X",
+                    ],
+                    timestamp=None,
+                ),
+                call(
+                    "aws.lambda.enhanced.errors",
+                    1,
+                    tags=[
+                        "region:us-west-1",
+                        "account_id:123457598159",
+                        "functionname:python-layer-test",
+                        "resource:python-layer-test:1",
+                        "cold_start:true",
+                        "memorysize:256",
+                        "runtime:python3.9",
+                        "datadog_lambda:v6.6.6",
+                        "dd_lambda_layer:datadog-python39_X.X.X",
+                    ],
+                    timestamp=None,
+                ),
+            ]
+        )
+
     def test_enhanced_metrics_cold_start_tag(self):
         @datadog_lambda_wrapper
         def lambda_handler(event, context):
