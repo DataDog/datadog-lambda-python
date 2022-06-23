@@ -153,6 +153,7 @@ class _LambdaDecorator(object):
             self._after(event, context)
 
     def _before(self, event, context):
+        self.response = None
         try:
 
             set_cold_start()
@@ -198,11 +199,14 @@ class _LambdaDecorator(object):
                     if self.span:
                         self.span.set_traceback()
                         self.span.error = 1
-                        self.span.set_tags({
-                            ERROR_TYPE: "5xx Server Errors",
-                            ERROR_MSG: SERVER_ERRORS_STATUS_CODES.get(status_code,
-                                                                      "5xx Server Errors"),
-                        })
+                        self.span.set_tags(
+                            {
+                                ERROR_TYPE: "5xx Server Errors",
+                                ERROR_MSG: SERVER_ERRORS_STATUS_CODES.get(
+                                    status_code,
+                                    "5xx Server Errors"),
+                            }
+                        )
             # Create a new dummy Datadog subsegment for function trigger tags so we
             # can attach them to X-Ray spans when hybrid tracing is used
             if self.trigger_tags:
