@@ -10,6 +10,10 @@ import base64
 from datetime import datetime, timezone
 from typing import Optional, Dict
 
+from ddtrace.constants import ERROR_MSG, ERROR_TYPE
+
+from datadog_lambda.metric import submit_errors_metric
+
 try:
     from typing import Literal
 except ImportError:
@@ -17,6 +21,7 @@ except ImportError:
     from typing_extensions import Literal
 
 from datadog_lambda.constants import (
+    SERVER_ERRORS_STATUS_CODES,
     SamplingPriority,
     TraceHeader,
     TraceContextSource,
@@ -957,6 +962,21 @@ def create_function_execution_span(
     if parent_span:
         span.parent_id = parent_span.span_id
     return span
+
+
+def mark_trace_as_error_for_5xx_responses(context, status_code, span):
+    if len(status_code) == 3 and status_code.startswith("5"):
+        submit_errors_metric(context)
+        if span:
+            span.error = 1
+            span.set_tags(
+                {
+                    ERROR_TYPE: "5xx Server Errors",
+                    ERROR_MSG: SERVER_ERRORS_STATUS_CODES.get(
+                        status_code, "5xx Server Errors"
+                    ),
+                }
+            )
 
 
 class InferredSpanInfo(object):

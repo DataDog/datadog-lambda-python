@@ -8,12 +8,9 @@ import logging
 import traceback
 from importlib import import_module
 
-from ddtrace.constants import ERROR_MSG, ERROR_TYPE
-
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
 from datadog_lambda.constants import (
-    SERVER_ERRORS_STATUS_CODES,
     TraceContextSource,
     XraySubsegment,
 )
@@ -29,6 +26,7 @@ from datadog_lambda.tracing import (
     create_dd_dummy_metadata_subsegment,
     inject_correlation_ids,
     dd_tracing_enabled,
+    mark_trace_as_error_for_5xx_responses,
     set_correlation_ids,
     set_dd_trace_py_root,
     create_function_execution_span,
@@ -193,19 +191,8 @@ class _LambdaDecorator(object):
             status_code = extract_http_status_code_tag(self.trigger_tags, self.response)
             if status_code:
                 self.trigger_tags["http.status_code"] = status_code
-                if len(status_code) == 3 and status_code.startswith("5"):
-                    submit_errors_metric(context)
-                    if self.span:
-                        self.span.set_traceback()
-                        self.span.error = 1
-                        self.span.set_tags(
-                            {
-                                ERROR_TYPE: "5xx Server Errors",
-                                ERROR_MSG: SERVER_ERRORS_STATUS_CODES.get(
-                                    status_code, "5xx Server Errors"
-                                ),
-                            }
-                        )
+                mark_trace_as_error_for_5xx_responses(context, status_code, self.span)
+
             # Create a new dummy Datadog subsegment for function trigger tags so we
             # can attach them to X-Ray spans when hybrid tracing is used
             if self.trigger_tags:
