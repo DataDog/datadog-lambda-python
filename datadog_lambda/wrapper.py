@@ -8,7 +8,7 @@ import logging
 import traceback
 from importlib import import_module
 
-from ddtrace.constants import ERROR_MSG, ERROR_STACK, ERROR_TYPE
+from ddtrace.constants import ERROR_MSG, ERROR_TYPE
 
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
