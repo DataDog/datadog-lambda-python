@@ -10,7 +10,6 @@ from ddtrace.helpers import get_correlation_ids
 from ddtrace.context import Context
 
 from datadog_lambda.constants import (
-    SERVER_ERRORS_STATUS_CODES,
     SamplingPriority,
     TraceHeader,
     XraySubsegment,
