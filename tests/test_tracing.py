@@ -1216,10 +1216,3 @@ class TestInferredSpans(unittest.TestCase):
         )
         mock_submit_errors_metric.assert_called_once()
         self.assertEqual(1, mock_span.error)
-        self.assertDictEqual(
-            {
-                ERROR_TYPE: "5xx Server Errors",
-                ERROR_MSG: "500 Internal Server Error",
-            },
-            mock_span.set_tags.call_args[0][0],
-        )
