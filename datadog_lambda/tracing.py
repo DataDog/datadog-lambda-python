@@ -10,8 +10,6 @@ import base64
 from datetime import datetime, timezone
 from typing import Optional, Dict
 
-from ddtrace.constants import ERROR_MSG, ERROR_TYPE
-
 from datadog_lambda.metric import submit_errors_metric
 
 try:
@@ -21,7 +19,6 @@ except ImportError:
     from typing_extensions import Literal
 
 from datadog_lambda.constants import (
-    SERVER_ERRORS_STATUS_CODES,
     SamplingPriority,
     TraceHeader,
     TraceContextSource,
