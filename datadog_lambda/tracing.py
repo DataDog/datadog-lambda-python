@@ -334,7 +334,7 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
             parent_id,
             sampling_priority,
         ) = extract_context_custom_extractor(extractor, event, lambda_context)
-    elif isinstance(event, (list, dict)) and "headers" in event:
+    elif isinstance(event, (set, dict)) and "headers" in event:
         (
             trace_id,
             parent_id,
