@@ -103,7 +103,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_with_non_object_event(self):
         lambda_ctx = get_mock_context()
-        ctx, source = extract_dd_trace_context(b'', lambda_ctx)
+        ctx, source = extract_dd_trace_context(b"", lambda_ctx)
         self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
