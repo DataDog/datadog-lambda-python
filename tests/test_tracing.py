@@ -104,6 +104,28 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             {},
         )
 
+    def test_with_non_object_event(self):
+        lambda_ctx = get_mock_context()
+        ctx, source = extract_dd_trace_context(b"", lambda_ctx)
+        self.assertEqual(source, "xray")
+        self.assertDictEqual(
+            ctx,
+            {
+                "trace-id": fake_xray_header_value_root_decimal,
+                "parent-id": fake_xray_header_value_parent_decimal,
+                "sampling-priority": "2",
+            },
+        )
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: fake_xray_header_value_root_decimal,
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
+                TraceHeader.SAMPLING_PRIORITY: "2",
+            },
+            {},
+        )
+
     def test_with_incomplete_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
         ctx, source = extract_dd_trace_context(
