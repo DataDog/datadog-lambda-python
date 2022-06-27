@@ -2,8 +2,10 @@ import unittest
 import json
 import os
 
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, Mock, patch, call
 
+import ddtrace
+from ddtrace.constants import ERROR_MSG, ERROR_TYPE
 from ddtrace.helpers import get_correlation_ids
 from ddtrace.context import Context
 
@@ -18,6 +20,7 @@ from datadog_lambda.tracing import (
     create_dd_dummy_metadata_subsegment,
     create_function_execution_span,
     get_dd_trace_context,
+    mark_trace_as_error_for_5xx_responses,
     set_correlation_ids,
     set_dd_trace_py_root,
     _convert_xray_trace_id,
@@ -1191,3 +1194,24 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+
+    @patch("datadog_lambda.tracing.submit_errors_metric")
+    def test_mark_trace_as_error_for_5xx_responses_getting_400_response_code(
+        self, mock_submit_errors_metric
+    ):
+        mark_trace_as_error_for_5xx_responses(
+            context="fake_context", status_code="400", span="empty_span"
+        )
+        mock_submit_errors_metric.assert_not_called()
+
+    @patch("datadog_lambda.tracing.submit_errors_metric")
+    def test_mark_trace_as_error_for_5xx_responses_sends_error_metric_and_set_error_tags(
+        self, mock_submit_errors_metric
+    ):
+        mock_span = Mock(ddtrace.span.Span)
+        status_code = "500"
+        mark_trace_as_error_for_5xx_responses(
+            context="fake_context", status_code=status_code, span=mock_span
+        )
+        mock_submit_errors_metric.assert_called_once()
+        self.assertEqual(1, mock_span.error)
