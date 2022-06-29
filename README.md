@@ -26,7 +26,7 @@ You can also open an issue for a feature request.
 
 ## Major Version Notes
 
-# 4.x
+### 4.x
 
 - `dd-trace` upgraded from 0.61 to 1.2, full release notes are available [here](https://ddtrace.readthedocs.io/en/stable/release_notes.html#v1-0-0)
 
