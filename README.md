@@ -24,6 +24,12 @@ When opening an issue, include the Datadog Lambda Library version, Python versio
 
 You can also open an issue for a feature request.
 
+## Major Version Notes
+
+# 4.x
+
+- `dd-trace` upgraded from 0.61 to 1.2, full release notes are available [here](https://ddtrace.readthedocs.io/en/stable/release_notes.html#v1-0-0)
+
 ## Contributing
 
 If you find an issue with this package and have a fix, please feel free to open a pull request following the [procedures](CONTRIBUTING.md).
