@@ -24,7 +24,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.6.0,<4"
-datadog = "^0.41.0"
+datadog = "^0.41"
 wrapt = "^1.11.2"
 ddtrace = "^1.2.1"
 importlib_metadata = {version = "^1.0", python = "<3.8"}
