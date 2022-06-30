@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, Mock, patch, call
 
 import ddtrace
 from ddtrace.constants import ERROR_MSG, ERROR_TYPE
-from ddtrace.helpers import get_log_correlation_context
+from ddtrace import tracer
 from ddtrace.context import Context
 
 from datadog_lambda.constants import (
@@ -477,9 +477,9 @@ class TestLogsInjection(unittest.TestCase):
 
     def test_set_correlation_ids(self):
         set_correlation_ids()
-        ctx = get_log_correlation_context()
-        self.assertEqual(ctx['trace_id'], 123)
-        self.assertEqual(ctx['span_id'], 456)
+        span = tracer.current_span()
+        self.assertEqual(span.trace_id, 123)
+        self.assertEqual(span.span_id, 456)
 
 
 class TestFunctionSpanTags(unittest.TestCase):
