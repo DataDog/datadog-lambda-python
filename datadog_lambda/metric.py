@@ -53,7 +53,9 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     tags = tag_dd_lambda_layer(tags)
 
     if should_use_extension:
-        logger.debug("Sending metric %s value %s to Datadog via extension", metric_name, value)
+        logger.debug(
+            "Sending metric %s value %s to Datadog via extension", metric_name, value
+        )
         lambda_stats.distribution(metric_name, value, tags=tags, timestamp=timestamp)
     else:
         if flush_to_logs or force_async:
