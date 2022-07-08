@@ -11,8 +11,8 @@ from importlib import import_module
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
 from datadog_lambda.constants import (
-    XraySubsegment,
     TraceContextSource,
+    XraySubsegment,
 )
 from datadog_lambda.metric import (
     flush_stats,
@@ -26,6 +26,7 @@ from datadog_lambda.tracing import (
     create_dd_dummy_metadata_subsegment,
     inject_correlation_ids,
     dd_tracing_enabled,
+    mark_trace_as_error_for_5xx_responses,
     set_correlation_ids,
     set_dd_trace_py_root,
     create_function_execution_span,
@@ -157,7 +158,7 @@ class _LambdaDecorator(object):
 
     def _before(self, event, context):
         try:
-
+            self.response = None
             set_cold_start()
             submit_invocations_metric(context)
             self.trigger_tags = extract_trigger_tags(event, context)
@@ -198,6 +199,8 @@ class _LambdaDecorator(object):
             status_code = extract_http_status_code_tag(self.trigger_tags, self.response)
             if status_code:
                 self.trigger_tags["http.status_code"] = status_code
+                mark_trace_as_error_for_5xx_responses(context, status_code, self.span)
+
             # Create a new dummy Datadog subsegment for function trigger tags so we
             # can attach them to X-Ray spans when hybrid tracing is used
             if self.trigger_tags:

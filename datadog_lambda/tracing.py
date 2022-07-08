@@ -10,6 +10,8 @@ import base64
 from datetime import datetime, timezone
 from typing import Optional, Dict
 
+from datadog_lambda.metric import submit_errors_metric
+
 try:
     from typing import Literal
 except ImportError:
@@ -332,7 +334,7 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
             parent_id,
             sampling_priority,
         ) = extract_context_custom_extractor(extractor, event, lambda_context)
-    elif "headers" in event:
+    elif isinstance(event, (set, dict)) and "headers" in event:
         (
             trace_id,
             parent_id,
@@ -425,7 +427,7 @@ def get_dd_trace_context():
 def set_correlation_ids():
     """
     Create a dummy span, and overrides its trace_id and span_id, to make
-    ddtrace.helpers.get_correlation_ids() return the correct ids for both
+    ddtrace.helpers.get_log_correlation_context() return a dict containing the correct ids for both
     auto and manual log correlations.
 
     TODO: Remove me when Datadog tracer is natively supported in Lambda.
@@ -451,8 +453,8 @@ def inject_correlation_ids():
     Override the formatter of LambdaLoggerHandler to inject datadog trace and
     span id for log correlation.
 
-    For manual injections to custom log handlers, use `ddtrace.helpers.get_correlation_ids`
-    to retrieve correlation ids (trace_id, span_id).
+    For manual injections to custom log handlers, use `ddtrace.helpers.get_log_correlation_context`
+    to retrieve a dict containing correlation ids (trace_id, span_id).
     """
     # Override the log format of the AWS provided LambdaLoggerHandler
     root_logger = logging.getLogger()
@@ -957,6 +959,13 @@ def create_function_execution_span(
     if parent_span:
         span.parent_id = parent_span.span_id
     return span
+
+
+def mark_trace_as_error_for_5xx_responses(context, status_code, span):
+    if len(status_code) == 3 and status_code.startswith("5"):
+        submit_errors_metric(context)
+        if span:
+            span.error = 1
 
 
 class InferredSpanInfo(object):

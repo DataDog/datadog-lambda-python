@@ -2,9 +2,11 @@ import unittest
 import json
 import os
 
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, Mock, patch, call
 
-from ddtrace.helpers import get_correlation_ids
+import ddtrace
+from ddtrace.constants import ERROR_MSG, ERROR_TYPE
+from ddtrace import tracer
 from ddtrace.context import Context
 
 from datadog_lambda.constants import (
@@ -18,6 +20,7 @@ from datadog_lambda.tracing import (
     create_dd_dummy_metadata_subsegment,
     create_function_execution_span,
     get_dd_trace_context,
+    mark_trace_as_error_for_5xx_responses,
     set_correlation_ids,
     set_dd_trace_py_root,
     _convert_xray_trace_id,
@@ -82,6 +85,28 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     def test_without_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
         ctx, source = extract_dd_trace_context({}, lambda_ctx)
+        self.assertEqual(source, "xray")
+        self.assertDictEqual(
+            ctx,
+            {
+                "trace-id": fake_xray_header_value_root_decimal,
+                "parent-id": fake_xray_header_value_parent_decimal,
+                "sampling-priority": "2",
+            },
+        )
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: fake_xray_header_value_root_decimal,
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
+                TraceHeader.SAMPLING_PRIORITY: "2",
+            },
+            {},
+        )
+
+    def test_with_non_object_event(self):
+        lambda_ctx = get_mock_context()
+        ctx, source = extract_dd_trace_context(b"", lambda_ctx)
         self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
@@ -452,9 +477,9 @@ class TestLogsInjection(unittest.TestCase):
 
     def test_set_correlation_ids(self):
         set_correlation_ids()
-        trace_id, span_id = get_correlation_ids()
-        self.assertEqual(trace_id, 123)
-        self.assertEqual(span_id, 456)
+        span = tracer.current_span()
+        self.assertEqual(span.trace_id, 123)
+        self.assertEqual(span.span_id, 456)
 
 
 class TestFunctionSpanTags(unittest.TestCase):
@@ -1191,3 +1216,24 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+
+    @patch("datadog_lambda.tracing.submit_errors_metric")
+    def test_mark_trace_as_error_for_5xx_responses_getting_400_response_code(
+        self, mock_submit_errors_metric
+    ):
+        mark_trace_as_error_for_5xx_responses(
+            context="fake_context", status_code="400", span="empty_span"
+        )
+        mock_submit_errors_metric.assert_not_called()
+
+    @patch("datadog_lambda.tracing.submit_errors_metric")
+    def test_mark_trace_as_error_for_5xx_responses_sends_error_metric_and_set_error_tags(
+        self, mock_submit_errors_metric
+    ):
+        mock_span = Mock(ddtrace.span.Span)
+        status_code = "500"
+        mark_trace_as_error_for_5xx_responses(
+            context="fake_context", status_code=status_code, span=mock_span
+        )
+        mock_submit_errors_metric.assert_called_once()
+        self.assertEqual(1, mock_span.error)
