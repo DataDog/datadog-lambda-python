@@ -30,8 +30,9 @@ Datadog's Continuous Profiler is now available in beta for Python. This optional
 
 ## Major Version Notes
 
-### 4.x
+### 4.x / Layer version 61+
 
+- Python3.6 support has been [deprecated](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html) by AWS, and support removed from this library.
 - `dd-trace` upgraded from 0.61 to 1.4, full release notes are available [here](https://ddtrace.readthedocs.io/en/stable/release_notes.html#v1-0-0)
   - `get_correlation_ids()` has been changed to `get_log_correlation_context()`, which now returns a dictionary containing the active `span_id`, `trace_id`, as well as `service` and `env`.
 
