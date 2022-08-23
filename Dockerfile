@@ -18,7 +18,4 @@ RUN find ./python/lib/$runtime/site-packages -name \*.pyc -delete
 # installs it, while it's already provided by the Lambda Runtime.
 RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
 
-# Remove profiling (7MB) to reduce package size.
-# Continous profiling is not yet supported anyway.
-# RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/profiling
 COPY ./ddtrace ./python/lib/$runtime/site-packages/ddtrace
