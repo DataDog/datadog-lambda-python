@@ -427,7 +427,7 @@ def get_dd_trace_context():
 def set_correlation_ids():
     """
     Create a dummy span, and overrides its trace_id and span_id, to make
-    ddtrace.helpers.get_correlation_ids() return the correct ids for both
+    ddtrace.helpers.get_log_correlation_context() return a dict containing the correct ids for both
     auto and manual log correlations.
 
     TODO: Remove me when Datadog tracer is natively supported in Lambda.
@@ -453,8 +453,8 @@ def inject_correlation_ids():
     Override the formatter of LambdaLoggerHandler to inject datadog trace and
     span id for log correlation.
 
-    For manual injections to custom log handlers, use `ddtrace.helpers.get_correlation_ids`
-    to retrieve correlation ids (trace_id, span_id).
+    For manual injections to custom log handlers, use `ddtrace.helpers.get_log_correlation_context`
+    to retrieve a dict containing correlation ids (trace_id, span_id).
     """
     # Override the log format of the AWS provided LambdaLoggerHandler
     root_logger = logging.getLogger()
