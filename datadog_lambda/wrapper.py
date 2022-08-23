@@ -188,7 +188,6 @@ class _LambdaDecorator(object):
             else:
                 set_correlation_ids()
             if profiling_env_var == True and is_cold_start():
-                print("starting profiler in _before()")
                 self.prof.start(stop_on_exit=False, profile_children=True)
             logger.debug("datadog_lambda_wrapper _before() done")
         except Exception:
