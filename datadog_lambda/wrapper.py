@@ -44,7 +44,6 @@ logger = logging.getLogger(__name__)
 dd_capture_lambda_payload_enabled = (
     os.environ.get("DD_CAPTURE_LAMBDA_PAYLOAD", "false").lower() == "true"
 )
-profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "true"
 service_env_var = os.environ.get("DD_SERVICE", "DefaultServiceName")
 env_env_var = os.environ.get("DD_ENV", None)
 
