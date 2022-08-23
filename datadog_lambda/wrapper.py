@@ -35,6 +35,7 @@ from datadog_lambda.tracing import (
 )
 from datadog_lambda.trigger import extract_trigger_tags, extract_http_status_code_tag
 from datadog_lambda.tag_object import tag_object
+
 profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "true"
 if profiling_env_var:
     from ddtrace.profiling import profiler
@@ -117,9 +118,7 @@ class _LambdaDecorator(object):
             )
             self.response = None
             if profiling_env_var:
-                self.prof = profiler.Profiler(
-                    env=env_env_var, service=service_env_var, version="1.0.0"
-                )
+                self.prof = profiler.Profiler(env=env_env_var, service=service_env_var)
             if self.extractor_env:
                 extractor_parts = self.extractor_env.rsplit(".", 1)
                 if len(extractor_parts) == 2:
