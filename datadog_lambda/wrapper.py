@@ -35,7 +35,9 @@ from datadog_lambda.tracing import (
 )
 from datadog_lambda.trigger import extract_trigger_tags, extract_http_status_code_tag
 from datadog_lambda.tag_object import tag_object
-from ddtrace.profiling import profiler
+profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "true"
+if profiling_env_var:
+    from ddtrace.profiling import profiler
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +46,7 @@ dd_capture_lambda_payload_enabled = (
 )
 profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "true"
 service_env_var = os.environ.get("DD_SERVICE", "DefaultServiceName")
-env_env_var = os.environ.get("DD_ENV", "dev")
+env_env_var = os.environ.get("DD_ENV", None)
 
 """
 Usage:
@@ -115,9 +117,10 @@ class _LambdaDecorator(object):
                 os.environ.get("DD_TRACE_MANAGED_SERVICES", "true").lower() == "true"
             )
             self.response = None
-            self.prof = profiler.Profiler(
-                env=env_env_var, service=service_env_var, version="1.0.0"
-            )
+            if profiling_env_var:
+                self.prof = profiler.Profiler(
+                    env=env_env_var, service=service_env_var, version="1.0.0"
+                )
             if self.extractor_env:
                 extractor_parts = self.extractor_env.rsplit(".", 1)
                 if len(extractor_parts) == 2:
