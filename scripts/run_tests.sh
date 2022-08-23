@@ -8,7 +8,7 @@
 # Run unit tests in Docker
 set -e
 
-PYTHON_VERSIONS=("3.6" "3.7" "3.8" "3.9")
+PYTHON_VERSIONS=("3.7" "3.8" "3.9")
 
 for python_version in "${PYTHON_VERSIONS[@]}"
 do
