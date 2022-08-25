@@ -26,7 +26,9 @@ You can also open an issue for a feature request.
 
 ## Lambda Profiling Beta
 
-Datadog's Continuous Profiler is now available in beta for Python. This optional feature is enabled by setting the `DD_PROFILING_ENABLED` environment variable to `True`. During the beta period, profiling is available at no cost.
+Datadog's [Continuous Profiler](https://www.datadoghq.com/product/code-profiling/) is now available in beta for Python in version 4.62.0 and layer version 62 and above. This optional feature is enabled by setting the `DD_PROFILING_ENABLED` environment variable to `true`. During the beta period, profiling is available at no additional cost.
+
+The Continuous Profiler works by spawning a thread which periodically wakes up and takes a snapshot of the CPU and Heap of all running python code. This can include the profiler itself. If you want the Profiler to ignore itself, set `DD_PROFILING_IGNORE_PROFILER` to `true`.
 
 ## Major Version Notes
 
