@@ -111,7 +111,7 @@ six = "*"
 
 [[package]]
 name = "ddtrace"
-version = "1.4.0"
+version = "1.4.1"
 description = "Datadog APM client library"
 category = "main"
 optional = false
