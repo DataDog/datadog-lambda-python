@@ -579,6 +579,56 @@ class TestSetTraceRootSpan(unittest.TestCase):
         self.mock_activate.assert_has_calls([call(expected_context)])
 
 
+class TestAuthorizerInferredSpans(unittest.TestCase):
+
+    def setUp(self):
+        patcher = patch('ddtrace.Span.finish', autospec=True)
+        self.mock_span_stop = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_create_inferred_span_from_authorizer_request_api_gateway_v1_event(self):
+        event_sample_source = "authorizer-request-api-gateway-v1"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
+        self.assertEqual(
+            span.service,
+            "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "amddr1rix9.execute-api.sa-east-1.amazonaws.com/hello",
+        )
+        self.assertEqual(span.get_tag("endpoint"), "/hello")
+        self.assertEqual(span.get_tag("http.method"), "GET")
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "GET /hello",
+        )
+        self.assertEqual(
+            span.get_tag("request_id"), "e4816b6c-8954-4510-8771-837988d7f485"
+        )
+        self.assertEqual(span.get_tag("apiid"), "amddr1rix9")
+        self.assertEqual(span.get_tag("apiname"), "amddr1rix9")
+        self.assertEqual(span.get_tag("stage"), "dev")
+        self.assertEqual(span.start, 1663295021.832) # request_time_epoch + integrationLatency
+        self.assertEqual(span.span_type, "http")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+
+        # checking the upstream_authorizer_span
+        self.mock_span_stop.assert_called_once()
+        args, kwargs = self.mock_span_stop.call_args_list[0]
+        self.assertEqual(kwargs['finish_time'], 1663295021.832)
+        authorizer_span = args[0]
+        self.assertEqual(authorizer_span.name, 'aws.apigateway.authorizer')
+        self.assertEqual(span.parent_id, authorizer_span.span_id)
+
+
 class TestInferredSpans(unittest.TestCase):
     def test_create_inferred_span_from_api_gateway_event(self):
         event_sample_source = "api-gateway"
