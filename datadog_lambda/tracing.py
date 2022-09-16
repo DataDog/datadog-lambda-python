@@ -695,7 +695,6 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
     span = tracer.trace("aws.apigateway.websocket", **args)
     if span:
         span.set_tags(tags)
-        logger.debug(f"request_time_epoch:  {request_time_epoch}, type: websocket")
         span.start = request_time_epoch / 1000
         if upstream_authorizer_span:
             span.parent_id = upstream_authorizer_span.span_id
@@ -804,7 +803,6 @@ def create_inferred_span_from_http_api_event(event, context):
     span = tracer.trace("aws.httpapi", **args)
     if span:
         span.set_tags(tags)
-        logger.debug(f"request_time_epoch:  {request_time_epoch}, type: http_api")
         span.start = request_time_epoch / 1e3
         if upstream_authorizer_span:
             span.parent_id = upstream_authorizer_span.span_id

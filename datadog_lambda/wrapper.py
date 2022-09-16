@@ -157,7 +157,7 @@ class _LambdaDecorator(object):
             self.response = self.func(event, context, **kwargs)
             try:
                 if self.make_authorizer_span and self.response and \
-                    self.response.get('principalId') and self.response.get('policyDocument'):
+                        self.response.get('principalId') and self.response.get('policyDocument'):
                     self._inject_authorizer_span_headers()
             except Exception as e:
                 traceback.print_exc()
