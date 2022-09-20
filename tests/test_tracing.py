@@ -580,9 +580,8 @@ class TestSetTraceRootSpan(unittest.TestCase):
 
 
 class TestAuthorizerInferredSpans(unittest.TestCase):
-
     def setUp(self):
-        patcher = patch('ddtrace.Span.finish', autospec=True)
+        patcher = patch("ddtrace.Span.finish", autospec=True)
         self.mock_span_stop = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -615,7 +614,9 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("apiid"), "amddr1rix9")
         self.assertEqual(span.get_tag("apiname"), "amddr1rix9")
         self.assertEqual(span.get_tag("stage"), "dev")
-        self.assertEqual(span.start, 1663295021.832) # request_time_epoch + integrationLatency
+        self.assertEqual(
+            span.start, 1663295021.832
+        )  # request_time_epoch + integrationLatency
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
@@ -623,9 +624,9 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
         # checking the upstream_authorizer_span
         self.mock_span_stop.assert_called_once()
         args, kwargs = self.mock_span_stop.call_args_list[0]
-        self.assertEqual(kwargs['finish_time'], 1663295021.832)
+        self.assertEqual(kwargs["finish_time"], 1663295021.832)
         authorizer_span = args[0]
-        self.assertEqual(authorizer_span.name, 'aws.apigateway.authorizer')
+        self.assertEqual(authorizer_span.name, "aws.apigateway.authorizer")
         self.assertEqual(span.parent_id, authorizer_span.span_id)
 
 
