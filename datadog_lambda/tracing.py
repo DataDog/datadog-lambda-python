@@ -779,7 +779,6 @@ def create_inferred_span_from_http_api_event(event, context):
     if is_api_gateway_invocation_async(event):
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
-        traceback.print_exc()
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     args = {
         "service": domain,
