@@ -156,13 +156,20 @@ class _LambdaDecorator(object):
         try:
             self.response = self.func(event, context, **kwargs)
             try:
-                if self.make_authorizer_span and self.response and \
-                        self.response.get('principalId') and self.response.get('policyDocument'):
+                if (
+                    self.make_authorizer_span
+                    and self.response
+                    and self.response.get("principalId")
+                    and self.response.get("policyDocument")
+                ):
                     self._inject_authorizer_span_headers()
             except Exception as e:
                 traceback.print_exc()
-                logger.debug("Unable to inject the authorizer headers. \
-                    Continue to return the original response. Reason: %s", e)
+                logger.debug(
+                    "Unable to inject the authorizer headers. \
+                    Continue to return the original response. Reason: %s",
+                    e,
+                )
             return self.response
         except Exception:
             submit_errors_metric(context)
@@ -173,15 +180,18 @@ class _LambdaDecorator(object):
             self._after(event, context)
 
     def _inject_authorizer_span_headers(self):
-        finish_time_ns = self.span.start_ns if InferredSpanInfo.is_async(self.inferred_span) \
-            and self.span else time_ns()
-        self.response.setdefault('context', {})
-        self.response['context'].setdefault('_datadog', {})
+        finish_time_ns = (
+            self.span.start_ns
+            if InferredSpanInfo.is_async(self.inferred_span) and self.span
+            else time_ns()
+        )
+        self.response.setdefault("context", {})
+        self.response["context"].setdefault("_datadog", {})
         injected_headers = {}
         source_span = self.inferred_span if self.inferred_span else self.span
         HTTPPropagator.inject(source_span.context, injected_headers)
         injected_headers[OtherConsts.parentSpanFinishTimeHeader] = finish_time_ns / 1e6
-        self.response['context']['_datadog'] = json.dumps(injected_headers)
+        self.response["context"]["_datadog"] = json.dumps(injected_headers)
 
     def _before(self, event, context):
         try:
@@ -247,10 +257,7 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.inferred_span.set_tag("http.status_code", status_code)
 
-                if (
-                    InferredSpanInfo.is_async(self.inferred_span)
-                    and self.span
-                ):
+                if InferredSpanInfo.is_async(self.inferred_span) and self.span:
                     self.inferred_span.finish(finish_time=self.span.start)
                 else:
                     self.inferred_span.finish()
