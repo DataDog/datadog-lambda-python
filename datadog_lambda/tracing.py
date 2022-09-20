@@ -180,8 +180,11 @@ def extract_context_from_http_event_or_context(event, lambda_context):
         try:
             return extract_context_from_authorizer_event(event)
         except Exception as e:
-            logger.debug("extract_context_from_authorizer_event returned with error. \
-                 Continue without injecting the authorizer span %s", e)
+            logger.debug(
+                "extract_context_from_authorizer_event returned with error. \
+                 Continue without injecting the authorizer span %s",
+                e,
+            )
     headers = event.get("headers", {})
     lowercase_headers = {k.lower(): v for k, v in headers.items()}
 
@@ -327,7 +330,7 @@ def extract_context_custom_extractor(extractor, event, lambda_context):
 
 def extract_context_from_authorizer_event(event):
     # fail fast if any KeyError until '_datadog'
-    dd_data = json.loads(event['requestContext']['authorizer']['_datadog'])
+    dd_data = json.loads(event["requestContext"]["authorizer"]["_datadog"])
     trace_id = dd_data.get(TraceHeader.TRACE_ID)
     parent_id = dd_data.get(TraceHeader.PARENT_ID)
     sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
@@ -337,9 +340,13 @@ def extract_context_from_authorizer_event(event):
 def is_non_cached_authorizer_invocation(event) -> bool:
     try:
         # has '_datadog' header and not cached because integrationLatency > 0
-        injected_authorizer_headers = event.get('requestContext', {}).get('authorizer', {})
-        return injected_authorizer_headers.get('_datadog') and \
-            int(injected_authorizer_headers.get('integrationLatency', 0)) > 0  # non-cached
+        injected_authorizer_headers = event.get("requestContext", {}).get(
+            "authorizer", {}
+        )
+        return (
+            injected_authorizer_headers.get("_datadog")
+            and int(injected_authorizer_headers.get("integrationLatency", 0)) > 0
+        )  # non-cached
     except Exception as e:
         logger.debug("Failed to check if invocated by an authorizer. error %s", e)
         return False
@@ -617,11 +624,9 @@ def is_api_gateway_invocation_async(event):
 
 
 def insert_upstream_authorizer_span(
-        kwargs_to_start_span,
-        other_tags_for_span,
-        start_time_s,
-        finish_time_s=None):
-    """ Insert the authorizer span.
+    kwargs_to_start_span, other_tags_for_span, start_time_s, finish_time_s=None
+):
+    """Insert the authorizer span.
         Without this:        parent span --child-> inferred span
         With this insertion: parent span --child-> upstreamAuthorizerSpan --child-> inferred span
 
@@ -632,7 +637,9 @@ def insert_upstream_authorizer_span(
         finish_time_s (int): the finish time of the sapn in seconds
     """
 
-    upstream_authorizer_span = tracer.trace("aws.apigateway.authorizer", **kwargs_to_start_span)
+    upstream_authorizer_span = tracer.trace(
+        "aws.apigateway.authorizer", **kwargs_to_start_span
+    )
     upstream_authorizer_span.set_tags(other_tags_for_span)
     upstream_authorizer_span.set_tag("operation_name", "aws.apigateway.authorizer")
     # always sync for the authorizer invocation
@@ -643,10 +650,16 @@ def insert_upstream_authorizer_span(
 
 
 def get_start_and_finish_time_for_authorizer_span(request_context):
-    parsed_upstream_context = json.loads(request_context.get('authorizer', {}).get('_datadog'))
-    start_time_s = int(parsed_upstream_context.get(OtherConsts.parentSpanFinishTimeHeader)) / 1000
-    finish_time_s = (int(request_context.get('requestTimeEpoch')) + int(request_context.get(
-        'authorizer', {}).get('integrationLatency', 0))) / 1000
+    parsed_upstream_context = json.loads(
+        request_context.get("authorizer", {}).get("_datadog")
+    )
+    start_time_s = (
+        int(parsed_upstream_context.get(OtherConsts.parentSpanFinishTimeHeader)) / 1000
+    )
+    finish_time_s = (
+        int(request_context.get("requestTimeEpoch"))
+        + int(request_context.get("authorizer", {}).get("integrationLatency", 0))
+    ) / 1000
     return start_time_s, finish_time_s
 
 
@@ -682,14 +695,20 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
     upstream_authorizer_span = None
     if is_non_cached_authorizer_invocation(event):
         try:
-            start_time_s, finish_time_s = \
-                get_start_and_finish_time_for_authorizer_span(request_context)
-            upstream_authorizer_span = \
-                insert_upstream_authorizer_span(args, tags, start_time_s, finish_time_s)
+            start_time_s, finish_time_s = get_start_and_finish_time_for_authorizer_span(
+                request_context
+            )
+            upstream_authorizer_span = insert_upstream_authorizer_span(
+                args, tags, start_time_s, finish_time_s
+            )
         except Exception as e:
             traceback.print_exc()
-            logger.debug("Unable to insert authorizer span. Continue to generate the main span.\
-                 Event %s, Reason: %s", event, e)
+            logger.debug(
+                "Unable to insert authorizer span. Continue to generate the main span.\
+                 Event %s, Reason: %s",
+                event,
+                e,
+            )
     # trace context needs to be set again as it is reset by upstream_authorizer_span.finish
     tracer.context_provider.activate(trace_ctx)
     span = tracer.trace("aws.apigateway.websocket", **args)
@@ -734,14 +753,20 @@ def create_inferred_span_from_api_gateway_event(event, context):
     finish_time_s = None
     if is_non_cached_authorizer_invocation(event):
         try:
-            start_time_s, finish_time_s = \
-                get_start_and_finish_time_for_authorizer_span(request_context)
-            upstream_authorizer_span = \
-                insert_upstream_authorizer_span(args, tags, start_time_s, finish_time_s)
+            start_time_s, finish_time_s = get_start_and_finish_time_for_authorizer_span(
+                request_context
+            )
+            upstream_authorizer_span = insert_upstream_authorizer_span(
+                args, tags, start_time_s, finish_time_s
+            )
         except Exception as e:
             traceback.print_exc()
-            logger.debug("Unable to insert authorizer span. Continue to generate the main span. \
-                Event %s, Reason: %s", event, e)
+            logger.debug(
+                "Unable to insert authorizer span. Continue to generate the main span. \
+                Event %s, Reason: %s",
+                event,
+                e,
+            )
     # trace context needs to be set again as it is reset by upstream_authorizer_span.finish
     tracer.context_provider.activate(trace_ctx)
     span = tracer.trace("aws.apigateway", **args)
@@ -789,14 +814,20 @@ def create_inferred_span_from_http_api_event(event, context):
     upstream_authorizer_span = None
     if is_non_cached_authorizer_invocation(event):
         try:
-            start_time_s, finish_time_s = \
-                get_start_and_finish_time_for_authorizer_span(request_context)
-            upstream_authorizer_span = \
-                insert_upstream_authorizer_span(args, tags, start_time_s, finish_time_s)
+            start_time_s, finish_time_s = get_start_and_finish_time_for_authorizer_span(
+                request_context
+            )
+            upstream_authorizer_span = insert_upstream_authorizer_span(
+                args, tags, start_time_s, finish_time_s
+            )
         except Exception as e:
             traceback.print_exc()
-            logger.debug("Unable to insert authorizer span. \
-                Continue to generate the main span. Event %s, Reason: %s", event, e)
+            logger.debug(
+                "Unable to insert authorizer span. \
+                Continue to generate the main span. Event %s, Reason: %s",
+                event,
+                e,
+            )
     # trace context needs to be set again as it is reset by upstream_authorizer_span.finish
     tracer.context_provider.activate(trace_ctx)
     span = tracer.trace("aws.httpapi", **args)
@@ -1112,8 +1143,12 @@ class InferredSpanInfo(object):
         if not span:
             return False
         try:
-            return span.get_tag(InferredSpanInfo.SYNCHRONICITY) == 'async'
+            return span.get_tag(InferredSpanInfo.SYNCHRONICITY) == "async"
         except Exception as e:
-            logger.debug("Unabled to read the %s tag, returning False. \
-                Reason: %s.", InferredSpanInfo.SYNCHRONICITY, e)
+            logger.debug(
+                "Unabled to read the %s tag, returning False. \
+                Reason: %s.",
+                InferredSpanInfo.SYNCHRONICITY,
+                e,
+            )
             return False
