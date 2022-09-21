@@ -200,7 +200,7 @@ class _LambdaDecorator(object):
             submit_invocations_metric(context)
             self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
-            dd_context, trace_context_source = extract_dd_trace_context(
+            dd_context, trace_context_source, event_source = extract_dd_trace_context(
                 event, context, extractor=self.trace_extractor
             )
             # Create a Datadog X-Ray subsegment with the trace context
@@ -212,7 +212,7 @@ class _LambdaDecorator(object):
             if dd_tracing_enabled:
                 set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
                 if self.make_inferred_span:
-                    self.inferred_span = create_inferred_span(event, context)
+                    self.inferred_span = create_inferred_span(event, context, event_source)
                 self.span = create_function_execution_span(
                     context,
                     self.function_name,

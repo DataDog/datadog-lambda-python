@@ -1,0 +1,46 @@
+{
+  "version": "2.0",
+  "routeKey": "GET /hello",
+  "rawPath": "/hello",
+  "rawQueryString": "",
+  "headers": {
+    "accept": "*/*",
+    "accept-encoding": "gzip, deflate, br",
+    "authorization": "secretT0k3n",
+    "authorizationtoken": "secretT0k3n",
+    "cache-control": "no-cache",
+    "content-length": "0",
+    "host": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+    "postman-token": "a9231288-1486-4753-a589-7ad3ac853c78",
+    "user-agent": "curl/7.64.1",
+    "x-amzn-trace-id": "Root=1-632a6082-6d32606a1e652ce274e8f055",
+    "x-forwarded-for": "38.122.226.210",
+    "x-forwarded-port": "443",
+    "x-forwarded-proto": "https"
+  },
+  "requestContext": {
+    "accountId": "601427279990",
+    "apiId": "amddr1rix9",
+    "authorizer": {
+      "lambda": {
+        "_datadog": "{\"x-datadog-trace-id\": \"12056652649662348062\", \"x-datadog-parent-id\": \"12647339963998804799\", \"x-datadog-sampling-priority\": \"1\", \"x-datadog-tags\": \"_dd.p.dm=-0\", \"x-datadog-parent-span-finish-time\": 1663721602440.8286}",
+        "scope": "this is just a string"
+      }
+    },
+    "domainName": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+    "domainPrefix": "amddr1rix9",
+    "http": {
+      "method": "GET",
+      "path": "/hello",
+      "protocol": "HTTP/1.1",
+      "sourceIp": "38.122.226.210",
+      "userAgent": "curl/7.64.1"
+    },
+    "requestId": "1234567",
+    "routeKey": "GET /hello",
+    "stage": "$default",
+    "time": "21/Sep/2022:00:53:22 +0000",
+    "timeEpoch": 1663295021832
+  },
+  "isBase64Encoded": false
+}
