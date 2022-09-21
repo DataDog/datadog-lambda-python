@@ -212,7 +212,9 @@ class _LambdaDecorator(object):
             if dd_tracing_enabled:
                 set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
                 if self.make_inferred_span:
-                    self.inferred_span = create_inferred_span(event, context, event_source)
+                    self.inferred_span = create_inferred_span(
+                        event, context, event_source
+                    )
                 self.span = create_function_execution_span(
                     context,
                     self.function_name,
