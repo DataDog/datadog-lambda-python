@@ -588,7 +588,9 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
 
     def test_create_inferred_span_from_authorizer_request_api_gateway_v1_event(self):
         event_sample_source = "authorizer-request-api-gateway-v1"
-        span = self._http_common_testing_items(event_sample_source, "aws.apigateway.rest", 1663295021.832)
+        span = self._http_common_testing_items(
+            event_sample_source, "aws.apigateway.rest", 1663295021.832
+        )
 
         # api-gateway-v1 specific checks:
         self.assertEqual(
@@ -600,7 +602,9 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
 
     def test_create_inferred_span_from_authorizer_token_api_gateway_v1_event(self):
         event_sample_source = "authorizer-token-api-gateway-v1"
-        span = self._http_common_testing_items(event_sample_source, "aws.apigateway.rest", 1663295021.832)
+        span = self._http_common_testing_items(
+            event_sample_source, "aws.apigateway.rest", 1663295021.832
+        )
 
         # api-gateway-v1 specific checks:
         self.assertEqual(
@@ -612,7 +616,9 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
 
     def test_create_inferred_span_from_authorizer_request_api_gateway_v2_event(self):
         event_sample_source = "authorizer-request-api-gateway-v2"
-        span = self._http_common_testing_items(event_sample_source, "aws.httpapi", 1663721602.44)
+        span = self._http_common_testing_items(
+            event_sample_source, "aws.httpapi", 1663721602.44
+        )
 
         # http-api specific checks:
         self.assertEqual(span.get_tag("apiid"), "amddr1rix9")
@@ -625,7 +631,9 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
             span.start, 1663721602.44
         )  # use the injected parent span finish time as an approximation
 
-    def _http_common_testing_items(self, event_sample_source, operation_name, finish_time):
+    def _http_common_testing_items(
+        self, event_sample_source, operation_name, finish_time
+    ):
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
             event = json.load(event)
@@ -647,9 +655,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
             span.get_tag("resource_names"),
             "GET /hello",
         )
-        self.assertEqual(
-            span.get_tag("request_id"), "1234567"
-        )
+        self.assertEqual(span.get_tag("request_id"), "1234567")
 
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")

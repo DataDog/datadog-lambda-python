@@ -170,7 +170,9 @@ def extract_context_from_lambda_context(lambda_context):
     return trace_id, parent_id, sampling_priority
 
 
-def extract_context_from_http_event_or_context(event, lambda_context, event_source: _EventSource):
+def extract_context_from_http_event_or_context(
+    event, lambda_context, event_source: _EventSource
+):
     """
     Extract Datadog trace context from the `headers` key in from the Lambda
     `event` object.
@@ -340,10 +342,13 @@ def get_injected_authorizer_data(event, event_source: _EventSource) -> dict:
         # has '_datadog' header and not cached because integrationLatency > 0
         authorizer_headers = event.get("requestContext", {}).get("authorizer", {})
 
-        # [API_GATEWAY V1]if integrationLatency == 0, it's cached and no trace for the authorizer func
-        if event_source.equals(
-            EventTypes.API_GATEWAY, subtype=EventSubtypes.API_GATEWAY
-        ) and int(authorizer_headers.get("integrationLatency", 0)) == 0:
+        # [API_GATEWAY V1]if integrationLatency == 0, it's cached and no trace for the authorizer
+        if (
+            event_source.equals(
+                EventTypes.API_GATEWAY, subtype=EventSubtypes.API_GATEWAY
+            )
+            and int(authorizer_headers.get("integrationLatency", 0)) == 0
+        ):
             return None
 
         if event_source.equals(EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API):
@@ -383,7 +388,9 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
             trace_id,
             parent_id,
             sampling_priority,
-        ) = extract_context_from_http_event_or_context(event, lambda_context, event_source)
+        ) = extract_context_from_http_event_or_context(
+            event, lambda_context, event_source
+        )
     elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
         (
             trace_id,
@@ -689,13 +696,29 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
     }
     tracer.set_tags({"_dd.origin": "lambda"})
     upstream_authorizer_span = None
-    injected_authorizer_data = get_injected_authorizer_data(event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.WEBSOCKET))
+    finish_time_s = None
+    injected_authorizer_data = get_injected_authorizer_data(
+        event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.WEBSOCKET)
+    )
     if injected_authorizer_data:
         try:
-            start_time_s = int(injected_authorizer_data.get(OtherConsts.parentSpanFinishTimeHeader)) / 1000
-            finish_time_s = request_time_epoch_s + \
-                (int(request_context.get("authorizer", {}).get("integrationLatency", 0))
-            ) / 1000
+            start_time_s = (
+                int(
+                    injected_authorizer_data.get(OtherConsts.parentSpanFinishTimeHeader)
+                )
+                / 1000
+            )
+            finish_time_s = (
+                request_time_epoch_s
+                + (
+                    int(
+                        request_context.get("authorizer", {}).get(
+                            "integrationLatency", 0
+                        )
+                    )
+                )
+                / 1000
+            )
             upstream_authorizer_span = insert_upstream_authorizer_span(
                 args, tags, start_time_s, finish_time_s
             )
@@ -714,7 +737,9 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
     span = tracer.trace("aws.apigateway.websocket", **args)
     if span:
         span.set_tags(tags)
-        span.start = finish_time_s if finish_time_s is not None else request_time_epoch_s
+        span.start = (
+            finish_time_s if finish_time_s is not None else request_time_epoch_s
+        )
         if upstream_authorizer_span:
             span.parent_id = upstream_authorizer_span.span_id
     return span
@@ -751,12 +776,28 @@ def create_inferred_span_from_api_gateway_event(event, context):
     tracer.set_tags({"_dd.origin": "lambda"})
     upstream_authorizer_span = None
     finish_time_s = None
-    injected_authorizer_data = get_injected_authorizer_data(event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.API_GATEWAY))
+    injected_authorizer_data = get_injected_authorizer_data(
+        event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.API_GATEWAY)
+    )
     if injected_authorizer_data:
         try:
-            start_time_s = int(injected_authorizer_data.get(OtherConsts.parentSpanFinishTimeHeader)) / 1000
-            finish_time_s = request_time_epoch_s + \
-                (int(request_context.get("authorizer", {}).get("integrationLatency", 0))) / 1000
+            start_time_s = (
+                int(
+                    injected_authorizer_data.get(OtherConsts.parentSpanFinishTimeHeader)
+                )
+                / 1000
+            )
+            finish_time_s = (
+                request_time_epoch_s
+                + (
+                    int(
+                        request_context.get("authorizer", {}).get(
+                            "integrationLatency", 0
+                        )
+                    )
+                )
+                / 1000
+            )
             upstream_authorizer_span = insert_upstream_authorizer_span(
                 args, tags, start_time_s, finish_time_s
             )
@@ -775,7 +816,9 @@ def create_inferred_span_from_api_gateway_event(event, context):
     if span:
         span.set_tags(tags)
         # start time pushed by the inserted authorizer span
-        span.start = finish_time_s if finish_time_s is not None else request_time_epoch_s
+        span.start = (
+            finish_time_s if finish_time_s is not None else request_time_epoch_s
+        )
         if upstream_authorizer_span:
             span.parent_id = upstream_authorizer_span.span_id
     return span
@@ -815,11 +858,18 @@ def create_inferred_span_from_http_api_event(event, context):
     tracer.set_tags({"_dd.origin": "lambda"})
     upstream_authorizer_span = None
     finish_time_s = None
-    injected_authorizer_data = get_injected_authorizer_data(event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.HTTP_API))
+    injected_authorizer_data = get_injected_authorizer_data(
+        event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.HTTP_API)
+    )
     if injected_authorizer_data:
         try:
-            start_time_s = int(injected_authorizer_data.get(OtherConsts.parentSpanFinishTimeHeader)) / 1000
-            finish_time_s = start_time_s  # we don't have the integrationLatency info for the authorizer
+            start_time_s = (
+                int(
+                    injected_authorizer_data.get(OtherConsts.parentSpanFinishTimeHeader)
+                )
+                / 1000
+            )
+            finish_time_s = start_time_s  # no integrationLatency info in this case
             upstream_authorizer_span = insert_upstream_authorizer_span(
                 args, tags, start_time_s, finish_time_s
             )
@@ -836,7 +886,9 @@ def create_inferred_span_from_http_api_event(event, context):
     span = tracer.trace("aws.httpapi", **args)
     if span:
         span.set_tags(tags)
-        span.start = finish_time_s if finish_time_s is not None else request_time_epoch_s
+        span.start = (
+            finish_time_s if finish_time_s is not None else request_time_epoch_s
+        )
         if upstream_authorizer_span:
             span.parent_id = upstream_authorizer_span.span_id
     return span
