@@ -353,13 +353,17 @@ def get_injected_authorizer_data(event, event_source: _EventSource) -> dict:
 
         if event_source.equals(EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API):
             dd_data_raw = authorizer_headers.get("lambda", {}).get("_datadog")
+            dd_data = json.loads(base64.b64decode(dd_data_raw))
+            # [API_GATEWAY V2]if original authorizer request epoch is different, then it's cached
+            if event.get("requestContext", {}).get("timeEpoch") == dd_data.get(
+                OtherConsts.originalAuthorizerRequestEpoch
+            ):
+                return dd_data
+            else:
+                return None
         else:
             dd_data_raw = authorizer_headers.get("_datadog")
-
-        if dd_data_raw:
-            dd_data = json.loads(dd_data_raw)
-            return dd_data
-        return None
+            return json.loads(dd_data_raw)
 
     except Exception as e:
         logger.debug("Failed to check if invocated by an authorizer. error %s", e)

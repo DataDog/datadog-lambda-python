@@ -11,9 +11,10 @@
     "cache-control": "no-cache",
     "content-length": "0",
     "host": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
-    "postman-token": "a9231288-1486-4753-a589-7ad3ac853c78",
+    "postman-token": "5e0efdb2-d93f-4d44-8792-45404d40dae2",
+    "user": "12345",
     "user-agent": "curl/7.64.1",
-    "x-amzn-trace-id": "Root=1-632a6082-6d32606a1e652ce274e8f055",
+    "x-amzn-trace-id": "Root=1-63321d1e-6b80ef0d2c2cf49600b9c28e",
     "x-forwarded-for": "38.122.226.210",
     "x-forwarded-port": "443",
     "x-forwarded-proto": "https"
@@ -23,7 +24,7 @@
     "apiId": "amddr1rix9",
     "authorizer": {
       "lambda": {
-        "_datadog": "{\"x-datadog-trace-id\": \"12056652649662348062\", \"x-datadog-parent-id\": \"12647339963998804799\", \"x-datadog-sampling-priority\": \"1\", \"x-datadog-tags\": \"_dd.p.dm=-0\", \"x-datadog-parent-span-finish-time\": 1663721602440.8286}",
+        "_datadog": "eyJ4LWRhdGFkb2ctdHJhY2UtaWQiOiAiMTQzNTY5ODM2MTk4NTI5MzMzNTQiLCAieC1kYXRhZG9nLXBhcmVudC1pZCI6ICIxMjY1ODYyMTA4MzUwNTQxMzgwOSIsICJ4LWRhdGFkb2ctc2FtcGxpbmctcHJpb3JpdHkiOiAiMSIsICJ4LWRhdGFkb2ctdGFncyI6ICJfZGQucC5kbT0tMCIsICJ4LWRhdGFkb2ctcGFyZW50LXNwYW4tZmluaXNoLXRpbWUiOiAxNjY0MjI4NjM5NTMzLjc3NTQsICJ4LWRhdGFkb2ctb3JpZ2luYWwtZXBvY2giOiAxNjY0MjI4NjM4MDg0fQ==",
         "scope": "this is just a string"
       }
     },
@@ -39,8 +40,8 @@
     "requestId": "1234567",
     "routeKey": "GET /hello",
     "stage": "$default",
-    "time": "21/Sep/2022:00:53:22 +0000",
-    "timeEpoch": 1663295021832
+    "time": "26/Sep/2022:21:43:58 +0000",
+    "timeEpoch": 1664228638084
   },
   "isBase64Encoded": false
 }

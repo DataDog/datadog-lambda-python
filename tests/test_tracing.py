@@ -617,7 +617,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
     def test_create_inferred_span_from_authorizer_request_api_gateway_v2_event(self):
         event_sample_source = "authorizer-request-api-gateway-v2"
         span = self._http_common_testing_items(
-            event_sample_source, "aws.httpapi", 1663721602.44
+            event_sample_source, "aws.httpapi", 1664228639.533
         )
 
         # http-api specific checks:
@@ -628,7 +628,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("http.source_ip"), "38.122.226.210")
         self.assertEqual(span.get_tag("http.user_agent"), "curl/7.64.1")
         self.assertEqual(
-            span.start, 1663721602.44
+            span.start, 1664228639.533
         )  # use the injected parent span finish time as an approximation
 
     def _http_common_testing_items(
