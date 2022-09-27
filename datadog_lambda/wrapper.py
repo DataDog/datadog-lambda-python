@@ -3,6 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
+import base64
 import os
 import logging
 import traceback
@@ -37,7 +38,12 @@ from datadog_lambda.tracing import (
     create_inferred_span,
     InferredSpanInfo,
 )
-from datadog_lambda.trigger import extract_trigger_tags, extract_http_status_code_tag
+from datadog_lambda.trigger import (
+    extract_trigger_tags,
+    extract_http_status_code_tag,
+    EventTypes,
+    EventSubtypes,
+)
 from datadog_lambda.tag_object import tag_object
 
 profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "true"
@@ -155,21 +161,7 @@ class _LambdaDecorator(object):
         self._before(event, context)
         try:
             self.response = self.func(event, context, **kwargs)
-            try:
-                if (
-                    self.make_authorizer_span
-                    and self.response
-                    and self.response.get("principalId")
-                    and self.response.get("policyDocument")
-                ):
-                    self._inject_authorizer_span_headers()
-            except Exception as e:
-                traceback.print_exc()
-                logger.debug(
-                    "Unable to inject the authorizer headers. \
-                    Continue to return the original response. Reason: %s",
-                    e,
-                )
+            self._ending(event)
             return self.response
         except Exception:
             submit_errors_metric(context)
@@ -179,19 +171,31 @@ class _LambdaDecorator(object):
         finally:
             self._after(event, context)
 
-    def _inject_authorizer_span_headers(self):
+    def _inject_authorizer_span_headers(self, event):
         finish_time_ns = (
             self.span.start_ns
             if InferredSpanInfo.is_async(self.inferred_span) and self.span
             else time_ns()
         )
-        self.response.setdefault("context", {})
-        self.response["context"].setdefault("_datadog", {})
         injected_headers = {}
         source_span = self.inferred_span if self.inferred_span else self.span
         HTTPPropagator.inject(source_span.context, injected_headers)
         injected_headers[OtherConsts.parentSpanFinishTimeHeader] = finish_time_ns / 1e6
-        self.response["context"]["_datadog"] = json.dumps(injected_headers)
+        encode_datadog_data = False
+        if self.event_source and self.event_source.equals(
+            EventTypes.API_GATEWAY, EventSubtypes.HTTP_API
+        ):
+            injected_headers[OtherConsts.originalAuthorizerRequestEpoch] = event.get(
+                "requestContext", {}
+            ).get("timeEpoch")
+            encode_datadog_data = True
+        datadog_data = json.dumps(injected_headers).encode()
+        if encode_datadog_data:
+            datadog_data = base64.b64encode(
+                datadog_data
+            )  # special characters can corrupt the response
+        self.response.setdefault("context", {})
+        self.response["context"]["_datadog"] = datadog_data
 
     def _before(self, event, context):
         try:
@@ -203,6 +207,7 @@ class _LambdaDecorator(object):
             dd_context, trace_context_source, event_source = extract_dd_trace_context(
                 event, context, extractor=self.trace_extractor
             )
+            self.event_source = event_source
             # Create a Datadog X-Ray subsegment with the trace context
             if dd_context and trace_context_source == TraceContextSource.EVENT:
                 create_dd_dummy_metadata_subsegment(
@@ -229,6 +234,19 @@ class _LambdaDecorator(object):
             if profiling_env_var and is_cold_start():
                 self.prof.start(stop_on_exit=False, profile_children=True)
             logger.debug("datadog_lambda_wrapper _before() done")
+        except Exception:
+            traceback.print_exc()
+
+    def _ending(self, event):
+        try:
+            if (
+                self.make_authorizer_span
+                and self.response
+                and self.response.get("principalId")
+                and self.response.get("policyDocument")
+                and self.event_source
+            ):
+                self._inject_authorizer_span_headers(event)
         except Exception:
             traceback.print_exc()
 

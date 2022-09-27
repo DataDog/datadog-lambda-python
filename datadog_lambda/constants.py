@@ -46,3 +46,4 @@ class XrayDaemon(object):
 
 class OtherConsts(object):
     parentSpanFinishTimeHeader = "x-datadog-parent-span-finish-time"
+    originalAuthorizerRequestEpoch = "x-datadog-original-epoch"
