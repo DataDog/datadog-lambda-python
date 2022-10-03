@@ -39,7 +39,7 @@
     },
     "requestId": "1234567",
     "routeKey": "GET /hello",
-    "stage": "$default",
+    "stage": "dev",
     "time": "26/Sep/2022:21:43:58 +0000",
     "timeEpoch": 1664228638084
   },

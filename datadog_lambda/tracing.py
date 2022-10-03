@@ -347,8 +347,10 @@ def get_injected_authorizer_data(event, event_source: _EventSource) -> dict:
             event_source.equals(
                 EventTypes.API_GATEWAY, subtype=EventSubtypes.API_GATEWAY
             )
-            and int(authorizer_headers.get("integrationLatency", 0)) == 0
-        ):
+            or event_source.equals(
+                EventTypes.API_GATEWAY, subtype=EventSubtypes.WEBSOCKET
+            )
+        ) and int(authorizer_headers.get("integrationLatency", 0)) == 0:
             return None
 
         if event_source.equals(EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API):
