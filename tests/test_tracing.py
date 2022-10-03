@@ -588,29 +588,41 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
 
     def test_create_inferred_span_from_authorizer_request_api_gateway_v1_event(self):
         event_sample_source = "authorizer-request-api-gateway-v1"
-        finish_time = 1663295021.832  #request_time_epoch + integrationLatency for api-gateway-v1
+        finish_time = (
+            1663295021.832  # request_time_epoch + integrationLatency for api-gateway-v1
+        )
         span = self._authorizer_span_testing_items(event_sample_source, finish_time)
         self._basic_common_checks(span, "aws.apigateway.rest")
 
     def test_create_inferred_span_from_authorizer_token_api_gateway_v1_event(self):
         event_sample_source = "authorizer-token-api-gateway-v1"
-        finish_time = 1663295021.832  #request_time_epoch + integrationLatency for api-gateway-v1
+        finish_time = (
+            1663295021.832  # request_time_epoch + integrationLatency for api-gateway-v1
+        )
         span = self._authorizer_span_testing_items(event_sample_source, finish_time)
         self._basic_common_checks(span, "aws.apigateway.rest")
 
     def test_create_inferred_span_from_authorizer_request_api_gateway_v2_event(self):
         event_sample_source = "authorizer-request-api-gateway-v2"
-        finish_time = 1664228639.533 # use the injected parent span finish time as an approximation
+        finish_time = 1664228639.533  # use the injected parent span finish time as an approximation
         span = self._authorizer_span_testing_items(event_sample_source, finish_time)
         self._basic_common_checks(span, "aws.httpapi")
 
-    def test_create_inferred_span_from_authorizer_request_api_gateway_websocket_connect_event(self):
+    def test_create_inferred_span_from_authorizer_request_api_gateway_websocket_connect_event(
+        self,
+    ):
         event_sample_source = "authorizer-request-api-gateway-websocket-connect"
-        finish_time = 1664388386.892 # request_time_epoch + integrationLatency in websocket case
+        finish_time = (
+            1664388386.892  # request_time_epoch + integrationLatency in websocket case
+        )
         span = self._authorizer_span_testing_items(event_sample_source, finish_time)
-        self._basic_common_checks(span, "aws.apigateway.websocket", "web", "$connect", None)
+        self._basic_common_checks(
+            span, "aws.apigateway.websocket", "web", "$connect", None
+        )
 
-    def test_create_inferred_span_from_authorizer_request_api_gateway_websocket_main_event(self):
+    def test_create_inferred_span_from_authorizer_request_api_gateway_websocket_main_event(
+        self,
+    ):
         event_sample_source = "authorizer-request-api-gateway-websocket-main"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -641,8 +653,14 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
         self.assertEqual(span.parent_id, authorizer_span.span_id)
         return span
 
-
-    def _basic_common_checks(self, span, operation_name, span_type="http", route_key="/hello", http_method="GET"):
+    def _basic_common_checks(
+        self,
+        span,
+        operation_name,
+        span_type="http",
+        route_key="/hello",
+        http_method="GET",
+    ):
         self.assertEqual(span.get_tag("apiid"), "amddr1rix9")
         self.assertEqual(span.get_tag("apiname"), "amddr1rix9")
         self.assertEqual(span.get_tag("stage"), "dev")
@@ -654,7 +672,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
         )
         self.assertEqual(
             span.get_tag("http.url"),
-            "amddr1rix9.execute-api.sa-east-1.amazonaws.com"+route_key,
+            "amddr1rix9.execute-api.sa-east-1.amazonaws.com" + route_key,
         )
         self.assertEqual(span.get_tag("endpoint"), route_key)
         self.assertEqual(span.get_tag("http.method"), http_method)
