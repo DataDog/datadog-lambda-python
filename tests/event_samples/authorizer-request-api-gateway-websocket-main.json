@@ -1,0 +1,27 @@
+{
+  "requestContext": {
+    "routeKey": "main",
+    "authorizer": {
+      "_datadog": "{\"x-datadog-trace-id\": \"17374069065025434920\", \"x-datadog-parent-id\": \"7915186751914176106\", \"x-datadog-sampling-priority\": \"1\", \"x-datadog-tags\": \"_dd.p.dm=-0\", \"x-datadog-parent-span-finish-time\": 1664390333526.5068}",
+      "scope": "this is just a string",
+      "principalId": "foo"
+    },
+    "messageId": "ZLw3leP1GjQCI8Q=",
+    "eventType": "MESSAGE",
+    "extendedRequestId": "ZLw3lFowmjQFvSA=",
+    "requestTime": "28/Sep/2022:18:39:57 +0000",
+    "messageDirection": "IN",
+    "stage": "dev",
+    "connectedAt": 1664390332261,
+    "requestTimeEpoch": 1664390397117,
+    "identity": {
+      "sourceIp": "38.122.226.210"
+    },
+    "requestId": "1234567",
+    "domainName": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+    "connectionId": "ZLwtceO1mjQCI8Q=",
+    "apiId": "amddr1rix9"
+  },
+  "body": "{\n    \"action\":\"main\",\n    \"message\":\"hi\"\n}",
+  "isBase64Encoded": false
+}

@@ -588,76 +588,46 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
 
     def test_create_inferred_span_from_authorizer_request_api_gateway_v1_event(self):
         event_sample_source = "authorizer-request-api-gateway-v1"
-        span = self._http_common_testing_items(
-            event_sample_source, "aws.apigateway.rest", 1663295021.832
-        )
-
-        # api-gateway-v1 specific checks:
-        self.assertEqual(
-            span.start, 1663295021.832
-        )  # request_time_epoch + integrationLatency in api-gateway-v1 case
-        self.assertEqual(span.get_tag("apiid"), "amddr1rix9")
-        self.assertEqual(span.get_tag("apiname"), "amddr1rix9")
-        self.assertEqual(span.get_tag("stage"), "dev")
+        finish_time = 1663295021.832  #request_time_epoch + integrationLatency for api-gateway-v1
+        span = self._authorizer_span_testing_items(event_sample_source, finish_time)
+        self._basic_common_checks(span, "aws.apigateway.rest")
 
     def test_create_inferred_span_from_authorizer_token_api_gateway_v1_event(self):
         event_sample_source = "authorizer-token-api-gateway-v1"
-        span = self._http_common_testing_items(
-            event_sample_source, "aws.apigateway.rest", 1663295021.832
-        )
-
-        # api-gateway-v1 specific checks:
-        self.assertEqual(
-            span.start, 1663295021.832
-        )  # request_time_epoch + integrationLatency in api-gateway-v1 case
-        self.assertEqual(span.get_tag("apiid"), "amddr1rix9")
-        self.assertEqual(span.get_tag("apiname"), "amddr1rix9")
-        self.assertEqual(span.get_tag("stage"), "dev")
+        finish_time = 1663295021.832  #request_time_epoch + integrationLatency for api-gateway-v1
+        span = self._authorizer_span_testing_items(event_sample_source, finish_time)
+        self._basic_common_checks(span, "aws.apigateway.rest")
 
     def test_create_inferred_span_from_authorizer_request_api_gateway_v2_event(self):
         event_sample_source = "authorizer-request-api-gateway-v2"
-        span = self._http_common_testing_items(
-            event_sample_source, "aws.httpapi", 1664228639.533
-        )
+        finish_time = 1664228639.533 # use the injected parent span finish time as an approximation
+        span = self._authorizer_span_testing_items(event_sample_source, finish_time)
+        self._basic_common_checks(span, "aws.httpapi")
 
-        # http-api specific checks:
-        self.assertEqual(span.get_tag("apiid"), "amddr1rix9")
-        self.assertEqual(span.get_tag("apiname"), "amddr1rix9")
-        self.assertEqual(span.get_tag("stage"), "$default")
-        self.assertEqual(span.get_tag("http.protocol"), "HTTP/1.1")
-        self.assertEqual(span.get_tag("http.source_ip"), "38.122.226.210")
-        self.assertEqual(span.get_tag("http.user_agent"), "curl/7.64.1")
-        self.assertEqual(
-            span.start, 1664228639.533
-        )  # use the injected parent span finish time as an approximation
+    def test_create_inferred_span_from_authorizer_request_api_gateway_websocket_connect_event(self):
+        event_sample_source = "authorizer-request-api-gateway-websocket-connect"
+        finish_time = 1664388386.892 # request_time_epoch + integrationLatency in websocket case
+        span = self._authorizer_span_testing_items(event_sample_source, finish_time)
+        self._basic_common_checks(span, "aws.apigateway.websocket", "web", "$connect", None)
 
-    def _http_common_testing_items(
-        self, event_sample_source, operation_name, finish_time
-    ):
+    def test_create_inferred_span_from_authorizer_request_api_gateway_websocket_main_event(self):
+        event_sample_source = "authorizer-request-api-gateway-websocket-main"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "1234567"
         span = create_inferred_span(event, ctx)
-        self.assertEqual(span.get_tag("operation_name"), operation_name)
-        self.assertEqual(
-            span.service,
-            "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
-        )
-        self.assertEqual(
-            span.get_tag("http.url"),
-            "amddr1rix9.execute-api.sa-east-1.amazonaws.com/hello",
-        )
-        self.assertEqual(span.get_tag("endpoint"), "/hello")
-        self.assertEqual(span.get_tag("http.method"), "GET")
-        self.assertEqual(
-            span.get_tag("resource_names"),
-            "GET /hello",
-        )
-        self.assertEqual(span.get_tag("request_id"), "1234567")
+        self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
+        self._basic_common_checks(span, "aws.apigateway.websocket", "web", "main", None)
 
-        self.assertEqual(span.span_type, "http")
+    def _authorizer_span_testing_items(self, event_sample_source, finish_time):
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "1234567"
+        span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
 
@@ -665,10 +635,34 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
         self.mock_span_stop.assert_called_once()
         args, kwargs = self.mock_span_stop.call_args_list[0]
         self.assertEqual(kwargs["finish_time"], finish_time)
+        self.assertEqual(span.start, finish_time)
         authorizer_span = args[0]
         self.assertEqual(authorizer_span.name, "aws.apigateway.authorizer")
         self.assertEqual(span.parent_id, authorizer_span.span_id)
         return span
+
+
+    def _basic_common_checks(self, span, operation_name, span_type="http", route_key="/hello", http_method="GET"):
+        self.assertEqual(span.get_tag("apiid"), "amddr1rix9")
+        self.assertEqual(span.get_tag("apiname"), "amddr1rix9")
+        self.assertEqual(span.get_tag("stage"), "dev")
+        self.assertEqual(span.get_tag("operation_name"), operation_name)
+        self.assertEqual(span.span_type, span_type)
+        self.assertEqual(
+            span.service,
+            "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "amddr1rix9.execute-api.sa-east-1.amazonaws.com"+route_key,
+        )
+        self.assertEqual(span.get_tag("endpoint"), route_key)
+        self.assertEqual(span.get_tag("http.method"), http_method)
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            f"{http_method} {route_key}" if http_method else route_key,
+        )
+        self.assertEqual(span.get_tag("request_id"), "1234567")
 
 
 class TestInferredSpans(unittest.TestCase):
