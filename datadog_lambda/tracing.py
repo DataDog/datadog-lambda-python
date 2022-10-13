@@ -625,7 +625,7 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
 
 def create_inferred_span_from_api_gateway_event(event, context):
     request_context = event.get("requestContext")
-    domain = request_context.get("domainName")
+    domain = request_context.get("domainName", "")
     method = event.get("httpMethod")
     path = event.get("path")
     resource = "{0} {1}".format(method, path)
