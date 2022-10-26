@@ -44,6 +44,9 @@ class XrayDaemon(object):
     FUNCTION_NAME_HEADER_NAME = "AWS_LAMBDA_FUNCTION_NAME"
 
 
-class OtherConsts(object):
-    parentSpanFinishTimeHeader = "x-datadog-parent-span-finish-time"
-    originalAuthorizerRequestEpoch = "x-datadog-original-epoch"
+class Headers(object):
+    Parent_Span_Finish_Time = "x-datadog-parent-span-finish-time"
+    Authorizing_Request_Id = "x-datadog-authorizing-requestid"
+    TAGS_HEADER_TO_DELETE = (
+        "x-datadog-tags"  #  injected by the HTTPPropagator.inject but no use
+    )

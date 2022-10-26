@@ -24,7 +24,7 @@ from datadog_lambda.constants import (
     TraceHeader,
     TraceContextSource,
     XrayDaemon,
-    OtherConsts,
+    Headers,
 )
 from datadog_lambda.xray import (
     send_segment,
@@ -338,34 +338,29 @@ def extract_context_custom_extractor(extractor, event, lambda_context):
 
 def get_injected_authorizer_data(event, event_source: _EventSource) -> dict:
     try:
-        dd_data_raw = None
-        # has '_datadog' header and not cached because integrationLatency > 0
-        authorizer_headers = event.get("requestContext", {}).get("authorizer", {})
-
-        # [API_GATEWAY V1]if integrationLatency == 0, it's cached and no trace for the authorizer
-        if (
-            event_source.equals(
-                EventTypes.API_GATEWAY, subtype=EventSubtypes.API_GATEWAY
-            )
-            or event_source.equals(
-                EventTypes.API_GATEWAY, subtype=EventSubtypes.WEBSOCKET
-            )
-        ) and int(authorizer_headers.get("integrationLatency", 0)) == 0:
+        authorizer_headers = event.get("requestContext", {}).get("authorizer")
+        if not authorizer_headers:
             return None
 
-        if event_source.equals(EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API):
-            dd_data_raw = authorizer_headers.get("lambda", {}).get("_datadog")
-            dd_data = json.loads(base64.b64decode(dd_data_raw))
-            # [API_GATEWAY V2]if original authorizer request epoch is different, then it's cached
-            if event.get("requestContext", {}).get("timeEpoch") == dd_data.get(
-                OtherConsts.originalAuthorizerRequestEpoch
-            ):
-                return dd_data
-            else:
-                return None
+        dd_data_raw = (
+            authorizer_headers.get("lambda", {}).get("_datadog")
+            if event_source.equals(
+                EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API
+            )
+            else authorizer_headers.get("_datadog")
+        )
+
+        if not dd_data_raw:
+            return None
+
+        injected_data = json.loads(base64.b64decode(dd_data_raw))
+        # use the integrationLatency (needed for token type authorizer) or the injected requestId to tell if it's the authorizing invocation (not cached)
+        if authorizer_headers.get("integrationLatency", 0) > 0 or event.get(
+            "requestContext", {}
+        ).get("requestId") == injected_data.get(Headers.Authorizing_Request_Id):
+            return injected_data
         else:
-            dd_data_raw = authorizer_headers.get("_datadog")
-            return json.loads(dd_data_raw)
+            return None
 
     except Exception as e:
         logger.debug("Failed to check if invocated by an authorizer. error %s", e)
@@ -709,9 +704,7 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
     if injected_authorizer_data:
         try:
             start_time_s = (
-                int(
-                    injected_authorizer_data.get(OtherConsts.parentSpanFinishTimeHeader)
-                )
+                int(injected_authorizer_data.get(Headers.Parent_Span_Finish_Time))
                 / 1000
             )
             finish_time_s = (
@@ -788,9 +781,7 @@ def create_inferred_span_from_api_gateway_event(event, context):
     if injected_authorizer_data:
         try:
             start_time_s = (
-                int(
-                    injected_authorizer_data.get(OtherConsts.parentSpanFinishTimeHeader)
-                )
+                int(injected_authorizer_data.get(Headers.Parent_Span_Finish_Time))
                 / 1000
             )
             finish_time_s = (
@@ -870,9 +861,7 @@ def create_inferred_span_from_http_api_event(event, context):
     if injected_authorizer_data:
         try:
             start_time_s = (
-                int(
-                    injected_authorizer_data.get(OtherConsts.parentSpanFinishTimeHeader)
-                )
+                int(injected_authorizer_data.get(Headers.Parent_Span_Finish_Time))
                 / 1000
             )
             finish_time_s = start_time_s  # no integrationLatency info in this case

@@ -55,7 +55,7 @@
   "requestContext": {
     "resourceId": "elem3u",
     "authorizer": {
-      "_datadog": "{\"x-datadog-trace-id\": \"17874798268144902712\", \"x-datadog-parent-id\": \"16184667399315372101\", \"x-datadog-sampling-priority\": \"1\", \"x-datadog-tags\": \"_dd.p.dm=-0\", \"x-datadog-parent-span-finish-time\": 1663721602440.8286}",
+      "_datadog": "eyJ4LWRhdGFkb2ctdHJhY2UtaWQiOiAiMTc4NzQ3OTgyNjgxNDQ5MDI3MTIiLCAieC1kYXRhZG9nLXBhcmVudC1pZCI6ICIxNjE4NDY2NzM5OTMxNTM3MjEwMSIsICJ4LWRhdGFkb2ctc2FtcGxpbmctcHJpb3JpdHkiOiAiMSIsICJ4LWRhdGFkb2ctcGFyZW50LXNwYW4tZmluaXNoLXRpbWUiOiAxNjYzNzIxNjAyNDQwLjgyODZ9",
       "scope": "this is just a string",
       "principalId": "foo",
       "integrationLatency": 1897
@@ -70,7 +70,7 @@
     "stage": "dev",
     "domainPrefix": "amddr1rix9",
     "requestTimeEpoch": 1663295019935,
-    "requestId": "1234567",
+    "requestId": "abc123",
     "identity": {
       "cognitoIdentityPoolId": null,
       "accountId": null,

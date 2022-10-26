@@ -594,6 +594,19 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
         span = self._authorizer_span_testing_items(event_sample_source, finish_time)
         self._basic_common_checks(span, "aws.apigateway.rest")
 
+    def test_create_inferred_span_from_authorizer_request_api_gateway_v1_cached_event(
+        self,
+    ):
+        event_sample_source = "authorizer-request-api-gateway-v1-cached"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "abc123"  # injected data's requestId is abc321
+        span = create_inferred_span(event, ctx)
+        self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
+        self._basic_common_checks(span, "aws.apigateway.rest")
+
     def test_create_inferred_span_from_authorizer_token_api_gateway_v1_event(self):
         event_sample_source = "authorizer-token-api-gateway-v1"
         finish_time = (
@@ -602,10 +615,36 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
         span = self._authorizer_span_testing_items(event_sample_source, finish_time)
         self._basic_common_checks(span, "aws.apigateway.rest")
 
+    def test_create_inferred_span_from_authorizer_token_api_gateway_v2_cached_event(
+        self,
+    ):
+        event_sample_source = "authorizer-token-api-gateway-v1-cached"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "abc123"  # injected data's requestId is abc321
+        span = create_inferred_span(event, ctx)
+        self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
+        self._basic_common_checks(span, "aws.apigateway.rest")
+
     def test_create_inferred_span_from_authorizer_request_api_gateway_v2_event(self):
         event_sample_source = "authorizer-request-api-gateway-v2"
         finish_time = 1664228639.533  # use the injected parent span finish time as an approximation
         span = self._authorizer_span_testing_items(event_sample_source, finish_time)
+        self._basic_common_checks(span, "aws.httpapi")
+
+    def test_create_inferred_span_from_authorizer_request_api_gateway_v2_cached_event(
+        self,
+    ):
+        event_sample_source = "authorizer-request-api-gateway-v2-cached"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "abc123"  # injected data's requestId is abc321
+        span = create_inferred_span(event, ctx)
+        self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
         self._basic_common_checks(span, "aws.httpapi")
 
     def test_create_inferred_span_from_authorizer_request_api_gateway_websocket_connect_event(
@@ -620,15 +659,15 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
             span, "aws.apigateway.websocket", "web", "$connect", None
         )
 
-    def test_create_inferred_span_from_authorizer_request_api_gateway_websocket_main_event(
+    def test_create_inferred_span_from_authorizer_request_api_gateway_websocket_message_event(
         self,
     ):
-        event_sample_source = "authorizer-request-api-gateway-websocket-main"
+        event_sample_source = "authorizer-request-api-gateway-websocket-message"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        ctx.aws_request_id = "1234567"
+        ctx.aws_request_id = "abc123"  # injected data's requestId is abc321
         span = create_inferred_span(event, ctx)
         self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
         self._basic_common_checks(span, "aws.apigateway.websocket", "web", "main", None)
@@ -638,7 +677,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        ctx.aws_request_id = "1234567"
+        ctx.aws_request_id = "abc123"
         span = create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
@@ -680,7 +719,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
             span.get_tag("resource_names"),
             f"{http_method} {route_key}" if http_method else route_key,
         )
-        self.assertEqual(span.get_tag("request_id"), "1234567")
+        self.assertEqual(span.get_tag("request_id"), "abc123")
 
 
 class TestInferredSpans(unittest.TestCase):

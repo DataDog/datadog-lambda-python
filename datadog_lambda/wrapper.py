@@ -17,7 +17,7 @@ from datadog_lambda.cold_start import set_cold_start, is_cold_start
 from datadog_lambda.constants import (
     TraceContextSource,
     XraySubsegment,
-    OtherConsts,
+    Headers,
 )
 from datadog_lambda.metric import (
     flush_stats,
@@ -126,8 +126,8 @@ class _LambdaDecorator(object):
             self.make_inferred_span = (
                 os.environ.get("DD_TRACE_MANAGED_SERVICES", "true").lower() == "true"
             )
-            self.make_authorizer_span = (
-                os.environ.get("DD_LINK_LAMBDA_AUTHORIZER", "true").lower() == "true"
+            self.encode_authorizer_context = (
+                os.environ.get("DD_ENCODE_AUTHORIZER_CONTEXT", "true").lower() == "true"
             )
             self.response = None
             if profiling_env_var:
@@ -161,7 +161,6 @@ class _LambdaDecorator(object):
         self._before(event, context)
         try:
             self.response = self.func(event, context, **kwargs)
-            self._ending(event)
             return self.response
         except Exception:
             submit_errors_metric(context)
@@ -171,29 +170,17 @@ class _LambdaDecorator(object):
         finally:
             self._after(event, context)
 
-    def _inject_authorizer_span_headers(self, event):
-        finish_time_ns = (
-            self.span.start_ns
-            if InferredSpanInfo.is_async(self.inferred_span) and self.span
-            else time_ns()
-        )
+    def _inject_authorizer_span_headers(self, request_id, finish_time_ns):
         injected_headers = {}
         source_span = self.inferred_span if self.inferred_span else self.span
         HTTPPropagator.inject(source_span.context, injected_headers)
-        injected_headers[OtherConsts.parentSpanFinishTimeHeader] = finish_time_ns / 1e6
-        encode_datadog_data = False
-        if self.event_source and self.event_source.equals(
-            EventTypes.API_GATEWAY, EventSubtypes.HTTP_API
-        ):
-            injected_headers[OtherConsts.originalAuthorizerRequestEpoch] = event.get(
-                "requestContext", {}
-            ).get("timeEpoch")
-            encode_datadog_data = True
-        datadog_data = json.dumps(injected_headers).encode()
-        if encode_datadog_data:
-            datadog_data = base64.b64encode(
-                datadog_data
-            )  # special characters can corrupt the response
+        injected_headers.pop(
+            Headers.TAGS_HEADER_TO_DELETE, None
+        )  #  remove unused header
+        injected_headers[Headers.Parent_Span_Finish_Time] = finish_time_ns / 1e6
+        if request_id is not None:
+            injected_headers[Headers.Authorizing_Request_Id] = request_id
+        datadog_data = base64.b64encode(json.dumps(injected_headers).encode())
         self.response.setdefault("context", {})
         self.response["context"]["_datadog"] = datadog_data
 
@@ -237,19 +224,6 @@ class _LambdaDecorator(object):
         except Exception:
             traceback.print_exc()
 
-    def _ending(self, event):
-        try:
-            if (
-                self.make_authorizer_span
-                and self.response
-                and self.response.get("principalId")
-                and self.response.get("policyDocument")
-                and self.event_source
-            ):
-                self._inject_authorizer_span_headers(event)
-        except Exception:
-            traceback.print_exc()
-
     def _after(self, event, context):
         try:
             status_code = extract_http_status_code_tag(self.trigger_tags, self.response)
@@ -282,6 +256,20 @@ class _LambdaDecorator(object):
                 else:
                     self.inferred_span.finish()
 
+            if (
+                self.encode_authorizer_context
+                and self.response
+                and self.response.get("principalId")
+                and self.response.get("policyDocument")
+            ):
+                finish_time_ns = (
+                    self.span.start_ns
+                    if InferredSpanInfo.is_async(self.inferred_span) and self.span
+                    else time_ns()
+                )
+                self._inject_authorizer_span_headers(
+                    event.get("requestContext", {}).get("requestId"), finish_time_ns
+                )
             if not self.flush_to_log or should_use_extension:
                 flush_stats()
             if should_use_extension:
