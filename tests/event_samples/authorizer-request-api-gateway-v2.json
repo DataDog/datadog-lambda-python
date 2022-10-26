@@ -24,7 +24,7 @@
     "apiId": "amddr1rix9",
     "authorizer": {
       "lambda": {
-        "_datadog": "eyJ4LWRhdGFkb2ctdHJhY2UtaWQiOiAiMTQzNTY5ODM2MTk4NTI5MzMzNTQiLCAieC1kYXRhZG9nLXBhcmVudC1pZCI6ICIxMjY1ODYyMTA4MzUwNTQxMzgwOSIsICJ4LWRhdGFkb2ctc2FtcGxpbmctcHJpb3JpdHkiOiAiMSIsICJ4LWRhdGFkb2ctcGFyZW50LXNwYW4tZmluaXNoLXRpbWUiOiAxNjY0MjI4NjM5NTMzLjc3NTQsICJ4LWRhdGFkb2ctYXV0aG9yaXppbmctcmVxdWVzdGlkIjogImFiYzEyMyJ9",
+        "_datadog": "eyJ4LWRhdGFkb2ctdHJhY2UtaWQiOiAiMTQzNTY5ODM2MTk4NTI5MzMzNTQiLCAieC1kYXRhZG9nLXBhcmVudC1pZCI6ICIxMjY1ODYyMTA4MzUwNTQxMzgwOSIsICJ4LWRhdGFkb2ctc2FtcGxpbmctcHJpb3JpdHkiOiAiMSIsICJ4LWRhdGFkb2ctcGFyZW50LXNwYW4tZmluaXNoLXRpbWUiOiAxNjY0MjI4NjM5NTMzNzc1NDAwLCAieC1kYXRhZG9nLWF1dGhvcml6aW5nLXJlcXVlc3RpZCI6ICJhYmMxMjMifQ==",
         "scope": "this is just a string"
       }
     },

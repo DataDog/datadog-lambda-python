@@ -863,7 +863,7 @@ def create_inferred_span_from_http_api_event(event, context):
                 injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
             )
             finish_time_s = (
-                start_time_ns / 1000
+                start_time_ns / 1e9
             )  # no integrationLatency info in this case
             upstream_authorizer_span = insert_upstream_authorizer_span(
                 args, tags, start_time_ns, finish_time_s

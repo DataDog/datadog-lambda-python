@@ -630,7 +630,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
 
     def test_create_inferred_span_from_authorizer_request_api_gateway_v2_event(self):
         event_sample_source = "authorizer-request-api-gateway-v2"
-        finish_time = 1664228639.533  # use the injected parent span finish time as an approximation
+        finish_time = 1664228639.5337753  # use the injected parent span finish time as an approximation
         span = self._authorizer_span_testing_items(event_sample_source, finish_time)
         self._basic_common_checks(span, "aws.httpapi")
 
