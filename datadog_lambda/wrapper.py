@@ -259,11 +259,22 @@ class _LambdaDecorator(object):
                 and self.response.get("principalId")
                 and self.response.get("policyDocument")
             ):
-                finish_time_ns = (
-                    self.span.start_ns
-                    if InferredSpanInfo.is_async(self.inferred_span) and self.span
-                    else time_ns()
-                )
+                finish_time_ns = None
+                # the finish_time_ns should be set as the end of the inferred span if it exist
+                #  or the end of the current span
+                if not self.inferred_span:
+                    finish_time_ns = (
+                        self.span.start_ns + self.span.duration_ns
+                        if self.span and self.span.duration_ns
+                        else time_ns()
+                    )
+                else:
+                    finish_time_ns = (
+                        self.span.start_ns
+                        if InferredSpanInfo.is_async(self.inferred_span) and self.span
+                        else time_ns()
+                    )
+
                 self._inject_authorizer_span_headers(
                     event.get("requestContext", {}).get("requestId"), finish_time_ns
                 )
