@@ -47,6 +47,6 @@ class XrayDaemon(object):
 class Headers(object):
     Parent_Span_Finish_Time = "x-datadog-parent-span-finish-time"
     Authorizing_Request_Id = "x-datadog-authorizing-requestid"
-    TAGS_HEADER_TO_DELETE = (
-        "x-datadog-tags"  #  injected by the HTTPPropagator.inject but no use
-    )
+
+    #  injected by the HTTPPropagator.inject but no use
+    TAGS_HEADER_TO_DELETE = "x-datadog-tags"

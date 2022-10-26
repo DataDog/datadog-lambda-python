@@ -354,7 +354,8 @@ def get_injected_authorizer_data(event, event_source: _EventSource) -> dict:
             return None
 
         injected_data = json.loads(base64.b64decode(dd_data_raw))
-        # use the integrationLatency (needed for token type authorizer) or the injected requestId to tell if it's the authorizing invocation (not cached)
+        # use the integrationLatency (needed for token type authorizer) or the injected requestId
+        #  to tell if it's the authorizing invocation (not cached)
         if authorizer_headers.get("integrationLatency", 0) > 0 or event.get(
             "requestContext", {}
         ).get("requestId") == injected_data.get(Headers.Authorizing_Request_Id):

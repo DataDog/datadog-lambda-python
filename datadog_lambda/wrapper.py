@@ -41,8 +41,6 @@ from datadog_lambda.tracing import (
 from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
-    EventTypes,
-    EventSubtypes,
 )
 from datadog_lambda.tag_object import tag_object
 
@@ -174,9 +172,8 @@ class _LambdaDecorator(object):
         injected_headers = {}
         source_span = self.inferred_span if self.inferred_span else self.span
         HTTPPropagator.inject(source_span.context, injected_headers)
-        injected_headers.pop(
-            Headers.TAGS_HEADER_TO_DELETE, None
-        )  #  remove unused header
+        # remove unused header
+        injected_headers.pop(Headers.TAGS_HEADER_TO_DELETE, None)
         injected_headers[Headers.Parent_Span_Finish_Time] = finish_time_ns / 1e6
         if request_id is not None:
             injected_headers[Headers.Authorizing_Request_Id] = request_id
