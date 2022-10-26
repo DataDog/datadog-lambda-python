@@ -174,7 +174,7 @@ class _LambdaDecorator(object):
         HTTPPropagator.inject(source_span.context, injected_headers)
         # remove unused header
         injected_headers.pop(Headers.TAGS_HEADER_TO_DELETE, None)
-        injected_headers[Headers.Parent_Span_Finish_Time] = finish_time_ns / 1e6
+        injected_headers[Headers.Parent_Span_Finish_Time] = finish_time_ns
         if request_id is not None:
             injected_headers[Headers.Authorizing_Request_Id] = request_id
         datadog_data = base64.b64encode(json.dumps(injected_headers).encode())

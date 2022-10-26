@@ -643,7 +643,7 @@ def is_api_gateway_invocation_async(event):
 
 
 def insert_upstream_authorizer_span(
-    kwargs_to_start_span, other_tags_for_span, start_time_s, finish_time_s=None
+    kwargs_to_start_span, other_tags_for_span, start_time_ns, finish_time_s=None
 ):
     """Insert the authorizer span.
         Without this:        parent span --child-> inferred span
@@ -652,7 +652,7 @@ def insert_upstream_authorizer_span(
     Args:
         kwargs_to_start_span (Dict): the same keyword arguments used for the inferred span
         other_tags_for_span (Dict): the same tag keyword arguments used for the inferred span
-        start_time_s (int): the start time of the span in seconds
+        start_time_ns (int): the start time of the span in nanoseconds
         finish_time_s (int): the finish time of the sapn in seconds
     """
 
@@ -663,7 +663,7 @@ def insert_upstream_authorizer_span(
     upstream_authorizer_span.set_tag("operation_name", "aws.apigateway.authorizer")
     # always sync for the authorizer invocation
     InferredSpanInfo.set_tags_to_span(upstream_authorizer_span, synchronicity="sync")
-    upstream_authorizer_span.start = start_time_s
+    upstream_authorizer_span.start_ns = start_time_ns
     upstream_authorizer_span.finish(finish_time=finish_time_s)
     return upstream_authorizer_span
 
@@ -704,9 +704,8 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
     )
     if injected_authorizer_data:
         try:
-            start_time_s = (
-                int(injected_authorizer_data.get(Headers.Parent_Span_Finish_Time))
-                / 1000
+            start_time_ns = int(
+                injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
             )
             finish_time_s = (
                 request_time_epoch_s
@@ -720,7 +719,7 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
                 / 1000
             )
             upstream_authorizer_span = insert_upstream_authorizer_span(
-                args, tags, start_time_s, finish_time_s
+                args, tags, start_time_ns, finish_time_s
             )
             # trace context needs to be set again as it is reset by upstream_authorizer_span.finish
             tracer.context_provider.activate(trace_ctx)
@@ -781,9 +780,8 @@ def create_inferred_span_from_api_gateway_event(event, context):
     )
     if injected_authorizer_data:
         try:
-            start_time_s = (
-                int(injected_authorizer_data.get(Headers.Parent_Span_Finish_Time))
-                / 1000
+            start_time_ns = int(
+                injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
             )
             finish_time_s = (
                 request_time_epoch_s
@@ -797,7 +795,7 @@ def create_inferred_span_from_api_gateway_event(event, context):
                 / 1000
             )
             upstream_authorizer_span = insert_upstream_authorizer_span(
-                args, tags, start_time_s, finish_time_s
+                args, tags, start_time_ns, finish_time_s
             )
             # trace context needs to be set again as it is reset by upstream_authorizer_span.finish
             tracer.context_provider.activate(trace_ctx)
@@ -861,13 +859,14 @@ def create_inferred_span_from_http_api_event(event, context):
     )
     if injected_authorizer_data:
         try:
-            start_time_s = (
-                int(injected_authorizer_data.get(Headers.Parent_Span_Finish_Time))
-                / 1000
+            start_time_ns = int(
+                injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
             )
-            finish_time_s = start_time_s  # no integrationLatency info in this case
+            finish_time_s = (
+                start_time_ns / 1000
+            )  # no integrationLatency info in this case
             upstream_authorizer_span = insert_upstream_authorizer_span(
-                args, tags, start_time_s, finish_time_s
+                args, tags, start_time_ns, finish_time_s
             )
             # trace context needs to be set again as it is reset by upstream_authorizer_span.finish
             tracer.context_provider.activate(trace_ctx)
