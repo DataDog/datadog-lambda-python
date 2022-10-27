@@ -65,6 +65,7 @@ if [ -n "$BUILD_LAYERS" ]; then
         PYTHON_VERSION=${!BUILD_LAYER_VERSION} source $scripts_dir/build_layers.sh
     else
         source $scripts_dir/build_layers.sh
+    fi
 else
     echo "Not building layers, ensure they've already been built or re-run with 'BUILD_LAYERS=true DD_API_KEY=XXXX ./scripts/run_integration_tests.sh'"
 fi
