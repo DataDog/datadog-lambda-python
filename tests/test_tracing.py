@@ -182,7 +182,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
         )
 
-
     def test_with_extractor_function(self):
         def extractor_foo(event, context):
             foo = event.get("foo", {})
@@ -1239,13 +1238,10 @@ class TestInferredSpans(unittest.TestCase):
         mock_submit_errors_metric.assert_called_once()
         self.assertEqual(1, mock_span.error)
 
-
     def test_no_error_with_nonetype_headers(self):
         lambda_ctx = get_mock_context()
         ctx, source = extract_dd_trace_context(
-            {
-                "headers": None
-            },
+            {"headers": None},
             lambda_ctx,
         )
         self.assertEqual(ctx, None)
