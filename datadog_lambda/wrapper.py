@@ -23,6 +23,7 @@ from datadog_lambda.module_name import modify_module_name
 from datadog_lambda.patch import patch_all
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
+    disable_instrumentation_telemetry_by_default,
     create_dd_dummy_metadata_subsegment,
     inject_correlation_ids,
     dd_tracing_enabled,
@@ -136,6 +137,7 @@ class _LambdaDecorator(object):
             os.environ["DD_REQUESTS_SERVICE_NAME"] = os.environ.get(
                 "DD_SERVICE", "aws.lambda"
             )
+            disable_instrumentation_telemetry_by_default()
             # Patch third-party libraries for tracing
             patch_all()
 

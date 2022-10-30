@@ -968,6 +968,20 @@ def mark_trace_as_error_for_5xx_responses(context, status_code, span):
             span.error = 1
 
 
+def disable_instrumentation_telemetry_by_default():
+    """
+    As of ddtrace v1.5 instrumentation telemetry collection is enabled by default.
+    This feature can add 5-10% overhead to the tracer and increase cold start.
+    Setting ``DD_INSTRUMENTATION_TELEMETRY_ENABLED=False`` will disable this feature.
+
+    Instrumentation Telemetry Collection is enabled when the first trace is sent to the
+    Agent. This feature must be disabled before tracing is configured.
+    """
+
+    if "DD_INSTRUMENTATION_TELEMETRY_ENABLED" not in os.environ:
+        os.environ["DD_INSTRUMENTATION_TELEMETRY_ENABLED"] = "false"
+
+
 class InferredSpanInfo(object):
     BASE_NAME = "_inferred_span"
     SYNCHRONICITY = f"{BASE_NAME}.synchronicity"
