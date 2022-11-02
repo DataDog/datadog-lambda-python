@@ -174,7 +174,7 @@ def extract_context_from_http_event_or_context(event, lambda_context):
 
     Falls back to lambda context if no trace data is found in the `headers`
     """
-    headers = event.get("headers", {})
+    headers = event.get("headers", {}) or {}
     lowercase_headers = {k.lower(): v for k, v in headers.items()}
 
     trace_id = lowercase_headers.get(TraceHeader.TRACE_ID)
