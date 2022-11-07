@@ -153,7 +153,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "runtime-id": "XXXX",
           "_dd.origin": "lambda",
           "http.method": "POST",
-          "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0"
@@ -321,7 +321,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "runtime-id": "XXXX",
           "_dd.origin": "lambda",
           "http.method": "POST",
-          "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0"
@@ -482,7 +482,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "runtime-id": "XXXX",
           "_dd.origin": "lambda",
           "http.method": "POST",
-          "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0"
@@ -658,7 +658,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "runtime-id": "XXXX",
           "_dd.origin": "lambda",
           "http.method": "POST",
-          "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0"
@@ -826,7 +826,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "runtime-id": "XXXX",
           "_dd.origin": "lambda",
           "http.method": "POST",
-          "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0"
@@ -991,7 +991,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "runtime-id": "XXXX",
           "_dd.origin": "lambda",
           "http.method": "POST",
-          "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0"
@@ -1157,7 +1157,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "runtime-id": "XXXX",
           "_dd.origin": "lambda",
           "http.method": "POST",
-          "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0"
@@ -1322,7 +1322,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "runtime-id": "XXXX",
           "_dd.origin": "lambda",
           "http.method": "POST",
-          "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0"
@@ -1495,7 +1495,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "runtime-id": "XXXX",
           "_dd.origin": "lambda",
           "http.method": "POST",
-          "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0"
