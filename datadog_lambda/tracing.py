@@ -643,7 +643,7 @@ def is_api_gateway_invocation_async(event):
 
 
 def insert_upstream_authorizer_span(
-    kwargs_to_start_span, other_tags_for_span, start_time_ns, finish_time_s=None
+    kwargs_to_start_span, other_tags_for_span, start_time_ns, finish_time_ns
 ):
     """Insert the authorizer span.
         Without this:        parent span --child-> inferred span
@@ -653,7 +653,7 @@ def insert_upstream_authorizer_span(
         kwargs_to_start_span (Dict): the same keyword arguments used for the inferred span
         other_tags_for_span (Dict): the same tag keyword arguments used for the inferred span
         start_time_ns (int): the start time of the span in nanoseconds
-        finish_time_s (int): the finish time of the sapn in seconds
+        finish_time_ns (int): the finish time of the sapn in nanoseconds
     """
 
     upstream_authorizer_span = tracer.trace(
@@ -663,8 +663,8 @@ def insert_upstream_authorizer_span(
     upstream_authorizer_span.set_tag("operation_name", "aws.apigateway.authorizer")
     # always sync for the authorizer invocation
     InferredSpanInfo.set_tags_to_span(upstream_authorizer_span, synchronicity="sync")
-    upstream_authorizer_span.start_ns = start_time_ns
-    upstream_authorizer_span.finish(finish_time=finish_time_s)
+    upstream_authorizer_span.start_ns = int(start_time_ns)
+    upstream_authorizer_span.finish(finish_time_ns / 1e9)
     return upstream_authorizer_span
 
 
@@ -686,7 +686,7 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
         "event_type": request_context.get("eventType"),
         "message_direction": request_context.get("messageDirection"),
     }
-    request_time_epoch_s = int(request_context.get("requestTimeEpoch")) / 1000
+    request_time_epoch_ms = int(request_context.get("requestTimeEpoch"))
     if is_api_gateway_invocation_async(event):
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
@@ -698,7 +698,7 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
     }
     tracer.set_tags({"_dd.origin": "lambda"})
     upstream_authorizer_span = None
-    finish_time_s = None
+    finish_time_ns = None
     injected_authorizer_data = get_injected_authorizer_data(
         event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.WEBSOCKET)
     )
@@ -707,8 +707,8 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
             start_time_ns = int(
                 injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
             )
-            finish_time_s = (
-                request_time_epoch_s
+            finish_time_ns = (
+                request_time_epoch_ms
                 + (
                     int(
                         request_context.get("authorizer", {}).get(
@@ -716,10 +716,9 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
                         )
                     )
                 )
-                / 1000
-            )
+            ) * 1e6
             upstream_authorizer_span = insert_upstream_authorizer_span(
-                args, tags, start_time_ns, finish_time_s
+                args, tags, start_time_ns, finish_time_ns
             )
             # trace context needs to be set again as it is reset by upstream_authorizer_span.finish
             tracer.context_provider.activate(trace_ctx)
@@ -736,8 +735,10 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
     span = tracer.trace("aws.apigateway.websocket", **args)
     if span:
         span.set_tags(tags)
-        span.start = (
-            finish_time_s if finish_time_s is not None else request_time_epoch_s
+        span.start_ns = int(
+            finish_time_ns
+            if finish_time_ns is not None
+            else request_time_epoch_ms * 1e6
         )
         if upstream_authorizer_span:
             span.parent_id = upstream_authorizer_span.span_id
@@ -762,7 +763,7 @@ def create_inferred_span_from_api_gateway_event(event, context):
         "stage": request_context.get("stage"),
         "request_id": request_context.get("requestId"),
     }
-    request_time_epoch_s = int(request_context.get("requestTimeEpoch")) / 1000
+    request_time_epoch_ms = int(request_context.get("requestTimeEpoch"))
     if is_api_gateway_invocation_async(event):
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
@@ -774,7 +775,7 @@ def create_inferred_span_from_api_gateway_event(event, context):
     }
     tracer.set_tags({"_dd.origin": "lambda"})
     upstream_authorizer_span = None
-    finish_time_s = None
+    finish_time_ns = None
     injected_authorizer_data = get_injected_authorizer_data(
         event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.API_GATEWAY)
     )
@@ -783,8 +784,8 @@ def create_inferred_span_from_api_gateway_event(event, context):
             start_time_ns = int(
                 injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
             )
-            finish_time_s = (
-                request_time_epoch_s
+            finish_time_ns = (
+                request_time_epoch_ms
                 + (
                     int(
                         request_context.get("authorizer", {}).get(
@@ -792,10 +793,9 @@ def create_inferred_span_from_api_gateway_event(event, context):
                         )
                     )
                 )
-                / 1000
-            )
+            ) * 1e6
             upstream_authorizer_span = insert_upstream_authorizer_span(
-                args, tags, start_time_ns, finish_time_s
+                args, tags, start_time_ns, finish_time_ns
             )
             # trace context needs to be set again as it is reset by upstream_authorizer_span.finish
             tracer.context_provider.activate(trace_ctx)
@@ -812,8 +812,10 @@ def create_inferred_span_from_api_gateway_event(event, context):
     if span:
         span.set_tags(tags)
         # start time pushed by the inserted authorizer span
-        span.start = (
-            finish_time_s if finish_time_s is not None else request_time_epoch_s
+        span.start_ns = int(
+            finish_time_ns
+            if finish_time_ns is not None
+            else request_time_epoch_ms * 1e6
         )
         if upstream_authorizer_span:
             span.parent_id = upstream_authorizer_span.span_id
@@ -841,7 +843,7 @@ def create_inferred_span_from_http_api_event(event, context):
         "apiname": request_context.get("apiId"),
         "stage": request_context.get("stage"),
     }
-    request_time_epoch_s = int(request_context.get("timeEpoch")) / 1000
+    request_time_epoch_ms = int(request_context.get("timeEpoch"))
     if is_api_gateway_invocation_async(event):
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
@@ -853,7 +855,7 @@ def create_inferred_span_from_http_api_event(event, context):
     }
     tracer.set_tags({"_dd.origin": "lambda"})
     upstream_authorizer_span = None
-    finish_time_s = None
+    finish_time_ns = None
     injected_authorizer_data = get_injected_authorizer_data(
         event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.HTTP_API)
     )
@@ -862,11 +864,9 @@ def create_inferred_span_from_http_api_event(event, context):
             start_time_ns = int(
                 injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
             )
-            finish_time_s = (
-                start_time_ns / 1e9
-            )  # no integrationLatency info in this case
+            finish_time_ns = start_time_ns
             upstream_authorizer_span = insert_upstream_authorizer_span(
-                args, tags, start_time_ns, finish_time_s
+                args, tags, start_time_ns, finish_time_ns
             )
             # trace context needs to be set again as it is reset by upstream_authorizer_span.finish
             tracer.context_provider.activate(trace_ctx)
@@ -881,8 +881,10 @@ def create_inferred_span_from_http_api_event(event, context):
     span = tracer.trace("aws.httpapi", **args)
     if span:
         span.set_tags(tags)
-        span.start = (
-            finish_time_s if finish_time_s is not None else request_time_epoch_s
+        span.start_ns = int(
+            finish_time_ns
+            if finish_time_ns is not None
+            else request_time_epoch_ms * 1e6
         )
         if upstream_authorizer_span:
             span.parent_id = upstream_authorizer_span.span_id

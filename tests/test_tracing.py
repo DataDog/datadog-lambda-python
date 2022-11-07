@@ -685,7 +685,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
         # checking the upstream_authorizer_span
         self.mock_span_stop.assert_called_once()
         args, kwargs = self.mock_span_stop.call_args_list[0]
-        self.assertEqual(kwargs["finish_time"], finish_time)
+        self.assertEqual(kwargs.get("finish_time", args[1]), finish_time)
         self.assertEqual(span.start, finish_time)
         authorizer_span = args[0]
         self.assertEqual(authorizer_span.name, "aws.apigateway.authorizer")
@@ -786,7 +786,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("apiid"), "lgxbo6a518")
         self.assertEqual(span.get_tag("apiname"), "lgxbo6a518")
         self.assertEqual(span.get_tag("stage"), "dev")
-        self.assertEqual(span.start, 1631210915.2509997)
+        self.assertEqual(span.start, 1631210915.2510002)
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
@@ -820,7 +820,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("apiid"), "lgxbo6a518")
         self.assertEqual(span.get_tag("apiname"), "lgxbo6a518")
         self.assertEqual(span.get_tag("stage"), "dev")
-        self.assertEqual(span.start, 1631210915.2509997)
+        self.assertEqual(span.start, 1631210915.2510002)
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
