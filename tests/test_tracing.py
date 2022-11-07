@@ -1380,3 +1380,11 @@ class TestInferredSpans(unittest.TestCase):
         )
         mock_submit_errors_metric.assert_called_once()
         self.assertEqual(1, mock_span.error)
+
+    def test_no_error_with_nonetype_headers(self):
+        lambda_ctx = get_mock_context()
+        ctx, source = extract_dd_trace_context(
+            {"headers": None},
+            lambda_ctx,
+        )
+        self.assertEqual(ctx, None)
