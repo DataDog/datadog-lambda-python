@@ -1383,7 +1383,7 @@ class TestInferredSpans(unittest.TestCase):
 
     def test_no_error_with_nonetype_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source = extract_dd_trace_context(
+        ctx, source, event_type = extract_dd_trace_context(
             {"headers": None},
             lambda_ctx,
         )
