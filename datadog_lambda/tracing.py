@@ -193,7 +193,7 @@ def extract_context_from_http_event_or_context(
                  Continue without injecting the authorizer span %s",
                 e,
             )
-    headers = event.get("headers", {})
+    headers = event.get("headers", {}) or {}
     lowercase_headers = {k.lower(): v for k, v in headers.items()}
 
     trace_id = lowercase_headers.get(TraceHeader.TRACE_ID)
