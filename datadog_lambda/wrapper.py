@@ -192,7 +192,10 @@ class _LambdaDecorator(object):
             self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source, event_source = extract_dd_trace_context(
-                event, context, extractor=self.trace_extractor, decode_authorizer_context=self.decode_authorizer_context
+                event,
+                context,
+                extractor=self.trace_extractor,
+                decode_authorizer_context=self.decode_authorizer_context,
             )
             self.event_source = event_source
             # Create a Datadog X-Ray subsegment with the trace context

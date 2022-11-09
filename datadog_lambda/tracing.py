@@ -171,7 +171,10 @@ def extract_context_from_lambda_context(lambda_context):
 
 
 def extract_context_from_http_event_or_context(
-    event, lambda_context, event_source: _EventSource, decode_authorizer_context: bool = True
+    event,
+    lambda_context,
+    event_source: _EventSource,
+    decode_authorizer_context: bool = True,
 ):
     """
     Extract Datadog trace context from the `headers` key in from the Lambda
@@ -186,7 +189,9 @@ def extract_context_from_http_event_or_context(
                 # fail fast on any KeyError here
                 trace_id = injected_authorizer_data[TraceHeader.TRACE_ID]
                 parent_id = injected_authorizer_data[TraceHeader.PARENT_ID]
-                sampling_priority = injected_authorizer_data[TraceHeader.SAMPLING_PRIORITY]
+                sampling_priority = injected_authorizer_data[
+                    TraceHeader.SAMPLING_PRIORITY
+                ]
                 return trace_id, parent_id, sampling_priority
             except Exception as e:
                 logger.debug(
@@ -370,7 +375,9 @@ def get_injected_authorizer_data(event, event_source: _EventSource) -> dict:
         return None
 
 
-def extract_dd_trace_context(event, lambda_context, extractor=None, decode_authorizer_context: bool= True ):
+def extract_dd_trace_context(
+    event, lambda_context, extractor=None, decode_authorizer_context: bool = True
+):
     """
     Extract Datadog trace context from the Lambda `event` object.
 
@@ -557,7 +564,12 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
         )
 
 
-def create_inferred_span(event, context, event_source: _EventSource = None, decode_authorizer_context: bool = True):
+def create_inferred_span(
+    event,
+    context,
+    event_source: _EventSource = None,
+    decode_authorizer_context: bool = True,
+):
     if event_source is None:
         event_source = parse_event_source(event)
     try:
@@ -565,7 +577,9 @@ def create_inferred_span(event, context, event_source: _EventSource = None, deco
             EventTypes.API_GATEWAY, subtype=EventSubtypes.API_GATEWAY
         ):
             logger.debug("API Gateway event detected. Inferring a span")
-            return create_inferred_span_from_api_gateway_event(event, decode_authorizer_context)
+            return create_inferred_span_from_api_gateway_event(
+                event, decode_authorizer_context
+            )
         elif event_source.equals(EventTypes.LAMBDA_FUNCTION_URL):
             logger.debug("Function URL event detected. Inferring a span")
             return create_inferred_span_from_lambda_function_url_event(event, context)
@@ -573,12 +587,16 @@ def create_inferred_span(event, context, event_source: _EventSource = None, deco
             EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API
         ):
             logger.debug("HTTP API event detected. Inferring a span")
-            return create_inferred_span_from_http_api_event(event, context, decode_authorizer_context)
+            return create_inferred_span_from_http_api_event(
+                event, context, decode_authorizer_context
+            )
         elif event_source.equals(
             EventTypes.API_GATEWAY, subtype=EventSubtypes.WEBSOCKET
         ):
             logger.debug("API Gateway Websocket event detected. Inferring a span")
-            return create_inferred_span_from_api_gateway_websocket_event(event, decode_authorizer_context)
+            return create_inferred_span_from_api_gateway_websocket_event(
+                event, decode_authorizer_context
+            )
         elif event_source.equals(EventTypes.SQS):
             logger.debug("SQS event detected. Inferring a span")
             return create_inferred_span_from_sqs_event(event, context)
@@ -670,7 +688,9 @@ def insert_upstream_authorizer_span(
     return upstream_authorizer_span
 
 
-def create_inferred_span_from_api_gateway_websocket_event(event, decode_authorizer_context: bool = True):
+def create_inferred_span_from_api_gateway_websocket_event(
+    event, decode_authorizer_context: bool = True
+):
     trace_ctx = tracer.current_trace_context()
     request_context = event.get("requestContext")
     domain = request_context.get("domainName")
@@ -746,7 +766,9 @@ def create_inferred_span_from_api_gateway_websocket_event(event, decode_authoriz
     return span
 
 
-def create_inferred_span_from_api_gateway_event(event, decode_authorizer_context: bool = True):
+def create_inferred_span_from_api_gateway_event(
+    event, decode_authorizer_context: bool = True
+):
     trace_ctx = tracer.current_trace_context()
     request_context = event.get("requestContext")
     domain = request_context.get("domainName", "")
@@ -818,13 +840,14 @@ def create_inferred_span_from_api_gateway_event(event, decode_authorizer_context
             if finish_time_ns is not None
             else request_time_epoch_ms * 1e6
         )
-        print(f"HTTP START_NS: {span.start_ns}")
         if upstream_authorizer_span:
             span.parent_id = upstream_authorizer_span.span_id
     return span
 
 
-def create_inferred_span_from_http_api_event(event, context, decode_authorizer_context: bool = True):
+def create_inferred_span_from_http_api_event(
+    event, context, decode_authorizer_context: bool = True
+):
     request_context = event.get("requestContext")
     domain = request_context.get("domainName", "")
     method = request_context.get("http", {}).get("method")
@@ -863,8 +886,12 @@ def create_inferred_span_from_http_api_event(event, context, decode_authorizer_c
             injected_authorizer_data = get_injected_authorizer_data(
                 event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.HTTP_API)
             )
-            if injected_authorizer_data and injected_authorizer_data.get(Headers.Parent_Span_Finish_Time):
-                span.start_ns = int(injected_authorizer_data.get(Headers.Parent_Span_Finish_Time))
+            if injected_authorizer_data and injected_authorizer_data.get(
+                Headers.Parent_Span_Finish_Time
+            ):
+                span.start_ns = int(
+                    injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
+                )
     return span
 
 
