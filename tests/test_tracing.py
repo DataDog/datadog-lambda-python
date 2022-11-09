@@ -630,8 +630,17 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
 
     def test_create_inferred_span_from_authorizer_request_api_gateway_v2_event(self):
         event_sample_source = "authorizer-request-api-gateway-v2"
-        finish_time = 1664228639.5337753  # use the injected parent span finish time as an approximation
-        span = self._authorizer_span_testing_items(event_sample_source, finish_time)
+        finish_time = 1664228639533775400 # use the injected parent span finish time as an approximation
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "abc123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+        self.mock_span_stop.assert_not_called()
+        self.assertEqual(span.start_ns, finish_time)
         self._basic_common_checks(span, "aws.httpapi")
 
     def test_create_inferred_span_from_authorizer_request_api_gateway_v2_cached_event(

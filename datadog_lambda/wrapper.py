@@ -127,6 +127,9 @@ class _LambdaDecorator(object):
             self.encode_authorizer_context = (
                 os.environ.get("DD_ENCODE_AUTHORIZER_CONTEXT", "true").lower() == "true"
             )
+            self.decode_authorizer_context = (
+                os.environ.get("DD_DECODE_AUTHORIZER_CONTEXT", "true").lower() == "true"
+            )
             self.response = None
             if profiling_env_var:
                 self.prof = profiler.Profiler(env=env_env_var, service=service_env_var)
@@ -189,7 +192,7 @@ class _LambdaDecorator(object):
             self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source, event_source = extract_dd_trace_context(
-                event, context, extractor=self.trace_extractor
+                event, context, extractor=self.trace_extractor, decode_authorizer_context=self.decode_authorizer_context
             )
             self.event_source = event_source
             # Create a Datadog X-Ray subsegment with the trace context
