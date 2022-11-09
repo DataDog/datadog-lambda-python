@@ -630,7 +630,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
 
     def test_create_inferred_span_from_authorizer_request_api_gateway_v2_event(self):
         event_sample_source = "authorizer-request-api-gateway-v2"
-        finish_time = 1664228639533775400 # use the injected parent span finish time as an approximation
+        finish_time = 1664228639533775400  # use the injected parent span finish time as an approximation
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
             event = json.load(event)
