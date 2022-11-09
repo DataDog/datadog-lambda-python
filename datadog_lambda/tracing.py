@@ -675,7 +675,7 @@ def insert_upstream_authorizer_span(
         start_time_ns (int): the start time of the span in nanoseconds
         finish_time_ns (int): the finish time of the sapn in nanoseconds
     """
-
+    trace_ctx = tracer.current_trace_context()
     upstream_authorizer_span = tracer.trace(
         "aws.apigateway.authorizer", **kwargs_to_start_span
     )
@@ -685,13 +685,14 @@ def insert_upstream_authorizer_span(
     InferredSpanInfo.set_tags_to_span(upstream_authorizer_span, synchronicity="sync")
     upstream_authorizer_span.start_ns = int(start_time_ns)
     upstream_authorizer_span.finish(finish_time_ns / 1e9)
+    # trace context needs to be set again as it is reset by finish()
+    tracer.context_provider.activate(trace_ctx)
     return upstream_authorizer_span
 
 
 def create_inferred_span_from_api_gateway_websocket_event(
     event, decode_authorizer_context: bool = True
 ):
-    trace_ctx = tracer.current_trace_context()
     request_context = event.get("requestContext")
     domain = request_context.get("domainName")
     endpoint = request_context.get("routeKey")
@@ -743,8 +744,6 @@ def create_inferred_span_from_api_gateway_websocket_event(
                 upstream_authorizer_span = insert_upstream_authorizer_span(
                     args, tags, start_time_ns, finish_time_ns
                 )
-                # trace context needs to be set again as it is reset by upstream_authorizer_span.finish
-                tracer.context_provider.activate(trace_ctx)
             except Exception as e:
                 traceback.print_exc()
                 logger.debug(
@@ -769,7 +768,6 @@ def create_inferred_span_from_api_gateway_websocket_event(
 def create_inferred_span_from_api_gateway_event(
     event, decode_authorizer_context: bool = True
 ):
-    trace_ctx = tracer.current_trace_context()
     request_context = event.get("requestContext")
     domain = request_context.get("domainName", "")
     method = event.get("httpMethod")
@@ -821,8 +819,6 @@ def create_inferred_span_from_api_gateway_event(
                 upstream_authorizer_span = insert_upstream_authorizer_span(
                     args, tags, start_time_ns, finish_time_ns
                 )
-                # trace context needs to be set again as it is reset by upstream_authorizer_span.finish
-                tracer.context_provider.activate(trace_ctx)
             except Exception as e:
                 traceback.print_exc()
                 logger.debug(
