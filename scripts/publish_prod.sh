@@ -37,7 +37,7 @@ AWS_PROFILE=govcloud-us1-fed-human-engineering aws sts get-caller-identity
 aws-vault exec prod-engineering -- aws sts get-caller-identity
 
 # Ensure pypi registry access
-read -p "Do you have the PyPi login credentials for datadog account (y/n)?" CONT
+read -p "Do you have access to the serverless shared vault in 1Password (y/n)?" CONT
 if [ "$CONT" != "y" ]; then
     echo "Exiting"
     exit 1
