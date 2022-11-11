@@ -845,7 +845,7 @@ def create_inferred_span_from_http_api_event(
     event, context, decode_authorizer_context: bool = True
 ):
     request_context = event.get("requestContext")
-    domain = request_context.get("domainName", "")
+    domain = request_context.get("domainName")
     method = request_context.get("http", {}).get("method")
     path = event.get("rawPath")
     resource = "{0} {1}".format(method, path)
@@ -874,20 +874,20 @@ def create_inferred_span_from_http_api_event(
         "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
+    inferred_span_start_ns = None
+    if decode_authorizer_context:
+        injected_authorizer_data = get_injected_authorizer_data(
+            event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.HTTP_API)
+        )
+        if injected_authorizer_data:
+            inferred_span_start_ns = int(
+                injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
+            )
+    inferred_span_start_ns = inferred_span_start_ns or request_time_epoch_ms * 1e6
     span = tracer.trace("aws.httpapi", **args)
     if span:
         span.set_tags(tags)
-        span.start_ns = request_time_epoch_ms * 1e6
-        if decode_authorizer_context:
-            injected_authorizer_data = get_injected_authorizer_data(
-                event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.HTTP_API)
-            )
-            if injected_authorizer_data and injected_authorizer_data.get(
-                Headers.Parent_Span_Finish_Time
-            ):
-                span.start_ns = int(
-                    injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
-                )
+        span.start_ns = int(inferred_span_start_ns)
     return span
 
 
