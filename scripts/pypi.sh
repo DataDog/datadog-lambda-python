@@ -14,6 +14,9 @@ if [ -d "dist" ]; then
     rm -rf dist;
 fi
 
-# Publish to pypi
-poetry publish --build
+echo "Please enter the PyPI token (password) for datadog-lambda-python"
+echo "This can be found in 1password under the shared-serverless vault"
+read -p "Token name: " TOKEN
 
+# Publish to pypi
+poetry publish --build --username __token__ --password $TOKEN
