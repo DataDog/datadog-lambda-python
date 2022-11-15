@@ -46,6 +46,10 @@ class XrayDaemon(object):
 
 class Headers(object):
     Parent_Span_Finish_Time = "x-datadog-parent-span-finish-time"
+
+    # For one request from the client, the event.requestContext.requestIds in the authorizer lambda
+    # invocation and the main function invocation are IDENTICAL. Therefore we can use it to tell
+    # whether current invocation is the actual original authorizing request or a cached request.
     Authorizing_Request_Id = "x-datadog-authorizing-requestid"
 
     #  injected by the HTTPPropagator.inject but no use

@@ -171,7 +171,18 @@ class _LambdaDecorator(object):
         finally:
             self._after(event, context)
 
-    def _inject_authorizer_span_headers(self, request_id, finish_time_ns):
+    def _inject_authorizer_span_headers(self, request_id):
+        reference_span = self.inferred_span if self.inferred_span else self.span
+        assert reference_span.finished
+        # the finish_time_ns should be set as the end of the inferred span if it exist
+        #  or the end of the current span
+        finish_time_ns = (
+            reference_span.start_ns + reference_span.duration_ns
+            if reference_span is not None
+            and hasattr(reference_span, "start_ns")
+            and hasattr(reference_span, "duration_ns")
+            else time_ns()
+        )
         injected_headers = {}
         source_span = self.inferred_span if self.inferred_span else self.span
         HTTPPropagator.inject(source_span.context, injected_headers)
@@ -270,18 +281,8 @@ class _LambdaDecorator(object):
                 and self.response.get("principalId")
                 and self.response.get("policyDocument")
             ):
-                # the finish_time_ns should be set as the end of the inferred span if it exist
-                #  or the end of the current span
-                reference_span = self.inferred_span if self.inferred_span else self.span
-                finish_time_ns = (
-                    reference_span.start_ns + reference_span.duration_ns
-                    if reference_span is not None
-                    and hasattr(reference_span, "start_ns")
-                    and hasattr(reference_span, "duration_ns")
-                    else time_ns()
-                )
                 self._inject_authorizer_span_headers(
-                    event.get("requestContext", {}).get("requestId"), finish_time_ns
+                    event.get("requestContext", {}).get("requestId")
                 )
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:

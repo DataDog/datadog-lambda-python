@@ -8,7 +8,6 @@ import os
 import json
 import base64
 from datetime import datetime, timezone
-import traceback
 from typing import Optional, Dict
 
 from datadog_lambda.metric import submit_errors_metric
@@ -183,7 +182,10 @@ def extract_context_from_http_event_or_context(
     Falls back to lambda context if no trace data is found in the `headers`
     """
     if decode_authorizer_context:
-        injected_authorizer_data = get_injected_authorizer_data(event, event_source)
+        is_http_api = event_source.equals(
+            EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API
+        )
+        injected_authorizer_data = get_injected_authorizer_data(event, is_http_api)
         if injected_authorizer_data:
             try:
                 # fail fast on any KeyError here
@@ -343,7 +345,7 @@ def extract_context_custom_extractor(extractor, event, lambda_context):
         return None, None, None
 
 
-def get_injected_authorizer_data(event, event_source: _EventSource) -> dict:
+def get_injected_authorizer_data(event, is_http_api) -> dict:
     try:
         authorizer_headers = event.get("requestContext", {}).get("authorizer")
         if not authorizer_headers:
@@ -351,9 +353,7 @@ def get_injected_authorizer_data(event, event_source: _EventSource) -> dict:
 
         dd_data_raw = (
             authorizer_headers.get("lambda", {}).get("_datadog")
-            if event_source.equals(
-                EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API
-            )
+            if is_http_api
             else authorizer_headers.get("_datadog")
         )
 
@@ -361,8 +361,14 @@ def get_injected_authorizer_data(event, event_source: _EventSource) -> dict:
             return None
 
         injected_data = json.loads(base64.b64decode(dd_data_raw))
-        # use the integrationLatency (needed for token type authorizer) or the injected requestId
-        #  to tell if it's the authorizing invocation (not cached)
+
+        # Lambda authorizer's results can be cached. But the payload will still have the injected
+        # data in cached requests. How to distinguish cached case and ignore the injected data ?
+        # APIGateway automatically injects a integrationLatency data in some cases. If it's >0 we
+        # know that it's not cached. But integrationLatency is not available for Http API case. In
+        # that case, we use the injected Authorizing_Request_Id to tell if it's cached. But token
+        # authorizers don't pass on the requestId. The Authorizing_Request_Id can't work for all
+        # cases neither. As a result, we combine both methods as shown below.
         if authorizer_headers.get("integrationLatency", 0) > 0 or event.get(
             "requestContext", {}
         ).get("requestId") == injected_data.get(Headers.Authorizing_Request_Id):
@@ -690,6 +696,41 @@ def insert_upstream_authorizer_span(
     return upstream_authorizer_span
 
 
+def process_injected_data(event, request_time_epoch_ms, args, tags):
+    """
+    This covers the ApiGateway RestAPI and Websocket cases. It doesn't cover Http API cases.
+    """
+    injected_authorizer_data = get_injected_authorizer_data(event, False)
+    if injected_authorizer_data:
+        try:
+            start_time_ns = int(
+                injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
+            )
+            finish_time_ns = (
+                request_time_epoch_ms
+                + (
+                    int(
+                        event["requestContext"]["authorizer"].get(
+                            "integrationLatency", 0
+                        )
+                    )
+                )
+            ) * 1e6
+            upstream_authorizer_span = insert_upstream_authorizer_span(
+                args, tags, start_time_ns, finish_time_ns
+            )
+            return upstream_authorizer_span, finish_time_ns
+        except Exception as e:
+            logger.debug(
+                "Unable to insert authorizer span. Continue to generate the main span.\
+                 Reason: %s",
+                e,
+            )
+            return None, None
+    else:
+        return None, None
+
+
 def create_inferred_span_from_api_gateway_websocket_event(
     event, decode_authorizer_context: bool = True
 ):
@@ -723,35 +764,9 @@ def create_inferred_span_from_api_gateway_websocket_event(
     upstream_authorizer_span = None
     finish_time_ns = None
     if decode_authorizer_context:
-        injected_authorizer_data = get_injected_authorizer_data(
-            event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.WEBSOCKET)
+        upstream_authorizer_span, finish_time_ns = process_injected_data(
+            event, request_time_epoch_ms, args, tags
         )
-        if injected_authorizer_data:
-            try:
-                start_time_ns = int(
-                    injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
-                )
-                finish_time_ns = (
-                    request_time_epoch_ms
-                    + (
-                        int(
-                            request_context.get("authorizer", {}).get(
-                                "integrationLatency", 0
-                            )
-                        )
-                    )
-                ) * 1e6
-                upstream_authorizer_span = insert_upstream_authorizer_span(
-                    args, tags, start_time_ns, finish_time_ns
-                )
-            except Exception as e:
-                traceback.print_exc()
-                logger.debug(
-                    "Unable to insert authorizer span. Continue to generate the main span.\
-                     Event %s, Reason: %s",
-                    event,
-                    e,
-                )
     span = tracer.trace("aws.apigateway.websocket", **args)
     if span:
         span.set_tags(tags)
@@ -798,35 +813,9 @@ def create_inferred_span_from_api_gateway_event(
     upstream_authorizer_span = None
     finish_time_ns = None
     if decode_authorizer_context:
-        injected_authorizer_data = get_injected_authorizer_data(
-            event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.API_GATEWAY)
+        upstream_authorizer_span, finish_time_ns = process_injected_data(
+            event, request_time_epoch_ms, args, tags
         )
-        if injected_authorizer_data:
-            try:
-                start_time_ns = int(
-                    injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
-                )
-                finish_time_ns = (
-                    request_time_epoch_ms
-                    + (
-                        int(
-                            request_context.get("authorizer", {}).get(
-                                "integrationLatency", 0
-                            )
-                        )
-                    )
-                ) * 1e6
-                upstream_authorizer_span = insert_upstream_authorizer_span(
-                    args, tags, start_time_ns, finish_time_ns
-                )
-            except Exception as e:
-                traceback.print_exc()
-                logger.debug(
-                    "Unable to insert authorizer span. Continue to generate the main span. \
-                    Event %s, Reason: %s",
-                    event,
-                    e,
-                )
     span = tracer.trace("aws.apigateway", **args)
     if span:
         span.set_tags(tags)
@@ -874,16 +863,13 @@ def create_inferred_span_from_http_api_event(
         "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
-    inferred_span_start_ns = None
+    inferred_span_start_ns = request_time_epoch_ms * 1e6
     if decode_authorizer_context:
-        injected_authorizer_data = get_injected_authorizer_data(
-            event, _EventSource(EventTypes.API_GATEWAY, EventSubtypes.HTTP_API)
-        )
+        injected_authorizer_data = get_injected_authorizer_data(event, True)
         if injected_authorizer_data:
-            inferred_span_start_ns = int(
-                injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
+            inferred_span_start_ns = injected_authorizer_data.get(
+                Headers.Parent_Span_Finish_Time
             )
-    inferred_span_start_ns = inferred_span_start_ns or request_time_epoch_ms * 1e6
     span = tracer.trace("aws.httpapi", **args)
     if span:
         span.set_tags(tags)
