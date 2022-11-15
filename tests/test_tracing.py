@@ -29,6 +29,7 @@ from datadog_lambda.tracing import (
     InferredSpanInfo,
     extract_context_from_eventbridge_event,
 )
+from datadog_lambda.trigger import EventTypes
 
 function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
 
@@ -84,7 +85,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_without_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source = extract_dd_trace_context({}, lambda_ctx)
+        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
         self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
@@ -106,7 +107,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_with_non_object_event(self):
         lambda_ctx = get_mock_context()
-        ctx, source = extract_dd_trace_context(b"", lambda_ctx)
+        ctx, source, event_source = extract_dd_trace_context(b"", lambda_ctx)
         self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
@@ -128,7 +129,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_with_incomplete_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source = extract_dd_trace_context(
+        ctx, source, event_source = extract_dd_trace_context(
             {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321"}},
             lambda_ctx,
         )
@@ -152,7 +153,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_with_complete_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source = extract_dd_trace_context(
+        ctx, source, event_source = extract_dd_trace_context(
             {
                 "headers": {
                     TraceHeader.TRACE_ID: "123",
@@ -193,7 +194,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             return trace_id, parent_id, sampling_priority
 
         lambda_ctx = get_mock_context()
-        ctx, ctx_source = extract_dd_trace_context(
+        ctx, ctx_source, event_source = extract_dd_trace_context(
             {
                 "foo": {
                     TraceHeader.TRACE_ID: "123",
@@ -227,7 +228,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             raise Exception("kreator")
 
         lambda_ctx = get_mock_context()
-        ctx, ctx_source = extract_dd_trace_context(
+        ctx, ctx_source, event_source = extract_dd_trace_context(
             {
                 "foo": {
                     TraceHeader.TRACE_ID: "123",
@@ -289,7 +290,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 }
             ]
         }
-        ctx, source = extract_dd_trace_context(sqs_event, lambda_ctx)
+        ctx, source, event_source = extract_dd_trace_context(sqs_event, lambda_ctx)
         self.assertEqual(source, "event")
         self.assertDictEqual(
             ctx,
@@ -323,7 +324,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 }
             }
         )
-        ctx, source = extract_dd_trace_context({}, lambda_ctx)
+        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
         self.assertEqual(source, "event")
         self.assertDictEqual(
             ctx,
@@ -356,7 +357,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.SAMPLING_PRIORITY: "1",
             }
         )
-        ctx, source = extract_dd_trace_context({}, lambda_ctx)
+        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
         self.assertEqual(source, "event")
         self.assertDictEqual(
             ctx,
@@ -556,7 +557,7 @@ class TestSetTraceRootSpan(unittest.TestCase):
         # use the dd-trace trace-id and the x-ray parent-id
         # This allows parenting relationships like dd-trace -> x-ray -> dd-trace
         lambda_ctx = get_mock_context()
-        ctx, source = extract_dd_trace_context(
+        ctx, source, event_type = extract_dd_trace_context(
             {
                 "headers": {
                     TraceHeader.TRACE_ID: "123",
@@ -577,6 +578,157 @@ class TestSetTraceRootSpan(unittest.TestCase):
         )
         self.mock_activate.assert_called()
         self.mock_activate.assert_has_calls([call(expected_context)])
+
+
+class TestAuthorizerInferredSpans(unittest.TestCase):
+    def setUp(self):
+        patcher = patch("ddtrace.Span.finish", autospec=True)
+        self.mock_span_stop = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_create_inferred_span_from_authorizer_request_api_gateway_v1_event(self):
+        event_sample_source = "authorizer-request-api-gateway-v1"
+        finish_time = (
+            1663295021.832  # request_time_epoch + integrationLatency for api-gateway-v1
+        )
+        span = self._authorizer_span_testing_items(event_sample_source, finish_time)
+        self._basic_common_checks(span, "aws.apigateway.rest")
+
+    def test_create_inferred_span_from_authorizer_request_api_gateway_v1_cached_event(
+        self,
+    ):
+        event_sample_source = "authorizer-request-api-gateway-v1-cached"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "abc123"  # injected data's requestId is abc321
+        span = create_inferred_span(event, ctx)
+        self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
+        self._basic_common_checks(span, "aws.apigateway.rest")
+
+    def test_create_inferred_span_from_authorizer_token_api_gateway_v1_event(self):
+        event_sample_source = "authorizer-token-api-gateway-v1"
+        finish_time = (
+            1663295021.832  # request_time_epoch + integrationLatency for api-gateway-v1
+        )
+        span = self._authorizer_span_testing_items(event_sample_source, finish_time)
+        self._basic_common_checks(span, "aws.apigateway.rest")
+
+    def test_create_inferred_span_from_authorizer_token_api_gateway_v2_cached_event(
+        self,
+    ):
+        event_sample_source = "authorizer-token-api-gateway-v1-cached"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "abc123"  # injected data's requestId is abc321
+        span = create_inferred_span(event, ctx)
+        self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
+        self._basic_common_checks(span, "aws.apigateway.rest")
+
+    def test_create_inferred_span_from_authorizer_request_api_gateway_v2_event(self):
+        event_sample_source = "authorizer-request-api-gateway-v2"
+        finish_time = 1664228639533775400  # use the injected parent span finish time as an approximation
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "abc123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+        self.mock_span_stop.assert_not_called()
+        self.assertEqual(span.start_ns, finish_time)
+        self._basic_common_checks(span, "aws.httpapi")
+
+    def test_create_inferred_span_from_authorizer_request_api_gateway_v2_cached_event(
+        self,
+    ):
+        event_sample_source = "authorizer-request-api-gateway-v2-cached"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "abc123"  # injected data's requestId is abc321
+        span = create_inferred_span(event, ctx)
+        self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
+        self._basic_common_checks(span, "aws.httpapi")
+
+    def test_create_inferred_span_from_authorizer_request_api_gateway_websocket_connect_event(
+        self,
+    ):
+        event_sample_source = "authorizer-request-api-gateway-websocket-connect"
+        finish_time = (
+            1664388386.892  # request_time_epoch + integrationLatency in websocket case
+        )
+        span = self._authorizer_span_testing_items(event_sample_source, finish_time)
+        self._basic_common_checks(
+            span, "aws.apigateway.websocket", "web", "$connect", None
+        )
+
+    def test_create_inferred_span_from_authorizer_request_api_gateway_websocket_message_event(
+        self,
+    ):
+        event_sample_source = "authorizer-request-api-gateway-websocket-message"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "abc123"  # injected data's requestId is abc321
+        span = create_inferred_span(event, ctx)
+        self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
+        self._basic_common_checks(span, "aws.apigateway.websocket", "web", "main", None)
+
+    def _authorizer_span_testing_items(self, event_sample_source, finish_time):
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "abc123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+
+        # checking the upstream_authorizer_span
+        self.mock_span_stop.assert_called_once()
+        args, kwargs = self.mock_span_stop.call_args_list[0]
+        self.assertEqual(kwargs.get("finish_time", args[1]), finish_time)
+        self.assertEqual(span.start, finish_time)
+        authorizer_span = args[0]
+        self.assertEqual(authorizer_span.name, "aws.apigateway.authorizer")
+        self.assertEqual(span.parent_id, authorizer_span.span_id)
+        return span
+
+    def _basic_common_checks(
+        self,
+        span,
+        operation_name,
+        span_type="http",
+        route_key="/hello",
+        http_method="GET",
+    ):
+        self.assertEqual(span.get_tag("apiid"), "amddr1rix9")
+        self.assertEqual(span.get_tag("apiname"), "amddr1rix9")
+        self.assertEqual(span.get_tag("stage"), "dev")
+        self.assertEqual(span.get_tag("operation_name"), operation_name)
+        self.assertEqual(span.span_type, span_type)
+        self.assertEqual(
+            span.service,
+            "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "amddr1rix9.execute-api.sa-east-1.amazonaws.com" + route_key,
+        )
+        self.assertEqual(span.get_tag("endpoint"), route_key)
+        self.assertEqual(span.get_tag("http.method"), http_method)
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            f"{http_method} {route_key}" if http_method else route_key,
+        )
+        self.assertEqual(span.get_tag("request_id"), "abc123")
 
 
 class TestInferredSpans(unittest.TestCase):
@@ -643,7 +795,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("apiid"), "lgxbo6a518")
         self.assertEqual(span.get_tag("apiname"), "lgxbo6a518")
         self.assertEqual(span.get_tag("stage"), "dev")
-        self.assertEqual(span.start, 1631210915.2509997)
+        self.assertEqual(span.start, 1631210915.2510002)
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
@@ -677,7 +829,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("apiid"), "lgxbo6a518")
         self.assertEqual(span.get_tag("apiname"), "lgxbo6a518")
         self.assertEqual(span.get_tag("stage"), "dev")
-        self.assertEqual(span.start, 1631210915.2509997)
+        self.assertEqual(span.start, 1631210915.2510002)
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
@@ -1100,7 +1252,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source = extract_dd_trace_context(event, ctx)
+        context, source, event_type = extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "12345")
         self.assertEqual(context["parent-id"], "67890")
 
@@ -1110,7 +1262,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source = extract_dd_trace_context(event, ctx)
+        context, source, event_type = extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "2684756524522091840")
         self.assertEqual(context["parent-id"], "7431398482019833808")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1121,7 +1273,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source = extract_dd_trace_context(event, ctx)
+        context, source, event_source = extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "2684756524522091840")
         self.assertEqual(context["parent-id"], "7431398482019833808")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1132,7 +1284,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source = extract_dd_trace_context(event, ctx)
+        context, source, event_source = extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "4948377316357291421")
         self.assertEqual(context["parent-id"], "6746998015037429512")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1143,7 +1295,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source = extract_dd_trace_context(event, ctx)
+        context, source, event_source = extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "4948377316357291421")
         self.assertEqual(context["parent-id"], "6746998015037429512")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1154,7 +1306,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source = extract_dd_trace_context(event, ctx)
+        context, source, event_source = extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "4948377316357291421")
         self.assertEqual(context["parent-id"], "6746998015037429512")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1165,7 +1317,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source = extract_dd_trace_context(event, ctx)
+        context, source, event_source = extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "4948377316357291421")
         self.assertEqual(context["parent-id"], "2876253380018681026")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1176,7 +1328,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source = extract_dd_trace_context(event, ctx)
+        context, source, event_source = extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "4948377316357291421")
         self.assertEqual(context["parent-id"], "2876253380018681026")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1240,7 +1392,7 @@ class TestInferredSpans(unittest.TestCase):
 
     def test_no_error_with_nonetype_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source = extract_dd_trace_context(
+        ctx, source, event_type = extract_dd_trace_context(
             {"headers": None},
             lambda_ctx,
         )

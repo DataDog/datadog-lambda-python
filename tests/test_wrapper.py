@@ -1,7 +1,10 @@
+import base64
+import json
 import os
 import unittest
 
 from unittest.mock import patch, call, ANY, MagicMock
+from datadog_lambda.constants import TraceHeader
 
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog_lambda.metric import lambda_metric
@@ -38,7 +41,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         patcher = patch("datadog_lambda.wrapper.extract_dd_trace_context")
         self.mock_extract_dd_trace_context = patcher.start()
-        self.mock_extract_dd_trace_context.return_value = ({}, None)
+        self.mock_extract_dd_trace_context.return_value = ({}, None, None)
         self.addCleanup(patcher.stop)
 
         patcher = patch("datadog_lambda.wrapper.set_correlation_ids")
@@ -109,7 +112,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             ]
         )
         self.mock_extract_dd_trace_context.assert_called_with(
-            lambda_event, lambda_context, extractor=None
+            lambda_event, lambda_context, extractor=None, decode_authorizer_context=True
         )
         self.mock_set_correlation_ids.assert_called()
         self.mock_inject_correlation_ids.assert_called()
@@ -504,3 +507,40 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         self.assertEqual(os.environ.get("DD_REQUESTS_SERVICE_NAME"), "myAwesomeService")
         del os.environ["DD_SERVICE"]
+
+    def test_encode_authorizer_span(self):
+        @datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return {
+                "principalId": "foo",
+                "policyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Action": "execute-api:Invoke",
+                            "Effect": "Allow",
+                            "Resource": "dummy",
+                        },
+                    ],
+                },
+                "context": {"scope": "still here"},
+            }
+
+        lambda_event = {}
+
+        lambda_context = get_mock_context()
+        mock_span = MagicMock()
+        mock_span.context.span_id = "123"
+        mock_span.context.trace_id = "456"
+        mock_span.context.sampling_priority = "1"
+        mock_span.context.dd_origin = None
+        mock_span.start_ns = 1668127541671386817
+        mock_span.duration_ns = 1e8
+        lambda_handler.inferred_span = mock_span
+
+        result = lambda_handler(lambda_event, lambda_context)
+        inject_data = json.loads(base64.b64decode(result["context"]["_datadog"]))
+        self.assertEquals(inject_data[TraceHeader.PARENT_ID], "123")
+        self.assertEquals(inject_data[TraceHeader.TRACE_ID], "456")
+        self.assertEquals(inject_data[TraceHeader.SAMPLING_PRIORITY], "1")
+        self.assertEquals(result["context"]["scope"], "still here")

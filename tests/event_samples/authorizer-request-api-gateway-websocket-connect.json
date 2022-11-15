@@ -1,0 +1,48 @@
+{
+  "headers": {
+    "Auth": "secretT0k3n",
+    "Host": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+    "Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
+    "Sec-WebSocket-Key": "j9g8xXvniFqyyA+34vQ/Lg==",
+    "Sec-WebSocket-Version": "13",
+    "X-Amzn-Trace-Id": "Root=1-63348d21-727f66307696916d50f93f1b",
+    "X-Forwarded-For": "38.122.226.210",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Proto": "https"
+  },
+  "multiValueHeaders": {
+    "Auth": ["secretT0k3n"],
+    "Host": ["amddr1rix9.execute-api.sa-east-1.amazonaws.com"],
+    "Sec-WebSocket-Extensions": ["permessage-deflate; client_max_window_bits"],
+    "Sec-WebSocket-Key": ["j9g8xXvniFqyyA+34vQ/Lg=="],
+    "Sec-WebSocket-Version": ["13"],
+    "X-Amzn-Trace-Id": ["Root=1-63348d21-727f66307696916d50f93f1b"],
+    "X-Forwarded-For": ["38.122.226.210"],
+    "X-Forwarded-Port": ["443"],
+    "X-Forwarded-Proto": ["https"]
+  },
+  "requestContext": {
+    "routeKey": "$connect",
+    "authorizer": {
+      "_datadog": "eyJ4LWRhdGFkb2ctdHJhY2UtaWQiOiAiNTM1MTA0NzQwNDgzNDcyMzE4OSIsICJ4LWRhdGFkb2ctcGFyZW50LWlkIjogIjE4MjMwNDYwNjMxMTU2MTYxODM3IiwgIngtZGF0YWRvZy1zYW1wbGluZy1wcmlvcml0eSI6ICIxIiwgIngtZGF0YWRvZy1wYXJlbnQtc3Bhbi1maW5pc2gtdGltZSI6IDE2NjQzODgzODY4OTAsICJ4LWRhdGFkb2ctYXV0aG9yaXppbmctcmVxdWVzdGlkIjogImFiYzEyMyJ9",
+      "scope": "this is just a string",
+      "principalId": "foo",
+      "integrationLatency": 1440
+    },
+    "eventType": "CONNECT",
+    "extendedRequestId": "abc123",
+    "requestTime": "28/Sep/2022:18:06:25 +0000",
+    "messageDirection": "IN",
+    "stage": "dev",
+    "connectedAt": 1664388385450,
+    "requestTimeEpoch": 1664388385452,
+    "identity": {
+      "sourceIp": "38.122.226.210"
+    },
+    "requestId": "abc123",
+    "domainName": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+    "connectionId": "ZLr9QeNLmjQCIZA=",
+    "apiId": "amddr1rix9"
+  },
+  "isBase64Encoded": false
+}

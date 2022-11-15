@@ -1,0 +1,27 @@
+{
+  "requestContext": {
+    "routeKey": "main",
+    "authorizer": {
+      "_datadog": "eyJ4LWRhdGFkb2ctdHJhY2UtaWQiOiAiMTczNzQwNjkwNjUwMjU0MzQ5MjAiLCAieC1kYXRhZG9nLXBhcmVudC1pZCI6ICI3OTE1MTg2NzUxOTE0MTc2MTA2IiwgIngtZGF0YWRvZy1zYW1wbGluZy1wcmlvcml0eSI6ICIxIiwgIngtZGF0YWRvZy1wYXJlbnQtc3Bhbi1maW5pc2gtdGltZSI6IDE2NjQzOTAzMzM1MjYuNTA2OCwgIngtZGF0YWRvZy1hdXRob3JpemluZy1yZXF1ZXN0aWQiOiAiYWJjMzIxIn0=",
+      "scope": "this is just a string",
+      "principalId": "foo"
+    },
+    "messageId": "ZLw3leP1GjQCI8Q=",
+    "eventType": "MESSAGE",
+    "extendedRequestId": "ZLw3lFowmjQFvSA=",
+    "requestTime": "28/Sep/2022:18:39:57 +0000",
+    "messageDirection": "IN",
+    "stage": "dev",
+    "connectedAt": 1664390332261,
+    "requestTimeEpoch": 1664390397117,
+    "identity": {
+      "sourceIp": "38.122.226.210"
+    },
+    "requestId": "abc123",
+    "domainName": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+    "connectionId": "ZLwtceO1mjQCI8Q=",
+    "apiId": "amddr1rix9"
+  },
+  "body": "{\n    \"action\":\"main\",\n    \"message\":\"hi\"\n}",
+  "isBase64Encoded": false
+}
