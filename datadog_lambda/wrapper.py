@@ -145,6 +145,8 @@ class _LambdaDecorator(object):
 
     def __call__(self, event, context, **kwargs):
         """Executes when the wrapped function gets called"""
+        print('[Amy:datadog-lambda-python:wrapper.py:__call__] at beginning of method')
+        self.prof.increment_invocations()
         self._before(event, context)
         try:
             self.response = self.func(event, context, **kwargs)
@@ -172,7 +174,11 @@ class _LambdaDecorator(object):
                 create_dd_dummy_metadata_subsegment(
                     dd_context, XraySubsegment.TRACE_KEY
                 )
-
+            if profiling_env_var:
+                function_arn = (context.invoked_function_arn or "").lower()
+                print(f'[Amy:datadog-lambda-python:_before] got function {function_arn}')
+                print(f'[Amy:datadog-lambda-python:_before] calling prof.set_tags()')
+                self.prof.set_tags({"function_arn": function_arn})
             if dd_tracing_enabled:
                 set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
                 if self.make_inferred_span:
