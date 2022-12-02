@@ -6,7 +6,7 @@
     "headers": {
         "accept": "*/*",
         "content-length": "0",
-        "host": "x02yirxc7a.execute-api.sa-east-1.amazonaws.com",
+        "host": "x02yirxc7a.execute-api.eu-west-1.amazonaws.com",
         "user-agent": "curl/7.64.1",
         "x-amzn-trace-id": "Root=1-613a52fb-4c43cfc95e0241c1471bfa05",
         "x-forwarded-for": "38.122.226.210",
@@ -16,7 +16,7 @@
     "requestContext": {
         "accountId": "601427279990",
         "apiId": "x02yirxc7a",
-        "domainName": "x02yirxc7a.execute-api.sa-east-1.amazonaws.com",
+        "domainName": "x02yirxc7a.execute-api.eu-west-1.amazonaws.com",
         "domainPrefix": "x02yirxc7a",
         "http": {
             "method": "GET",

@@ -1,7 +1,7 @@
 {
   "headers": {
     "Auth": "secretT0k3n",
-    "Host": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+    "Host": "amddr1rix9.execute-api.eu-west-1.amazonaws.com",
     "Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
     "Sec-WebSocket-Key": "j9g8xXvniFqyyA+34vQ/Lg==",
     "Sec-WebSocket-Version": "13",
@@ -12,7 +12,7 @@
   },
   "multiValueHeaders": {
     "Auth": ["secretT0k3n"],
-    "Host": ["amddr1rix9.execute-api.sa-east-1.amazonaws.com"],
+    "Host": ["amddr1rix9.execute-api.eu-west-1.amazonaws.com"],
     "Sec-WebSocket-Extensions": ["permessage-deflate; client_max_window_bits"],
     "Sec-WebSocket-Key": ["j9g8xXvniFqyyA+34vQ/Lg=="],
     "Sec-WebSocket-Version": ["13"],
@@ -40,7 +40,7 @@
       "sourceIp": "38.122.226.210"
     },
     "requestId": "abc123",
-    "domainName": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+    "domainName": "amddr1rix9.execute-api.eu-west-1.amazonaws.com",
     "connectionId": "ZLr9QeNLmjQCIZA=",
     "apiId": "amddr1rix9"
   },

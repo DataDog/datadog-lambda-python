@@ -716,11 +716,11 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, span_type)
         self.assertEqual(
             span.service,
-            "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+            "amddr1rix9.execute-api.eu-west-1.amazonaws.com",
         )
         self.assertEqual(
             span.get_tag("http.url"),
-            "amddr1rix9.execute-api.sa-east-1.amazonaws.com" + route_key,
+            "amddr1rix9.execute-api.eu-west-1.amazonaws.com" + route_key,
         )
         self.assertEqual(span.get_tag("endpoint"), route_key)
         self.assertEqual(span.get_tag("http.method"), http_method)
@@ -777,11 +777,11 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(
             span.service,
-            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com",
+            "lgxbo6a518.execute-api.eu-west-1.amazonaws.com",
         )
         self.assertEqual(
             span.get_tag("http.url"),
-            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
+            "lgxbo6a518.execute-api.eu-west-1.amazonaws.com/http/get",
         )
         self.assertEqual(span.get_tag("endpoint"), "/http/get")
         self.assertEqual(span.get_tag("http.method"), "GET")
@@ -811,11 +811,11 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(
             span.service,
-            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com",
+            "lgxbo6a518.execute-api.eu-west-1.amazonaws.com",
         )
         self.assertEqual(
             span.get_tag("http.url"),
-            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com/http/get",
+            "lgxbo6a518.execute-api.eu-west-1.amazonaws.com/http/get",
         )
         self.assertEqual(span.get_tag("endpoint"), "/http/get")
         self.assertEqual(span.get_tag("http.method"), "GET")
@@ -845,11 +845,11 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("operation_name"), "aws.httpapi")
         self.assertEqual(
             span.service,
-            "x02yirxc7a.execute-api.sa-east-1.amazonaws.com",
+            "x02yirxc7a.execute-api.eu-west-1.amazonaws.com",
         )
         self.assertEqual(
             span.get_tag("http.url"),
-            "x02yirxc7a.execute-api.sa-east-1.amazonaws.com/httpapi/get",
+            "x02yirxc7a.execute-api.eu-west-1.amazonaws.com/httpapi/get",
         )
         self.assertEqual(span.get_tag("endpoint"), "/httpapi/get")
         self.assertEqual(span.get_tag("http.method"), "GET")
@@ -880,11 +880,11 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.websocket")
         self.assertEqual(
             span.service,
-            "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
+            "p62c47itsb.execute-api.eu-west-1.amazonaws.com",
         )
         self.assertEqual(
             span.get_tag("http.url"),
-            "p62c47itsb.execute-api.sa-east-1.amazonaws.com$default",
+            "p62c47itsb.execute-api.eu-west-1.amazonaws.com$default",
         )
         self.assertEqual(span.get_tag("endpoint"), "$default")
         self.assertEqual(span.get_tag("http.method"), None)
@@ -915,11 +915,11 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.websocket")
         self.assertEqual(
             span.service,
-            "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
+            "p62c47itsb.execute-api.eu-west-1.amazonaws.com",
         )
         self.assertEqual(
             span.get_tag("http.url"),
-            "p62c47itsb.execute-api.sa-east-1.amazonaws.com$connect",
+            "p62c47itsb.execute-api.eu-west-1.amazonaws.com$connect",
         )
         self.assertEqual(span.get_tag("endpoint"), "$connect")
         self.assertEqual(span.get_tag("http.method"), None)
@@ -950,11 +950,11 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.websocket")
         self.assertEqual(
             span.service,
-            "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
+            "p62c47itsb.execute-api.eu-west-1.amazonaws.com",
         )
         self.assertEqual(
             span.get_tag("http.url"),
-            "p62c47itsb.execute-api.sa-east-1.amazonaws.com$disconnect",
+            "p62c47itsb.execute-api.eu-west-1.amazonaws.com$disconnect",
         )
         self.assertEqual(span.get_tag("endpoint"), "$disconnect")
         self.assertEqual(span.get_tag("http.method"), None)
@@ -1001,7 +1001,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("queuename"), "InferredSpansQueueNode")
         self.assertEqual(
             span.get_tag("event_source_arn"),
-            "arn:aws:sqs:sa-east-1:601427279990:InferredSpansQueueNode",
+            "arn:aws:sqs:eu-west-1:601427279990:InferredSpansQueueNode",
         )
         self.assertEqual(
             span.get_tag("sender_id"),
@@ -1038,7 +1038,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("topicname"), "serverlessTracingTopicPy")
         self.assertEqual(
             span.get_tag("topic_arn"),
-            "arn:aws:sns:sa-east-1:601427279990:serverlessTracingTopicPy",
+            "arn:aws:sns:eu-west-1:601427279990:serverlessTracingTopicPy",
         )
         self.assertEqual(
             span.get_tag("message_id"), "87056a47-f506-5d77-908b-303605d3b197"
@@ -1076,7 +1076,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("topicname"), "serverlessTracingTopicPy")
         self.assertEqual(
             span.get_tag("topic_arn"),
-            "arn:aws:sns:sa-east-1:601427279990:serverlessTracingTopicPy",
+            "arn:aws:sns:eu-west-1:601427279990:serverlessTracingTopicPy",
         )
         self.assertEqual(
             span.get_tag("message_id"), "87056a47-f506-5d77-908b-303605d3b197"
@@ -1116,7 +1116,7 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("shardid"), "shardId-000000000002")
         self.assertEqual(
             span.get_tag("event_source_arn"),
-            "arn:aws:kinesis:sa-east-1:601427279990:stream/kinesisStream",
+            "arn:aws:kinesis:eu-west-1:601427279990:stream/kinesisStream",
         )
         self.assertEqual(
             span.get_tag("event_id"),

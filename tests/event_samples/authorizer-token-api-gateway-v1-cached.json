@@ -15,7 +15,7 @@
     "CloudFront-Is-Tablet-Viewer": "false",
     "CloudFront-Viewer-ASN": "174",
     "CloudFront-Viewer-Country": "US",
-    "Host": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+    "Host": "amddr1rix9.execute-api.eu-west-1.amazonaws.com",
     "Postman-Token": "bb30e418-d4ee-45b6-a659-89f4dbd41c84",
     "User-Agent": "PostmanRuntime/7.29.2",
     "Via": "1.1 x.cloudfront.net (CloudFront)",
@@ -38,7 +38,7 @@
     "CloudFront-Is-Tablet-Viewer": ["false"],
     "CloudFront-Viewer-ASN": ["174"],
     "CloudFront-Viewer-Country": ["US"],
-    "Host": ["amddr1rix9.execute-api.sa-east-1.amazonaws.com"],
+    "Host": ["amddr1rix9.execute-api.eu-west-1.amazonaws.com"],
     "Postman-Token": ["bb30e418-d4ee-45b6-a659-89f4dbd41c84"],
     "User-Agent": ["PostmanRuntime/7.29.2"],
     "Via": ["1.1 x.cloudfront.net (CloudFront)"],
@@ -85,7 +85,7 @@
       "userAgent": "PostmanRuntime/7.29.2",
       "user": null
     },
-    "domainName": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+    "domainName": "amddr1rix9.execute-api.eu-west-1.amazonaws.com",
     "apiId": "amddr1rix9"
   },
   "body": null,

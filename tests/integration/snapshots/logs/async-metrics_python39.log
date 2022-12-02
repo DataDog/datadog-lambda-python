@@ -4,7 +4,7 @@ START
   "v": 1,
   "e": XXXX,
   "t": [
-    "region:sa-east-1",
+    "region:eu-west-1",
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
@@ -88,7 +88,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "true",
-          "function_arn": "arn:aws:lambda:sa-east-1:XXXX:sa-east-1-tests-python-XXXX-async-metrics_python39",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_version": "$LATEST",
           "request_id": "XXXX",
           "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
@@ -162,7 +162,7 @@ START
   "v": 1,
   "e": XXXX,
   "t": [
-    "region:sa-east-1",
+    "region:eu-west-1",
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
@@ -245,7 +245,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:sa-east-1:XXXX:sa-east-1-tests-python-XXXX-async-metrics_python39",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_version": "$LATEST",
           "request_id": "XXXX",
           "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
@@ -315,7 +315,7 @@ START
   "v": 1,
   "e": XXXX,
   "t": [
-    "region:sa-east-1",
+    "region:eu-west-1",
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
@@ -392,7 +392,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:sa-east-1:XXXX:sa-east-1-tests-python-XXXX-async-metrics_python39",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_version": "$LATEST",
           "request_id": "XXXX",
           "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
@@ -461,7 +461,7 @@ START
   "v": 1,
   "e": XXXX,
   "t": [
-    "region:sa-east-1",
+    "region:eu-west-1",
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
@@ -501,7 +501,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "XXXX.execute-api.sa-east-1.amazonaws.com",
+        "service": "XXXX.execute-api.eu-west-1.amazonaws.com",
         "resource": "GET /httpapi/get",
         "name": "aws.httpapi",
         "error": 0,
@@ -512,7 +512,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_dd.origin": "lambda",
           "operation_name": "aws.httpapi",
           "endpoint": "/httpapi/get",
-          "http.url": "XXXX.execute-api.sa-east-1.amazonaws.com/httpapi/get",
+          "http.url": "XXXX.execute-api.eu-west-1.amazonaws.com/httpapi/get",
           "http.method": "GET",
           "http.protocol": "HTTP/1.1",
           "http.source_ip": "XXXX",
@@ -548,7 +548,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:sa-east-1:XXXX:sa-east-1-tests-python-XXXX-async-metrics_python39",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_version": "$LATEST",
           "request_id": "XXXX",
           "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
@@ -558,7 +558,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.name": "aws.lambda",
           "function_trigger.event_source": "api-gateway",
           "function_trigger.event_source_arn": "XXXX$default",
-          "http.url": "XXXX.execute-api.sa-east-1.amazonaws.com",
+          "http.url": "XXXX.execute-api.eu-west-1.amazonaws.com",
           "http.url_details.path": "/httpapi/get",
           "http.method": "GET",
           "http.status_code": "200"
@@ -622,7 +622,7 @@ START
   "v": 1,
   "e": XXXX,
   "t": [
-    "region:sa-east-1",
+    "region:eu-west-1",
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
@@ -705,7 +705,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:sa-east-1:XXXX:sa-east-1-tests-python-XXXX-async-metrics_python39",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_version": "$LATEST",
           "request_id": "XXXX",
           "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
@@ -775,7 +775,7 @@ START
   "v": 1,
   "e": XXXX,
   "t": [
-    "region:sa-east-1",
+    "region:eu-west-1",
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
@@ -855,7 +855,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:sa-east-1:XXXX:sa-east-1-tests-python-XXXX-async-metrics_python39",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_version": "$LATEST",
           "request_id": "XXXX",
           "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
@@ -925,7 +925,7 @@ START
   "v": 1,
   "e": XXXX,
   "t": [
-    "region:sa-east-1",
+    "region:eu-west-1",
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
@@ -1006,7 +1006,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:sa-east-1:XXXX:sa-east-1-tests-python-XXXX-async-metrics_python39",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_version": "$LATEST",
           "request_id": "XXXX",
           "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
@@ -1076,7 +1076,7 @@ START
   "v": 1,
   "e": XXXX,
   "t": [
-    "region:sa-east-1",
+    "region:eu-west-1",
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
@@ -1156,7 +1156,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:sa-east-1:XXXX:sa-east-1-tests-python-XXXX-async-metrics_python39",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_version": "$LATEST",
           "request_id": "XXXX",
           "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
@@ -1226,7 +1226,7 @@ START
   "v": 1,
   "e": XXXX,
   "t": [
-    "region:sa-east-1",
+    "region:eu-west-1",
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
@@ -1266,7 +1266,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "XXXX.execute-api.sa-east-1.amazonaws.com",
+        "service": "XXXX.execute-api.eu-west-1.amazonaws.com",
         "resource": "$default",
         "name": "aws.apigateway.websocket",
         "error": 0,
@@ -1276,7 +1276,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "runtime-id": "XXXX",
           "_dd.origin": "lambda",
           "operation_name": "aws.apigateway.websocket",
-          "http.url": "XXXX.execute-api.sa-east-1.amazonaws.com$default",
+          "http.url": "XXXX.execute-api.eu-west-1.amazonaws.com$default",
           "endpoint": "$default",
           "resource_names": "$default",
           "apiid": "XXXX",
@@ -1312,7 +1312,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:sa-east-1:XXXX:sa-east-1-tests-python-XXXX-async-metrics_python39",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_version": "$LATEST",
           "request_id": "XXXX",
           "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
@@ -1322,7 +1322,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.name": "aws.lambda",
           "function_trigger.event_source": "api-gateway",
           "function_trigger.event_source_arn": "XXXX",
-          "http.url": "XXXX.execute-api.sa-east-1.amazonaws.com",
+          "http.url": "XXXX.execute-api.eu-west-1.amazonaws.com",
           "http.status_code": "200"
         },
         "metrics": {

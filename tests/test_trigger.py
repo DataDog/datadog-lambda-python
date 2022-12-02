@@ -190,7 +190,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(
             event_source_arn,
-            "arn:aws:kinesis:sa-east-1:601427279990:stream/kinesisStream",
+            "arn:aws:kinesis:eu-west-1:601427279990:stream/kinesisStream",
         )
 
     def test_event_source_s3(self):
@@ -216,7 +216,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(
             event_source_arn,
-            "arn:aws:sns:sa-east-1:601427279990:serverlessTracingTopicPy",
+            "arn:aws:sns:eu-west-1:601427279990:serverlessTracingTopicPy",
         )
 
     def test_event_source_sqs(self):
@@ -231,7 +231,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         self.assertEqual(event_source.to_string(), event_sample_source)
         self.assertEqual(
             event_source_arn,
-            "arn:aws:sqs:sa-east-1:601427279990:InferredSpansQueueNode",
+            "arn:aws:sqs:eu-west-1:601427279990:InferredSpansQueueNode",
         )
 
     def test_event_source_unsupported(self):
@@ -277,7 +277,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/lgxbo6a518/stages/dev",
-                "http.url": "lgxbo6a518.execute-api.sa-east-1.amazonaws.com",
+                "http.url": "lgxbo6a518.execute-api.eu-west-1.amazonaws.com",
                 "http.url_details.path": "/dev/http/get",
                 "http.method": "GET",
             },
@@ -295,7 +295,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/p62c47itsb/stages/dev",
-                "http.url": "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
+                "http.url": "p62c47itsb.execute-api.eu-west-1.amazonaws.com",
             },
         )
 
@@ -311,7 +311,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/p62c47itsb/stages/dev",
-                "http.url": "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
+                "http.url": "p62c47itsb.execute-api.eu-west-1.amazonaws.com",
             },
         )
 
@@ -327,7 +327,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/p62c47itsb/stages/dev",
-                "http.url": "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
+                "http.url": "p62c47itsb.execute-api.eu-west-1.amazonaws.com",
             },
         )
 
@@ -343,7 +343,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/x02yirxc7a/stages/$default",
-                "http.url": "x02yirxc7a.execute-api.sa-east-1.amazonaws.com",
+                "http.url": "x02yirxc7a.execute-api.eu-west-1.amazonaws.com",
                 "http.url_details.path": "/httpapi/get",
                 "http.method": "GET",
             },
@@ -437,7 +437,7 @@ class GetTriggerTags(unittest.TestCase):
             tags,
             {
                 "function_trigger.event_source": "kinesis",
-                "function_trigger.event_source_arn": "arn:aws:kinesis:sa-east-1:601427279990:stream/kinesisStream",
+                "function_trigger.event_source_arn": "arn:aws:kinesis:eu-west-1:601427279990:stream/kinesisStream",
             },
         )
 
@@ -467,7 +467,7 @@ class GetTriggerTags(unittest.TestCase):
             tags,
             {
                 "function_trigger.event_source": "sns",
-                "function_trigger.event_source_arn": "arn:aws:sns:sa-east-1:601427279990:serverlessTracingTopicPy",
+                "function_trigger.event_source_arn": "arn:aws:sns:eu-west-1:601427279990:serverlessTracingTopicPy",
             },
         )
 
@@ -482,7 +482,7 @@ class GetTriggerTags(unittest.TestCase):
             tags,
             {
                 "function_trigger.event_source": "sqs",
-                "function_trigger.event_source_arn": "arn:aws:sqs:sa-east-1:601427279990:InferredSpansQueueNode",
+                "function_trigger.event_source_arn": "arn:aws:sqs:eu-west-1:601427279990:InferredSpansQueueNode",
             },
         )
 
