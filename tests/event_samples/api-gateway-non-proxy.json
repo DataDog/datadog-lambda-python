@@ -10,7 +10,7 @@
         "CloudFront-Is-SmartTV-Viewer": "false",
         "CloudFront-Is-Tablet-Viewer": "false",
         "CloudFront-Viewer-Country": "US",
-        "Host": "lgxbo6a518.execute-api.sa-east-1.amazonaws.com",
+        "Host": "lgxbo6a518.execute-api.eu-west-1.amazonaws.com",
         "User-Agent": "curl/7.64.1",
         "Via": "2.0 a1882a601559755135741e91a9f86c28.cloudfront.net (CloudFront)",
         "X-Amz-Cf-Id": "dHMNSBrMT0Xjg3rtMrI0Ie9BDg3D_OIPoj7m0mTuIOpTujrU0Ob8_A==",
@@ -45,7 +45,7 @@
             "US"
         ],
         "Host": [
-            "lgxbo6a518.execute-api.sa-east-1.amazonaws.com"
+            "lgxbo6a518.execute-api.eu-west-1.amazonaws.com"
         ],
         "User-Agent": [
             "curl/7.64.1"
@@ -100,7 +100,7 @@
             "userAgent": "curl/7.64.1",
             "user": null
         },
-        "domainName": "lgxbo6a518.execute-api.sa-east-1.amazonaws.com",
+        "domainName": "lgxbo6a518.execute-api.eu-west-1.amazonaws.com",
         "apiId": "lgxbo6a518"
     },
     "body": null,

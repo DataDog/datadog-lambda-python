@@ -10,7 +10,7 @@
     "authorizationtoken": "secretT0k3n",
     "cache-control": "no-cache",
     "content-length": "0",
-    "host": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+    "host": "amddr1rix9.execute-api.eu-west-1.amazonaws.com",
     "postman-token": "f901530c-cc2f-475f-8634-d9156e9cd9d7",
     "user-agent": "PostmanRuntime/7.29.2",
     "userid": "1236",
@@ -28,7 +28,7 @@
         "scope": "this is just a string"
       }
     },
-    "domainName": "amddr1rix9.execute-api.sa-east-1.amazonaws.com",
+    "domainName": "amddr1rix9.execute-api.eu-west-1.amazonaws.com",
     "domainPrefix": "amddr1rix9",
     "http": {
       "method": "GET",
