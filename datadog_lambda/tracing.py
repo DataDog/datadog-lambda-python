@@ -584,7 +584,7 @@ def create_inferred_span(
         ):
             logger.debug("API Gateway event detected. Inferring a span")
             return create_inferred_span_from_api_gateway_event(
-                event, decode_authorizer_context
+                event, context, decode_authorizer_context
             )
         elif event_source.equals(EventTypes.LAMBDA_FUNCTION_URL):
             logger.debug("Function URL event detected. Inferring a span")
@@ -601,7 +601,7 @@ def create_inferred_span(
         ):
             logger.debug("API Gateway Websocket event detected. Inferring a span")
             return create_inferred_span_from_api_gateway_websocket_event(
-                event, decode_authorizer_context
+                event, context, decode_authorizer_context
             )
         elif event_source.equals(EventTypes.SQS):
             logger.debug("SQS event detected. Inferring a span")
@@ -732,7 +732,7 @@ def process_injected_data(event, request_time_epoch_ms, args, tags):
 
 
 def create_inferred_span_from_api_gateway_websocket_event(
-    event, decode_authorizer_context: bool = True
+    event, context, decode_authorizer_context: bool = True
 ):
     request_context = event.get("requestContext")
     domain = request_context.get("domainName")
@@ -745,7 +745,7 @@ def create_inferred_span_from_api_gateway_websocket_event(
         "apiid": request_context.get("apiId"),
         "apiname": request_context.get("apiId"),
         "stage": request_context.get("stage"),
-        "request_id": request_context.get("requestId"),
+        "request_id": context.aws_request_id,
         "connection_id": request_context.get("connectionId"),
         "event_type": request_context.get("eventType"),
         "message_direction": request_context.get("messageDirection"),
@@ -781,7 +781,7 @@ def create_inferred_span_from_api_gateway_websocket_event(
 
 
 def create_inferred_span_from_api_gateway_event(
-    event, decode_authorizer_context: bool = True
+    event, context, decode_authorizer_context: bool = True
 ):
     request_context = event.get("requestContext")
     domain = request_context.get("domainName", "")
@@ -797,7 +797,7 @@ def create_inferred_span_from_api_gateway_event(
         "apiid": request_context.get("apiId"),
         "apiname": request_context.get("apiId"),
         "stage": request_context.get("stage"),
-        "request_id": request_context.get("requestId"),
+        "request_id": context.aws_request_id,
     }
     request_time_epoch_ms = int(request_context.get("requestTimeEpoch"))
     if is_api_gateway_invocation_async(event):

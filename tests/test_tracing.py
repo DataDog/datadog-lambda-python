@@ -755,9 +755,7 @@ class TestInferredSpans(unittest.TestCase):
             span.get_tag("resource_names"),
             "POST /path/to/resource",
         )
-        self.assertEqual(
-            span.get_tag("request_id"), "c6af9ac6-7b61-11e6-9a41-93e8deadbeef"
-        )
+        self.assertEqual(span.get_tag("request_id"), "123")
         self.assertEqual(span.get_tag("apiid"), "1234567890")
         self.assertEqual(span.get_tag("apiname"), "1234567890")
         self.assertEqual(span.get_tag("stage"), "prod")
@@ -789,9 +787,7 @@ class TestInferredSpans(unittest.TestCase):
             span.get_tag("resource_names"),
             "GET /http/get",
         )
-        self.assertEqual(
-            span.get_tag("request_id"), "7bf3b161-f698-432c-a639-6fef8b445137"
-        )
+        self.assertEqual(span.get_tag("request_id"), "123")
         self.assertEqual(span.get_tag("apiid"), "lgxbo6a518")
         self.assertEqual(span.get_tag("apiname"), "lgxbo6a518")
         self.assertEqual(span.get_tag("stage"), "dev")
@@ -823,9 +819,7 @@ class TestInferredSpans(unittest.TestCase):
             span.get_tag("resource_names"),
             "GET /http/get",
         )
-        self.assertEqual(
-            span.get_tag("request_id"), "7bf3b161-f698-432c-a639-6fef8b445137"
-        )
+        self.assertEqual(span.get_tag("request_id"), "123")
         self.assertEqual(span.get_tag("apiid"), "lgxbo6a518")
         self.assertEqual(span.get_tag("apiname"), "lgxbo6a518")
         self.assertEqual(span.get_tag("stage"), "dev")
@@ -892,7 +886,7 @@ class TestInferredSpans(unittest.TestCase):
             span.get_tag("resource_names"),
             "$default",
         )
-        self.assertEqual(span.get_tag("request_id"), "Fc5S3EvdGjQFtsQ=")
+        self.assertEqual(span.get_tag("request_id"), "123")
         self.assertEqual(span.get_tag("apiid"), "p62c47itsb")
         self.assertEqual(span.get_tag("apiname"), "p62c47itsb")
         self.assertEqual(span.get_tag("stage"), "dev")
@@ -927,7 +921,7 @@ class TestInferredSpans(unittest.TestCase):
             span.get_tag("resource_names"),
             "$connect",
         )
-        self.assertEqual(span.get_tag("request_id"), "Fc2tgH1RmjQFnOg=")
+        self.assertEqual(span.get_tag("request_id"), "123")
         self.assertEqual(span.get_tag("apiid"), "p62c47itsb")
         self.assertEqual(span.get_tag("apiname"), "p62c47itsb")
         self.assertEqual(span.get_tag("stage"), "dev")
@@ -962,7 +956,7 @@ class TestInferredSpans(unittest.TestCase):
             span.get_tag("resource_names"),
             "$disconnect",
         )
-        self.assertEqual(span.get_tag("request_id"), "Fc2ydE4LmjQFhdg=")
+        self.assertEqual(span.get_tag("request_id"), "123")
         self.assertEqual(span.get_tag("apiid"), "p62c47itsb")
         self.assertEqual(span.get_tag("apiname"), "p62c47itsb")
         self.assertEqual(span.get_tag("stage"), "dev")
@@ -1358,9 +1352,7 @@ class TestInferredSpans(unittest.TestCase):
             span.get_tag("resource_names"),
             "POST /path/to/resource",
         )
-        self.assertEqual(
-            span.get_tag("request_id"), "c6af9ac6-7b61-11e6-9a41-93e8deadbeef"
-        )
+        self.assertEqual(span.get_tag("request_id"), "123")
         self.assertEqual(span.get_tag("apiid"), "None")
         self.assertEqual(span.get_tag("apiname"), "None")
         self.assertEqual(span.get_tag("stage"), "prod")
