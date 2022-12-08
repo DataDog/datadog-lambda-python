@@ -23,16 +23,18 @@ from datadog_lambda.constants import (
     TraceHeader,
     TraceContextSource,
     XrayDaemon,
+    Headers,
 )
 from datadog_lambda.xray import (
     send_segment,
     parse_xray_header,
 )
-from ddtrace import tracer, patch
+from ddtrace import tracer, patch, Span
 from ddtrace import __version__ as ddtrace_version
 from ddtrace.propagation.http import HTTPPropagator
 from datadog_lambda import __version__ as datadog_lambda_version
 from datadog_lambda.trigger import (
+    _EventSource,
     parse_event_source,
     get_first_record,
     EventTypes,
@@ -167,14 +169,40 @@ def extract_context_from_lambda_context(lambda_context):
     return trace_id, parent_id, sampling_priority
 
 
-def extract_context_from_http_event_or_context(event, lambda_context):
+def extract_context_from_http_event_or_context(
+    event,
+    lambda_context,
+    event_source: _EventSource,
+    decode_authorizer_context: bool = True,
+):
     """
     Extract Datadog trace context from the `headers` key in from the Lambda
     `event` object.
 
     Falls back to lambda context if no trace data is found in the `headers`
     """
-    headers = event.get("headers", {})
+    if decode_authorizer_context:
+        is_http_api = event_source.equals(
+            EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API
+        )
+        injected_authorizer_data = get_injected_authorizer_data(event, is_http_api)
+        if injected_authorizer_data:
+            try:
+                # fail fast on any KeyError here
+                trace_id = injected_authorizer_data[TraceHeader.TRACE_ID]
+                parent_id = injected_authorizer_data[TraceHeader.PARENT_ID]
+                sampling_priority = injected_authorizer_data[
+                    TraceHeader.SAMPLING_PRIORITY
+                ]
+                return trace_id, parent_id, sampling_priority
+            except Exception as e:
+                logger.debug(
+                    "extract_context_from_authorizer_event returned with error. \
+                     Continue without injecting the authorizer span %s",
+                    e,
+                )
+
+    headers = event.get("headers", {}) or {}
     lowercase_headers = {k.lower(): v for k, v in headers.items()}
 
     trace_id = lowercase_headers.get(TraceHeader.TRACE_ID)
@@ -317,7 +345,45 @@ def extract_context_custom_extractor(extractor, event, lambda_context):
         return None, None, None
 
 
-def extract_dd_trace_context(event, lambda_context, extractor=None):
+def get_injected_authorizer_data(event, is_http_api) -> dict:
+    try:
+        authorizer_headers = event.get("requestContext", {}).get("authorizer")
+        if not authorizer_headers:
+            return None
+
+        dd_data_raw = (
+            authorizer_headers.get("lambda", {}).get("_datadog")
+            if is_http_api
+            else authorizer_headers.get("_datadog")
+        )
+
+        if not dd_data_raw:
+            return None
+
+        injected_data = json.loads(base64.b64decode(dd_data_raw))
+
+        # Lambda authorizer's results can be cached. But the payload will still have the injected
+        # data in cached requests. How to distinguish cached case and ignore the injected data ?
+        # APIGateway automatically injects a integrationLatency data in some cases. If it's >0 we
+        # know that it's not cached. But integrationLatency is not available for Http API case. In
+        # that case, we use the injected Authorizing_Request_Id to tell if it's cached. But token
+        # authorizers don't pass on the requestId. The Authorizing_Request_Id can't work for all
+        # cases neither. As a result, we combine both methods as shown below.
+        if authorizer_headers.get("integrationLatency", 0) > 0 or event.get(
+            "requestContext", {}
+        ).get("requestId") == injected_data.get(Headers.Authorizing_Request_Id):
+            return injected_data
+        else:
+            return None
+
+    except Exception as e:
+        logger.debug("Failed to check if invocated by an authorizer. error %s", e)
+        return None
+
+
+def extract_dd_trace_context(
+    event, lambda_context, extractor=None, decode_authorizer_context: bool = True
+):
     """
     Extract Datadog trace context from the Lambda `event` object.
 
@@ -339,7 +405,9 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
             trace_id,
             parent_id,
             sampling_priority,
-        ) = extract_context_from_http_event_or_context(event, lambda_context)
+        ) = extract_context_from_http_event_or_context(
+            event, lambda_context, event_source, decode_authorizer_context
+        )
     elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
         (
             trace_id,
@@ -379,7 +447,7 @@ def extract_dd_trace_context(event, lambda_context, extractor=None):
         if dd_trace_context:
             trace_context_source = TraceContextSource.XRAY
     logger.debug("extracted dd trace context %s", dd_trace_context)
-    return dd_trace_context, trace_context_source
+    return dd_trace_context, trace_context_source, event_source
 
 
 def get_dd_trace_context():
@@ -502,14 +570,22 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
         )
 
 
-def create_inferred_span(event, context):
-    event_source = parse_event_source(event)
+def create_inferred_span(
+    event,
+    context,
+    event_source: _EventSource = None,
+    decode_authorizer_context: bool = True,
+):
+    if event_source is None:
+        event_source = parse_event_source(event)
     try:
         if event_source.equals(
             EventTypes.API_GATEWAY, subtype=EventSubtypes.API_GATEWAY
         ):
             logger.debug("API Gateway event detected. Inferring a span")
-            return create_inferred_span_from_api_gateway_event(event, context)
+            return create_inferred_span_from_api_gateway_event(
+                event, context, decode_authorizer_context
+            )
         elif event_source.equals(EventTypes.LAMBDA_FUNCTION_URL):
             logger.debug("Function URL event detected. Inferring a span")
             return create_inferred_span_from_lambda_function_url_event(event, context)
@@ -517,12 +593,16 @@ def create_inferred_span(event, context):
             EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API
         ):
             logger.debug("HTTP API event detected. Inferring a span")
-            return create_inferred_span_from_http_api_event(event, context)
+            return create_inferred_span_from_http_api_event(
+                event, context, decode_authorizer_context
+            )
         elif event_source.equals(
             EventTypes.API_GATEWAY, subtype=EventSubtypes.WEBSOCKET
         ):
             logger.debug("API Gateway Websocket event detected. Inferring a span")
-            return create_inferred_span_from_api_gateway_websocket_event(event, context)
+            return create_inferred_span_from_api_gateway_websocket_event(
+                event, context, decode_authorizer_context
+            )
         elif event_source.equals(EventTypes.SQS):
             logger.debug("SQS event detected. Inferring a span")
             return create_inferred_span_from_sqs_event(event, context)
@@ -543,7 +623,7 @@ def create_inferred_span(event, context):
             return create_inferred_span_from_eventbridge_event(event, context)
     except Exception as e:
         logger.debug(
-            "Unable to infer span. Detected type: {}. Reason: {}",
+            "Unable to infer span. Detected type: %s. Reason: %s",
             event_source.to_string(),
             e,
         )
@@ -588,7 +668,72 @@ def is_api_gateway_invocation_async(event):
     return event.get("headers", {}).get("X-Amz-Invocation-Type") == "Event"
 
 
-def create_inferred_span_from_api_gateway_websocket_event(event, context):
+def insert_upstream_authorizer_span(
+    kwargs_to_start_span, other_tags_for_span, start_time_ns, finish_time_ns
+):
+    """Insert the authorizer span.
+        Without this:        parent span --child-> inferred span
+        With this insertion: parent span --child-> upstreamAuthorizerSpan --child-> inferred span
+
+    Args:
+        kwargs_to_start_span (Dict): the same keyword arguments used for the inferred span
+        other_tags_for_span (Dict): the same tag keyword arguments used for the inferred span
+        start_time_ns (int): the start time of the span in nanoseconds
+        finish_time_ns (int): the finish time of the sapn in nanoseconds
+    """
+    trace_ctx = tracer.current_trace_context()
+    upstream_authorizer_span = tracer.trace(
+        "aws.apigateway.authorizer", **kwargs_to_start_span
+    )
+    upstream_authorizer_span.set_tags(other_tags_for_span)
+    upstream_authorizer_span.set_tag("operation_name", "aws.apigateway.authorizer")
+    # always sync for the authorizer invocation
+    InferredSpanInfo.set_tags_to_span(upstream_authorizer_span, synchronicity="sync")
+    upstream_authorizer_span.start_ns = int(start_time_ns)
+    upstream_authorizer_span.finish(finish_time_ns / 1e9)
+    # trace context needs to be set again as it is reset by finish()
+    tracer.context_provider.activate(trace_ctx)
+    return upstream_authorizer_span
+
+
+def process_injected_data(event, request_time_epoch_ms, args, tags):
+    """
+    This covers the ApiGateway RestAPI and Websocket cases. It doesn't cover Http API cases.
+    """
+    injected_authorizer_data = get_injected_authorizer_data(event, False)
+    if injected_authorizer_data:
+        try:
+            start_time_ns = int(
+                injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
+            )
+            finish_time_ns = (
+                request_time_epoch_ms
+                + (
+                    int(
+                        event["requestContext"]["authorizer"].get(
+                            "integrationLatency", 0
+                        )
+                    )
+                )
+            ) * 1e6
+            upstream_authorizer_span = insert_upstream_authorizer_span(
+                args, tags, start_time_ns, finish_time_ns
+            )
+            return upstream_authorizer_span, finish_time_ns
+        except Exception as e:
+            logger.debug(
+                "Unable to insert authorizer span. Continue to generate the main span.\
+                 Reason: %s",
+                e,
+            )
+            return None, None
+    else:
+        return None, None
+
+
+def create_inferred_span_from_api_gateway_websocket_event(
+    event, context, decode_authorizer_context: bool = True
+):
     request_context = event.get("requestContext")
     domain = request_context.get("domainName")
     endpoint = request_context.get("routeKey")
@@ -600,12 +745,12 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
         "apiid": request_context.get("apiId"),
         "apiname": request_context.get("apiId"),
         "stage": request_context.get("stage"),
-        "request_id": request_context.get("requestId"),
+        "request_id": context.aws_request_id,
         "connection_id": request_context.get("connectionId"),
         "event_type": request_context.get("eventType"),
         "message_direction": request_context.get("messageDirection"),
     }
-    request_time_epoch = request_context.get("requestTimeEpoch")
+    request_time_epoch_ms = int(request_context.get("requestTimeEpoch"))
     if is_api_gateway_invocation_async(event):
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
@@ -616,16 +761,30 @@ def create_inferred_span_from_api_gateway_websocket_event(event, context):
         "span_type": "web",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
+    upstream_authorizer_span = None
+    finish_time_ns = None
+    if decode_authorizer_context:
+        upstream_authorizer_span, finish_time_ns = process_injected_data(
+            event, request_time_epoch_ms, args, tags
+        )
     span = tracer.trace("aws.apigateway.websocket", **args)
     if span:
         span.set_tags(tags)
-    span.start = request_time_epoch / 1000
+        span.start_ns = int(
+            finish_time_ns
+            if finish_time_ns is not None
+            else request_time_epoch_ms * 1e6
+        )
+        if upstream_authorizer_span:
+            span.parent_id = upstream_authorizer_span.span_id
     return span
 
 
-def create_inferred_span_from_api_gateway_event(event, context):
+def create_inferred_span_from_api_gateway_event(
+    event, context, decode_authorizer_context: bool = True
+):
     request_context = event.get("requestContext")
-    domain = request_context.get("domainName")
+    domain = request_context.get("domainName", "")
     method = event.get("httpMethod")
     path = event.get("path")
     resource = "{0} {1}".format(method, path)
@@ -638,9 +797,9 @@ def create_inferred_span_from_api_gateway_event(event, context):
         "apiid": request_context.get("apiId"),
         "apiname": request_context.get("apiId"),
         "stage": request_context.get("stage"),
-        "request_id": request_context.get("requestId"),
+        "request_id": context.aws_request_id,
     }
-    request_time_epoch = request_context.get("requestTimeEpoch")
+    request_time_epoch_ms = int(request_context.get("requestTimeEpoch"))
     if is_api_gateway_invocation_async(event):
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
@@ -651,14 +810,29 @@ def create_inferred_span_from_api_gateway_event(event, context):
         "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
+    upstream_authorizer_span = None
+    finish_time_ns = None
+    if decode_authorizer_context:
+        upstream_authorizer_span, finish_time_ns = process_injected_data(
+            event, request_time_epoch_ms, args, tags
+        )
     span = tracer.trace("aws.apigateway", **args)
     if span:
         span.set_tags(tags)
-    span.start = request_time_epoch / 1000
+        # start time pushed by the inserted authorizer span
+        span.start_ns = int(
+            finish_time_ns
+            if finish_time_ns is not None
+            else request_time_epoch_ms * 1e6
+        )
+        if upstream_authorizer_span:
+            span.parent_id = upstream_authorizer_span.span_id
     return span
 
 
-def create_inferred_span_from_http_api_event(event, context):
+def create_inferred_span_from_http_api_event(
+    event, context, decode_authorizer_context: bool = True
+):
     request_context = event.get("requestContext")
     domain = request_context.get("domainName")
     method = request_context.get("http", {}).get("method")
@@ -678,7 +852,7 @@ def create_inferred_span_from_http_api_event(event, context):
         "apiname": request_context.get("apiId"),
         "stage": request_context.get("stage"),
     }
-    request_time_epoch = request_context.get("timeEpoch")
+    request_time_epoch_ms = int(request_context.get("timeEpoch"))
     if is_api_gateway_invocation_async(event):
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
@@ -689,10 +863,17 @@ def create_inferred_span_from_http_api_event(event, context):
         "span_type": "http",
     }
     tracer.set_tags({"_dd.origin": "lambda"})
+    inferred_span_start_ns = request_time_epoch_ms * 1e6
+    if decode_authorizer_context:
+        injected_authorizer_data = get_injected_authorizer_data(event, True)
+        if injected_authorizer_data:
+            inferred_span_start_ns = injected_authorizer_data.get(
+                Headers.Parent_Span_Finish_Time
+            )
     span = tracer.trace("aws.httpapi", **args)
     if span:
         span.set_tags(tags)
-    span.start = request_time_epoch / 1000
+        span.start_ns = int(inferred_span_start_ns)
     return span
 
 
@@ -973,14 +1154,39 @@ class InferredSpanInfo(object):
     SYNCHRONICITY = f"{BASE_NAME}.synchronicity"
     TAG_SOURCE = f"{BASE_NAME}.tag_source"
 
-    @classmethod
+    @staticmethod
     def set_tags(
-        cls,
         tags: Dict[str, str],
         synchronicity: Optional[Literal["sync", "async"]] = None,
         tag_source: Optional[Literal["labmda", "self"]] = None,
     ):
         if synchronicity is not None:
-            tags[cls.SYNCHRONICITY] = str(synchronicity)
+            tags[InferredSpanInfo.SYNCHRONICITY] = str(synchronicity)
         if tag_source is not None:
-            tags[cls.TAG_SOURCE] = str(tag_source)
+            tags[InferredSpanInfo.TAG_SOURCE] = str(tag_source)
+
+    @staticmethod
+    def set_tags_to_span(
+        span: Span,
+        synchronicity: Optional[Literal["sync", "async"]] = None,
+        tag_source: Optional[Literal["labmda", "self"]] = None,
+    ):
+        if synchronicity is not None:
+            span.set_tags({InferredSpanInfo.SYNCHRONICITY: synchronicity})
+        if tag_source is not None:
+            span.set_tags({InferredSpanInfo.TAG_SOURCE: str(tag_source)})
+
+    @staticmethod
+    def is_async(span: Span) -> bool:
+        if not span:
+            return False
+        try:
+            return span.get_tag(InferredSpanInfo.SYNCHRONICITY) == "async"
+        except Exception as e:
+            logger.debug(
+                "Unabled to read the %s tag, returning False. \
+                Reason: %s.",
+                InferredSpanInfo.SYNCHRONICITY,
+                e,
+            )
+            return False

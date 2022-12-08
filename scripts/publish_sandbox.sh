@@ -4,8 +4,8 @@
 set -e
 
 ./scripts/build_layers.sh
-aws-vault exec sandbox-account-admin -- ./scripts/sign_layers.sh sandbox
-aws-vault exec sandbox-account-admin -- ./scripts/publish_layers.sh
+aws-vault exec serverless-sandbox-account-admin -- ./scripts/sign_layers.sh sandbox
+aws-vault exec serverless-sandbox-account-admin -- ./scripts/publish_layers.sh
 
 # Automatically create PR against github.com/DataDog/documentation
 # If you'd like to test, please uncomment the below line

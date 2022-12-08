@@ -2,9 +2,9 @@
 
 # Usage - run commands from repo root:
 # To check if new changes to the layer cause changes to any snapshots:
-#   BUILD_LAYERS=true DD_API_KEY=XXXX aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
+#   BUILD_LAYERS=true DD_API_KEY=XXXX aws-vault exec serverless-sandbox-account-admin -- ./scripts/run_integration_tests
 # To regenerate snapshots:
-#   UPDATE_SNAPSHOTS=true DD_API_KEY=XXXX aws-vault exec sandbox-account-admin -- ./scripts/run_integration_tests
+#   UPDATE_SNAPSHOTS=true DD_API_KEY=XXXX aws-vault exec serverless-sandbox-account-admin -- ./scripts/run_integration_tests
 
 set -e
 
@@ -61,7 +61,11 @@ fi
 
 if [ -n "$BUILD_LAYERS" ]; then
     echo "Building layers that will be deployed with our test functions"
-    PYTHON_VERSION=${!BUILD_LAYER_VERSION} source $scripts_dir/build_layers.sh
+    if [ -n "$BUILD_LAYER_VERSION" ]; then
+        PYTHON_VERSION=${!BUILD_LAYER_VERSION} source $scripts_dir/build_layers.sh
+    else
+        source $scripts_dir/build_layers.sh
+    fi
 else
     echo "Not building layers, ensure they've already been built or re-run with 'BUILD_LAYERS=true DD_API_KEY=XXXX ./scripts/run_integration_tests.sh'"
 fi
@@ -194,11 +198,13 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 # Normalize package version so that these snapshots aren't broken on version bumps
                 sed -E "s/(dd_lambda_layer:datadog-python[0-9]+_)[0-9]+\.[0-9]+\.[0-9]+/\1X\.X\.X/g" |
                 sed -E "s/(datadog_lambda:v)([0-9]+\.[0-9]+\.[0-9])/\1XX/g" |
+                sed -E "s/(datadogpy\/)([0-9]+\.[0-9]+\.[0-9])/\1XX/g" |
                 sed -E "s/(python )([0-9]\.[0-9]+\.[0-9]+)/\1XX/g" |
                 # Strip out run ID (from function name, resource, etc.)
                 sed -E "s/${!run_id}/XXXX/g" |
                 # Normalize python-requests version
                 sed -E "s/(User-Agent:python-requests\/)[0-9]+\.[0-9]+\.[0-9]+/\1X\.X\.X/g" |
+                sed -E "s/(\"http.useragent\"\: \"python-requests\/)[0-9]+\.[0-9]+\.[0-9]+/\1X\.X\.X/g" |
                 # Strip out trace/span/parent/timestamps
                 sed -E "s/(\"trace_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"span_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |

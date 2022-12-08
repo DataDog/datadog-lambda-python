@@ -42,3 +42,15 @@ class XrayDaemon(object):
     XRAY_TRACE_ID_HEADER_NAME = "_X_AMZN_TRACE_ID"
     XRAY_DAEMON_ADDRESS = "AWS_XRAY_DAEMON_ADDRESS"
     FUNCTION_NAME_HEADER_NAME = "AWS_LAMBDA_FUNCTION_NAME"
+
+
+class Headers(object):
+    Parent_Span_Finish_Time = "x-datadog-parent-span-finish-time"
+
+    # For one request from the client, the event.requestContext.requestIds in the authorizer lambda
+    # invocation and the main function invocation are IDENTICAL. Therefore we can use it to tell
+    # whether current invocation is the actual original authorizing request or a cached request.
+    Authorizing_Request_Id = "x-datadog-authorizing-requestid"
+
+    #  injected by the HTTPPropagator.inject but no use
+    TAGS_HEADER_TO_DELETE = "x-datadog-tags"

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "datadog_lambda"
-version = "4.62.0"
+version = "4.64.0"
 description = "The Datadog AWS Lambda Library"
 authors = ["Datadog, Inc. <dev@datadoghq.com>"]
 license = "Apache-2.0"
@@ -25,7 +25,7 @@ classifiers = [
 python = ">=3.7.0,<4"
 datadog = "^0.41"
 wrapt = "^1.11.2"
-ddtrace = "^1.4.1"
+ddtrace = "^1.6.3"
 importlib_metadata = {version = "^1.0", python = "<3.8"}
 boto3 = { version = "^1.10.33", optional = true }
 typing_extensions = {version = "^4.0", python = "<3.8"}

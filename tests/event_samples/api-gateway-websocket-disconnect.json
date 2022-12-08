@@ -1,6 +1,6 @@
 {
     "headers": {
-        "Host": "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
+        "Host": "p62c47itsb.execute-api.eu-west-1.amazonaws.com",
         "x-api-key": "",
         "X-Forwarded-For": "",
         "x-restapi": "",
@@ -10,7 +10,7 @@
     },
     "multiValueHeaders": {
         "Host": [
-            "p62c47itsb.execute-api.sa-east-1.amazonaws.com"
+            "p62c47itsb.execute-api.eu-west-1.amazonaws.com"
         ],
         "x-api-key": [
             ""
@@ -37,7 +37,7 @@
             "sourceIp": "38.122.226.210"
         },
         "requestId": "Fc2ydE4LmjQFhdg=",
-        "domainName": "p62c47itsb.execute-api.sa-east-1.amazonaws.com",
+        "domainName": "p62c47itsb.execute-api.eu-west-1.amazonaws.com",
         "connectionId": "Fc2tgfl3mjQCJfA=",
         "apiId": "p62c47itsb"
     },

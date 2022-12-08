@@ -138,8 +138,11 @@ def parse_event_source(event: dict) -> _EventSource:
         event_source = _EventSource(EventTypes.EVENTBRIDGE)
 
     event_detail = event.get("detail")
-    cw_event_categories = event_detail and event_detail.get("EventCategories")
-    if event.get("source") == "aws.events" or cw_event_categories:
+    has_event_categories = (
+        isinstance(event_detail, dict)
+        and event_detail.get("EventCategories") is not None
+    )
+    if event.get("source") == "aws.events" or has_event_categories:
         event_source = _EventSource(EventTypes.CLOUDWATCH_EVENTS)
 
     event_record = get_first_record(event)

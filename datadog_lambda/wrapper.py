@@ -3,16 +3,21 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
+import base64
 import os
 import logging
 import traceback
 from importlib import import_module
+import json
+from time import time_ns
+from ddtrace.propagation.http import HTTPPropagator
 
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
 from datadog_lambda.constants import (
     TraceContextSource,
     XraySubsegment,
+    Headers,
 )
 from datadog_lambda.metric import (
     flush_stats,
@@ -33,7 +38,10 @@ from datadog_lambda.tracing import (
     create_inferred_span,
     InferredSpanInfo,
 )
-from datadog_lambda.trigger import extract_trigger_tags, extract_http_status_code_tag
+from datadog_lambda.trigger import (
+    extract_trigger_tags,
+    extract_http_status_code_tag,
+)
 from datadog_lambda.tag_object import tag_object
 
 profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "true"
@@ -118,6 +126,12 @@ class _LambdaDecorator(object):
             self.make_inferred_span = (
                 os.environ.get("DD_TRACE_MANAGED_SERVICES", "true").lower() == "true"
             )
+            self.encode_authorizer_context = (
+                os.environ.get("DD_ENCODE_AUTHORIZER_CONTEXT", "true").lower() == "true"
+            )
+            self.decode_authorizer_context = (
+                os.environ.get("DD_DECODE_AUTHORIZER_CONTEXT", "true").lower() == "true"
+            )
             self.response = None
             if profiling_env_var:
                 self.prof = profiler.Profiler(env=env_env_var, service=service_env_var)
@@ -161,6 +175,30 @@ class _LambdaDecorator(object):
         finally:
             self._after(event, context)
 
+    def _inject_authorizer_span_headers(self, request_id):
+        reference_span = self.inferred_span if self.inferred_span else self.span
+        assert reference_span.finished
+        # the finish_time_ns should be set as the end of the inferred span if it exist
+        #  or the end of the current span
+        finish_time_ns = (
+            reference_span.start_ns + reference_span.duration_ns
+            if reference_span is not None
+            and hasattr(reference_span, "start_ns")
+            and hasattr(reference_span, "duration_ns")
+            else time_ns()
+        )
+        injected_headers = {}
+        source_span = self.inferred_span if self.inferred_span else self.span
+        HTTPPropagator.inject(source_span.context, injected_headers)
+        # remove unused header
+        injected_headers.pop(Headers.TAGS_HEADER_TO_DELETE, None)
+        injected_headers[Headers.Parent_Span_Finish_Time] = finish_time_ns
+        if request_id is not None:
+            injected_headers[Headers.Authorizing_Request_Id] = request_id
+        datadog_data = base64.b64encode(json.dumps(injected_headers).encode())
+        self.response.setdefault("context", {})
+        self.response["context"]["_datadog"] = datadog_data
+
     def _before(self, event, context):
         print('[Amy:datadog-lambda-python:wrapper.py:_before] :|') 
         try:
@@ -169,9 +207,13 @@ class _LambdaDecorator(object):
             submit_invocations_metric(context)
             self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
-            dd_context, trace_context_source = extract_dd_trace_context(
-                event, context, extractor=self.trace_extractor
+            dd_context, trace_context_source, event_source = extract_dd_trace_context(
+                event,
+                context,
+                extractor=self.trace_extractor,
+                decode_authorizer_context=self.decode_authorizer_context,
             )
+            self.event_source = event_source
             # Create a Datadog X-Ray subsegment with the trace context
             if dd_context and trace_context_source == TraceContextSource.EVENT:
                 create_dd_dummy_metadata_subsegment(
@@ -185,7 +227,9 @@ class _LambdaDecorator(object):
             if dd_tracing_enabled:
                 set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
                 if self.make_inferred_span:
-                    self.inferred_span = create_inferred_span(event, context)
+                    self.inferred_span = create_inferred_span(
+                        event, context, event_source, self.decode_authorizer_context
+                    )
                 self.span = create_function_execution_span(
                     context,
                     self.function_name,
@@ -231,11 +275,7 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.inferred_span.set_tag("http.status_code", status_code)
 
-                if (
-                    self.inferred_span.get_tag(InferredSpanInfo.SYNCHRONICITY)
-                    == "async"
-                    and self.span
-                ):
+                if InferredSpanInfo.is_async(self.inferred_span) and self.span:
                     self.inferred_span.finish(finish_time=self.span.start)
                 else:
                     self.inferred_span.finish()
@@ -248,6 +288,16 @@ class _LambdaDecorator(object):
             if profiling_env_var:
                 print('[Amy:datadog-lambda-python:_after] calling invocation_ended on Profiler')
                 self.prof.invocation_ended()
+            
+            if (
+                self.encode_authorizer_context
+                and self.response
+                and self.response.get("principalId")
+                and self.response.get("policyDocument")
+            ):
+                self._inject_authorizer_span_headers(
+                    event.get("requestContext", {}).get("requestId")
+                )
             logger.debug("datadog_lambda_wrapper _after() done")
         except Exception:
             traceback.print_exc()
