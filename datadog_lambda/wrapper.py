@@ -93,7 +93,6 @@ class _LambdaDecorator(object):
 
         If _force_wrap, always return a real decorator, useful for unit tests.
         """
-        print('[Amy:datadog-lambda-python:wrapper.py:__new__] :]')
         try:
             if cls._force_wrap or not isinstance(func, _LambdaDecorator):
                 wrapped = super(_LambdaDecorator, cls).__new__(cls)
@@ -108,7 +107,6 @@ class _LambdaDecorator(object):
 
     def __init__(self, func):
         """Executes when the wrapped function gets wrapped"""
-        print('[Amy:datadog-lambda-python:wrapper.py:__init__] ;)')
         try:
             self.func = func
             self.flush_to_log = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
@@ -161,7 +159,6 @@ class _LambdaDecorator(object):
 
     def __call__(self, event, context, **kwargs):
         """Executes when the wrapped function gets called"""
-        print('[Amy:datadog-lambda-python:wrapper.py:__call__] :)')
         if profiling_env_var:
             self.prof.increment_invocations()
         self._before(event, context)
@@ -201,7 +198,6 @@ class _LambdaDecorator(object):
         self.response["context"]["_datadog"] = datadog_data
 
     def _before(self, event, context):
-        print('[Amy:datadog-lambda-python:wrapper.py:_before] :|')
         try:
             self.response = None
             set_cold_start()
@@ -223,7 +219,6 @@ class _LambdaDecorator(object):
             if profiling_env_var:
                 function_arn = (context.invoked_function_arn or "").lower()
                 self.prof.set_tags({"function_arn": function_arn})
-                print('[Amy:datadog-lambda-python:_before] calling invocation_started on Profiler')
                 self.prof.invocation_started()
             if dd_tracing_enabled:
                 set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
@@ -249,7 +244,6 @@ class _LambdaDecorator(object):
             traceback.print_exc()
 
     def _after(self, event, context):
-        print('[Amy:datadog-lambda-python:wrapper.py:_after] :(')
         try:
             status_code = extract_http_status_code_tag(self.trigger_tags, self.response)
             if status_code:
@@ -287,7 +281,6 @@ class _LambdaDecorator(object):
                 flush_extension()
 
             if profiling_env_var:
-                print('[Amy:datadog-lambda-python:_after] calling invocation_ended on Profiler')
                 self.prof.invocation_ended()
 
             if (

@@ -544,3 +544,30 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.assertEquals(inject_data[TraceHeader.TRACE_ID], "456")
         self.assertEquals(inject_data[TraceHeader.SAMPLING_PRIORITY], "1")
         self.assertEquals(result["context"]["scope"], "still here")
+
+    def test_profiler_api_calls(self):
+        os.environ["DD_PROFILING_ENABLED"] = "True"
+
+        patcher = patch("datadog_lambda.wrapper.profiler")
+        self.mock_profiler = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        mock_tags = {}
+        def profiler_set_tags(tags):
+            mock_tags.update(tags)
+        self.mock_profiler.set_tags = profiler_set_tags
+
+        mock_num_invocations = 0
+        def mock_increment_invocations():
+            mock_num_invocations += 1
+        self.mock_profiler.increment_invocations = mock_increment_invocations
+
+        mock_function_arn = "foo:bar"
+        lambda_event = {}
+        lambda_context = get_mock_context(invoked_function_arn=mock_function_arn)
+        result = datadog_lambda_wrapper(lambda_event, lambda_context)
+
+        self.assertEquals(mock_tags, {"function_arn": mock_function_arn})
+        self.assertEquals(mock_num_invocations, 1)
+
+        del os.environ["DD_SERVICE"]
