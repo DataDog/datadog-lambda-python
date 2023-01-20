@@ -544,3 +544,17 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.assertEquals(inject_data[TraceHeader.TRACE_ID], "456")
         self.assertEquals(inject_data[TraceHeader.SAMPLING_PRIORITY], "1")
         self.assertEquals(result["context"]["scope"], "still here")
+
+    @patch("traceback.print_exc")
+    def test_different_return_type_no_error(self, MockPrintExc):
+        TEST_RESULTS = ["a str to return", 42, {"value": 42}, ["A", 42], None]
+        mock_context = get_mock_context()
+        for test_result in TEST_RESULTS:
+
+            @datadog_lambda_wrapper
+            def return_type_test(event, context):
+                return test_result
+
+            result = return_type_test({}, mock_context)
+            self.assertEquals(result, test_result)
+            self.assertFalse(MockPrintExc.called)

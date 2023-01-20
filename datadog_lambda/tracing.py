@@ -345,6 +345,20 @@ def extract_context_custom_extractor(extractor, event, lambda_context):
         return None, None, None
 
 
+def is_authorizer_response(response) -> bool:
+    try:
+        return (
+            response is not None
+            and response["principalId"]
+            and response["policyDocument"]
+        )
+    except KeyError:
+        pass
+    except Exception as e:
+        logger.debug("unknown error while checking is_authorizer_response %s", e)
+    return False
+
+
 def get_injected_authorizer_data(event, is_http_api) -> dict:
     try:
         authorizer_headers = event.get("requestContext", {}).get("authorizer")
