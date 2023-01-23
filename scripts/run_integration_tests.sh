@@ -243,17 +243,18 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
             # If no snapshot file exists yet, we create one
             echo "Writing logs to $function_snapshot_path because no snapshot exists yet"
             echo "$logs" >$function_snapshot_path
-        elif [ -n "$UPDATE_SNAPSHOTS" ]; then
-            # If $UPDATE_SNAPSHOTS is set to true write the new logs over the current snapshot
-            echo "Overwriting log snapshot for $function_snapshot_path"
-            echo "$logs" >$function_snapshot_path
         else
             # Compare new logs to snapshots
-            diff_output=$(echo "$logs" | diff - $function_snapshot_path)
+            diff_output=$(echo "$logs" | sort | diff -w - <(sort $function_snapshot_path))
             if [ $? -eq 1 ]; then
-                echo "Failed: Mismatch found between new $function_name logs (first) and snapshot (second):"
-                echo "$diff_output"
-                mismatch_found=true
+                if [ -n "$UPDATE_SNAPSHOTS" ]; then
+                    # If $UPDATE_SNAPSHOTS is set to true write the new logs over the current snapshot
+                    echo "Overwriting log snapshot for $function_snapshot_path"
+                    echo "$logs" >$function_snapshot_path
+                else
+                    echo "Failed: Mismatch found between new $function_name logs (first) and snapshot (second):"
+                    echo "$diff_output"
+                    mismatch_found=true
             else
                 echo "Ok: New logs for $function_name match snapshot"
             fi
