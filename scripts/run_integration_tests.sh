@@ -255,6 +255,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                     echo "Failed: Mismatch found between new $function_name logs (first) and snapshot (second):"
                     echo "$diff_output"
                     mismatch_found=true
+                fi
             else
                 echo "Ok: New logs for $function_name match snapshot"
             fi

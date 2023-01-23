@@ -191,9 +191,9 @@ def extract_context_from_http_event_or_context(
                 # fail fast on any KeyError here
                 trace_id = injected_authorizer_data[TraceHeader.TRACE_ID]
                 parent_id = injected_authorizer_data[TraceHeader.PARENT_ID]
-                sampling_priority = injected_authorizer_data[
+                sampling_priority = injected_authorizer_data.get(
                     TraceHeader.SAMPLING_PRIORITY
-                ]
+                )
                 return trace_id, parent_id, sampling_priority
             except Exception as e:
                 logger.debug(

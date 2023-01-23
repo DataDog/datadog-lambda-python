@@ -10,7 +10,6 @@ import traceback
 from importlib import import_module
 import json
 from time import time_ns
-from ddtrace.propagation.http import HTTPPropagator
 
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import set_cold_start, is_cold_start
@@ -18,6 +17,7 @@ from datadog_lambda.constants import (
     TraceContextSource,
     XraySubsegment,
     Headers,
+    TraceHeader,
 )
 from datadog_lambda.metric import (
     flush_stats,
@@ -185,9 +185,14 @@ class _LambdaDecorator(object):
         )
         injected_headers = {}
         source_span = self.inferred_span if self.inferred_span else self.span
-        HTTPPropagator.inject(source_span.context, injected_headers)
-        # remove unused header
-        injected_headers.pop(Headers.TAGS_HEADER_TO_DELETE, None)
+        span_context = source_span.context
+        injected_headers[TraceHeader.TRACE_ID] = str(span_context.trace_id)
+        injected_headers[TraceHeader.PARENT_ID] = str(span_context.span_id)
+        sampling_priority = span_context.sampling_priority
+        if sampling_priority is not None:
+            injected_headers[TraceHeader.SAMPLING_PRIORITY] = str(
+                span_context.sampling_priority
+            )
         injected_headers[Headers.Parent_Span_Finish_Time] = finish_time_ns
         if request_id is not None:
             injected_headers[Headers.Authorizing_Request_Id] = request_id
