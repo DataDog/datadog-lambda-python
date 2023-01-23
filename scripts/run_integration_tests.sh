@@ -216,6 +216,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(\"duration\"\: )[0-9\.\-]+/\1\"XXXX\"/g" |
                 sed -E "s/(\"start\"\: )[0-9\.\-]+/\1\"XXXX\"/g" |
                 sed -E "s/(\"system\.pid\"\: )[0-9\.\-]+/\1\"XXXX\"/g" |
+                sed -E "s/(\"process_id\"\: )[0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"runtime-id\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/([a-zA-Z0-9]+)(\.execute-api\.[a-z0-9\-]+\.amazonaws\.com)/XXXX\2/g" |
                 sed -E "s/(\"apiid\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
@@ -231,6 +232,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(\"partition_key\"\:\ \")[a-zA-Z0-9\-]+/\1XXXX/g" |
                 sed -E "s/(\"object_etag\"\:\ \")[a-zA-Z0-9\-]+/\1XXXX/g" |
                 sed -E "s/(\"dd_trace\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g" |
+                sed -E "s/(traceparent\:)([A-Za-z0-9\-]+)/\1XXX/g" |
                 # Parse out account ID in ARN
                 sed -E "s/([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9\-]+):([a-zA-Z0-9\-\:]+)/\1:\2:\3:\4:XXXX:\4/g" |
                 sed -E "/init complete at epoch/d" |
