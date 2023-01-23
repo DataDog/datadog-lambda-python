@@ -36,8 +36,8 @@ START
     "dd_lambda_layer:datadog-python37_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-1a7f59b712512c09-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-2ae4a769e2b1c03e-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -194,8 +194,8 @@ START
     "dd_lambda_layer:datadog-python37_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-1ba4dfe9b4ae694e-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-8c6fd4fd544e1034-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -347,8 +347,8 @@ START
     "dd_lambda_layer:datadog-python37_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-73351d8397eae4e5-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-b547253f65aca132-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -493,8 +493,8 @@ START
     "dd_lambda_layer:datadog-python37_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-832ba0ebed0a73fc-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-356a1f1aafcc4eee-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -654,8 +654,8 @@ START
     "dd_lambda_layer:datadog-python37_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-c755de2a3e38a97b-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-b292f51222c2688c-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -807,8 +807,8 @@ START
     "dd_lambda_layer:datadog-python37_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-978e4d7750418e10-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-f936851bc997aec1-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -957,8 +957,8 @@ START
     "dd_lambda_layer:datadog-python37_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-fd51e4df32250f01-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-596ebed47f946214-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -1108,8 +1108,8 @@ START
     "dd_lambda_layer:datadog-python37_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-aa22fb496c9b43f5-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-d0b57a3e836cce90-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -1258,8 +1258,8 @@ START
     "dd_lambda_layer:datadog-python37_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-3dd50a5042c0c02a-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.X-da970278249c225c-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [

@@ -16,8 +16,8 @@ START
     "dd_lambda_layer:datadog-python38_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xe87b0aee099bbe-dfba64c70b044098-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xe87b0aee099bbe-e627d5000922b734-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -136,7 +136,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX.X.Xf4cfa8c08f-7a069abe75cc03b5-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
 {
   "traces": [
     [
@@ -189,8 +189,8 @@ START
     "dd_lambda_layer:datadog-python38_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xd0bf9d7d794266d-c6b30ebcef2c2c4c-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xd0bf9d7d794266d-ae852bc85b8efb35-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -304,7 +304,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX.X.Xf1c8df0542360b4-6362472c4b04a85c-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
 {
   "traces": [
     [
@@ -357,8 +357,8 @@ START
     "dd_lambda_layer:datadog-python38_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xa65924fa112ca6-2b99b9614c3c024c-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xa65924fa112ca6-48ca4df08d475677-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -465,7 +465,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX.X.Xd9e2c82349173a-aaaa8902ea34c695-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
 {
   "traces": [
     [
@@ -518,8 +518,8 @@ START
     "dd_lambda_layer:datadog-python38_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xaad2890188d-33832313997d5867-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xaad2890188d-48d6ce717fd88e01-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -641,7 +641,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX.X.Xd6c6c226430d4dd1-c94f7adcd4e05f4a-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
 {
   "traces": [
     [
@@ -694,8 +694,8 @@ START
     "dd_lambda_layer:datadog-python38_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xe583e834a630-4d6d6c5be842b994-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xe583e834a630-11514f88a98f99ad-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -809,7 +809,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX.X.Xeebd4f48b6c63a89-228101b5540e6904-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
 {
   "traces": [
     [
@@ -862,8 +862,8 @@ START
     "dd_lambda_layer:datadog-python38_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xc9d8137568251a52-d8df1ad411af3e87-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xc9d8137568251a52-e4d908aa1b82b930-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -974,7 +974,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX.X.Xd5b1c5-66e15d4f39b8a42d-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
 {
   "traces": [
     [
@@ -1027,8 +1027,8 @@ START
     "dd_lambda_layer:datadog-python38_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xeb5408a24ff6e42-039ac8b82d0122cc-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xeb5408a24ff6e42-ec079f0c6fbba618-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -1140,7 +1140,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX.X.Xf338b9a79cd4c-f21778cec5962a2a-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
 {
   "traces": [
     [
@@ -1193,8 +1193,8 @@ START
     "dd_lambda_layer:datadog-python38_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xaf2603ea2bdf5def-e7c7faf7fafeba15-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xaf2603ea2bdf5def-8ec40fdb0ad45aad-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -1305,7 +1305,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX.X.Xda6910dad5cf-81218244656f9268-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
 {
   "traces": [
     [
@@ -1358,8 +1358,8 @@ START
     "dd_lambda_layer:datadog-python38_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xabf4a44498b04-fbc5f75e8abacc02-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX.X.Xabf4a44498b04-1be4bcc1e5858539-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {}
 {
   "traces": [
     [
@@ -1478,7 +1478,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX.X.Xf32c1ac836d601f-692cccb66acd8243-01", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:dd=s:1;t.dm:-0", "x-datadog-parent-id:XXXX", "x-datadog-sampling-priority:1", "x-datadog-tags:_dd.p.dm=-0", "x-datadog-trace-id:XXXX"] Data: {"series": [{"metric": "hello.dog", "points": [[XXXX, [1.0]]], "type": "distribution", "host": null, "device": null, "tags": ["team:serverless", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}, {"metric": "tests.integration.count", "points": [[XXXX, [21.0]]], "type": "distribution", "host": null, "device": null, "tags": ["test:integration", "role:hello", "dd_lambda_layer:datadog-python38_X.X.X"], "interval": 10}]}
 END Duration: XXXX ms Memory Used: XXXX MB
 {
   "traces": [
