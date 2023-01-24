@@ -37,6 +37,7 @@ from datadog_lambda.tracing import (
     create_function_execution_span,
     create_inferred_span,
     InferredSpanInfo,
+    is_authorizer_response,
 )
 from datadog_lambda.trigger import (
     extract_trigger_tags,
@@ -280,12 +281,7 @@ class _LambdaDecorator(object):
             if should_use_extension:
                 flush_extension()
 
-            if (
-                self.encode_authorizer_context
-                and self.response
-                and self.response.get("principalId")
-                and self.response.get("policyDocument")
-            ):
+            if self.encode_authorizer_context and is_authorizer_response(self.response):
                 self._inject_authorizer_span_headers(
                     event.get("requestContext", {}).get("requestId")
                 )
