@@ -51,6 +51,3 @@ class Headers(object):
     # invocation and the main function invocation are IDENTICAL. Therefore we can use it to tell
     # whether current invocation is the actual original authorizing request or a cached request.
     Authorizing_Request_Id = "x-datadog-authorizing-requestid"
-
-    #  injected by the HTTPPropagator.inject but no use
-    TAGS_HEADER_TO_DELETE = "x-datadog-tags"

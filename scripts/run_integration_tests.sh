@@ -216,6 +216,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(\"duration\"\: )[0-9\.\-]+/\1\"XXXX\"/g" |
                 sed -E "s/(\"start\"\: )[0-9\.\-]+/\1\"XXXX\"/g" |
                 sed -E "s/(\"system\.pid\"\: )[0-9\.\-]+/\1\"XXXX\"/g" |
+                sed -E "s/(\"process_id\"\: )[0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"runtime-id\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/([a-zA-Z0-9]+)(\.execute-api\.[a-z0-9\-]+\.amazonaws\.com)/XXXX\2/g" |
                 sed -E "s/(\"apiid\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
@@ -231,6 +232,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(\"partition_key\"\:\ \")[a-zA-Z0-9\-]+/\1XXXX/g" |
                 sed -E "s/(\"object_etag\"\:\ \")[a-zA-Z0-9\-]+/\1XXXX/g" |
                 sed -E "s/(\"dd_trace\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g" |
+                sed -E "s/(traceparent\:)([A-Za-z0-9\-]+)/\1XXX/g" |
                 # Parse out account ID in ARN
                 sed -E "s/([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9\-]+):([a-zA-Z0-9\-\:]+)/\1:\2:\3:\4:XXXX:\4/g" |
                 sed -E "/init complete at epoch/d" |
@@ -241,17 +243,19 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
             # If no snapshot file exists yet, we create one
             echo "Writing logs to $function_snapshot_path because no snapshot exists yet"
             echo "$logs" >$function_snapshot_path
-        elif [ -n "$UPDATE_SNAPSHOTS" ]; then
-            # If $UPDATE_SNAPSHOTS is set to true write the new logs over the current snapshot
-            echo "Overwriting log snapshot for $function_snapshot_path"
-            echo "$logs" >$function_snapshot_path
         else
             # Compare new logs to snapshots
-            diff_output=$(echo "$logs" | diff - $function_snapshot_path)
+            diff_output=$(echo "$logs" | sort | diff -w - <(sort $function_snapshot_path))
             if [ $? -eq 1 ]; then
-                echo "Failed: Mismatch found between new $function_name logs (first) and snapshot (second):"
-                echo "$diff_output"
-                mismatch_found=true
+                if [ -n "$UPDATE_SNAPSHOTS" ]; then
+                    # If $UPDATE_SNAPSHOTS is set to true write the new logs over the current snapshot
+                    echo "Overwriting log snapshot for $function_snapshot_path"
+                    echo "$logs" >$function_snapshot_path
+                else
+                    echo "Failed: Mismatch found between new $function_name logs (first) and snapshot (second):"
+                    echo "$diff_output"
+                    mismatch_found=true
+                fi
             else
                 echo "Ok: New logs for $function_name match snapshot"
             fi
