@@ -2,7 +2,7 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
-
+print("BEFORE WRAPPER BASE64 Import")
 import base64
 import os
 import logging
@@ -38,6 +38,8 @@ from datadog_lambda.tracing import (
     create_inferred_span,
     InferredSpanInfo,
     is_authorizer_response,
+    trace_cold_start,
+    tracer,
 )
 from datadog_lambda.trigger import (
     extract_trigger_tags,
@@ -109,6 +111,7 @@ class _LambdaDecorator(object):
     def __init__(self, func):
         """Executes when the wrapped function gets wrapped"""
         try:
+            # patch_import()
             self.func = func
             self.flush_to_log = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
             self.logs_injection = (
@@ -258,6 +261,8 @@ class _LambdaDecorator(object):
                     self.trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
                 )
 
+            trace_ctx = tracer.current_trace_context()
+            print(f"PROVIDING_TRACE_CONTEXT {trace_ctx}")
             if self.span:
                 if dd_capture_lambda_payload_enabled:
                     tag_object(self.span, "function.request", event)
@@ -286,6 +291,10 @@ class _LambdaDecorator(object):
                     event.get("requestContext", {}).get("requestId")
                 )
             logger.debug("datadog_lambda_wrapper _after() done")
+
+            span = self.span or self.inferred_span
+            trace_cold_start(self.span, span, trace_ctx)
+
         except Exception:
             traceback.print_exc()
 

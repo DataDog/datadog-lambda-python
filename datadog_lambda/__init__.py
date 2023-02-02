@@ -6,6 +6,11 @@ except ModuleNotFoundError:
     import importlib_metadata
 
 __version__ = importlib_metadata.version(__name__)
+import sys
+print(f"__INIT__BEFORE_INSTALL {sys.meta_path}")
+from datadog_lambda.module import ModuleWatchdog
+ModuleWatchdog.install()
+print(f"__INIT__AFTER_INSTALL {sys.meta_path}")
 
 import os
 import logging
