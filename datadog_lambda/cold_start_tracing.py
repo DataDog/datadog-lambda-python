@@ -47,7 +47,7 @@ class ColdStartTracer(object):
 
     def __init__(self, tracer, parent_span, cold_start_span_finish_time_ns, trace_ctx, min_duration = 3):
         self._tracer = tracer
-        self.functio_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
+        self.function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
         self.parent_span = parent_span
         self.cold_start_span_finish_time_ns = cold_start_span_finish_time_ns
         self.min_duration = min_duration
@@ -91,10 +91,10 @@ class ColdStartTracer(object):
     def create_cold_start_span(self, start_time_ns):
         span_kwargs = {
             "service": "aws.lambda",
-            "resource": self.functio_name,
-            "span_type": "aws.lambda.import",
+            "resource": self.function_name,
+            "span_type": "aws.lambda.load",
         }
-        span = self._tracer.trace("aws.lambda.import", **span_kwargs)
+        span = self._tracer.trace("aws.lambda.load", **span_kwargs)
         # tags = {
 
         # }
