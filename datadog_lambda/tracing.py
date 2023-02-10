@@ -1163,14 +1163,6 @@ def mark_trace_as_error_for_5xx_responses(context, status_code, span):
             span.error = 1
 
 
-from datadog_lambda.cold_start_tracing import ColdStartTracer, root_nodes, skips, total, n_spans
-
-def trace_cold_start(span, span_or_inferred_span, trace_ctx):
-    cold_start_tracer = ColdStartTracer(tracer, span_or_inferred_span, span.start_ns, trace_ctx)
-    print(f"[CST] ROOT NODES LEN: {len(root_nodes)}")
-    cold_start_tracer.trace(root_nodes)
-    print(f"Total {total}, {n_spans} SPANS, {skips} skips")
-
 class InferredSpanInfo(object):
     BASE_NAME = "_inferred_span"
     SYNCHRONICITY = f"{BASE_NAME}.synchronicity"
