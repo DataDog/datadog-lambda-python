@@ -1,19 +1,6 @@
-from datadog_lambda.cold_start import is_cold_start, wrap_find_spec
-import os
+from datadog_lambda.cold_start import initialize_cold_start_tracing
 
-if (
-    is_cold_start()
-    and os.environ.get("DD_TRACE_ENABLED", "true").lower() == "true"
-    and os.environ.get("DD_COLD_START_TRACING", "true").lower() == "true"
-):
-    from sys import version_info, meta_path
-
-    if version_info >= (3, 7):  # current implementation only support version > 3.7
-        for importer in meta_path:
-            try:
-                importer.find_spec = wrap_find_spec(importer.find_spec)
-            except:
-                pass
+initialize_cold_start_tracing()
 
 # The minor version corresponds to the Lambda layer version.
 # E.g.,, version 0.5.0 gets packaged into layer version 5.
@@ -24,6 +11,7 @@ except ModuleNotFoundError:
 
 __version__ = importlib_metadata.version(__name__)
 
+import os
 import logging
 
 logger = logging.getLogger(__name__)

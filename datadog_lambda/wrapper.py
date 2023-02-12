@@ -109,7 +109,6 @@ class _LambdaDecorator(object):
     def __init__(self, func):
         """Executes when the wrapped function gets wrapped"""
         try:
-            # patch_import()
             self.func = func
             self.flush_to_log = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
             self.logs_injection = (
@@ -325,7 +324,6 @@ class _LambdaDecorator(object):
                     event.get("requestContext", {}).get("requestId")
                 )
             logger.debug("datadog_lambda_wrapper _after() done")
-
         except Exception:
             traceback.print_exc()
 

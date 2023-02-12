@@ -1,12 +1,9 @@
 import time
 import os
-from importlib.abc import Loader
 from typing import List
 
 _cold_start = True
 _lambda_container_initialized = False
-root_nodes = []
-import_stack = []
 
 
 def set_cold_start():
@@ -39,14 +36,29 @@ class ImportNode(object):
         self.children = []
 
 
+root_nodes: List[ImportNode] = []
+import_stack: List[ImportNode] = []
+already_wrapped_loaders = set()
+already_wrapped_importers = set()
+
+
+def reset_node_stacks():
+    global root_nodes
+    root_nodes = []
+    global import_stack
+    import_stack = []
+
+
 def push_node(module_name, file_path):
     node = ImportNode(module_name, file_path, time.time_ns())
+    global import_stack
     if import_stack:
         import_stack[-1].children.append(node)
     import_stack.append(node)
 
 
 def pop_node(module_name):
+    global import_stack
     if not import_stack:
         return
     node = import_stack.pop()
@@ -55,14 +67,15 @@ def pop_node(module_name):
     end_time_ns = time.time_ns()
     node.end_time_ns = end_time_ns
     if not import_stack:  # import_stack empty, a root node has been found
+        global root_nodes
         root_nodes.append(node)
 
 
 def wrap_exec_module(original_exec_module):
     def wrapped_method(module):
         should_pop = False
-        spec = module.__spec__
         try:
+            spec = module.__spec__
             push_node(spec.name, spec.origin)
             should_pop = True
         except:
@@ -76,37 +89,41 @@ def wrap_exec_module(original_exec_module):
     return wrapped_method
 
 
-def wrap_load_module(original_load_module):
-    def wrapped_method(fullname):
-        should_pop = False
-        try:
-            push_node(fullname, fullname)
-            should_pop = True
-        except:
-            pass
-        try:
-            return original_load_module(fullname)
-        finally:
-            if should_pop:
-                pop_node(fullname)
-
-    return wrapped_method
-
-
 def wrap_find_spec(original_find_spec):
     def wrapped_find_spec(*args, **kwargs):
         spec = original_find_spec(*args, **kwargs)
         if spec is None:
             return None
         loader = getattr(spec, "loader", None)
-        if loader is not None:
-            if hasattr(loader, "exec_module") and hasattr(loader, "create_module"):
-                loader.exec_module = wrap_exec_module(loader.exec_module)
-            if hasattr(loader, "load_module"):  # legacy support
-                loader.load_module = wrap_load_module(loader.load_module)
+        if loader is not None and loader not in already_wrapped_loaders:
+            if hasattr(loader, "exec_module"):
+                try:
+                    loader.exec_module = wrap_exec_module(loader.exec_module)
+                    already_wrapped_loaders.add(loader)
+                except:
+                    pass
         return spec
 
     return wrapped_find_spec
+
+
+def initialize_cold_start_tracing():
+    if (
+        is_cold_start()
+        and os.environ.get("DD_TRACE_ENABLED", "true").lower() == "true"
+        and os.environ.get("DD_COLD_START_TRACING", "true").lower() == "true"
+    ):
+        from sys import version_info, meta_path
+
+        if version_info >= (3, 7):  # current implementation only support version > 3.7
+            for importer in meta_path:
+                if importer in already_wrapped_importers:
+                    continue
+                try:
+                    importer.find_spec = wrap_find_spec(importer.find_spec)
+                    already_wrapped_importers.add(importer)
+                except:
+                    pass
 
 
 class ColdStartTracer(object):
