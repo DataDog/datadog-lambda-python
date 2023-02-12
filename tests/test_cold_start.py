@@ -6,7 +6,6 @@ from unittest.mock import MagicMock
 
 
 class TestColdStartTracingSetup(unittest.TestCase):
-
     def test_initialize_cold_start_tracing(self):
         cold_start.initialize_cold_start_tracing()  # testing double wrapping
         cold_start.initialize_cold_start_tracing()
