@@ -78,7 +78,7 @@ def wrap_exec_module(original_exec_module):
             spec = module.__spec__
             push_node(spec.name, spec.origin)
             should_pop = True
-        except:
+        except Exception:
             pass
         try:
             return original_exec_module(module)
@@ -100,7 +100,7 @@ def wrap_find_spec(original_find_spec):
                 try:
                     loader.exec_module = wrap_exec_module(loader.exec_module)
                     already_wrapped_loaders.add(loader)
-                except:
+                except Exception:
                     pass
         return spec
 
@@ -122,7 +122,7 @@ def initialize_cold_start_tracing():
                 try:
                     importer.find_spec = wrap_find_spec(importer.find_spec)
                     already_wrapped_importers.add(importer)
-                except:
+                except Exception:
                     pass
 
 

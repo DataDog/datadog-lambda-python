@@ -140,7 +140,7 @@ class _LambdaDecorator(object):
                     self.min_cold_start_trace_duration = int(
                         os.environ["DD_MIN_COLD_START_DURATION"]
                     )
-                except:
+                except Exception:
                     logger.debug("Malformatted env DD_MIN_COLD_START_DURATION")
             self.cold_start_trace_skip_lib = []
             if "DD_COLD_START_TRACE_SKIP_LIB" in os.environ:
@@ -148,7 +148,7 @@ class _LambdaDecorator(object):
                     self.cold_start_trace_skip_lib = os.environ[
                         "DD_COLD_START_TRACE_SKIP_LIB"
                     ].split(",")
-                except:
+                except Exception:
                     logger.debug("Malformatted for env DD_COLD_START_TRACE_SKIP_LIB")
             self.response = None
             if profiling_env_var:
