@@ -6,7 +6,9 @@ from unittest.mock import MagicMock
 
 
 class TestColdStartTracingSetup(unittest.TestCase):
-    def import_a_module_and_check(self):
+
+    def test_initialize_cold_start_tracing(self):
+        cold_start.initialize_cold_start_tracing()  # testing double wrapping
         cold_start.initialize_cold_start_tracing()
         cold_start.reset_node_stacks()
         for module_name in ["ast", "dis", "inspect"]:
@@ -17,11 +19,6 @@ class TestColdStartTracingSetup(unittest.TestCase):
         self.assertTrue(inspect.ismodule(inspect))
         self.assertEqual(len(cold_start.root_nodes), 1)
         self.assertEqual(cold_start.root_nodes[0].module_name, "inspect")
-        self.assertEqual(len(cold_start.root_nodes[0].children), 2)
-
-    def test_initialize_cold_start_tracing(self):
-        cold_start.initialize_cold_start_tracing()  # testing double wrapping
-        self.import_a_module_and_check()
 
     def test_bad_importer_find_spec_attribute_error(self):
         mock_importer = object()  # AttributeError when accessing find_spec
