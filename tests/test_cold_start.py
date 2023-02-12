@@ -31,10 +31,19 @@ class TestColdStartTracingSetup(unittest.TestCase):
 
     def test_not_wrapping_case(self):
         os.environ["DD_COLD_START_TRACING"] = "false"
-        mock_importer = object()
+        mock_importer = MagicMock()
+        mock_module_spec = MagicMock()
+        mock_module_spec.name = "test_name"
+        mock_loader = object()
+        mock_module_spec.loader = mock_loader
+
+        def find_spec(*args, **kwargs):
+            return mock_module_spec
+
+        mock_importer.find_spec = find_spec
         meta_path.append(mock_importer)
         cold_start.initialize_cold_start_tracing()
-        self.assertFalse(mock_importer in cold_start.already_wrapped_importers)
+        self.assertFalse(mock_loader in cold_start.already_wrapped_loaders)
         meta_path.pop()
         os.environ["DD_COLD_START_TRACING"] = "true"
 

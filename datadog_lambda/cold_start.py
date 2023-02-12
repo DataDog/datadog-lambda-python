@@ -1,6 +1,6 @@
 import time
 import os
-from typing import List
+from typing import List, Hashable
 
 _cold_start = True
 _lambda_container_initialized = False
@@ -39,7 +39,6 @@ class ImportNode(object):
 root_nodes: List[ImportNode] = []
 import_stack: List[ImportNode] = []
 already_wrapped_loaders = set()
-already_wrapped_importers = set()
 
 
 def reset_node_stacks():
@@ -95,7 +94,11 @@ def wrap_find_spec(original_find_spec):
         if spec is None:
             return None
         loader = getattr(spec, "loader", None)
-        if loader is not None and loader not in already_wrapped_loaders:
+        if (
+            loader is not None
+            and isinstance(loader, Hashable)
+            and loader not in already_wrapped_loaders
+        ):
             if hasattr(loader, "exec_module"):
                 try:
                     loader.exec_module = wrap_exec_module(loader.exec_module)
@@ -117,11 +120,8 @@ def initialize_cold_start_tracing():
 
         if version_info >= (3, 7):  # current implementation only support version > 3.7
             for importer in meta_path:
-                if importer in already_wrapped_importers:
-                    continue
                 try:
                     importer.find_spec = wrap_find_spec(importer.find_spec)
-                    already_wrapped_importers.add(importer)
                 except Exception:
                     pass
 
