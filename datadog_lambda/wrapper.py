@@ -145,9 +145,10 @@ class _LambdaDecorator(object):
             self.cold_start_trace_skip_lib = []
             if "DD_COLD_START_TRACE_SKIP_LIB" in os.environ:
                 try:
-                    self.cold_start_trace_skip_lib = os.environ[
-                        "DD_COLD_START_TRACE_SKIP_LIB"
-                    ].split(",")
+                    self.cold_start_trace_skip_lib = os.environ.get(
+                        "DD_COLD_START_TRACE_SKIP_LIB",
+                        "datadog_lambda.extension,datadog_lambda.metric,datadog_lambda.patch"
+                    ).split(",")
                 except Exception:
                     logger.debug("Malformatted for env DD_COLD_START_TRACE_SKIP_LIB")
             self.response = None
@@ -302,7 +303,7 @@ class _LambdaDecorator(object):
 
             if should_trace_cold_start:
                 try:
-                    following_span = self.span or self.inferred_span
+                    following_span = self.inferred_span or self.span
                     ColdStartTracer(
                         tracer,
                         self.function_name,

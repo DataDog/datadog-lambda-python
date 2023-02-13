@@ -1,6 +1,8 @@
 import time
 import os
 from typing import List, Hashable
+import logging
+logger = logging.getLogger(__name__)
 
 _cold_start = True
 _lambda_container_initialized = False
@@ -103,8 +105,8 @@ def wrap_find_spec(original_find_spec):
                 try:
                     loader.exec_module = wrap_exec_module(loader.exec_module)
                     already_wrapped_loaders.add(loader)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Failed to wrap the loader. %s", e)
         return spec
 
     return wrapped_find_spec
