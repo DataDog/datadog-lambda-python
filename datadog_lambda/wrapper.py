@@ -147,7 +147,7 @@ class _LambdaDecorator(object):
                 try:
                     self.cold_start_trace_skip_lib = os.environ.get(
                         "DD_COLD_START_TRACE_SKIP_LIB",
-                        "datadog_lambda.extension,datadog_lambda.metric,datadog_lambda.patch"
+                        "datadog_lambda.extension,datadog_lambda.metric,datadog_lambda.patch",
                     ).split(",")
                 except Exception:
                     logger.debug("Malformatted for env DD_COLD_START_TRACE_SKIP_LIB")
