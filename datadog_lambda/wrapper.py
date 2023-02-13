@@ -2,7 +2,6 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
-
 import base64
 import os
 import logging
@@ -12,7 +11,7 @@ import json
 from time import time_ns
 
 from datadog_lambda.extension import should_use_extension, flush_extension
-from datadog_lambda.cold_start import set_cold_start, is_cold_start
+from datadog_lambda.cold_start import set_cold_start, is_cold_start, ColdStartTracer
 from datadog_lambda.constants import (
     TraceContextSource,
     XraySubsegment,
@@ -38,6 +37,7 @@ from datadog_lambda.tracing import (
     create_inferred_span,
     InferredSpanInfo,
     is_authorizer_response,
+    tracer,
 )
 from datadog_lambda.trigger import (
     extract_trigger_tags,
@@ -131,6 +131,28 @@ class _LambdaDecorator(object):
             self.decode_authorizer_context = (
                 os.environ.get("DD_DECODE_AUTHORIZER_CONTEXT", "true").lower() == "true"
             )
+            self.cold_start_tracing = (
+                os.environ.get("DD_COLD_START_TRACING", "true").lower() == "true"
+            )
+            self.min_cold_start_trace_duration = 3
+            if "DD_MIN_COLD_START_DURATION" in os.environ:
+                try:
+                    self.min_cold_start_trace_duration = int(
+                        os.environ["DD_MIN_COLD_START_DURATION"]
+                    )
+                except Exception:
+                    logger.debug("Malformatted env DD_MIN_COLD_START_DURATION")
+            self.cold_start_trace_skip_lib = [
+                "ddtrace.internal.compat",
+                "ddtrace.filters",
+            ]
+            if "DD_COLD_START_TRACE_SKIP_LIB" in os.environ:
+                try:
+                    self.cold_start_trace_skip_lib = os.environ[
+                        "DD_COLD_START_TRACE_SKIP_LIB"
+                    ].split(",")
+                except Exception:
+                    logger.debug("Malformatted for env DD_COLD_START_TRACE_SKIP_LIB")
             self.response = None
             if profiling_env_var:
                 self.prof = profiler.Profiler(env=env_env_var, service=service_env_var)
@@ -257,6 +279,11 @@ class _LambdaDecorator(object):
                 create_dd_dummy_metadata_subsegment(
                     self.trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
                 )
+            should_trace_cold_start = (
+                dd_tracing_enabled and self.cold_start_tracing and is_cold_start()
+            )
+            if should_trace_cold_start:
+                trace_ctx = tracer.current_trace_context()
 
             if self.span:
                 if dd_capture_lambda_payload_enabled:
@@ -275,6 +302,20 @@ class _LambdaDecorator(object):
                     self.inferred_span.finish(finish_time=self.span.start)
                 else:
                     self.inferred_span.finish()
+
+            if should_trace_cold_start:
+                try:
+                    following_span = self.span or self.inferred_span
+                    ColdStartTracer(
+                        tracer,
+                        self.function_name,
+                        following_span.start_ns,
+                        trace_ctx,
+                        self.min_cold_start_trace_duration,
+                        self.cold_start_trace_skip_lib,
+                    ).trace()
+                except Exception as e:
+                    logger.debug("Failed to create cold start spans. %s", e)
 
             if not self.flush_to_log or should_use_extension:
                 flush_stats()
