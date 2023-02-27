@@ -121,6 +121,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -143,6 +144,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -274,6 +276,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -296,6 +299,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -420,6 +424,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -442,6 +447,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -581,6 +587,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -603,6 +610,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -734,6 +742,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -756,6 +765,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -884,6 +894,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -906,6 +917,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -1035,6 +1047,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -1057,6 +1070,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -1185,6 +1199,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -1207,6 +1222,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -1343,6 +1359,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -1365,6 +1382,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "component": "requests",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
