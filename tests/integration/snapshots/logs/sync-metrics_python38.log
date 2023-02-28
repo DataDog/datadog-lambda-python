@@ -46,7 +46,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.synchronicity": "sync",
           "_inferred_span.tag_source": "self",
           "http.status_code": "200",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -160,7 +161,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -221,7 +223,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "size_bytes": "26",
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -331,7 +334,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -386,7 +390,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "detail_type": "testdetail",
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -495,7 +500,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -560,7 +566,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.synchronicity": "sync",
           "_inferred_span.tag_source": "self",
           "http.status_code": "200",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -674,7 +681,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -735,7 +743,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "partition_key": "XXXX",
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -845,7 +854,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -903,7 +913,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "object_etag": "XXXX",
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -1013,7 +1024,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -1072,7 +1084,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "subject": "TestInvoke",
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -1182,7 +1195,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -1240,7 +1254,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "sender_id": "AIDAIENQZJOLO23YVJ4VO",
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -1350,7 +1365,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -1414,7 +1430,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.synchronicity": "sync",
           "_inferred_span.tag_source": "self",
           "http.status_code": "200",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
@@ -1526,7 +1543,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points?api_key=XXXX Head
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points?<redacted>",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
-          "_dd.p.dm": "-0"
+          "_dd.p.dm": "-0",
+          "language": "python"
         },
         "metrics": {
           "_dd.agent_psr": 1,
