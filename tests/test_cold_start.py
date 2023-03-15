@@ -66,9 +66,11 @@ class TestColdStartTracingSetup(unittest.TestCase):
             import dummy_module
         except Exception as e:
             self.assertEqual(str(e), "Module failed to load")
-        self.assertEqual(len(cold_start.root_nodes), 1)
+        meta_path.pop(0)  # clean up first before checking test results
+        self.assertEqual(
+            len(cold_start.root_nodes), 1
+        )  # push_node should have pushed the node
         self.assertEqual(cold_start.root_nodes[0].module_name, mock_module_spec.name)
-        meta_path.pop(0)
 
 
 class TestColdStartTracer(unittest.TestCase):
