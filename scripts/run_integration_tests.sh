@@ -187,6 +187,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed '/^$/d' |
                 # Normalize Lambda runtime REPORT logs
                 sed -E 's/(RequestId|TraceId|SegmentId|Duration|init|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g' |
+                sed -E 's/(python:3.[0-9]+\.v)[0-9]+/\1X/g' |
                 # Normalize HTTP headers
                 sed -E "s/(x-datadog-parent-id:|x-datadog-trace-id:|Content-Length:)[0-9]+/\1XXXX/g" |
                 # Remove Account ID
@@ -194,7 +195,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 # Normalize timestamps in datapoints POSTed to DD
                 sed -E 's/"points": \[\[[0-9\.]+,/"points": \[\[XXXX,/g' |
                 # Strip API key from logged requests
-                sed -E "s/(api_key=|'api_key': ')[a-z0-9\.\-]+/\1XXXX/g" |
+                sed -E "s/(api_key=|'api_key': '|DD-API-KEY:)[a-z0-9\.\-]+/\1XXXX/g" |
                 # Normalize package version so that these snapshots aren't broken on version bumps
                 sed -E "s/(dd_lambda_layer:datadog-python[0-9]+_)[0-9]+\.[0-9]+\.[0-9]+/\1X\.X\.X/g" |
                 sed -E "s/(datadog_lambda:v)([0-9]+\.[0-9]+\.[0-9])/\1XX/g" |
