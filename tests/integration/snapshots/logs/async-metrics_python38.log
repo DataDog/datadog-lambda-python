@@ -1,4 +1,4 @@
-INIT_START Runtime Version: python:3.8.v15	Runtime Version ARN: arn:aws:lambda:eu-west-1:XXXX:eu-west-1
+INIT_START Runtime Version: python:3.8.vX	Runtime Version ARN: arn:aws:lambda:eu-west-1:XXXX:eu-west-1
 START
 {
   "m": "aws.lambda.enhanced.invocations",
