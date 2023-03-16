@@ -45,12 +45,12 @@ def build_segment_payload(payload):
 
 
 def parse_xray_header(raw_trace_id):
-    # Example: Root=1-5e272390-8c398be037738dc042009320;Parent=94ae789b969f1cc5;Sampled=1
+    # Example: Root=1-5e272390-8c398be037738dc042009320;Parent=94ae789b969f1cc5;Sampled=1;Lineage=c6c5b1b9:0
     logger.debug("Reading trace context from env var %s", raw_trace_id)
     if len(raw_trace_id) == 0:
         return None
     parts = raw_trace_id.split(";")
-    if len(parts) != 3:
+    if len(parts) < 3:
         return None
     root = parts[0].replace("Root=", "")
     parent = parts[1].replace("Parent=", "")
