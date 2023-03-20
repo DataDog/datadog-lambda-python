@@ -42,7 +42,7 @@ class TestColdStartTracingSetup(unittest.TestCase):
         self.assertFalse(mock_loader in cold_start.already_wrapped_loaders)
         meta_path.pop()
         os.environ["DD_COLD_START_TRACING"] = "true"
-'''
+
     def xtest_exec_module_failure_case(self):
         mock_importer = MagicMock()
         mock_module_spec = MagicMock()
@@ -71,7 +71,6 @@ class TestColdStartTracingSetup(unittest.TestCase):
             len(cold_start.root_nodes), 1
         )  # push_node should have pushed the node
         self.assertEqual(cold_start.root_nodes[0].module_name, mock_module_spec.name)
-'''
 
 class TestColdStartTracer(unittest.TestCase):
     def setUp(self) -> None:
