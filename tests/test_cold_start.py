@@ -7,7 +7,9 @@ from unittest.mock import MagicMock
 
 class TestColdStartTracingSetup(unittest.TestCase):
     def test_initialize_cold_start_tracing(self):
+        cold_start._cold_start = True
         cold_start.initialize_cold_start_tracing()  # testing double wrapping
+        cold_start._cold_start = True
         cold_start.initialize_cold_start_tracing()
         cold_start.reset_node_stacks()
         for module_name in ["ast", "dis", "inspect"]:
@@ -22,6 +24,7 @@ class TestColdStartTracingSetup(unittest.TestCase):
     def test_bad_importer_find_spec_attribute_error(self):
         mock_importer = object()  # AttributeError when accessing find_spec
         meta_path.append(mock_importer)
+        cold_start._cold_start = True
         cold_start.initialize_cold_start_tracing()  # safe to call
         meta_path.pop()
 
@@ -38,12 +41,13 @@ class TestColdStartTracingSetup(unittest.TestCase):
 
         mock_importer.find_spec = find_spec
         meta_path.append(mock_importer)
+        cold_start._cold_start = True
         cold_start.initialize_cold_start_tracing()
         self.assertFalse(mock_loader in cold_start.already_wrapped_loaders)
         meta_path.pop()
         os.environ["DD_COLD_START_TRACING"] = "true"
 
-    def xtest_exec_module_failure_case(self):
+    def test_exec_module_failure_case(self):
         mock_importer = MagicMock()
         mock_module_spec = MagicMock()
         mock_module_spec.name = "test_name"
@@ -60,6 +64,7 @@ class TestColdStartTracingSetup(unittest.TestCase):
 
         mock_importer.find_spec = find_spec
         meta_path.insert(0, mock_importer)
+        cold_start._cold_start = True
         cold_start.initialize_cold_start_tracing()
         cold_start.reset_node_stacks()
         try:
