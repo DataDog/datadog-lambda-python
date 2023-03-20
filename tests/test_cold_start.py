@@ -72,6 +72,7 @@ class TestColdStartTracingSetup(unittest.TestCase):
         )  # push_node should have pushed the node
         self.assertEqual(cold_start.root_nodes[0].module_name, mock_module_spec.name)
 
+
 class TestColdStartTracer(unittest.TestCase):
     def setUp(self) -> None:
         mock_tracer = MagicMock()
