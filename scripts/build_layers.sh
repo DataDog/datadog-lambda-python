@@ -58,9 +58,12 @@ function docker_build_zip {
 
     # Zip to destination, and keep directory structure as based in $temp_dir
     (cd $temp_dir && zip -q -r $destination ./)
-
-    rm -rf $temp_dir
     echo "Done creating archive $destination"
+    rm -rf $temp_dir
+    docker run datadog-lambda-python-${arch}:$1 sh -c "cd /build/python/lib/python$1/site-packages/ && \
+        python -c \"import pkg_resources; packages = sorted(['%s==%s' % (i.key, i.version) for i in pkg_resources.working_set]);\
+        print(*packages,sep ='\n')\"" > dependency.lock.${arch}.$1
+
 }
 
 rm -rf $LAYER_DIR
@@ -68,7 +71,7 @@ mkdir $LAYER_DIR
 
 for python_version in "${PYTHON_VERSIONS[@]}"
 do
-    if [ "$python_version" == "3.8" ] || [ "$python_version" == "3.9" ]; then
+    if [ "$python_version" != "3.7" ]; then
         echo "Building layer for Python ${python_version} arch=arm64"
         docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-arm64-${python_version}.zip arm64
     fi
