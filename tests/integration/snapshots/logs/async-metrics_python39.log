@@ -70,8 +70,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "language": "python"
         },
         "metrics": {
-          "_dd.agent_psr": 1,
           "process_id": XXXX,
+          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -123,6 +123,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -146,6 +147,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -230,8 +232,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "language": "python"
         },
         "metrics": {
-          "_dd.agent_psr": 1,
           "process_id": XXXX,
+          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -279,6 +281,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -302,6 +305,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -380,8 +384,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "language": "python"
         },
         "metrics": {
-          "_dd.agent_psr": 1,
           "process_id": XXXX,
+          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -428,6 +432,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -451,6 +456,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -539,8 +545,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "language": "python"
         },
         "metrics": {
-          "_dd.agent_psr": 1,
           "process_id": XXXX,
+          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -592,6 +598,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -615,6 +622,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -699,8 +707,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "language": "python"
         },
         "metrics": {
-          "_dd.agent_psr": 1,
           "process_id": XXXX,
+          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -748,6 +756,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -771,6 +780,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -852,8 +862,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "language": "python"
         },
         "metrics": {
-          "_dd.agent_psr": 1,
           "process_id": XXXX,
+          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -901,6 +911,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -924,6 +935,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -1006,8 +1018,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "language": "python"
         },
         "metrics": {
-          "_dd.agent_psr": 1,
           "process_id": XXXX,
+          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -1055,6 +1067,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -1078,6 +1091,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -1159,8 +1173,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "language": "python"
         },
         "metrics": {
-          "_dd.agent_psr": 1,
           "process_id": XXXX,
+          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -1208,6 +1222,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -1231,6 +1246,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
@@ -1318,8 +1334,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "language": "python"
         },
         "metrics": {
-          "_dd.agent_psr": 1,
           "process_id": XXXX,
+          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -1369,6 +1385,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
           "http.status_code": "200",
@@ -1392,6 +1409,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
+          "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
           "http.status_code": "200",
