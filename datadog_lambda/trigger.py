@@ -34,12 +34,13 @@ class EventTypes(_stringTypedEnum):
     CLOUDWATCH_EVENTS = "cloudwatch-events"
     CLOUDFRONT = "cloudfront"
     DYNAMODB = "dynamodb"
+    EVENTBRIDGE = "eventbridge"
     KINESIS = "kinesis"
     LAMBDA_FUNCTION_URL = "lambda-function-url"
     S3 = "s3"
     SNS = "sns"
     SQS = "sqs"
-    EVENTBRIDGE = "eventbridge"
+    STEPFUNCTIONS = "states"
 
 
 class EventSubtypes(_stringTypedEnum):

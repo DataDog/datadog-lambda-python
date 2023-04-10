@@ -2,7 +2,7 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
-
+import hashlib
 import logging
 import os
 import json
@@ -328,6 +328,37 @@ def extract_context_from_kinesis_event(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
+def _deterministic_md5_hash(s: str) -> str:
+    # return hashlib.md5(s.encode("utf-8")).hexdigest()
+    hex = hashlib.md5(s.encode("ascii")).hexdigest()
+    # str(int(hex, 16))
+    b = bin(int(hex, 16))
+    binary_str = str(b)
+    binary_str_remove_0b = binary_str[2:]
+    most_significant_64_bits = binary_str_remove_0b[:-64]
+    return str(int(most_significant_64_bits, 2))
+
+
+def extract_context_from_step_functions(event, lambda_context):
+    """
+    Only extract datadog trace context when Step Functions Context Object is injected into lambda's event dict
+    """
+    try:
+        execution_id = event.get("Execution").get("Id")
+        state_name = event.get("State").get("Name")
+        state_entered_time = event.get("State").get("EnteredTime")
+
+        trace_id = _deterministic_md5_hash(execution_id)
+        parent_id = _deterministic_md5_hash(
+            execution_id + "#" + state_name + "#" + state_entered_time
+        )
+        sampling_priority = SamplingPriority.AUTO_KEEP
+        return trace_id, parent_id, sampling_priority
+    except Exception as e:
+        logger.debug("The Step Functions trace extractor returned with error %s", e)
+        return extract_context_from_lambda_context(lambda_context)
+
+
 def extract_context_custom_extractor(extractor, event, lambda_context):
     """
     Extract Datadog trace context using a custom trace extractor function
@@ -440,6 +471,12 @@ def extract_dd_trace_context(
             parent_id,
             sampling_priority,
         ) = extract_context_from_kinesis_event(event, lambda_context)
+    elif event_source.equals(EventTypes.STEPFUNCTIONS):
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = extract_context_from_step_functions(event, lambda_context)
     else:
         trace_id, parent_id, sampling_priority = extract_context_from_lambda_context(
             lambda_context
