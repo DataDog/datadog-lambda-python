@@ -153,7 +153,9 @@ class ColdStartTracer(object):
         if not root_nodes:
             return
         cold_start_span_start_time_ns = root_nodes[0].start_time_ns
-        cold_start_span_end_time_ns = min(root_nodes[-1].end_time_ns, self.current_span_start_time_ns)
+        cold_start_span_end_time_ns = min(
+            root_nodes[-1].end_time_ns, self.current_span_start_time_ns
+        )
         cold_start_span = self.create_cold_start_span(cold_start_span_start_time_ns)
         while root_nodes:
             root_node = root_nodes.pop()
