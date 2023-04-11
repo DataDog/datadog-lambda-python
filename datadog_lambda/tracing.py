@@ -330,8 +330,8 @@ def extract_context_from_kinesis_event(event, lambda_context):
 
 def _deterministic_md5_hash(s: str) -> str:
     """MD5 here is to generate trace_id, not for any encryption."""
-    hex = hashlib.md5(s.encode("ascii")).hexdigest()
-    binary = bin(int(hex, 16))
+    hex_number = hashlib.md5(s.encode("ascii")).hexdigest()
+    binary = bin(int(hex_number, 16))
     binary_str = str(binary)
     binary_str_remove_0b = binary_str[2:].rjust(128, "0")
     most_significant_64_bits_without_leading_1 = "0" + binary_str_remove_0b[1:-64]
