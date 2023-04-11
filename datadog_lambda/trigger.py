@@ -146,6 +146,9 @@ def parse_event_source(event: dict) -> _EventSource:
     if event.get("source") == "aws.events" or has_event_categories:
         event_source = _EventSource(EventTypes.CLOUDWATCH_EVENTS)
 
+    if "Execution" in event and "StateMachine" in event and "State" in event:
+        event_source = _EventSource(EventTypes.STEPFUNCTIONS)
+
     event_record = get_first_record(event)
     if event_record:
         aws_event_source = event_record.get(

@@ -350,7 +350,6 @@ def extract_context_from_step_functions(event, lambda_context):
         execution_id = event.get("Execution").get("Id")
         state_name = event.get("State").get("Name")
         state_entered_time = event.get("State").get("EnteredTime")
-
         trace_id = _deterministic_md5_hash(execution_id)
         parent_id = _deterministic_md5_hash(
             execution_id + "#" + state_name + "#" + state_entered_time
