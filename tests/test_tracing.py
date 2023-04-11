@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, Mock, patch, call
 
 import ddtrace
 
-# from ddtrace.constants import ERROR_MSG, ERROR_TYPE
+from ddtrace.constants import ERROR_MSG, ERROR_TYPE
 from ddtrace import tracer
 from ddtrace.context import Context
 
