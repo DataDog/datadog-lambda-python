@@ -329,19 +329,22 @@ def extract_context_from_kinesis_event(event, lambda_context):
 
 
 def _deterministic_md5_hash(s: str) -> str:
-    # return hashlib.md5(s.encode("utf-8")).hexdigest()
+    """MD5 here is to generate trace_id, not for any encryption."""
     hex = hashlib.md5(s.encode("ascii")).hexdigest()
-    # str(int(hex, 16))
-    b = bin(int(hex, 16))
-    binary_str = str(b)
-    binary_str_remove_0b = binary_str[2:]
-    most_significant_64_bits = binary_str_remove_0b[:-64]
-    return str(int(most_significant_64_bits, 2))
+    binary = bin(int(hex, 16))
+    binary_str = str(binary)
+    binary_str_remove_0b = binary_str[2:].rjust(128, "0")
+    most_significant_64_bits_without_leading_1 = "0" + binary_str_remove_0b[1:-64]
+    result = str(int(most_significant_64_bits_without_leading_1, 2))
+    if result == "0" * 64:
+        return "1"
+    return result
 
 
 def extract_context_from_step_functions(event, lambda_context):
     """
-    Only extract datadog trace context when Step Functions Context Object is injected into lambda's event dict
+    Only extract datadog trace context when Step Functions Context Object is injected
+    into lambda's event dict.
     """
     try:
         execution_id = event.get("Execution").get("Id")

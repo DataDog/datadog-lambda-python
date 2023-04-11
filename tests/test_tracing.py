@@ -1402,3 +1402,11 @@ class TestStepFunctionsTraceContext(unittest.TestCase):
             ":c8baf081-31f1-464d-971f-70cb17d01111#step-one#2022-12-08T21:08:19.224Z"
         )
         self.assertEqual("8034507082463708833", result)
+
+    def test_deterministic_m5_hash__always_leading_with_zero(self):
+        for i in range(100):
+            result = _deterministic_md5_hash(str(i))
+            result_in_binary = bin(int(result))
+            # Leading zeros will be omitted, so only test for full 64 bits present
+            if len(result_in_binary) == 66:  # "0b" + 64 bits.
+                self.assertTrue(result_in_binary.startswith("0b0"))
