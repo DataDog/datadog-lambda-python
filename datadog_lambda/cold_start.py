@@ -134,14 +134,16 @@ class ColdStartTracer(object):
         self,
         tracer,
         function_name,
-        cold_start_span_finish_time_ns,
+        current_span_start_time_ns,
         trace_ctx,
         min_duration_ms: int,
-        ignored_libs: List[str] = [],
+        ignored_libs: List[str] = None,
     ):
+        if ignored_libs is None:
+            ignored_libs = []
         self._tracer = tracer
         self.function_name = function_name
-        self.cold_start_span_finish_time_ns = cold_start_span_finish_time_ns
+        self.current_span_start_time_ns = current_span_start_time_ns
         self.min_duration_ms = min_duration_ms
         self.trace_ctx = trace_ctx
         self.ignored_libs = ignored_libs
@@ -151,11 +153,14 @@ class ColdStartTracer(object):
         if not root_nodes:
             return
         cold_start_span_start_time_ns = root_nodes[0].start_time_ns
+        cold_start_span_end_time_ns = min(
+            root_nodes[-1].end_time_ns, self.current_span_start_time_ns
+        )
         cold_start_span = self.create_cold_start_span(cold_start_span_start_time_ns)
         while root_nodes:
             root_node = root_nodes.pop()
             self.trace_tree(root_node, cold_start_span)
-        self.finish_span(cold_start_span, self.cold_start_span_finish_time_ns)
+        self.finish_span(cold_start_span, cold_start_span_end_time_ns)
 
     def trace_tree(self, import_node: ImportNode, parent_span):
         if (
