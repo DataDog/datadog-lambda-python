@@ -5,7 +5,7 @@ import os
 from unittest.mock import MagicMock, Mock, patch, call
 
 import ddtrace
-from ddtrace.constants import ERROR_MSG, ERROR_TYPE
+
 from ddtrace import tracer
 from ddtrace.context import Context
 
@@ -15,6 +15,7 @@ from datadog_lambda.constants import (
     XraySubsegment,
 )
 from datadog_lambda.tracing import (
+    _deterministic_md5_hash,
     create_inferred_span,
     extract_dd_trace_context,
     create_dd_dummy_metadata_subsegment,
@@ -1334,9 +1335,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        print(event)
         span = create_inferred_span(event, ctx)
-        print(span)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(
             span.service,
@@ -1389,3 +1388,24 @@ class TestInferredSpans(unittest.TestCase):
             lambda_ctx,
         )
         self.assertEqual(ctx, None)
+
+
+class TestStepFunctionsTraceContext(unittest.TestCase):
+    def test_deterministic_m5_hash(self):
+        result = _deterministic_md5_hash("some_testing_random_string")
+        self.assertEqual("2251275791555400689", result)
+
+    def test_deterministic_m5_hash__result_the_same_as_backend(self):
+        result = _deterministic_md5_hash(
+            "arn:aws:states:sa-east-1:601427271234:express:DatadogStateMachine:acaf1a67-336a-e854-1599-2a627eb2dd8a"
+            ":c8baf081-31f1-464d-971f-70cb17d01111#step-one#2022-12-08T21:08:19.224Z"
+        )
+        self.assertEqual("8034507082463708833", result)
+
+    def test_deterministic_m5_hash__always_leading_with_zero(self):
+        for i in range(100):
+            result = _deterministic_md5_hash(str(i))
+            result_in_binary = bin(int(result))
+            # Leading zeros will be omitted, so only test for full 64 bits present
+            if len(result_in_binary) == 66:  # "0b" + 64 bits.
+                self.assertTrue(result_in_binary.startswith("0b0"))
