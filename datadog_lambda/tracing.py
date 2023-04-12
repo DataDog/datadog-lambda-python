@@ -385,7 +385,7 @@ def is_authorizer_response(response) -> bool:
             and response["principalId"]
             and response["policyDocument"]
         )
-    except KeyError:
+    except (KeyError, AttributeError):
         pass
     except Exception as e:
         logger.debug("unknown error while checking is_authorizer_response %s", e)
