@@ -122,16 +122,17 @@ class _LambdaDecorator(object):
             self.trace_extractor = None
             self.span = None
             self.inferred_span = None
-            self.make_inferred_span = (
+            depends_on_dd_tracing_enabled = lambda original_boolean : dd_tracing_enabled and original_boolean
+            self.make_inferred_span = depends_on_dd_tracing_enabled(
                 os.environ.get("DD_TRACE_MANAGED_SERVICES", "true").lower() == "true"
             )
-            self.encode_authorizer_context = (
+            self.encode_authorizer_context = depends_on_dd_tracing_enabled(
                 os.environ.get("DD_ENCODE_AUTHORIZER_CONTEXT", "true").lower() == "true"
             )
-            self.decode_authorizer_context = (
+            self.decode_authorizer_context = depends_on_dd_tracing_enabled(
                 os.environ.get("DD_DECODE_AUTHORIZER_CONTEXT", "true").lower() == "true"
             )
-            self.cold_start_tracing = (
+            self.cold_start_tracing = depends_on_dd_tracing_enabled(
                 os.environ.get("DD_COLD_START_TRACING", "true").lower() == "true"
             )
             self.min_cold_start_trace_duration = 3
