@@ -10,7 +10,7 @@
 
 set -e
 
-LAYER_NAMES=("Datadog-Python37" "Datadog-Python38" "Datadog-Python38-ARM" "Datadog-Python39" "Datadog-Python39-ARM")
+LAYER_NAMES=("Datadog-Python37" "Datadog-Python38" "Datadog-Python38-ARM" "Datadog-Python39" "Datadog-Python39-ARM" "Datadog-Python310" "Datadog-Python310-ARM")
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 LAYERS_MISSING_REGIONS=()
 
@@ -63,6 +63,6 @@ done
 
 if [ ${#LAYERS_MISSING_REGIONS[@]} -gt 0 ]; then
     echo "WARNING: Following regions missing layers: ${LAYERS_MISSING_REGIONS[@]}"
-    echo "Please run ./add_new_region.sh <new_region> to add layers to the missing regions" 
+    echo "Please run ./add_new_region.sh <new_region> to add layers to the missing regions"
     exit 1
 fi

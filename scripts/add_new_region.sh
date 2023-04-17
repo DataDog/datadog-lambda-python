@@ -8,12 +8,12 @@
 # Copy layers from us-east-1 to new region
 # args: [new-region]
 
-set -e 
+set -e
 
 OLD_REGION='us-east-1'
 
-PYTHON_VERSIONS_FOR_AWS_CLI=("python3.7" "python3.8" "python3.9")
-LAYER_NAMES=("Datadog-Python37" "Datadog-Python38" "Datadog-Python39")
+LAYER_NAMES=("Datadog-Python37" "Datadog-Python38" "Datadog-Python38-ARM" "Datadog-Python39" "Datadog-Python39-ARM" "Datadog-Python310" "Datadog-Python310-ARM")
+PYTHON_VERSIONS_FOR_AWS_CLI=("python3.7" "python3.8" "python3.8" "python3.9" "python3.9" "python3.10" "python3.10")
 NEW_REGION=$1
 
 publish_layer() {
@@ -68,11 +68,11 @@ for layer_name in "${LAYER_NAMES[@]}"; do
     fi
 
     # run for each version of layer
-    for i in $(seq 1 $last_layer_version); do 
+    for i in $(seq 1 $last_layer_version); do
         layer_path=$layer_name"_"$i.zip
         aws_version_key="${PYTHON_VERSIONS_FOR_AWS_CLI[$j]}"
 
-        # download layer versions 
+        # download layer versions
         URL=$(AWS_REGION=$OLD_REGION aws lambda get-layer-version --layer-name $layer_name --version-number $i --query Content.Location --output text)
         curl $URL -o $layer_path
 
