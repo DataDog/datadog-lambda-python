@@ -539,7 +539,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         lambda_handler.inferred_span = mock_span
 
         result = lambda_handler(lambda_event, lambda_context)
-        inject_data = json.loads(base64.b64decode(result["context"]["_datadog"]))
+        raw_inject_data = result["context"]["_datadog"]
+        self.assertIsInstance(raw_inject_data, str)
+        inject_data = json.loads(base64.b64decode(raw_inject_data))
         self.assertEquals(inject_data[TraceHeader.PARENT_ID], "123")
         self.assertEquals(inject_data[TraceHeader.TRACE_ID], "456")
         self.assertEquals(inject_data[TraceHeader.SAMPLING_PRIORITY], "1")

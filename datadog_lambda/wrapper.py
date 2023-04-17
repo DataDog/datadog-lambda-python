@@ -219,7 +219,7 @@ class _LambdaDecorator(object):
         injected_headers[Headers.Parent_Span_Finish_Time] = finish_time_ns
         if request_id is not None:
             injected_headers[Headers.Authorizing_Request_Id] = request_id
-        datadog_data = base64.b64encode(json.dumps(injected_headers).encode())
+        datadog_data = base64.b64encode(json.dumps(injected_headers).encode()).decode()
         self.response.setdefault("context", {})
         self.response["context"]["_datadog"] = datadog_data
 
