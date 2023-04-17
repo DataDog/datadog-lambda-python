@@ -14,6 +14,8 @@ LAYER_FILES=(
     "datadog_lambda_py-arm64-3.8.zip"
     "datadog_lambda_py-amd64-3.9.zip"
     "datadog_lambda_py-arm64-3.9.zip"
+    "datadog_lambda_py-amd64-3.10.zip"
+    "datadog_lambda_py-arm64-3.10.zip"
 )
 SIGNING_PROFILE_NAME="DatadogLambdaSigningProfile"
 
@@ -38,7 +40,7 @@ fi
 
 for LAYER_FILE in "${LAYER_FILES[@]}"
 do
-    echo 
+    echo
     echo "${LAYER_FILE}"
     echo "-------------------------"
 
@@ -68,7 +70,7 @@ do
     do
         sleep 3
         SECONDS_WAITED_SO_FAR=$((SECONDS_WAITED_SO_FAR + 3))
-        
+
         SIGNING_JOB_DESCRIPTION=$(aws signer describe-signing-job \
             --job-id $SIGNING_JOB_ID \
             --region $REGION\

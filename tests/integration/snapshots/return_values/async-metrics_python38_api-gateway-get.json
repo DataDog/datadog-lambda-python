@@ -1,8 +1,0 @@
-{
-    "statusCode": 200,
-    "body": {
-        "message": "hello, dog!",
-        "request_id": "77375676-xmpl-4b79-853a-f982474efe18",
-        "event_record_ids": []
-    }
-}

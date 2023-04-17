@@ -11,7 +11,7 @@ set -e
 # These values need to be in sync with serverless.yml, where there needs to be a function
 # defined for every handler_runtime combination
 LAMBDA_HANDLERS=("async-metrics" "sync-metrics")
-RUNTIMES=("python37" "python38" "python39")
+RUNTIMES=("python37" "python38" "python39" "python310")
 
 LOGS_WAIT_SECONDS=20
 
@@ -31,8 +31,9 @@ mismatch_found=false
 python37=("python3.7" "3.7" $(xxd -l 4 -c 4 -p < /dev/random))
 python38=("python3.8" "3.8" $(xxd -l 4 -c 4 -p < /dev/random))
 python39=("python3.9" "3.9" $(xxd -l 4 -c 4 -p < /dev/random))
+python310=("python3.10" "3.10" $(xxd -l 4 -c 4 -p < /dev/random))
 
-PARAMETERS_SETS=("python37" "python38" "python39")
+PARAMETERS_SETS=("python37" "python38" "python39" "python310")
 
 if [ -z "$RUNTIME_PARAM" ]; then
     echo "Python version not specified, running for all python versions."
@@ -111,7 +112,7 @@ python version : ${!python_version} and run id : ${!run_id}"
         for input_event_file in "${input_event_files[@]}"; do
             # Get event name without trailing ".json" so we can build the snapshot file name
             input_event_name=$(echo "$input_event_file" | sed "s/.json//")
-            snapshot_path="./snapshots/return_values/${handler_name}_${parameters_set}_${input_event_name}.json"
+            snapshot_path="./snapshots/return_values/${handler_name}_${input_event_name}.json"
 
             return_value=$(PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} \
             serverless invoke --stage ${!run_id} -f "$function_name" --path "./input_events/$input_event_file")
