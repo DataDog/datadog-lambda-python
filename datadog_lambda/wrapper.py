@@ -57,6 +57,20 @@ dd_capture_lambda_payload_enabled = (
 service_env_var = os.environ.get("DD_SERVICE", "DefaultServiceName")
 env_env_var = os.environ.get("DD_ENV", None)
 
+DD_FLUSH_TO_LOG = "DD_FLUSH_TO_LOG"
+DD_LOGS_INJECTION = "DD_LOGS_INJECTION"
+DD_MERGE_XRAY_TRACES = "DD_MERGE_XRAY_TRACES"
+AWS_LAMBDA_FUNCTION_NAME = "AWS_LAMBDA_FUNCTION_NAME"
+DD_TRACE_EXTRACTOR = "DD_TRACE_EXTRACTOR"
+DD_TRACE_MANAGED_SERVICES = "DD_TRACE_MANAGED_SERVICES"
+DD_ENCODE_AUTHORIZER_CONTEXT = "DD_ENCODE_AUTHORIZER_CONTEXT"
+DD_DECODE_AUTHORIZER_CONTEXT = "DD_DECODE_AUTHORIZER_CONTEXT"
+DD_COLD_START_TRACING = "DD_COLD_START_TRACING"
+DD_MIN_COLD_START_DURATION = "DD_MIN_COLD_START_DURATION"
+DD_COLD_START_TRACE_SKIP_LIB = "DD_COLD_START_TRACE_SKIP_LIB"
+DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
+DD_SERVICE = "DD_SERVICE"
+
 """
 Usage:
 
@@ -110,50 +124,52 @@ class _LambdaDecorator(object):
         """Executes when the wrapped function gets wrapped"""
         try:
             self.func = func
-            self.flush_to_log = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
+            self.flush_to_log = os.environ.get(DD_FLUSH_TO_LOG, "").lower() == "true"
             self.logs_injection = (
-                os.environ.get("DD_LOGS_INJECTION", "true").lower() == "true"
+                os.environ.get(DD_LOGS_INJECTION, "true").lower() == "true"
             )
             self.merge_xray_traces = (
-                os.environ.get("DD_MERGE_XRAY_TRACES", "false").lower() == "true"
+                os.environ.get(DD_MERGE_XRAY_TRACES, "false").lower() == "true"
             )
-            self.function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME", "function")
-            self.extractor_env = os.environ.get("DD_TRACE_EXTRACTOR", None)
+            self.function_name = os.environ.get(AWS_LAMBDA_FUNCTION_NAME, "function")
+            self.extractor_env = os.environ.get(DD_TRACE_EXTRACTOR, None)
             self.trace_extractor = None
             self.span = None
             self.inferred_span = None
-            depends_on_dd_tracing_enabled = lambda original_boolean : dd_tracing_enabled and original_boolean
+            depends_on_dd_tracing_enabled = (
+                lambda original_boolean: dd_tracing_enabled and original_boolean
+            )
             self.make_inferred_span = depends_on_dd_tracing_enabled(
-                os.environ.get("DD_TRACE_MANAGED_SERVICES", "true").lower() == "true"
+                os.environ.get(DD_TRACE_MANAGED_SERVICES, "true").lower() == "true"
             )
             self.encode_authorizer_context = depends_on_dd_tracing_enabled(
-                os.environ.get("DD_ENCODE_AUTHORIZER_CONTEXT", "true").lower() == "true"
+                os.environ.get(DD_ENCODE_AUTHORIZER_CONTEXT, "true").lower() == "true"
             )
             self.decode_authorizer_context = depends_on_dd_tracing_enabled(
-                os.environ.get("DD_DECODE_AUTHORIZER_CONTEXT", "true").lower() == "true"
+                os.environ.get(DD_DECODE_AUTHORIZER_CONTEXT, "true").lower() == "true"
             )
             self.cold_start_tracing = depends_on_dd_tracing_enabled(
-                os.environ.get("DD_COLD_START_TRACING", "true").lower() == "true"
+                os.environ.get(DD_COLD_START_TRACING, "true").lower() == "true"
             )
             self.min_cold_start_trace_duration = 3
-            if "DD_MIN_COLD_START_DURATION" in os.environ:
+            if DD_MIN_COLD_START_DURATION in os.environ:
                 try:
                     self.min_cold_start_trace_duration = int(
-                        os.environ["DD_MIN_COLD_START_DURATION"]
+                        os.environ[DD_MIN_COLD_START_DURATION]
                     )
                 except Exception:
-                    logger.debug("Malformatted env DD_MIN_COLD_START_DURATION")
+                    logger.debug(f"Malformatted env {DD_MIN_COLD_START_DURATION}")
             self.cold_start_trace_skip_lib = [
                 "ddtrace.internal.compat",
                 "ddtrace.filters",
             ]
-            if "DD_COLD_START_TRACE_SKIP_LIB" in os.environ:
+            if DD_COLD_START_TRACE_SKIP_LIB in os.environ:
                 try:
                     self.cold_start_trace_skip_lib = os.environ[
-                        "DD_COLD_START_TRACE_SKIP_LIB"
+                        DD_COLD_START_TRACE_SKIP_LIB
                     ].split(",")
                 except Exception:
-                    logger.debug("Malformatted for env DD_COLD_START_TRACE_SKIP_LIB")
+                    logger.debug(f"Malformatted for env {DD_COLD_START_TRACE_SKIP_LIB}")
             self.response = None
             if profiling_env_var:
                 self.prof = profiler.Profiler(env=env_env_var, service=service_env_var)
@@ -171,8 +187,8 @@ class _LambdaDecorator(object):
 
             # This prevents a breaking change in ddtrace v0.49 regarding the service name
             # in requests-related spans
-            os.environ["DD_REQUESTS_SERVICE_NAME"] = os.environ.get(
-                "DD_SERVICE", "aws.lambda"
+            os.environ[DD_REQUESTS_SERVICE_NAME] = os.environ.get(
+                DD_SERVICE, "aws.lambda"
             )
             # Patch third-party libraries for tracing
             patch_all()
