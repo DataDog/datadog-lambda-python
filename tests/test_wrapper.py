@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch, call, ANY, MagicMock
 from datadog_lambda.constants import TraceHeader
 
-from datadog_lambda.wrapper import datadog_lambda_wrapper
+import datadog_lambda.wrapper as wrapper
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
@@ -31,8 +31,11 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
     def setUp(self):
         # Force @datadog_lambda_wrapper to always create a real
         # (not no-op) wrapper.
-        datadog_lambda_wrapper._force_wrap = True
+        patch("ddtrace.internal.remoteconfig.RemoteConfig").start()
+        patch("ddtrace.internal.writer.AgentWriter.flush_queue").start()
 
+        wrapper.datadog_lambda_wrapper._force_wrap = True
+        wrapper.dd_tracing_enabled = True
         patcher = patch(
             "datadog.threadstats.reporters.HttpReporter.flush_distributions"
         )
@@ -84,7 +87,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def test_datadog_lambda_wrapper(self):
-        @datadog_lambda_wrapper
+        wrapper.dd_tracing_enabled = False
+
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
 
@@ -93,7 +98,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         lambda_context = get_mock_context()
 
         lambda_handler(lambda_event, lambda_context)
-
+        wrapper.dd_tracing_enabled = True
         self.mock_threadstats_flush_distributions.assert_has_calls(
             [
                 call(
@@ -112,7 +117,10 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             ]
         )
         self.mock_extract_dd_trace_context.assert_called_with(
-            lambda_event, lambda_context, extractor=None, decode_authorizer_context=True
+            lambda_event,
+            lambda_context,
+            extractor=None,
+            decode_authorizer_context=False,
         )
         self.mock_set_correlation_ids.assert_called()
         self.mock_inject_correlation_ids.assert_called()
@@ -121,7 +129,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
     def test_datadog_lambda_wrapper_flush_to_log(self):
         os.environ["DD_FLUSH_TO_LOG"] = "True"
 
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
 
@@ -139,7 +147,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         metric_module.lambda_stats.stop()
         metric_module.lambda_stats = ThreadStatsWriter(True)
 
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             import time
 
@@ -166,7 +174,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         metric_module.lambda_stats.stop()
         metric_module.lambda_stats = ThreadStatsWriter(False)
 
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             import time
 
@@ -188,21 +196,22 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     def test_datadog_lambda_wrapper_inject_correlation_ids(self):
         os.environ["DD_LOGS_INJECTION"] = "True"
+        wrapper.dd_tracing_enabled = False
 
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
 
         lambda_event = {}
         lambda_handler(lambda_event, get_mock_context())
-
+        wrapper.dd_tracing_enabled = True
         self.mock_set_correlation_ids.assert_called()
         self.mock_inject_correlation_ids.assert_called()
 
         del os.environ["DD_LOGS_INJECTION"]
 
     def test_invocations_metric(self):
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
 
@@ -232,7 +241,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         )
 
     def test_errors_metric(self):
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             raise RuntimeError()
 
@@ -288,7 +297,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             "http.method": "GET",
         }
 
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             return {"statusCode": 500, "body": "fake response body"}
 
@@ -334,7 +343,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         )
 
     def test_enhanced_metrics_cold_start_tag(self):
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
 
@@ -386,7 +395,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         )
 
     def test_enhanced_metrics_latest(self):
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
 
@@ -420,7 +429,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         )
 
     def test_enhanced_metrics_alias(self):
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
 
@@ -456,7 +465,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
     def test_no_enhanced_metrics_without_env_var(self):
         os.environ["DD_ENHANCED_METRICS"] = "false"
 
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             raise RuntimeError()
 
@@ -474,15 +483,15 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_submit_invocations_metric = patcher.start()
         self.addCleanup(patcher.stop)
 
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
 
         # Turn off _force_wrap to emulate the nested wrapper scenario,
         # the second @datadog_lambda_wrapper should actually be no-op.
-        datadog_lambda_wrapper._force_wrap = False
+        wrapper.datadog_lambda_wrapper._force_wrap = False
 
-        lambda_handler_double_wrapped = datadog_lambda_wrapper(lambda_handler)
+        lambda_handler_double_wrapped = wrapper.datadog_lambda_wrapper(lambda_handler)
 
         lambda_event = {}
 
@@ -492,7 +501,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_submit_invocations_metric.assert_called_once()
 
     def test_dd_requests_service_name_default(self):
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             pass
 
@@ -501,7 +510,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
     def test_dd_requests_service_name_set(self):
         os.environ["DD_SERVICE"] = "myAwesomeService"
 
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             pass
 
@@ -509,7 +518,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         del os.environ["DD_SERVICE"]
 
     def test_encode_authorizer_span(self):
-        @datadog_lambda_wrapper
+        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             return {
                 "principalId": "foo",
@@ -537,7 +546,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         mock_span.start_ns = 1668127541671386817
         mock_span.duration_ns = 1e8
         lambda_handler.inferred_span = mock_span
-
+        lambda_handler.make_inferred_span = False
         result = lambda_handler(lambda_event, lambda_context)
         inject_data = json.loads(base64.b64decode(result["context"]["_datadog"]))
         self.assertEquals(inject_data[TraceHeader.PARENT_ID], "123")
@@ -551,10 +560,22 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         mock_context = get_mock_context()
         for test_result in TEST_RESULTS:
 
-            @datadog_lambda_wrapper
+            @wrapper.datadog_lambda_wrapper
             def return_type_test(event, context):
                 return test_result
 
             result = return_type_test({}, mock_context)
             self.assertEquals(result, test_result)
             self.assertFalse(MockPrintExc.called)
+
+
+class TestLambdaDecoratorSettings(unittest.TestCase):
+    def test_some_envs_should_depend_on_dd_tracing_enabled(self):
+        wrapper.dd_tracing_enabled = False
+        os.environ[wrapper.DD_TRACE_MANAGED_SERVICES] = "true"
+        os.environ[wrapper.DD_ENCODE_AUTHORIZER_CONTEXT] = "true"
+        os.environ[wrapper.DD_DECODE_AUTHORIZER_CONTEXT] = "true"
+        decorator = wrapper._LambdaDecorator(func=None)
+        self.assertFalse(decorator.make_inferred_span)
+        self.assertFalse(decorator.encode_authorizer_context)
+        self.assertFalse(decorator.decode_authorizer_context)
