@@ -1,6 +1,8 @@
 import unittest
 import json
 import os
+import copy
+
 
 from unittest.mock import MagicMock, Mock, patch, call
 
@@ -730,6 +732,415 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
             f"{http_method} {route_key}" if http_method else route_key,
         )
         self.assertEqual(span.get_tag("request_id"), "abc123")
+
+
+class TestServiceMapping(unittest.TestCase):
+    def tearDown(self):
+        del os.environ["DD_SERVICE_MAPPING"]
+
+    def test_remaps_all_inferred_span_service_names_from_api_gateway_event(self):
+        os.environ["DD_SERVICE_MAPPING"] = "lambda_api_gateway|new-name"
+
+        event_sample_source = "api-gateway"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.apigateway.rest")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(
+            original_event
+        )  # Create a deep copy so we don't modify the original event
+        # Modify event2 as necessary
+        event2["requestContext"][
+            "domainName"
+        ] = "different.execute-api.us-east-2.amazonaws.com"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.apigateway.rest")
+        self.assertEqual(span2.service, "new-name")
+
+    def test_remaps_specific_inferred_span_service_names_from_api_gateway_event(self):
+        os.environ[
+            "DD_SERVICE_MAPPING"
+        ] = "70ixmpl4fl.execute-api.us-east-2.amazonaws.com|new-name"
+
+        event_sample_source = "api-gateway"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.apigateway.rest")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(
+            original_event
+        )  # Create a deep copy so we don't modify the original event
+        # Modify event2 as necessary
+        event2["requestContext"][
+            "domainName"
+        ] = "different.execute-api.us-east-2.amazonaws.com"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.apigateway.rest")
+        self.assertEqual(span2.service, "different.execute-api.us-east-2.amazonaws.com")
+
+    def test_remaps_all_inferred_span_service_names_from_lambda_url_event(self):
+        os.environ["DD_SERVICE_MAPPING"] = "lambda_url|new-name"
+
+        event_sample_source = "lambda-url"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.lambda.url")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(
+            original_event
+        )  # Create a deep copy so we don't modify the original event
+        # Modify event2 as necessary
+        event2["requestContext"][
+            "domainName"
+        ] = "different.lambda-url.eu-south-1.amazonaws.com"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.lambda.url")
+        self.assertEqual(span2.service, "new-name")
+
+    def test_remaps_specific_inferred_span_service_names_from_lambda_url_event(self):
+        os.environ[
+            "DD_SERVICE_MAPPING"
+        ] = "a8hyhsshac.lambda-url.eu-south-1.amazonaws.com|new-name"
+
+        event_sample_source = "lambda-url"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.lambda.url")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(
+            original_event
+        )  # Create a deep copy so we don't modify the original event
+        # Modify event2 as necessary
+        event2["requestContext"][
+            "domainName"
+        ] = "different.lambda-url.eu-south-1.amazonaws.com"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.lambda.url")
+        self.assertEqual(span2.service, "different.lambda-url.eu-south-1.amazonaws.com")
+
+    def test_remaps_all_inferred_span_service_names_from_sqs_event(self):
+        os.environ["DD_SERVICE_MAPPING"] = "lambda_sqs|new-name"
+
+        event_sample_source = "sqs-string-msg-attribute"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.sqs")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(original_event)
+        event2["Records"][0][
+            "eventSourceARN"
+        ] = "arn:aws:sqs:eu-west-1:123456789012:different-sqs-url"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.sqs")
+        self.assertEqual(span2.service, "new-name")
+
+    def test_remaps_specific_inferred_span_service_names_from_sqs_event(self):
+        os.environ[
+            "DD_SERVICE_MAPPING"
+        ] = "arn:aws:sqs:eu-west-1:601427279990:InferredSpansQueueNode|new-name"
+
+        event_sample_source = "sqs-string-msg-attribute"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.sqs")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(original_event)
+        event2["Records"][0][
+            "eventSourceARN"
+        ] = "arn:aws:sqs:eu-west-1:123456789012:different-sqs-url"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.sqs")
+        self.assertEqual(span2.service, "sqs")
+
+    def test_remaps_all_inferred_span_service_names_from_sns_event(self):
+        os.environ["DD_SERVICE_MAPPING"] = "lambda_sns|new-name"
+
+        event_sample_source = "sns-string-msg-attribute"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.sns")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(original_event)
+        event2["Records"][0]["Sns"][
+            "TopicArn"
+        ] = "arn:aws:sns:us-west-2:123456789012:different-sns-topic"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.sns")
+        self.assertEqual(span2.service, "new-name")
+
+    def test_remaps_specific_inferred_span_service_names_from_sns_event(self):
+        os.environ[
+            "DD_SERVICE_MAPPING"
+        ] = "arn:aws:sns:eu-west-1:601427279990:serverlessTracingTopicPy|new-name"
+
+        event_sample_source = "sns-string-msg-attribute"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.sns")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(original_event)
+        event2["Records"][0]["Sns"][
+            "TopicArn"
+        ] = "arn:aws:sns:us-west-2:123456789012:different-sns-topic"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.sns")
+        self.assertEqual(span2.service, "sns")
+
+    def test_remaps_all_inferred_span_service_names_from_kinesis_event(self):
+        os.environ["DD_SERVICE_MAPPING"] = "lambda_kinesis|new-name"
+
+        event_sample_source = "kinesis"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.kinesis")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(original_event)
+        event2["Records"][0][
+            "eventSourceARN"
+        ] = "arn:aws:kinesis:eu-west-1:601427279990:stream/differentKinesisStream"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.kinesis")
+        self.assertEqual(span2.service, "new-name")
+
+    def test_remaps_specific_inferred_span_service_names_from_kinesis_event(self):
+        os.environ[
+            "DD_SERVICE_MAPPING"
+        ] = "arn:aws:kinesis:eu-west-1:601427279990:stream/kinesisStream|new-name"
+
+        event_sample_source = "kinesis"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.kinesis")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(original_event)
+        event2["Records"][0][
+            "eventSourceARN"
+        ] = "arn:aws:kinesis:eu-west-1:601427279990:stream/differentKinesisStream"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.kinesis")
+        self.assertEqual(span2.service, "kinesis")
+
+    def test_remaps_all_inferred_span_service_names_from_s3_event(self):
+        os.environ["DD_SERVICE_MAPPING"] = "lambda_s3|new-name"
+
+        event_sample_source = "s3"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.s3")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(original_event)
+        event2["Records"][0]["s3"]["bucket"][
+            "arn"
+        ] = "arn:aws:s3:::different-example-bucket"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.s3")
+        self.assertEqual(span2.service, "new-name")
+
+    def test_remaps_specific_inferred_span_service_names_from_s3_event(self):
+        os.environ["DD_SERVICE_MAPPING"] = "arn:aws:s3:::example-bucket|new-name"
+
+        event_sample_source = "s3"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.s3")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(original_event)
+        event2["Records"][0]["s3"]["bucket"][
+            "arn"
+        ] = "arn:aws:s3:::different-example-bucket"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.s3")
+        self.assertEqual(span2.service, "s3")
+
+    def test_remaps_all_inferred_span_service_names_from_dynamodb_event(self):
+        os.environ["DD_SERVICE_MAPPING"] = "lambda_dynamodb|new-name"
+
+        event_sample_source = "dynamodb"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.dynamodb")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(original_event)
+        event2["Records"][0][
+            "eventSourceARN"
+        ] = "arn:aws:dynamodb:us-east-1:123456789012:table/DifferentExampleTableWithStream/stream/2015-06-27T00:48:05.899"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.dynamodb")
+        self.assertEqual(span2.service, "new-name")
+
+    def test_remaps_specific_inferred_span_service_names_from_dynamodb_event(self):
+        os.environ[
+            "DD_SERVICE_MAPPING"
+        ] = "arn:aws:dynamodb:us-east-1:123456789012:table/ExampleTableWithStream|new-name"
+
+        event_sample_source = "dynamodb"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.dynamodb")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(original_event)
+        event2["Records"][0][
+            "eventSourceARN"
+        ] = "arn:aws:dynamodb:us-east-1:123456789012:table/DifferentExampleTableWithStream/stream/2015-06-27T00:48:05.899"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.dynamodb")
+        self.assertEqual(span2.service, "dynamodb")
+
+    def test_remaps_all_inferred_span_service_names_from_eventbridge_event(self):
+        os.environ["DD_SERVICE_MAPPING"] = "lambda_eventbridge|new-name"
+
+        event_sample_source = "eventbridge-custom"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.eventbridge")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(original_event)
+        event2["source"] = "different.eventbridge.custom.event.sender"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.eventbridge")
+        self.assertEqual(span2.service, "new-name")
+
+    def test_remaps_specific_inferred_span_service_names_from_eventbridge_event(self):
+        os.environ["DD_SERVICE_MAPPING"] = "eventbridge.custom.event.sender|new-name"
+
+        event_sample_source = "eventbridge-custom"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.eventbridge")
+        self.assertEqual(span1.service, "new-name")
+
+        # Testing the second event
+        event2 = copy.deepcopy(original_event)
+        event2["source"] = "different.eventbridge.custom.event.sender"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.eventbridge")
+        self.assertEqual(span2.service, "eventbridge")
 
 
 class TestInferredSpans(unittest.TestCase):
