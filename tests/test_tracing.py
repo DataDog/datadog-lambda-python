@@ -483,6 +483,13 @@ class TestLogsInjection(unittest.TestCase):
         self.assertEqual(span.trace_id, 123)
         self.assertEqual(span.span_id, 456)
 
+    def test_set_correlation_ids_handle_empty_trace_context(self):
+        # neither x-ray or ddtrace is use. no tracing at all.
+        self.mock_get_dd_trace_context.return_value = {}
+        # no exception thrown
+        set_correlation_ids()
+        span = tracer.current_span()
+        self.assertIsNone(span)
 
 class TestFunctionSpanTags(unittest.TestCase):
     def test_function(self):
