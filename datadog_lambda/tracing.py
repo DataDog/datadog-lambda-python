@@ -690,7 +690,7 @@ def get_service_mapping(service_name):
     mapping = {}
 
     for entry in service_mapping.split(","):
-        parts = entry.split("|")
+        parts = entry.split(":")
         if len(parts) == 2:
             key, value = parts
             mapping[key.strip()] = value.strip()
@@ -700,15 +700,16 @@ def get_service_mapping(service_name):
 
 def create_inferred_span_from_lambda_function_url_event(event, context):
     request_context = event.get("requestContext")
+    api_id = request_context.get("apiId")
     domain = request_context.get("domainName")
     # Attempt to get the service mapping for the domain so that we don't remap all apigw services
     # Allows the customer to have more fine-grained control
-    domain_mapping = get_service_mapping(str(domain))
+    apiid_mapping = get_service_mapping(str(api_id))
     # If the domain mapping is not found,
     # attempt to get the service mapping for 'lambda_api_gateway'
-    lambda_url_mapping = None if domain_mapping else get_service_mapping("lambda_url")
+    lambda_url_mapping = None if apiid_mapping else get_service_mapping("lambda_url")
     # If neither mapping is found, default to the domain name
-    service_name = domain_mapping or lambda_url_mapping or domain
+    service_name = apiid_mapping or lambda_url_mapping or domain
 
     method = request_context.get("http", {}).get("method")
     path = request_context.get("http", {}).get("path")
@@ -812,6 +813,17 @@ def create_inferred_span_from_api_gateway_websocket_event(
     request_context = event.get("requestContext")
     domain = request_context.get("domainName")
     endpoint = request_context.get("routeKey")
+    api_id = request_context.get("apiId")
+    # Attempt to get the service mapping for the domain so that we don't remap all apigw services
+    # Allows the customer to have more fine-grained control
+    apiid_mapping = get_service_mapping(str(api_id))
+    # If the domain mapping is not found,
+    # attempt to get the service mapping for 'lambda_api_gateway_websocket'
+    api_gateway_mapping = (
+        None if apiid_mapping else get_service_mapping("lambda_api_gateway_websocket")
+    )
+    # If neither mapping is found, default to the domain name
+    service_name = apiid_mapping or api_gateway_mapping or domain
     tags = {
         "operation_name": "aws.apigateway.websocket",
         "http.url": domain + endpoint,
@@ -831,7 +843,7 @@ def create_inferred_span_from_api_gateway_websocket_event(
     else:
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     args = {
-        "service": domain,
+        "service": service_name,
         "resource": endpoint,
         "span_type": "web",
     }
@@ -860,16 +872,17 @@ def create_inferred_span_from_api_gateway_event(
 ):
     request_context = event.get("requestContext")
     domain = request_context.get("domainName", "")
+    api_id = request_context.get("apiId")
     # Attempt to get the service mapping for the domain so that we don't remap all apigw services
     # Allows the customer to have more fine-grained control
-    domain_mapping = get_service_mapping(str(domain))
+    apiid_mapping = get_service_mapping(str(api_id))
     # If the domain mapping is not found,
     # attempt to get the service mapping for 'lambda_api_gateway'
     api_gateway_mapping = (
-        None if domain_mapping else get_service_mapping("lambda_api_gateway")
+        None if apiid_mapping else get_service_mapping("lambda_api_gateway")
     )
     # If neither mapping is found, default to the domain name
-    service_name = domain_mapping or api_gateway_mapping or domain
+    service_name = apiid_mapping or api_gateway_mapping or domain
 
     method = event.get("httpMethod")
     path = event.get("path")
@@ -921,6 +934,17 @@ def create_inferred_span_from_http_api_event(
 ):
     request_context = event.get("requestContext")
     domain = request_context.get("domainName")
+    api_id = request_context.get("apiId")
+    # Attempt to get the service mapping for the domain so that we don't remap all apigw services
+    # Allows the customer to have more fine-grained control
+    apiid_mapping = get_service_mapping(str(api_id))
+    # If the domain mapping is not found,
+    # attempt to get the service mapping for 'api_gateway_mapping'
+    api_gateway_mapping = (
+        None if apiid_mapping else get_service_mapping("lambda_http_api")
+    )
+    # If neither mapping is found, default to the domain name
+    service_name = apiid_mapping or api_gateway_mapping or domain
     method = request_context.get("http", {}).get("method")
     path = event.get("rawPath")
     resource = "{0} {1}".format(method, path)
@@ -944,7 +968,7 @@ def create_inferred_span_from_http_api_event(
     else:
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     args = {
-        "service": domain,
+        "service": service_name,
         "resource": resource,
         "span_type": "http",
     }
@@ -969,7 +993,7 @@ def create_inferred_span_from_sqs_event(event, context):
     event_record = get_first_record(event)
     event_source_arn = event_record.get("eventSourceARN")
     queue_name = event_source_arn.split(":")[-1]
-    queue_mapping = get_service_mapping(str(event_source_arn))
+    queue_mapping = get_service_mapping(str(queue_name))
 
     # If the domain mapping is not found, attempt to get the service mapping for 'sqs'
     sqs_mapping = None if queue_mapping else get_service_mapping("lambda_sqs")
@@ -1031,7 +1055,7 @@ def create_inferred_span_from_sns_event(event, context):
     sns_message = event_record.get("Sns")
     topic_arn = event_record.get("Sns", {}).get("TopicArn")
     topic_name = topic_arn.split(":")[-1]
-    queue_mapping = get_service_mapping(str(topic_arn))
+    queue_mapping = get_service_mapping(str(topic_name))
 
     # If the domain mapping is not found, attempt to get the service mapping for 'sns'
     sns_mapping = None if queue_mapping else get_service_mapping("lambda_sns")
@@ -1075,7 +1099,7 @@ def create_inferred_span_from_kinesis_event(event, context):
     event_id = event_record.get("eventID")
     stream_name = event_source_arn.split(":")[-1]
     shard_id = event_id.split(":")[0]
-    stream_name_mapping = get_service_mapping(str(event_source_arn))
+    stream_name_mapping = get_service_mapping(str(stream_name))
     kinesis_mapping = (
         None if stream_name_mapping else get_service_mapping("lambda_kinesis")
     )
@@ -1114,24 +1138,18 @@ def create_inferred_span_from_kinesis_event(event, context):
 def create_inferred_span_from_dynamodb_event(event, context):
     event_record = get_first_record(event)
     event_source_arn = event_record.get("eventSourceARN")
-    parts = event_source_arn.split("/") if event_source_arn else [None, None]
-
-    # parts now contains all split elements
-    table_arn_prefix, table_name, *rest = parts
-    full_table_arn = None
-    if table_arn_prefix and table_name:
-        full_table_arn = f"{table_arn_prefix}/{table_name}"
+    table_name = event_source_arn.split("/")[1]
     # Attempt to get the service mapping for the domain so that we don't remap all apigw services
     # Allows the customer to have more fine grained control
-    table_arn_mapping = get_service_mapping(full_table_arn) if full_table_arn else None
+    table_mapping = get_service_mapping(str(table_name))
 
     # If the domain mapping is not found, attempt to get the service mapping for 'dynamodb'
     dynamo_db_mapping = (
-        None if table_arn_mapping else get_service_mapping("lambda_dynamodb")
+        None if table_mapping else get_service_mapping("lambda_dynamodb")
     )
 
     # If neither mapping is found, default to "dynamodb"
-    service_name = table_arn_mapping or dynamo_db_mapping or "dynamodb"
+    service_name = table_mapping or dynamo_db_mapping or "dynamodb"
 
     dynamodb_message = event_record.get("dynamodb")
     tags = {
@@ -1166,8 +1184,7 @@ def create_inferred_span_from_dynamodb_event(event, context):
 def create_inferred_span_from_s3_event(event, context):
     event_record = get_first_record(event)
     bucket_name = event_record.get("s3", {}).get("bucket", {}).get("name")
-    bucket_arn = event_record.get("s3", {}).get("bucket", {}).get("arn")
-    bucket_name_mapping = get_service_mapping(str(bucket_arn))
+    bucket_name_mapping = get_service_mapping(str(bucket_name))
     # If the domain mapping is not found, attempt to get the service mapping for 's3'
     s3_mapping = None if bucket_name_mapping else get_service_mapping("lambda_s3")
 
@@ -1179,7 +1196,7 @@ def create_inferred_span_from_s3_event(event, context):
         "resource_names": bucket_name,
         "event_name": event_record.get("eventName"),
         "bucketname": bucket_name,
-        "bucket_arn": bucket_arn,
+        "bucket_arn": event_record.get("s3", {}).get("bucket", {}).get("arn"),
         "object_key": event_record.get("s3", {}).get("object", {}).get("key"),
         "object_size": str(event_record.get("s3", {}).get("object", {}).get("size")),
         "object_etag": event_record.get("s3", {}).get("object", {}).get("eTag"),
