@@ -1,8 +1,8 @@
 {
-    "statusCode": 200,
-    "body": {
-        "message": "hello, dog!",
-        "request_id": "FaHnXjKCGjQEJ7A=",
-        "event_record_ids": []
-    }
+    "errorMessage": "Unable to import module 'handle': cannot import name 'DEFAULT_CIPHERS' from 'urllib3.util.ssl_' (/opt/python/lib/python3.10/site-packages/urllib3/util/ssl_.py)",
+    "errorType": "Runtime.ImportModuleError",
+    "requestId": "dfb89732-4634-4020-b1e6-2a02f9d4f376",
+    "stackTrace": []
 }
+Error:
+Invoked function failed
