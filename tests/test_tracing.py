@@ -511,7 +511,7 @@ class TestLogsInjection(unittest.TestCase):
         span.finish()
 
     def test_set_correlation_ids_handle_empty_trace_context(self):
-        # neither x-ray or ddtrace is use. no tracing at all.
+        # neither x-ray or ddtrace is used. no tracing context at all.
         self.mock_get_dd_trace_context.return_value = {}
         # no exception thrown
         set_correlation_ids()
