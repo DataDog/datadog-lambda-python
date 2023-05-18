@@ -42,6 +42,32 @@ fake_xray_header_value_root_decimal = "3995693151288333088"
 
 event_samples = "tests/event_samples/"
 
+span_to_finish = None
+
+
+def _clean_up_span():
+    global span_to_finish
+    if span_to_finish is not None:
+        span_to_finish.finish()
+        span_to_finish = None
+
+
+def register_span(span):
+    global span_to_finish
+    _clean_up_span()
+    span_to_finish = span
+    return span
+
+
+def wrapped_span_creator(span_creator_func):
+    def result_func(*args, **kwargs):
+        return register_span(span_creator_func(*args, **kwargs))
+
+    return result_func
+
+
+create_inferred_span = wrapped_span_creator(create_inferred_span)
+
 
 class ClientContext(object):
     def __init__(self, custom=None):
@@ -482,6 +508,7 @@ class TestLogsInjection(unittest.TestCase):
         span = tracer.current_span()
         self.assertEqual(span.trace_id, 123)
         self.assertEqual(span.span_id, 456)
+        span.finish()
 
     def test_set_correlation_ids_handle_empty_trace_context(self):
         # neither x-ray or ddtrace is use. no tracing at all.
@@ -594,6 +621,9 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
         patcher = patch("ddtrace.Span.finish", autospec=True)
         self.mock_span_stop = patcher.start()
         self.addCleanup(patcher.stop)
+
+    def tearDown(self):
+        _clean_up_span()
 
     def test_create_inferred_span_from_authorizer_request_api_gateway_v1_event(self):
         event_sample_source = "authorizer-request-api-gateway-v1"
@@ -741,6 +771,9 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
 
 
 class TestInferredSpans(unittest.TestCase):
+    def tearDown(self):
+        _clean_up_span()
+
     def test_create_inferred_span_from_api_gateway_event(self):
         event_sample_source = "api-gateway"
         test_file = event_samples + event_sample_source + ".json"
