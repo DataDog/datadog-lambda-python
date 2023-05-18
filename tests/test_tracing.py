@@ -491,6 +491,7 @@ class TestLogsInjection(unittest.TestCase):
         span = tracer.current_span()
         self.assertIsNone(span)
 
+
 class TestFunctionSpanTags(unittest.TestCase):
     def test_function(self):
         ctx = get_mock_context()

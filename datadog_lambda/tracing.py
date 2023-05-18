@@ -535,12 +535,9 @@ def get_dd_trace_context():
     if not dd_trace_context:
         return _context_obj_to_headers(xray_context)
 
-
     context = dd_trace_context.copy()
     context["parent-id"] = xray_context.get("parent-id")
-    logger.debug(
-        "Set parent id from xray trace context: %s", context.get("parent-id")
-    )
+    logger.debug("Set parent id from xray trace context: %s", context.get("parent-id"))
 
     return _context_obj_to_headers(context)
 
