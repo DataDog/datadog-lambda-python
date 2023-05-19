@@ -2,7 +2,7 @@ import unittest
 import json
 import os
 import copy
-
+import importlib
 
 from unittest.mock import MagicMock, Mock, patch, call
 
@@ -16,22 +16,7 @@ from datadog_lambda.constants import (
     TraceHeader,
     XraySubsegment,
 )
-from datadog_lambda.tracing import (
-    _deterministic_md5_hash,
-    create_inferred_span,
-    extract_dd_trace_context,
-    create_dd_dummy_metadata_subsegment,
-    create_function_execution_span,
-    get_dd_trace_context,
-    mark_trace_as_error_for_5xx_responses,
-    set_correlation_ids,
-    set_dd_trace_py_root,
-    _convert_xray_trace_id,
-    _convert_xray_entity_id,
-    _convert_xray_sampling,
-    InferredSpanInfo,
-    extract_context_from_eventbridge_event,
-)
+import datadog_lambda.tracing as dt
 from datadog_lambda.trigger import EventTypes
 
 function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
@@ -88,7 +73,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_without_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
+        ctx, source, event_source = dt.extract_dd_trace_context({}, lambda_ctx)
         self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
@@ -99,7 +84,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
         self.assertDictEqual(
-            get_dd_trace_context(),
+            dt.get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: fake_xray_header_value_root_decimal,
                 TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
@@ -110,7 +95,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_with_non_object_event(self):
         lambda_ctx = get_mock_context()
-        ctx, source, event_source = extract_dd_trace_context(b"", lambda_ctx)
+        ctx, source, event_source = dt.extract_dd_trace_context(b"", lambda_ctx)
         self.assertEqual(source, "xray")
         self.assertDictEqual(
             ctx,
@@ -121,7 +106,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
         self.assertDictEqual(
-            get_dd_trace_context(),
+            dt.get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: fake_xray_header_value_root_decimal,
                 TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
@@ -132,7 +117,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_with_incomplete_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source, event_source = extract_dd_trace_context(
+        ctx, source, event_source = dt.extract_dd_trace_context(
             {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321"}},
             lambda_ctx,
         )
@@ -146,7 +131,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
         self.assertDictEqual(
-            get_dd_trace_context(),
+            dt.get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: fake_xray_header_value_root_decimal,
                 TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
@@ -156,7 +141,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_with_complete_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source, event_source = extract_dd_trace_context(
+        ctx, source, event_source = dt.extract_dd_trace_context(
             {
                 "headers": {
                     TraceHeader.TRACE_ID: "123",
@@ -172,14 +157,14 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
         )
         self.assertDictEqual(
-            get_dd_trace_context(),
+            dt.get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "123",
                 TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        dt.create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
         self.mock_send_segment.assert_called()
         self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
@@ -197,7 +182,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             return trace_id, parent_id, sampling_priority
 
         lambda_ctx = get_mock_context()
-        ctx, ctx_source, event_source = extract_dd_trace_context(
+        ctx, ctx_source, event_source = dt.extract_dd_trace_context(
             {
                 "foo": {
                     TraceHeader.TRACE_ID: "123",
@@ -218,7 +203,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
         self.assertDictEqual(
-            get_dd_trace_context(),
+            dt.get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "123",
                 TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
@@ -231,7 +216,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             raise Exception("kreator")
 
         lambda_ctx = get_mock_context()
-        ctx, ctx_source, event_source = extract_dd_trace_context(
+        ctx, ctx_source, event_source = dt.extract_dd_trace_context(
             {
                 "foo": {
                     TraceHeader.TRACE_ID: "123",
@@ -252,7 +237,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
         self.assertDictEqual(
-            get_dd_trace_context(),
+            dt.get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: fake_xray_header_value_root_decimal,
                 TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
@@ -293,7 +278,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 }
             ]
         }
-        ctx, source, event_source = extract_dd_trace_context(sqs_event, lambda_ctx)
+        ctx, source, event_source = dt.extract_dd_trace_context(sqs_event, lambda_ctx)
         self.assertEqual(source, "event")
         self.assertDictEqual(
             ctx,
@@ -304,14 +289,14 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
         self.assertDictEqual(
-            get_dd_trace_context(),
+            dt.get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "123",
                 TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        dt.create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
         self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
             {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
@@ -327,7 +312,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 }
             }
         )
-        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
+        ctx, source, event_source = dt.extract_dd_trace_context({}, lambda_ctx)
         self.assertEqual(source, "event")
         self.assertDictEqual(
             ctx,
@@ -338,14 +323,14 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
         self.assertDictEqual(
-            get_dd_trace_context(),
+            dt.get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "666",
                 TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        dt.create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
         self.mock_send_segment.assert_called()
         self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
@@ -360,7 +345,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.SAMPLING_PRIORITY: "1",
             }
         )
-        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
+        ctx, source, event_source = dt.extract_dd_trace_context({}, lambda_ctx)
         self.assertEqual(source, "event")
         self.assertDictEqual(
             ctx,
@@ -371,14 +356,14 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
         self.assertDictEqual(
-            get_dd_trace_context(),
+            dt.get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "666",
                 TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
                 TraceHeader.SAMPLING_PRIORITY: "1",
             },
         )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        dt.create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
         self.mock_send_segment.assert_called()
         self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
@@ -387,7 +372,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     def test_with_complete_datadog_trace_headers_with_mixed_casing(self):
         lambda_ctx = get_mock_context()
-        extract_dd_trace_context(
+        dt.extract_dd_trace_context(
             {
                 "headers": {
                     "X-Datadog-Trace-Id": "123",
@@ -398,7 +383,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             lambda_ctx,
         )
         self.assertDictEqual(
-            get_dd_trace_context(),
+            dt.get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "123",
                 TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
@@ -411,7 +396,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             "function_trigger.event_source": "sqs",
             "function_trigger.event_source_arn": "arn:aws:sqs:us-east-1:123456789012:MyQueue",
         }
-        create_dd_dummy_metadata_subsegment(
+        dt.create_dd_dummy_metadata_subsegment(
             trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
         )
         self.mock_send_segment.assert_called()
@@ -431,36 +416,36 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 class TestXRayContextConversion(unittest.TestCase):
     def test_convert_xray_trace_id(self):
         self.assertEqual(
-            _convert_xray_trace_id("00000000e1be46a994272793"), "7043144561403045779"
+            dt._convert_xray_trace_id("00000000e1be46a994272793"), "7043144561403045779"
         )
 
         self.assertEqual(
-            _convert_xray_trace_id("bd862e3fe1be46a994272793"), "7043144561403045779"
+            dt._convert_xray_trace_id("bd862e3fe1be46a994272793"), "7043144561403045779"
         )
 
         self.assertEqual(
-            _convert_xray_trace_id("ffffffffffffffffffffffff"),
+            dt._convert_xray_trace_id("ffffffffffffffffffffffff"),
             "9223372036854775807",  # 0x7FFFFFFFFFFFFFFF
         )
 
     def test_convert_xray_entity_id(self):
         self.assertEqual(
-            _convert_xray_entity_id("53995c3f42cd8ad8"), "6023947403358210776"
+            dt._convert_xray_entity_id("53995c3f42cd8ad8"), "6023947403358210776"
         )
 
         self.assertEqual(
-            _convert_xray_entity_id("1000000000000000"), "1152921504606846976"
+            dt._convert_xray_entity_id("1000000000000000"), "1152921504606846976"
         )
 
         self.assertEqual(
-            _convert_xray_entity_id("ffffffffffffffff"), "18446744073709551615"
+            dt._convert_xray_entity_id("ffffffffffffffff"), "18446744073709551615"
         )
 
     def test_convert_xray_sampling(self):
-        self.assertEqual(_convert_xray_sampling(True), str(SamplingPriority.USER_KEEP))
+        self.assertEqual(dt._convert_xray_sampling(True), str(SamplingPriority.USER_KEEP))
 
         self.assertEqual(
-            _convert_xray_sampling(False), str(SamplingPriority.USER_REJECT)
+            dt._convert_xray_sampling(False), str(SamplingPriority.USER_REJECT)
         )
 
 
@@ -480,7 +465,7 @@ class TestLogsInjection(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def test_set_correlation_ids(self):
-        set_correlation_ids()
+        dt.set_correlation_ids()
         span = tracer.current_span()
         self.assertEqual(span.trace_id, 123)
         self.assertEqual(span.span_id, 456)
@@ -489,7 +474,7 @@ class TestLogsInjection(unittest.TestCase):
 class TestFunctionSpanTags(unittest.TestCase):
     def test_function(self):
         ctx = get_mock_context()
-        span = create_function_execution_span(ctx, "", False, {"source": ""}, False, {})
+        span = dt.create_function_execution_span(ctx, "", False, {"source": ""}, False, {})
         self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("function_version"), "$LATEST")
         self.assertEqual(span.get_tag("resource_names"), "Function")
@@ -500,7 +485,7 @@ class TestFunctionSpanTags(unittest.TestCase):
         ctx = get_mock_context(
             invoked_function_arn=function_arn + ":" + function_version
         )
-        span = create_function_execution_span(ctx, "", False, {"source": ""}, False, {})
+        span = dt.create_function_execution_span(ctx, "", False, {"source": ""}, False, {})
         self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("function_version"), function_version)
         self.assertEqual(span.get_tag("resource_names"), "Function")
@@ -509,7 +494,7 @@ class TestFunctionSpanTags(unittest.TestCase):
     def test_function_with_alias(self):
         function_alias = "alias"
         ctx = get_mock_context(invoked_function_arn=function_arn + ":" + function_alias)
-        span = create_function_execution_span(ctx, "", False, {"source": ""}, False, {})
+        span = dt.create_function_execution_span(ctx, "", False, {"source": ""}, False, {})
         self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("function_version"), function_alias)
         self.assertEqual(span.get_tag("resource_names"), "Function")
@@ -517,7 +502,7 @@ class TestFunctionSpanTags(unittest.TestCase):
 
     def test_function_with_trigger_tags(self):
         ctx = get_mock_context()
-        span = create_function_execution_span(
+        span = dt.create_function_execution_span(
             ctx,
             "",
             False,
@@ -560,7 +545,7 @@ class TestSetTraceRootSpan(unittest.TestCase):
         # use the dd-trace trace-id and the x-ray parent-id
         # This allows parenting relationships like dd-trace -> x-ray -> dd-trace
         lambda_ctx = get_mock_context()
-        ctx, source, event_type = extract_dd_trace_context(
+        ctx, source, event_type = dt.extract_dd_trace_context(
             {
                 "headers": {
                     TraceHeader.TRACE_ID: "123",
@@ -570,7 +555,7 @@ class TestSetTraceRootSpan(unittest.TestCase):
             },
             lambda_ctx,
         )
-        set_dd_trace_py_root(
+        dt.set_dd_trace_py_root(
             source, True
         )  # When merging is off, always use dd-trace-context
 
@@ -606,7 +591,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "abc123"  # injected data's requestId is abc321
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
         self._basic_common_checks(span, "aws.apigateway.rest")
 
@@ -627,7 +612,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "abc123"  # injected data's requestId is abc321
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
         self._basic_common_checks(span, "aws.apigateway.rest")
 
@@ -639,9 +624,9 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "abc123"
-        span = create_inferred_span(event, ctx)
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+        span = dt.create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "sync")
         self.mock_span_stop.assert_not_called()
         self.assertEqual(span.start_ns, finish_time)
         self._basic_common_checks(span, "aws.httpapi")
@@ -655,7 +640,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "abc123"  # injected data's requestId is abc321
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
         self._basic_common_checks(span, "aws.httpapi")
 
@@ -680,7 +665,7 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "abc123"  # injected data's requestId is abc321
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.mock_span_stop.assert_not_called()  # NO authorizer span is injected
         self._basic_common_checks(span, "aws.apigateway.websocket", "web", "main", None)
 
@@ -690,9 +675,9 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "abc123"
-        span = create_inferred_span(event, ctx)
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+        span = dt.create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "sync")
 
         # checking the upstream_authorizer_span
         self.mock_span_stop.assert_called_once()
@@ -740,7 +725,8 @@ class TestServiceMapping(unittest.TestCase):
 
     def test_remaps_all_inferred_span_service_names_from_api_gateway_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "lambda_api_gateway:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "api-gateway"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -749,7 +735,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(span1.service, "new-name")
 
@@ -761,13 +747,14 @@ class TestServiceMapping(unittest.TestCase):
         event2["requestContext"][
             "domainName"
         ] = "different.execute-api.us-east-2.amazonaws.com"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_api_gateway_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "1234567890:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "api-gateway"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -776,7 +763,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(span1.service, "new-name")
 
@@ -786,7 +773,7 @@ class TestServiceMapping(unittest.TestCase):
         )  # Create a deep copy so we don't modify the original event
         # Modify event2 as necessary
         event2["requestContext"]["apiId"] = "different"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(
             span2.service, "70ixmpl4fl.execute-api.us-east-2.amazonaws.com"
@@ -796,7 +783,8 @@ class TestServiceMapping(unittest.TestCase):
         self,
     ):
         os.environ["DD_SERVICE_MAPPING"] = "p62c47itsb:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "api-gateway-websocket-default"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -805,7 +793,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.apigateway.websocket")
         self.assertEqual(span1.service, "new-name")
 
@@ -815,17 +803,18 @@ class TestServiceMapping(unittest.TestCase):
         )  # Create a deep copy so we don't modify the original event
         # Modify event2 as necessary
         event2["requestContext"]["apiId"] = "different"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.apigateway.websocket")
         self.assertEqual(
             span2.service, "p62c47itsb.execute-api.eu-west-1.amazonaws.com"
         )
 
-    def test_remapQs_specific_inferred_span_service_names_from_api_gateway_http_event(
+    def test_remaps_specific_inferred_span_service_names_from_api_gateway_http_event(
         self,
     ):
         os.environ["DD_SERVICE_MAPPING"] = "x02yirxc7a:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "http-api"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -834,7 +823,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.httpapi")
         self.assertEqual(span1.service, "new-name")
 
@@ -844,7 +833,7 @@ class TestServiceMapping(unittest.TestCase):
         )  # Create a deep copy so we don't modify the original event
         # Modify event2 as necessary
         event2["requestContext"]["apiId"] = "different"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.httpapi")
         self.assertEqual(
             span2.service, "x02yirxc7a.execute-api.eu-west-1.amazonaws.com"
@@ -852,7 +841,8 @@ class TestServiceMapping(unittest.TestCase):
 
     def test_remaps_all_inferred_span_service_names_from_lambda_url_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "lambda_url:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "lambda-url"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -861,7 +851,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.lambda.url")
         self.assertEqual(span1.service, "new-name")
 
@@ -873,13 +863,14 @@ class TestServiceMapping(unittest.TestCase):
         event2["requestContext"][
             "domainName"
         ] = "different.lambda-url.eu-south-1.amazonaws.com"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.lambda.url")
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_lambda_url_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "a8hyhsshac:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "lambda-url"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -888,7 +879,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.lambda.url")
         self.assertEqual(span1.service, "new-name")
 
@@ -898,7 +889,7 @@ class TestServiceMapping(unittest.TestCase):
         )  # Create a deep copy so we don't modify the original event
         # Modify event2 as necessary
         event2["requestContext"]["apiId"] = "different"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.lambda.url")
         self.assertEqual(
             span2.service, "a8hyhsshac.lambda-url.eu-south-1.amazonaws.com"
@@ -906,7 +897,8 @@ class TestServiceMapping(unittest.TestCase):
 
     def test_remaps_all_inferred_span_service_names_from_sqs_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "lambda_sqs:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "sqs-string-msg-attribute"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -915,7 +907,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.sqs")
         self.assertEqual(span1.service, "new-name")
 
@@ -924,13 +916,14 @@ class TestServiceMapping(unittest.TestCase):
         event2["Records"][0][
             "eventSourceARN"
         ] = "arn:aws:sqs:eu-west-1:123456789012:different-sqs-url"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.sqs")
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_sqs_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "InferredSpansQueueNode:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "sqs-string-msg-attribute"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -939,7 +932,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.sqs")
         self.assertEqual(span1.service, "new-name")
 
@@ -948,13 +941,14 @@ class TestServiceMapping(unittest.TestCase):
         event2["Records"][0][
             "eventSourceARN"
         ] = "arn:aws:sqs:eu-west-1:123456789012:different-sqs-url"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.sqs")
         self.assertEqual(span2.service, "sqs")
 
     def test_remaps_all_inferred_span_service_names_from_sns_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "lambda_sns:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "sns-string-msg-attribute"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -963,7 +957,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.sns")
         self.assertEqual(span1.service, "new-name")
 
@@ -972,13 +966,14 @@ class TestServiceMapping(unittest.TestCase):
         event2["Records"][0]["Sns"][
             "TopicArn"
         ] = "arn:aws:sns:us-west-2:123456789012:different-sns-topic"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.sns")
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_sns_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "serverlessTracingTopicPy:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "sns-string-msg-attribute"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -987,7 +982,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.sns")
         self.assertEqual(span1.service, "new-name")
 
@@ -996,13 +991,14 @@ class TestServiceMapping(unittest.TestCase):
         event2["Records"][0]["Sns"][
             "TopicArn"
         ] = "arn:aws:sns:us-west-2:123456789012:different-sns-topic"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.sns")
         self.assertEqual(span2.service, "sns")
 
     def test_remaps_all_inferred_span_service_names_from_kinesis_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "lambda_kinesis:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "kinesis"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1011,7 +1007,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.kinesis")
         self.assertEqual(span1.service, "new-name")
 
@@ -1020,13 +1016,14 @@ class TestServiceMapping(unittest.TestCase):
         event2["Records"][0][
             "eventSourceARN"
         ] = "arn:aws:kinesis:eu-west-1:601427279990:stream/differentKinesisStream"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.kinesis")
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_kinesis_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "Different_EXAMPLE:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "kinesis"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1035,7 +1032,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.kinesis")
         self.assertEqual(span1.service, "kinesis")
 
@@ -1044,13 +1041,14 @@ class TestServiceMapping(unittest.TestCase):
         event2["Records"][0][
             "eventSourceARN"
         ] = "arn:aws:kinesis:eu-west-1:601427279990:stream/DifferentKinesisStream"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.kinesis")
         self.assertEqual(span2.service, "kinesis")
 
     def test_remaps_all_inferred_span_service_names_from_s3_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "lambda_s3:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "s3"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1059,7 +1057,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.s3")
         self.assertEqual(span1.service, "new-name")
 
@@ -1068,13 +1066,14 @@ class TestServiceMapping(unittest.TestCase):
         event2["Records"][0]["s3"]["bucket"][
             "arn"
         ] = "arn:aws:s3:::different-example-bucket"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.s3")
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_s3_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "example-bucket:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "s3"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1083,20 +1082,21 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.s3")
         self.assertEqual(span1.service, "new-name")
 
         # Testing the second event
         event2 = copy.deepcopy(original_event)
         event2["Records"][0]["s3"]["bucket"]["name"] = "different-example-bucket"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.s3")
         self.assertEqual(span2.service, "s3")
 
     def test_remaps_all_inferred_span_service_names_from_dynamodb_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "lambda_dynamodb:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "dynamodb"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1105,7 +1105,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.dynamodb")
         self.assertEqual(span1.service, "new-name")
 
@@ -1114,13 +1114,14 @@ class TestServiceMapping(unittest.TestCase):
         event2["Records"][0][
             "eventSourceARN"
         ] = "arn:aws:dynamodb:us-east-1:123456789012:table/DifferentExampleTableWithStream/stream/2015-06-27T00:48:05.899"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.dynamodb")
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_dynamodb_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "ExampleTableWithStream:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "dynamodb"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1129,7 +1130,7 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.dynamodb")
         self.assertEqual(span1.service, "new-name")
 
@@ -1138,13 +1139,14 @@ class TestServiceMapping(unittest.TestCase):
         event2["Records"][0][
             "eventSourceARN"
         ] = "arn:aws:dynamodb:us-east-1:123456789012:table/DifferentExampleTableWithStream/stream/2015-06-27T00:48:05.899"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.dynamodb")
         self.assertEqual(span2.service, "dynamodb")
 
     def test_remaps_all_inferred_span_service_names_from_eventbridge_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "lambda_eventbridge:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "eventbridge-custom"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1153,20 +1155,21 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.eventbridge")
         self.assertEqual(span1.service, "new-name")
 
         # Testing the second event
         event2 = copy.deepcopy(original_event)
         event2["source"] = "different.eventbridge.custom.event.sender"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.eventbridge")
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_eventbridge_event(self):
         os.environ["DD_SERVICE_MAPPING"] = "eventbridge.custom.event.sender:new-name"
-
+        global dt
+        dt = importlib.reload(dt)
         event_sample_source = "eventbridge-custom"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1175,14 +1178,14 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        span1 = create_inferred_span(original_event, ctx)
+        span1 = dt.create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.eventbridge")
         self.assertEqual(span1.service, "new-name")
 
         # Testing the second event
         event2 = copy.deepcopy(original_event)
         event2["source"] = "different.eventbridge.custom.event.sender"
-        span2 = create_inferred_span(event2, ctx)
+        span2 = dt.create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.eventbridge")
         self.assertEqual(span2.service, "eventbridge")
 
@@ -1195,7 +1198,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(
             span.service,
@@ -1217,8 +1220,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("stage"), "prod")
         self.assertEqual(span.start, 1428582896.0)
         self.assertEqual(span.span_type, "http")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "sync")
 
     def test_create_inferred_span_from_api_gateway_non_proxy_event_async(self):
         event_sample_source = "api-gateway-non-proxy-async"
@@ -1227,7 +1230,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(
             span.service,
@@ -1249,8 +1252,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("stage"), "dev")
         self.assertEqual(span.start, 1631210915.2510002)
         self.assertEqual(span.span_type, "http")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "async")
 
     def test_create_inferred_span_from_api_gateway_non_proxy_event_sync(self):
         event_sample_source = "api-gateway-non-proxy"
@@ -1259,7 +1262,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(
             span.service,
@@ -1281,8 +1284,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("stage"), "dev")
         self.assertEqual(span.start, 1631210915.2510002)
         self.assertEqual(span.span_type, "http")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "sync")
 
     def test_create_inferred_span_from_http_api_event(self):
         event_sample_source = "http-api"
@@ -1291,7 +1294,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.httpapi")
         self.assertEqual(
             span.service,
@@ -1316,8 +1319,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("http.user_agent"), "curl/7.64.1")
         self.assertEqual(span.start, 1631212283.738)
         self.assertEqual(span.span_type, "http")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "sync")
 
     def test_create_inferred_span_from_api_gateway_websocket_default_event(self):
         event_sample_source = "api-gateway-websocket-default"
@@ -1326,7 +1329,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.websocket")
         self.assertEqual(
             span.service,
@@ -1351,8 +1354,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("message_direction"), "IN")
         self.assertEqual(span.start, 1631285061.365)
         self.assertEqual(span.span_type, "web")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "sync")
 
     def test_create_inferred_span_from_api_gateway_websocket_connect_event(self):
         event_sample_source = "api-gateway-websocket-connect"
@@ -1361,7 +1364,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.websocket")
         self.assertEqual(
             span.service,
@@ -1386,8 +1389,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("message_direction"), "IN")
         self.assertEqual(span.start, 1631284003.071)
         self.assertEqual(span.span_type, "web")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "sync")
 
     def test_create_inferred_span_from_api_gateway_websocket_disconnect_event(self):
         event_sample_source = "api-gateway-websocket-disconnect"
@@ -1396,7 +1399,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.websocket")
         self.assertEqual(
             span.service,
@@ -1421,8 +1424,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("message_direction"), "IN")
         self.assertEqual(span.start, 1631284034.737)
         self.assertEqual(span.span_type, "web")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "sync")
 
     def test_create_inferred_span_from_sqs_event_string_msg_attr(self):
         event_sample_name = "sqs-string-msg-attribute"
@@ -1431,7 +1434,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.sqs")
         self.assertEqual(
             span.service,
@@ -1459,8 +1462,8 @@ class TestInferredSpans(unittest.TestCase):
         )
         self.assertEqual(span.start, 1634662094.538)
         self.assertEqual(span.span_type, "web")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "async")
 
     def test_create_inferred_span_from_sns_event_string_msg_attr(self):
         event_sample_name = "sns-string-msg-attribute"
@@ -1469,7 +1472,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.sns")
         self.assertEqual(
             span.service,
@@ -1497,8 +1500,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("subject"), None)
         self.assertEqual(span.start, 1643638421.637)
         self.assertEqual(span.span_type, "web")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "async")
 
     def test_create_inferred_span_from_sns_event_b64_msg_attr(self):
         event_sample_name = "sns-b64-msg-attribute"
@@ -1507,7 +1510,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.sns")
         self.assertEqual(
             span.service,
@@ -1535,8 +1538,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("subject"), None)
         self.assertEqual(span.start, 1643638421.637)
         self.assertEqual(span.span_type, "web")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "async")
 
     def test_create_inferred_span_from_kinesis_event(self):
         event_sample_source = "kinesis"
@@ -1545,7 +1548,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.kinesis")
         self.assertEqual(
             span.service,
@@ -1577,8 +1580,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("partition_key"), "partitionkey")
         self.assertEqual(span.start, 1643638425.163)
         self.assertEqual(span.span_type, "web")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "async")
 
     def test_create_inferred_span_from_dynamodb_event(self):
         event_sample_source = "dynamodb"
@@ -1587,7 +1590,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.dynamodb")
         self.assertEqual(
             span.service,
@@ -1616,8 +1619,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("size_bytes"), "26")
         self.assertEqual(span.start, 1428537600.0)
         self.assertEqual(span.span_type, "web")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "async")
 
     def test_create_inferred_span_from_s3_event(self):
         event_sample_source = "s3"
@@ -1626,7 +1629,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.s3")
         self.assertEqual(
             span.service,
@@ -1653,8 +1656,8 @@ class TestInferredSpans(unittest.TestCase):
         )
         self.assertEqual(span.start, 0.0)
         self.assertEqual(span.span_type, "web")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "async")
 
     def test_create_inferred_span_from_eventbridge_event(self):
         event_sample_source = "eventbridge-custom"
@@ -1663,7 +1666,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.eventbridge")
         self.assertEqual(
             span.service,
@@ -1682,8 +1685,8 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("request_id"), None)
         self.assertEqual(span.start, 1635989865.0)
         self.assertEqual(span.span_type, "web")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "async")
 
     def test_extract_context_from_eventbridge_event(self):
         event_sample_source = "eventbridge-custom"
@@ -1691,7 +1694,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        trace, parent, sampling = extract_context_from_eventbridge_event(event, ctx)
+        trace, parent, sampling = dt.extract_context_from_eventbridge_event(event, ctx)
         self.assertEqual(trace, "12345")
         self.assertEqual(parent, "67890"),
         self.assertEqual(sampling, "2")
@@ -1702,7 +1705,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source, event_type = extract_dd_trace_context(event, ctx)
+        context, source, event_type = dt.extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "12345")
         self.assertEqual(context["parent-id"], "67890")
 
@@ -1712,7 +1715,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source, event_type = extract_dd_trace_context(event, ctx)
+        context, source, event_type = dt.extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "2684756524522091840")
         self.assertEqual(context["parent-id"], "7431398482019833808")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1723,7 +1726,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source, event_source = extract_dd_trace_context(event, ctx)
+        context, source, event_source = dt.extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "2684756524522091840")
         self.assertEqual(context["parent-id"], "7431398482019833808")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1734,7 +1737,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source, event_source = extract_dd_trace_context(event, ctx)
+        context, source, event_source = dt.extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "4948377316357291421")
         self.assertEqual(context["parent-id"], "6746998015037429512")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1745,7 +1748,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source, event_source = extract_dd_trace_context(event, ctx)
+        context, source, event_source = dt.extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "4948377316357291421")
         self.assertEqual(context["parent-id"], "6746998015037429512")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1756,7 +1759,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source, event_source = extract_dd_trace_context(event, ctx)
+        context, source, event_source = dt.extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "4948377316357291421")
         self.assertEqual(context["parent-id"], "6746998015037429512")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1767,7 +1770,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source, event_source = extract_dd_trace_context(event, ctx)
+        context, source, event_source = dt.extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "4948377316357291421")
         self.assertEqual(context["parent-id"], "2876253380018681026")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1778,7 +1781,7 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        context, source, event_source = extract_dd_trace_context(event, ctx)
+        context, source, event_source = dt.extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "4948377316357291421")
         self.assertEqual(context["parent-id"], "2876253380018681026")
         self.assertEqual(context["sampling-priority"], "1")
@@ -1790,7 +1793,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
-        span = create_inferred_span(event, ctx)
+        span = dt.create_inferred_span(event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(
             span.service,
@@ -1812,14 +1815,14 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag("stage"), "prod")
         self.assertEqual(span.start, 1428582896.0)
         self.assertEqual(span.span_type, "http")
-        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
-        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(dt.InferredSpanInfo.SYNCHRONICITY), "sync")
 
     @patch("datadog_lambda.tracing.submit_errors_metric")
     def test_mark_trace_as_error_for_5xx_responses_getting_400_response_code(
         self, mock_submit_errors_metric
     ):
-        mark_trace_as_error_for_5xx_responses(
+        dt.mark_trace_as_error_for_5xx_responses(
             context="fake_context", status_code="400", span="empty_span"
         )
         mock_submit_errors_metric.assert_not_called()
@@ -1830,7 +1833,7 @@ class TestInferredSpans(unittest.TestCase):
     ):
         mock_span = Mock(ddtrace.span.Span)
         status_code = "500"
-        mark_trace_as_error_for_5xx_responses(
+        dt.mark_trace_as_error_for_5xx_responses(
             context="fake_context", status_code=status_code, span=mock_span
         )
         mock_submit_errors_metric.assert_called_once()
@@ -1838,7 +1841,7 @@ class TestInferredSpans(unittest.TestCase):
 
     def test_no_error_with_nonetype_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source, event_type = extract_dd_trace_context(
+        ctx, source, event_type = dt.extract_dd_trace_context(
             {"headers": None},
             lambda_ctx,
         )
@@ -1847,11 +1850,11 @@ class TestInferredSpans(unittest.TestCase):
 
 class TestStepFunctionsTraceContext(unittest.TestCase):
     def test_deterministic_m5_hash(self):
-        result = _deterministic_md5_hash("some_testing_random_string")
+        result = dt._deterministic_md5_hash("some_testing_random_string")
         self.assertEqual("2251275791555400689", result)
 
     def test_deterministic_m5_hash__result_the_same_as_backend(self):
-        result = _deterministic_md5_hash(
+        result = dt._deterministic_md5_hash(
             "arn:aws:states:sa-east-1:601427271234:express:DatadogStateMachine:acaf1a67-336a-e854-1599-2a627eb2dd8a"
             ":c8baf081-31f1-464d-971f-70cb17d01111#step-one#2022-12-08T21:08:19.224Z"
         )
@@ -1859,7 +1862,7 @@ class TestStepFunctionsTraceContext(unittest.TestCase):
 
     def test_deterministic_m5_hash__always_leading_with_zero(self):
         for i in range(100):
-            result = _deterministic_md5_hash(str(i))
+            result = dt._deterministic_md5_hash(str(i))
             result_in_binary = bin(int(result))
             # Leading zeros will be omitted, so only test for full 64 bits present
             if len(result_in_binary) == 66:  # "0b" + 64 bits.
