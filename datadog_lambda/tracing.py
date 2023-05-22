@@ -812,8 +812,8 @@ def create_inferred_span_from_api_gateway_websocket_event(
     service_name = None
     if api_id in service_mapping:
         service_name = service_mapping.get(api_id)
-    elif "lambda_api_gateway_websocket" in service_mapping:
-        service_name = service_mapping.get("lambda_api_gateway_websocket")
+    elif "lambda_api_gateway" in service_mapping:
+        service_name = service_mapping.get("lambda_api_gateway")
     else:
         service_name = domain
     tags = {
