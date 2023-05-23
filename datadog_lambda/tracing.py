@@ -515,10 +515,12 @@ def get_dd_trace_context():
     automatically, but this function can be used to manually inject the trace
     context to an outgoing request.
     """
-    global dd_trace_context
+    if dd_tracing_enabled:
+        dd_trace_py_context = _get_dd_trace_py_context()
+        if dd_trace_py_context is not None:
+            return _context_obj_to_headers(dd_trace_py_context)
 
-    context = None
-    xray_context = None
+    global dd_trace_context
 
     try:
         xray_context = _get_xray_trace_context()  # xray (sub)segment
@@ -527,22 +529,17 @@ def get_dd_trace_context():
             "get_dd_trace_context couldn't read from segment from x-ray, with error %s"
             % e
         )
+    if not xray_context:
+        return {}
 
-    if xray_context and not dd_trace_context:
-        context = xray_context
-    elif xray_context and dd_trace_context:
-        context = dd_trace_context.copy()
-        context["parent-id"] = xray_context.get("parent-id")
-        logger.debug(
-            "Set parent id from xray trace context: %s", context.get("parent-id")
-        )
+    if not dd_trace_context:
+        return _context_obj_to_headers(xray_context)
 
-    if dd_tracing_enabled:
-        dd_trace_py_context = _get_dd_trace_py_context()
-        if dd_trace_py_context is not None:
-            context = dd_trace_py_context
+    context = dd_trace_context.copy()
+    context["parent-id"] = xray_context.get("parent-id")
+    logger.debug("Set parent id from xray trace context: %s", context.get("parent-id"))
 
-    return _context_obj_to_headers(context) if context is not None else {}
+    return _context_obj_to_headers(context)
 
 
 def set_correlation_ids():
@@ -561,6 +558,8 @@ def set_correlation_ids():
         return
 
     context = get_dd_trace_context()
+    if not context:
+        return
 
     span = tracer.trace("dummy.span")
     span.trace_id = int(context[TraceHeader.TRACE_ID])
