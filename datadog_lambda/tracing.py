@@ -43,8 +43,14 @@ from datadog_lambda.trigger import (
 
 logger = logging.getLogger(__name__)
 
+AWS_LAMBDA_FUNCTION_NAME = "AWS_LAMBDA_FUNCTION_NAME"
+DD_SERVICE = "DD_SERVICE"
+
 dd_trace_context = {}
 dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
+
+function_env_var = os.environ.get(AWS_LAMBDA_FUNCTION_NAME, "function")
+service_env_var = os.environ.get(DD_SERVICE, function_env_var)
 
 propagator = HTTPPropagator()
 
@@ -698,6 +704,7 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
         "http.method": method,
         "resource_names": domain + path,
         "request_id": context.aws_request_id,
+        "peer.service": service_env_var,
     }
     request_time_epoch = request_context.get("timeEpoch")
     args = {
@@ -802,6 +809,7 @@ def create_inferred_span_from_api_gateway_websocket_event(
         "connection_id": request_context.get("connectionId"),
         "event_type": request_context.get("eventType"),
         "message_direction": request_context.get("messageDirection"),
+        "peer.service": service_env_var,
     }
     request_time_epoch_ms = int(request_context.get("requestTimeEpoch"))
     if is_api_gateway_invocation_async(event):
@@ -851,6 +859,7 @@ def create_inferred_span_from_api_gateway_event(
         "apiname": request_context.get("apiId"),
         "stage": request_context.get("stage"),
         "request_id": context.aws_request_id,
+        "peer.service": service_env_var,
     }
     request_time_epoch_ms = int(request_context.get("requestTimeEpoch"))
     if is_api_gateway_invocation_async(event):
@@ -904,6 +913,7 @@ def create_inferred_span_from_http_api_event(
         "apiid": request_context.get("apiId"),
         "apiname": request_context.get("apiId"),
         "stage": request_context.get("stage"),
+        "peer.service": service_env_var,
     }
     request_time_epoch_ms = int(request_context.get("timeEpoch"))
     if is_api_gateway_invocation_async(event):
@@ -943,6 +953,7 @@ def create_inferred_span_from_sqs_event(event, context):
         "event_source_arn": event_source_arn,
         "receipt_handle": event_record.get("receiptHandle"),
         "sender_id": event_record.get("attributes", {}).get("SenderId"),
+        "peer.service": service_env_var,
     }
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     request_time_epoch = event_record.get("attributes", {}).get("SentTimestamp")
@@ -997,6 +1008,7 @@ def create_inferred_span_from_sns_event(event, context):
         "topic_arn": topic_arn,
         "message_id": sns_message.get("MessageId"),
         "type": sns_message.get("Type"),
+        "peer.service": service_env_var,
     }
 
     # Subject not available in SNS => SQS scenario
@@ -1037,6 +1049,7 @@ def create_inferred_span_from_kinesis_event(event, context):
         "event_name": event_record.get("eventName"),
         "event_version": event_record.get("eventVersion"),
         "partition_key": event_record.get("kinesis", {}).get("partitionKey"),
+        "peer.service": service_env_var,
     }
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     request_time_epoch = event_record.get("kinesis", {}).get(
@@ -1071,6 +1084,7 @@ def create_inferred_span_from_dynamodb_event(event, context):
         "event_version": event_record.get("eventVersion"),
         "stream_view_type": dynamodb_message.get("StreamViewType"),
         "size_bytes": str(dynamodb_message.get("SizeBytes")),
+        "peer.service": service_env_var,
     }
     InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
     request_time_epoch = event_record.get("dynamodb", {}).get(
@@ -1102,6 +1116,7 @@ def create_inferred_span_from_s3_event(event, context):
         "object_key": event_record.get("s3", {}).get("object", {}).get("key"),
         "object_size": str(event_record.get("s3", {}).get("object", {}).get("size")),
         "object_etag": event_record.get("s3", {}).get("object", {}).get("eTag"),
+        "peer.service": service_env_var,
     }
     InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
     dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -1127,6 +1142,7 @@ def create_inferred_span_from_eventbridge_event(event, context):
         "operation_name": "aws.eventbridge",
         "resource_names": source,
         "detail_type": event.get("detail-type"),
+        "peer.service": service_env_var,
     }
     InferredSpanInfo.set_tags(
         tags,
