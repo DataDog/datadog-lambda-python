@@ -54,8 +54,6 @@ logger = logging.getLogger(__name__)
 dd_capture_lambda_payload_enabled = (
     os.environ.get("DD_CAPTURE_LAMBDA_PAYLOAD", "false").lower() == "true"
 )
-service_env_var = os.environ.get("DD_SERVICE", "DefaultServiceName")
-env_env_var = os.environ.get("DD_ENV", None)
 
 DD_FLUSH_TO_LOG = "DD_FLUSH_TO_LOG"
 DD_LOGS_INJECTION = "DD_LOGS_INJECTION"
@@ -70,6 +68,11 @@ DD_MIN_COLD_START_DURATION = "DD_MIN_COLD_START_DURATION"
 DD_COLD_START_TRACE_SKIP_LIB = "DD_COLD_START_TRACE_SKIP_LIB"
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
+DD_ENV = "DD_ENV"
+
+env_env_var = os.environ.get(DD_ENV, None)
+function_env_var = os.environ.get(AWS_LAMBDA_FUNCTION_NAME, "function")
+service_env_var = os.environ.get(DD_SERVICE, function_env_var)
 
 """
 Usage:
@@ -131,7 +134,7 @@ class _LambdaDecorator(object):
             self.merge_xray_traces = (
                 os.environ.get(DD_MERGE_XRAY_TRACES, "false").lower() == "true"
             )
-            self.function_name = os.environ.get(AWS_LAMBDA_FUNCTION_NAME, "function")
+            self.function_name = function_env_var
             self.extractor_env = os.environ.get(DD_TRACE_EXTRACTOR, None)
             self.trace_extractor = None
             self.span = None
