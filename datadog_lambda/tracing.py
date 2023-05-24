@@ -685,26 +685,44 @@ def create_inferred_span(
     return None
 
 
+def create_service_mapping(val):
+    new_service_mapping = {}
+    for entry in val.split(","):
+        parts = entry.split(":")
+        if len(parts) == 2:
+            key = parts[0].strip()
+            value = parts[1].strip()
+            new_service_mapping[key] = value
+    return new_service_mapping
+
+
+def set_service_mapping(new_service_mapping):
+    global service_mapping
+    service_mapping = new_service_mapping
+
+
+def get_service_mapping():
+    return service_mapping
+
+
+def determine_service_name(service_mapping, specific_key, generic_key, default_value):
+    service_name = service_mapping.get(specific_key)
+    if service_name is None:
+        service_name = service_mapping.get(generic_key, default_value)
+    return service_name
+
+
 service_mapping = {}
-for entry in os.getenv("DD_SERVICE_MAPPING", "").split(","):
-    parts = entry.split(":")
-    if len(parts) == 2:
-        key, value = parts
-        service_mapping[key.strip()] = value.strip()
+# Initialization code
+service_mapping_str = os.getenv("DD_SERVICE_MAPPING", "")
+service_mapping = create_service_mapping(service_mapping_str)
 
 
 def create_inferred_span_from_lambda_function_url_event(event, context):
     request_context = event.get("requestContext")
     api_id = request_context.get("apiId")
     domain = request_context.get("domainName")
-    service_name = None
-    if api_id in service_mapping:
-        service_name = service_mapping.get(api_id)
-    elif "lambda_url" in service_mapping:
-        service_name = service_mapping.get("lambda_url")
-    else:
-        service_name = domain
-
+    service_name = determine_service_name(service_mapping, api_id, "lambda_url", domain)
     method = request_context.get("http", {}).get("method")
     path = request_context.get("http", {}).get("path")
     resource = "{0} {1}".format(method, path)
@@ -809,13 +827,9 @@ def create_inferred_span_from_api_gateway_websocket_event(
     endpoint = request_context.get("routeKey")
     api_id = request_context.get("apiId")
 
-    service_name = None
-    if api_id in service_mapping:
-        service_name = service_mapping.get(api_id)
-    elif "lambda_api_gateway" in service_mapping:
-        service_name = service_mapping.get("lambda_api_gateway")
-    else:
-        service_name = domain
+    service_name = determine_service_name(
+        service_mapping, api_id, "lambda_api_gateway", domain
+    )
     tags = {
         "operation_name": "aws.apigateway.websocket",
         "http.url": domain + endpoint,
@@ -865,14 +879,9 @@ def create_inferred_span_from_api_gateway_event(
     request_context = event.get("requestContext")
     domain = request_context.get("domainName", "")
     api_id = request_context.get("apiId")
-    service_name = None
-    if api_id in service_mapping:
-        service_name = service_mapping.get(api_id)
-    elif "lambda_api_gateway" in service_mapping:
-        service_name = service_mapping.get("lambda_api_gateway")
-    else:
-        service_name = domain
-
+    service_name = determine_service_name(
+        service_mapping, api_id, "lambda_api_gateway", domain
+    )
     method = event.get("httpMethod")
     path = event.get("path")
     resource = "{0} {1}".format(method, path)
@@ -924,12 +933,9 @@ def create_inferred_span_from_http_api_event(
     request_context = event.get("requestContext")
     domain = request_context.get("domainName")
     api_id = request_context.get("apiId")
-    if api_id in service_mapping:
-        service_name = service_mapping.get(api_id)
-    elif "lambda_http_api" in service_mapping:
-        service_name = service_mapping.get("lambda_http_api")
-    else:
-        service_name = domain
+    service_name = determine_service_name(
+        service_mapping, api_id, "lambda_api_gateway", domain
+    )
     method = request_context.get("http", {}).get("method")
     path = event.get("rawPath")
     resource = "{0} {1}".format(method, path)
@@ -978,13 +984,9 @@ def create_inferred_span_from_sqs_event(event, context):
     event_record = get_first_record(event)
     event_source_arn = event_record.get("eventSourceARN")
     queue_name = event_source_arn.split(":")[-1]
-    if queue_name in service_mapping:
-        service_name = service_mapping.get(queue_name)
-    elif "lambda_sqs" in service_mapping:
-        service_name = service_mapping.get("lambda_sqs")
-    else:
-        service_name = "sqs"
-
+    service_name = determine_service_name(
+        service_mapping, queue_name, "lambda_sqs", "sqs"
+    )
     tags = {
         "operation_name": "aws.sqs",
         "resource_names": queue_name,
@@ -1039,13 +1041,9 @@ def create_inferred_span_from_sns_event(event, context):
     sns_message = event_record.get("Sns")
     topic_arn = event_record.get("Sns", {}).get("TopicArn")
     topic_name = topic_arn.split(":")[-1]
-
-    if topic_name in service_mapping:
-        service_name = service_mapping.get(topic_name)
-    elif "lambda_sns" in service_mapping:
-        service_name = service_mapping.get("lambda_sns")
-    else:
-        service_name = "sns"
+    service_name = determine_service_name(
+        service_mapping, topic_name, "lambda_sns", "sns"
+    )
     tags = {
         "operation_name": "aws.sns",
         "resource_names": topic_name,
@@ -1083,12 +1081,9 @@ def create_inferred_span_from_kinesis_event(event, context):
     event_id = event_record.get("eventID")
     stream_name = event_source_arn.split(":")[-1]
     shard_id = event_id.split(":")[0]
-    if stream_name in service_mapping:
-        service_name = service_mapping.get(stream_name)
-    elif ("lambda_kinesis") in service_mapping:
-        service_name = service_mapping.get("lambda_kinesis")
-    else:
-        service_name = "kinesis"
+    service_name = determine_service_name(
+        service_mapping, stream_name, "lambda_kinesis", "kinesis"
+    )
     tags = {
         "operation_name": "aws.kinesis",
         "resource_names": stream_name,
@@ -1122,14 +1117,9 @@ def create_inferred_span_from_dynamodb_event(event, context):
     event_record = get_first_record(event)
     event_source_arn = event_record.get("eventSourceARN")
     table_name = event_source_arn.split("/")[1]
-
-    if table_name in service_mapping:
-        service_name = service_mapping.get(table_name)
-    elif "lambda_dynamodb" in service_mapping:
-        service_name = service_mapping.get("lambda_dynamodb")
-    else:
-        service_name = "dynamodb"
-
+    service_name = determine_service_name(
+        service_mapping, table_name, "lambda_dynamodb", "dynamodb"
+    )
     dynamodb_message = event_record.get("dynamodb")
     tags = {
         "operation_name": "aws.dynamodb",
@@ -1163,14 +1153,9 @@ def create_inferred_span_from_dynamodb_event(event, context):
 def create_inferred_span_from_s3_event(event, context):
     event_record = get_first_record(event)
     bucket_name = event_record.get("s3", {}).get("bucket", {}).get("name")
-
-    if bucket_name in service_mapping:
-        service_name = service_mapping.get(bucket_name)
-    elif "lambda_s3" in service_mapping:
-        service_name = service_mapping.get("lambda_s3")
-    else:
-        service_name = "s3"
-
+    service_name = determine_service_name(
+        service_mapping, bucket_name, "lambda_s3", "s3"
+    )
     tags = {
         "operation_name": "aws.s3",
         "resource_names": bucket_name,
@@ -1201,13 +1186,9 @@ def create_inferred_span_from_s3_event(event, context):
 
 def create_inferred_span_from_eventbridge_event(event, context):
     source = event.get("source")
-
-    if source in service_mapping:
-        service_name = service_mapping.get(source)
-    elif "lambda_eventbridge" in service_mapping:
-        service_name = service_mapping.get("lambda_eventbridge")
-    else:
-        service_name = "eventbridge"
+    service_name = determine_service_name(
+        service_mapping, source, "lambda_eventbridge", "eventbridge"
+    )
     tags = {
         "operation_name": "aws.eventbridge",
         "resource_names": source,
