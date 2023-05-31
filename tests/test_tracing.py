@@ -2,7 +2,6 @@ import unittest
 import json
 import os
 import copy
-import importlib
 
 from unittest.mock import MagicMock, Mock, patch, call
 
@@ -32,9 +31,8 @@ from datadog_lambda.tracing import (
     InferredSpanInfo,
     extract_context_from_eventbridge_event,
     create_service_mapping,
-    set_service_mapping,
-    get_service_mapping,
     determine_service_name,
+    service_mapping as global_service_mapping,
 )
 from datadog_lambda.trigger import EventTypes
 
@@ -739,57 +737,90 @@ class TestAuthorizerInferredSpans(unittest.TestCase):
 
 
 class TestServiceMapping(unittest.TestCase):
+    def setUp(self):
+        self.service_mapping = {}
+
+    def get_service_mapping(self):
+        return global_service_mapping
+
+    def set_service_mapping(self, new_service_mapping):
+        global_service_mapping.clear()
+        global_service_mapping.update(new_service_mapping)
+
+    def test_create_service_mapping_invalid_input(self):
+        # Test case where the input is a string without a colon to split on
+        val = "api1"
+        self.assertEqual(create_service_mapping(val), {})
+
+        # Test case where the input is an empty string
+        val = ""
+        self.assertEqual(create_service_mapping(val), {})
+
+        # Test case where the key and value are identical
+        val = "api1:api1"
+        self.assertEqual(create_service_mapping(val), {})
+
+        # Test case where the key or value is missing
+        val = ":api1"
+        self.assertEqual(create_service_mapping(val), {})
+        val = "api1:"
+        self.assertEqual(create_service_mapping(val), {})
+
     def test_create_service_mapping(self):
         val = "api1:service1,api2:service2"
         expected_output = {"api1": "service1", "api2": "service2"}
         self.assertEqual(create_service_mapping(val), expected_output)
 
+    def test_get_service_mapping(self):
+        os.environ["DD_SERVICE_MAPPING"] = "api1:service1,api2:service2"
+        expected_output = {"api1": "service1", "api2": "service2"}
+        self.set_service_mapping(
+            create_service_mapping(os.environ["DD_SERVICE_MAPPING"])
+        )
+        self.assertEqual(self.get_service_mapping(), expected_output)
 
-def test_get_service_mapping(self):
-    os.environ["DD_SERVICE_MAPPING"] = "api1:service1,api2:service2"
-    expected_output = {"api1": "service1", "api2": "service2"}
-    service_mapping = create_service_mapping(os.environ["DD_SERVICE_MAPPING"])
-    self.assertEqual(get_service_mapping(), expected_output)
+    def test_set_service_mapping(self):
+        new_service_mapping = {"api3": "service3", "api4": "service4"}
+        self.set_service_mapping(new_service_mapping)
+        self.assertEqual(self.get_service_mapping(), new_service_mapping)
 
+    def test_determine_service_name(self):
+        # Prepare the environment
+        os.environ["DD_SERVICE_MAPPING"] = "api1:service1,api2:service2"
+        self.set_service_mapping(
+            create_service_mapping(os.environ["DD_SERVICE_MAPPING"])
+        )
 
-def test_set_service_mapping(self):
-    new_service_mapping = {"api3": "service3", "api4": "service4"}
-    set_service_mapping(new_service_mapping)
-    self.assertEqual(get_service_mapping(), new_service_mapping)
+        # Case where specific key is in the service mapping
+        specific_key = "api1"
+        self.assertEqual(
+            determine_service_name(
+                self.get_service_mapping(), specific_key, "lambda_url", "default"
+            ),
+            "service1",
+        )
 
+        # Case where specific key is not in the service mapping, but generic key is
+        specific_key = "api3"
+        self.assertEqual(
+            determine_service_name(
+                self.get_service_mapping(), specific_key, "api2", "default"
+            ),
+            "service2",
+        )
 
-def test_determine_service_name(self):
-    # Prepare the environment
-    os.environ["DD_SERVICE_MAPPING"] = "api1:service1,api2:service2"
-    service_mapping = create_service_mapping(os.environ["DD_SERVICE_MAPPING"])
-
-    # Case where specific key is in the service mapping
-    specific_key = "api1"
-    self.assertEqual(
-        determine_service_name(
-            get_service_mapping(), specific_key, "lambda_url", "default"
-        ),
-        "service1",
-    )
-
-    # Case where specific key is not in the service mapping, but generic key is
-    specific_key = "api3"
-    self.assertEqual(
-        determine_service_name(get_service_mapping(), specific_key, "api2", "default"),
-        "service2",
-    )
-
-    # Case where neither specific nor generic keys are in the service mapping
-    specific_key = "api3"
-    self.assertEqual(
-        determine_service_name(get_service_mapping(), specific_key, "api3", "default"),
-        "default",
-    )
+        # Case where neither specific nor generic keys are in the service mapping
+        specific_key = "api3"
+        self.assertEqual(
+            determine_service_name(
+                self.get_service_mapping(), specific_key, "api3", "default"
+            ),
+            "default",
+        )
 
     def test_remaps_all_inferred_span_service_names_from_api_gateway_event(self):
-        service_mapping_str = "lambda_api_gateway:new-name"
-        new_service_mapping = create_service_mapping(service_mapping_str)
-        set_service_mapping(new_service_mapping)
+        new_service_mapping = {"lambda_api_gateway": "new-name"}
+        self.set_service_mapping(new_service_mapping)
         event_sample_source = "api-gateway"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -811,10 +842,11 @@ def test_determine_service_name(self):
         self.assertEqual(span2.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(span2.service, "new-name")
 
-    def test_remaps_specific_inferred_span_service_names_from_api_gateway_event(self):
-        service_mapping_str = "1234567890:new-name"
-        new_service_mapping = create_service_mapping(service_mapping_str)
-        set_service_mapping(new_service_mapping)
+    def test_remaps_specific_inferred_span_service_names_from_api_gateway_event(
+        self,
+    ):
+        new_service_mapping = {"1234567890": "new-name"}
+        self.set_service_mapping(new_service_mapping)
         event_sample_source = "api-gateway"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -839,7 +871,7 @@ def test_determine_service_name(self):
     def test_remaps_specific_inferred_span_service_names_from_api_gateway_websocket_event(
         self,
     ):
-        set_service_mapping({"p62c47itsb": "new-name"})
+        self.set_service_mapping({"p62c47itsb": "new-name"})
         event_sample_source = "api-gateway-websocket-default"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -864,7 +896,7 @@ def test_determine_service_name(self):
     def test_remaps_specific_inferred_span_service_names_from_api_gateway_http_event(
         self,
     ):
-        set_service_mapping({"x02yirxc7a": "new-name"})
+        self.set_service_mapping({"x02yirxc7a": "new-name"})
         event_sample_source = "http-api"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -887,7 +919,7 @@ def test_determine_service_name(self):
         )
 
     def test_remaps_all_inferred_span_service_names_from_lambda_url_event(self):
-        set_service_mapping({"lambda_url": "new-name"})
+        self.set_service_mapping({"lambda_url": "new-name"})
         event_sample_source = "lambda-url"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -909,8 +941,10 @@ def test_determine_service_name(self):
         self.assertEqual(span2.get_tag("operation_name"), "aws.lambda.url")
         self.assertEqual(span2.service, "new-name")
 
-    def test_remaps_specific_inferred_span_service_names_from_lambda_url_event(self):
-        set_service_mapping({"a8hyhsshac": "new-name"})
+    def test_remaps_specific_inferred_span_service_names_from_lambda_url_event(
+        self,
+    ):
+        self.set_service_mapping({"a8hyhsshac": "new-name"})
         event_sample_source = "lambda-url"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -933,7 +967,7 @@ def test_determine_service_name(self):
         )
 
     def test_remaps_all_inferred_span_service_names_from_sqs_event(self):
-        set_service_mapping({"lambda_sqs": "new-name"})
+        self.set_service_mapping({"lambda_sqs": "new-name"})
         event_sample_source = "sqs-string-msg-attribute"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -956,7 +990,7 @@ def test_determine_service_name(self):
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_sqs_event(self):
-        set_service_mapping({"InferredSpansQueueNode": "new-name"})
+        self.set_service_mapping({"InferredSpansQueueNode": "new-name"})
         event_sample_source = "sqs-string-msg-attribute"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -979,7 +1013,7 @@ def test_determine_service_name(self):
         self.assertEqual(span2.service, "sqs")
 
     def test_remaps_all_inferred_span_service_names_from_sns_event(self):
-        set_service_mapping({"lambda_sns": "new-name"})
+        self.set_service_mapping({"lambda_sns": "new-name"})
         event_sample_source = "sns-string-msg-attribute"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1002,7 +1036,7 @@ def test_determine_service_name(self):
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_sns_event(self):
-        set_service_mapping({"serverlessTracingTopicPy": "new-name"})
+        self.set_service_mapping({"serverlessTracingTopicPy": "new-name"})
         event_sample_source = "sns-string-msg-attribute"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1025,7 +1059,7 @@ def test_determine_service_name(self):
         self.assertEqual(span2.service, "sns")
 
     def test_remaps_all_inferred_span_service_names_from_kinesis_event(self):
-        set_service_mapping({"lambda_kinesis": "new-name"})
+        self.set_service_mapping({"lambda_kinesis": "new-name"})
         event_sample_source = "kinesis"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1048,7 +1082,7 @@ def test_determine_service_name(self):
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_kinesis_event(self):
-        set_service_mapping({"Different_EXAMPLE": "new-name"})
+        self.set_service_mapping({"Different_EXAMPLE": "new-name"})
         event_sample_source = "kinesis"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1071,7 +1105,7 @@ def test_determine_service_name(self):
         self.assertEqual(span2.service, "kinesis")
 
     def test_remaps_all_inferred_span_service_names_from_s3_event(self):
-        set_service_mapping({"lambda_s3": "new-name"})
+        self.set_service_mapping({"lambda_s3": "new-name"})
         event_sample_source = "s3"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1094,7 +1128,7 @@ def test_determine_service_name(self):
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_s3_event(self):
-        set_service_mapping({"example-bucket": "new-name"})
+        self.set_service_mapping({"example-bucket": "new-name"})
         event_sample_source = "s3"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1115,7 +1149,7 @@ def test_determine_service_name(self):
         self.assertEqual(span2.service, "s3")
 
     def test_remaps_all_inferred_span_service_names_from_dynamodb_event(self):
-        set_service_mapping({"lambda_dynamodb": "new-name"})
+        self.set_service_mapping({"lambda_dynamodb": "new-name"})
         event_sample_source = "dynamodb"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1138,7 +1172,7 @@ def test_determine_service_name(self):
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_dynamodb_event(self):
-        set_service_mapping({"ExampleTableWithStream": "new-name"})
+        self.set_service_mapping({"ExampleTableWithStream": "new-name"})
         event_sample_source = "dynamodb"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1161,7 +1195,7 @@ def test_determine_service_name(self):
         self.assertEqual(span2.service, "dynamodb")
 
     def test_remaps_all_inferred_span_service_names_from_eventbridge_event(self):
-        set_service_mapping({"lambda_eventbridge": "new-name"})
+        self.set_service_mapping({"lambda_eventbridge": "new-name"})
         event_sample_source = "eventbridge-custom"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1181,8 +1215,10 @@ def test_determine_service_name(self):
         self.assertEqual(span2.get_tag("operation_name"), "aws.eventbridge")
         self.assertEqual(span2.service, "new-name")
 
-    def test_remaps_specific_inferred_span_service_names_from_eventbridge_event(self):
-        set_service_mapping({"eventbridge.custom.event.sender": "new-name"})
+    def test_remaps_specific_inferred_span_service_names_from_eventbridge_event(
+        self,
+    ):
+        self.set_service_mapping({"eventbridge.custom.event.sender": "new-name"})
         event_sample_source = "eventbridge-custom"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:

@@ -692,17 +692,9 @@ def create_service_mapping(val):
         if len(parts) == 2:
             key = parts[0].strip()
             value = parts[1].strip()
-            new_service_mapping[key] = value
+            if key != value and key and value:
+                new_service_mapping[key] = value
     return new_service_mapping
-
-
-def set_service_mapping(new_service_mapping):
-    global service_mapping
-    service_mapping = new_service_mapping
-
-
-def get_service_mapping():
-    return service_mapping
 
 
 def determine_service_name(service_mapping, specific_key, generic_key, default_value):
