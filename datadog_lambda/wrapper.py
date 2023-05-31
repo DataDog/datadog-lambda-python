@@ -72,7 +72,7 @@ DD_ENV = "DD_ENV"
 
 env_env_var = os.environ.get(DD_ENV, None)
 function_env_var = os.environ.get(AWS_LAMBDA_FUNCTION_NAME, "function")
-service_env_var = os.environ.get(DD_SERVICE, function_env_var)
+service_env_var = os.environ.get(DD_SERVICE, "DefaultServiceName")
 
 """
 Usage:
