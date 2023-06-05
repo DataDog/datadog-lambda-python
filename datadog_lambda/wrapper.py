@@ -71,8 +71,6 @@ DD_SERVICE = "DD_SERVICE"
 DD_ENV = "DD_ENV"
 
 env_env_var = os.environ.get(DD_ENV, None)
-function_env_var = os.environ.get(AWS_LAMBDA_FUNCTION_NAME, "function")
-service_env_var = os.environ.get(DD_SERVICE, "DefaultServiceName")
 
 """
 Usage:
@@ -134,7 +132,8 @@ class _LambdaDecorator(object):
             self.merge_xray_traces = (
                 os.environ.get(DD_MERGE_XRAY_TRACES, "false").lower() == "true"
             )
-            self.function_name = function_env_var
+            self.function_name = os.environ.get(AWS_LAMBDA_FUNCTION_NAME, "function")
+            self.service = os.environ.get(DD_SERVICE, None)
             self.extractor_env = os.environ.get(DD_TRACE_EXTRACTOR, None)
             self.trace_extractor = None
             self.span = None
@@ -175,7 +174,7 @@ class _LambdaDecorator(object):
                     logger.debug(f"Malformatted for env {DD_COLD_START_TRACE_SKIP_LIB}")
             self.response = None
             if profiling_env_var:
-                self.prof = profiler.Profiler(env=env_env_var, service=service_env_var)
+                self.prof = profiler.Profiler(env=env_env_var, service=self.service)
             if self.extractor_env:
                 extractor_parts = self.extractor_env.rsplit(".", 1)
                 if len(extractor_parts) == 2:
@@ -317,6 +316,9 @@ class _LambdaDecorator(object):
             if self.inferred_span:
                 if status_code:
                     self.inferred_span.set_tag("http.status_code", status_code)
+
+                if self.service:
+                    self.inferred_span.set_tag("peer.service", self.service)
 
                 if InferredSpanInfo.is_async(self.inferred_span) and self.span:
                     self.inferred_span.finish(finish_time=self.span.start)
