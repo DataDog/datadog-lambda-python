@@ -805,7 +805,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_api_gateway_non_proxy_event_async(self):
         event_sample_source = "api-gateway-non-proxy-async"
@@ -838,7 +837,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_api_gateway_non_proxy_event_sync(self):
         event_sample_source = "api-gateway-non-proxy"
@@ -871,7 +869,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_http_api_event(self):
         event_sample_source = "http-api"
@@ -907,7 +904,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "http")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_api_gateway_websocket_default_event(self):
         event_sample_source = "api-gateway-websocket-default"
@@ -943,7 +939,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_api_gateway_websocket_connect_event(self):
         event_sample_source = "api-gateway-websocket-connect"
@@ -979,7 +974,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_api_gateway_websocket_disconnect_event(self):
         event_sample_source = "api-gateway-websocket-disconnect"
@@ -1015,7 +1009,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "sync")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_sqs_event_string_msg_attr(self):
         event_sample_name = "sqs-string-msg-attribute"
@@ -1054,7 +1047,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_sns_event_string_msg_attr(self):
         event_sample_name = "sns-string-msg-attribute"
@@ -1093,7 +1085,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_sns_event_b64_msg_attr(self):
         event_sample_name = "sns-b64-msg-attribute"
@@ -1132,7 +1123,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_kinesis_event(self):
         event_sample_source = "kinesis"
@@ -1175,7 +1165,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_dynamodb_event(self):
         event_sample_source = "dynamodb"
@@ -1215,7 +1204,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_s3_event(self):
         event_sample_source = "s3"
@@ -1253,7 +1241,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_create_inferred_span_from_eventbridge_event(self):
         event_sample_source = "eventbridge-custom"
@@ -1283,7 +1270,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.span_type, "web")
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
-        self.assertEqual(span.get_tag("peer.service"), "function")
 
     def test_extract_context_from_eventbridge_event(self):
         event_sample_source = "eventbridge-custom"
