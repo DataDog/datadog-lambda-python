@@ -24,18 +24,18 @@ tests-no-zope = ["cloudpickle", "hypothesis", "mypy (>=1.1.1)", "pympler", "pyte
 
 [[package]]
 name = "boto3"
-version = "1.26.154"
+version = "1.26.158"
 description = "The AWS SDK for Python"
 category = "main"
 optional = true
 python-versions = ">= 3.7"
 files = [
-    {file = "boto3-1.26.154-py3-none-any.whl", hash = "sha256:ee2b3733f40f935da78bf76bc8e82af6e90841406e04605e3b2d765b50cad05e"},
-    {file = "boto3-1.26.154.tar.gz", hash = "sha256:cf1067d101be538f399b685bbe6beb4bfed01095da8497d0c7fa8b8788a65c6b"},
+    {file = "boto3-1.26.158-py3-none-any.whl", hash = "sha256:0be407c2e941b422634766c0d754132ad4d33b5d0f84d9a30426b713b31ce3ab"},
+    {file = "boto3-1.26.158.tar.gz", hash = "sha256:7f88d9403f81e6f3fc770c424f7089b15eb0553b168b1d2f979fa0d12b663b42"},
 ]
 
 [package.dependencies]
-botocore = ">=1.29.154,<1.30.0"
+botocore = ">=1.29.158,<1.30.0"
 jmespath = ">=0.7.1,<2.0.0"
 s3transfer = ">=0.6.0,<0.7.0"
 
@@ -44,14 +44,14 @@ crt = ["botocore[crt] (>=1.21.0,<2.0a0)"]
 
 [[package]]
 name = "botocore"
-version = "1.29.154"
+version = "1.29.158"
 description = "Low-level, data-driven core of boto 3."
 category = "main"
 optional = true
 python-versions = ">= 3.7"
 files = [
-    {file = "botocore-1.29.154-py3-none-any.whl", hash = "sha256:b9853f72a3c93f1aa8c9a1636911cdbec3662bca2e04e4ee00437c4f8c9fa2d4"},
-    {file = "botocore-1.29.154.tar.gz", hash = "sha256:a9c7da497ac5f7d4f3e932b4442e7c32cc2936f3a4658165f1528336fc429c3d"},
+    {file = "botocore-1.29.158-py3-none-any.whl", hash = "sha256:267d4e7f36bdb45ea696386143ca6f68a358dc4baef85894cc4d9cffe97c0cd5"},
+    {file = "botocore-1.29.158.tar.gz", hash = "sha256:2fd3b625f3d683d9dd6b400aba54d54a1e9b960b84ed07a466d25d1366e59482"},
 ]
 
 [package.dependencies]
@@ -782,14 +782,14 @@ crt = ["botocore[crt] (>=1.20.29,<2.0a.0)"]
 
 [[package]]
 name = "setuptools"
-version = "67.8.0"
+version = "68.0.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "setuptools-67.8.0-py3-none-any.whl", hash = "sha256:5df61bf30bb10c6f756eb19e7c9f3b473051f48db77fddbe06ff2ca307df9a6f"},
-    {file = "setuptools-67.8.0.tar.gz", hash = "sha256:62642358adc77ffa87233bc4d2354c4b2682d214048f500964dbe760ccedf102"},
+    {file = "setuptools-68.0.0-py3-none-any.whl", hash = "sha256:11e52c67415a381d10d6b462ced9cfb97066179f0e871399e006c4ab101fc85f"},
+    {file = "setuptools-68.0.0.tar.gz", hash = "sha256:baf1fdb41c6da4cd2eae722e135500da913332ab3f2f5c7d33af9b492acb5235"},
 ]
 
 [package.extras]
@@ -957,4 +957,4 @@ dev = ["boto3", "flake8", "httpretty", "nose2", "requests"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.7.0,<4"
-content-hash = "f27935d05bba9725910b40aeb17de6d61a5b3af5356e4810ec4696f9c2a25c64"
+content-hash = "220b7348acf7d71f280bee0d89763f562c191d946cb0e4ef7c46c0e6c1ff98c0"
