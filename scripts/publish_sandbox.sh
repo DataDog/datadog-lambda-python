@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Usage: VERSION=5 REGIONS=us-east-1 ./scripts/publish_sandbox.sh
+# Usage: VERSION=5 ./scripts/publish_sandbox.sh
 set -e
 
 ./scripts/build_layers.sh
