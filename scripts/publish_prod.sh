@@ -86,6 +86,7 @@ echo "Publishing to https://pypi.org/project/datadog-lambda/"
 
 echo
 echo 'Publishing updates to github'
+git commit pyproject.toml -m "Bump version to ${$NEW_VERSION}"
 git push origin main
 git tag "v$LAYER_VERSION"
 git push origin "refs/tags/v$LAYER_VERSION"
