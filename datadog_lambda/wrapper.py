@@ -14,6 +14,7 @@ from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import (
     set_cold_start,
     is_cold_start,
+    is_proactive_init,
     is_new_sandbox,
     ColdStartTracer,
 )
