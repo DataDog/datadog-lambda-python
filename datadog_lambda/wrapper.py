@@ -11,7 +11,12 @@ import json
 from time import time_ns
 
 from datadog_lambda.extension import should_use_extension, flush_extension
-from datadog_lambda.cold_start import set_cold_start, is_cold_start, ColdStartTracer
+from datadog_lambda.cold_start import (
+    set_cold_start,
+    is_cold_start,
+    is_new_sandbox,
+    ColdStartTracer,
+)
 from datadog_lambda.constants import (
     TraceContextSource,
     XraySubsegment,
@@ -71,6 +76,8 @@ DD_SERVICE = "DD_SERVICE"
 DD_ENV = "DD_ENV"
 
 env_env_var = os.environ.get(DD_ENV, None)
+
+init_timestamp_ns = time_ns()
 
 """
 Usage:
@@ -245,7 +252,7 @@ class _LambdaDecorator(object):
     def _before(self, event, context):
         try:
             self.response = None
-            set_cold_start()
+            set_cold_start(init_timestamp_ns)
             submit_invocations_metric(context)
             self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
@@ -272,6 +279,7 @@ class _LambdaDecorator(object):
                     context,
                     self.function_name,
                     is_cold_start(),
+                    is_proactive_init(),
                     trace_context_source,
                     self.merge_xray_traces,
                     self.trigger_tags,
@@ -279,7 +287,7 @@ class _LambdaDecorator(object):
                 )
             else:
                 set_correlation_ids()
-            if profiling_env_var and is_cold_start():
+            if profiling_env_var and is_new_sandbox():
                 self.prof.start(stop_on_exit=False, profile_children=True)
             logger.debug("datadog_lambda_wrapper _before() done")
         except Exception:
@@ -299,7 +307,7 @@ class _LambdaDecorator(object):
                     self.trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
                 )
             should_trace_cold_start = (
-                dd_tracing_enabled and self.cold_start_tracing and is_cold_start()
+                dd_tracing_enabled and self.cold_start_tracing and is_new_sandbox()
             )
             if should_trace_cold_start:
                 trace_ctx = tracer.current_trace_context()

@@ -1211,6 +1211,7 @@ def create_function_execution_span(
     context,
     function_name,
     is_cold_start,
+    is_proactive_init,
     trace_context_source,
     merge_xray_traces,
     trigger_tags,
@@ -1224,6 +1225,7 @@ def create_function_execution_span(
         function_version = tk[7] if len(tk) > 7 else "$LATEST"
         tags = {
             "cold_start": str(is_cold_start).lower(),
+            "proactive_initialization": str(is_proactive_init).lower(),
             "function_arn": function_arn,
             "function_version": function_version,
             "request_id": context.aws_request_id,
