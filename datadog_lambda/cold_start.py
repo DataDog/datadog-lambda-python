@@ -20,7 +20,7 @@ def set_cold_start(init_timestamp_ns):
     global _proactive_initialization
     if not _lambda_container_initialized:
         now = time.time_ns()
-        if (now - init_timestamp_ns) // 1_000_000_000:
+        if (now - init_timestamp_ns) // 1_000_000_000 > 10:
             _cold_start = False
             _proactive_initialization = True
         else:
