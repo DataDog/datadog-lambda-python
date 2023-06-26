@@ -1225,7 +1225,6 @@ def create_function_execution_span(
         function_version = tk[7] if len(tk) > 7 else "$LATEST"
         tags = {
             "cold_start": str(is_cold_start).lower(),
-            "proactive_initialization": str(is_proactive_init).lower(),
             "function_arn": function_arn,
             "function_version": function_version,
             "request_id": context.aws_request_id,
@@ -1237,6 +1236,8 @@ def create_function_execution_span(
             "dd_trace": ddtrace_version,
             "span.name": "aws.lambda",
         }
+    if is_proactive_init:
+        tags["proactive_initialization"] = str(is_proactive_init).lower()
     if trace_context_source == TraceContextSource.XRAY and merge_xray_traces:
         tags["_dd.parent_source"] = trace_context_source
     tags.update(trigger_tags)
