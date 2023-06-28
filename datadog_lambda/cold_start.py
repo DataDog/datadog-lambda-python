@@ -6,17 +6,28 @@ import logging
 logger = logging.getLogger(__name__)
 
 _cold_start = True
+_proactive_initialization = False
 _lambda_container_initialized = False
 
 
-def set_cold_start():
+def set_cold_start(init_timestamp_ns):
     """Set the value of the cold start global
 
     This should be executed once per Lambda execution before the execution
     """
     global _cold_start
     global _lambda_container_initialized
-    _cold_start = not _lambda_container_initialized
+    global _proactive_initialization
+    if not _lambda_container_initialized:
+        now = time.time_ns()
+        if (now - init_timestamp_ns) // 1_000_000_000 > 10:
+            _cold_start = False
+            _proactive_initialization = True
+        else:
+            _cold_start = not _lambda_container_initialized
+    else:
+        _cold_start = False
+        _proactive_initialization = False
     _lambda_container_initialized = True
 
 
@@ -25,9 +36,23 @@ def is_cold_start():
     return _cold_start
 
 
+def is_proactive_init():
+    """Returns the value of the global proactive_initialization"""
+    return _proactive_initialization
+
+
+def is_new_sandbox():
+    return is_cold_start() or is_proactive_init()
+
+
 def get_cold_start_tag():
     """Returns the cold start tag to be used in metrics"""
     return "cold_start:{}".format(str(is_cold_start()).lower())
+
+
+def get_proactive_init_tag():
+    """Returns the proactive init tag to be used in metrics"""
+    return "proactive_initialization:{}".format(str(is_proactive_init()).lower())
 
 
 class ImportNode(object):
@@ -115,7 +140,7 @@ def wrap_find_spec(original_find_spec):
 
 def initialize_cold_start_tracing():
     if (
-        is_cold_start()
+        is_new_sandbox()
         and os.environ.get("DD_TRACE_ENABLED", "true").lower() == "true"
         and os.environ.get("DD_COLD_START_TRACING", "true").lower() == "true"
     ):

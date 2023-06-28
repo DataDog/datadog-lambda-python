@@ -1,3 +1,4 @@
+import time
 import unittest
 import datadog_lambda.cold_start as cold_start
 from sys import modules, meta_path
@@ -6,6 +7,34 @@ from unittest.mock import MagicMock
 
 
 class TestColdStartTracingSetup(unittest.TestCase):
+    def test_proactive_init(self):
+        cold_start._cold_start = True
+        cold_start._proactive_initialization = False
+        cold_start._lambda_container_initialized = False
+        fifteen_seconds_ago = time.time_ns() - 15_000_000_000
+        cold_start.set_cold_start(fifteen_seconds_ago)
+        self.assertTrue(cold_start.is_proactive_init())
+        self.assertTrue(cold_start.is_new_sandbox())
+        self.assertFalse(cold_start.is_cold_start())
+        self.assertEqual(
+            cold_start.get_proactive_init_tag(), "proactive_initialization:true"
+        )
+        self.assertEqual(cold_start.get_cold_start_tag(), "cold_start:false")
+
+    def test_cold_start(self):
+        cold_start._cold_start = True
+        cold_start._proactive_initialization = False
+        cold_start._lambda_container_initialized = False
+        one_second_ago = time.time_ns() - 1_000_000_000
+        cold_start.set_cold_start(one_second_ago)
+        self.assertFalse(cold_start.is_proactive_init())
+        self.assertTrue(cold_start.is_new_sandbox())
+        self.assertTrue(cold_start.is_cold_start())
+        self.assertEqual(
+            cold_start.get_proactive_init_tag(), "proactive_initialization:false"
+        )
+        self.assertEqual(cold_start.get_cold_start_tag(), "cold_start:true")
+
     def test_initialize_cold_start_tracing(self):
         cold_start._cold_start = True
         cold_start.initialize_cold_start_tracing()  # testing double wrapping

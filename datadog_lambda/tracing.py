@@ -1211,6 +1211,7 @@ def create_function_execution_span(
     context,
     function_name,
     is_cold_start,
+    is_proactive_init,
     trace_context_source,
     merge_xray_traces,
     trigger_tags,
@@ -1235,6 +1236,8 @@ def create_function_execution_span(
             "dd_trace": ddtrace_version,
             "span.name": "aws.lambda",
         }
+    if is_proactive_init:
+        tags["proactive_initialization"] = str(is_proactive_init).lower()
     if trace_context_source == TraceContextSource.XRAY and merge_xray_traces:
         tags["_dd.parent_source"] = trace_context_source
     tags.update(trigger_tags)
