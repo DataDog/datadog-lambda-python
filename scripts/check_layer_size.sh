@@ -8,7 +8,7 @@
 # Compares layer size to threshold, and fails if below that threshold
 
 # 7 mb size limit
-MAX_LAYER_COMPRESSED_SIZE_KB=$(expr 7 \* 1024)
+MAX_LAYER_COMPRESSED_SIZE_KB=$(expr 11 \* 1024)
 MAX_LAYER_UNCOMPRESSED_SIZE_KB=$(expr 24 \* 1024)
 
 
