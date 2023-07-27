@@ -68,8 +68,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "http.status_code": "200",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
@@ -128,7 +127,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -154,7 +152,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -235,8 +232,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
@@ -291,7 +287,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -317,7 +312,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -392,8 +386,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
@@ -447,7 +440,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -473,7 +465,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -558,8 +549,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "http.status_code": "200",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
@@ -618,7 +608,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -644,7 +633,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -725,8 +713,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
@@ -781,7 +768,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -807,7 +793,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -885,8 +870,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
@@ -941,7 +925,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -967,7 +950,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1046,8 +1028,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
@@ -1102,7 +1083,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1128,7 +1108,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1206,8 +1185,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
@@ -1262,7 +1240,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1288,7 +1265,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1372,8 +1348,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "http.status_code": "200",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
@@ -1430,7 +1405,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1456,7 +1430,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
