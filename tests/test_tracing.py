@@ -589,7 +589,7 @@ class TestSetTraceRootSpan(unittest.TestCase):
         self.mock_is_lambda_context = patcher.start()
         self.mock_is_lambda_context.return_value = True
         self.addCleanup(patcher.stop)
-        patcher = patch("ddtrace.tracer.context_provider.activate")
+        patcher = patch("datadog_lambda.tracing.tracer.context_provider.activate")
         self.mock_activate = patcher.start()
         self.mock_activate.return_value = True
         self.addCleanup(patcher.stop)
