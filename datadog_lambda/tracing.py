@@ -236,7 +236,11 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 
     # EventBrdige => SQS
     try:
-        trace_id, parent_id, sampling_priority = _extract_context_from_eventbridge_sqs_event(event)
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = _extract_context_from_eventbridge_sqs_event(event)
         return trace_id, parent_id, sampling_priority
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
