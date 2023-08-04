@@ -1785,6 +1785,45 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
 
+    def test_create_inferred_span_from_eventbridge_sqs_event(self):
+        event_sample_name = "eventbridge-sqs"
+        test_file = event_samples + event_sample_name + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.sqs")
+        self.assertEqual(
+            span.service,
+            "sqs",
+        )
+        self.assertEqual(
+            span.get_tag("http.url"),
+            None,
+        )
+        self.assertEqual(span.get_tag("endpoint"), None)
+        self.assertEqual(span.get_tag("http.method"), None)
+        self.assertEqual(
+            span.get_tag("resource_names"),
+            "eventbridge-sqs-queue",
+        )
+        self.assertEqual(span.get_tag("request_id"), None)
+        self.assertEqual(span.get_tag("queuename"), "eventbridge-sqs-queue")
+        self.assertEqual(
+            span.get_tag("event_source_arn"),
+            "arn:aws:sqs:us-east-1:425362996713:eventbridge-sqs-queue",
+        )
+        self.assertEqual(
+            span.get_tag("sender_id"),
+            "AIDAJXNJGGKNS7OSV23OI",
+        )
+        self.assertEqual(span.start, 1691102943.638)
+        self.assertEqual(span.span_type, "web")
+        self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
+        self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
+
+
     def test_extract_context_from_eventbridge_event(self):
         event_sample_source = "eventbridge-custom"
         test_file = event_samples + event_sample_source + ".json"
@@ -1805,6 +1844,20 @@ class TestInferredSpans(unittest.TestCase):
         context, source, event_type = extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "12345")
         self.assertEqual(context["parent-id"], "67890")
+
+
+    def test_extract_context_from_eventbridge_sqs_event(self):
+        event_sample_source = "eventbridge-sqs"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+
+        ctx = get_mock_context()
+        context, _, __ = extract_dd_trace_context(event, ctx)
+        self.assertEqual(context["trace-id"], "7379586022458917877")
+        self.assertEqual(context["parent-id"], "2644033662113726488")
+        self.assertEqual(context["sampling-priority"], "1")
+
 
     def test_extract_context_from_sqs_event_with_string_msg_attr(self):
         event_sample_source = "sqs-string-msg-attribute"
