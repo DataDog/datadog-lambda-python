@@ -1823,7 +1823,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(span.get_tag(InferredSpanInfo.TAG_SOURCE), "self")
         self.assertEqual(span.get_tag(InferredSpanInfo.SYNCHRONICITY), "async")
 
-
     def test_extract_context_from_eventbridge_event(self):
         event_sample_source = "eventbridge-custom"
         test_file = event_samples + event_sample_source + ".json"
@@ -1845,7 +1844,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(context["trace-id"], "12345")
         self.assertEqual(context["parent-id"], "67890")
 
-
     def test_extract_context_from_eventbridge_sqs_event(self):
         event_sample_source = "eventbridge-sqs"
         test_file = event_samples + event_sample_source + ".json"
@@ -1857,7 +1855,6 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(context["trace-id"], "7379586022458917877")
         self.assertEqual(context["parent-id"], "2644033662113726488")
         self.assertEqual(context["sampling-priority"], "1")
-
 
     def test_extract_context_from_sqs_event_with_string_msg_attr(self):
         event_sample_source = "sqs-string-msg-attribute"
