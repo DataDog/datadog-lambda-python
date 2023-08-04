@@ -1853,7 +1853,7 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
 
         ctx = get_mock_context()
-        context, _, __ = extract_dd_trace_context(event, ctx)
+        context, source, event_type = extract_dd_trace_context(event, ctx)
         self.assertEqual(context["trace-id"], "7379586022458917877")
         self.assertEqual(context["parent-id"], "2644033662113726488")
         self.assertEqual(context["sampling-priority"], "1")

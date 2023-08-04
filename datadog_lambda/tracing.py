@@ -310,7 +310,7 @@ def _extract_context_from_eventbridge_sqs_event(event):
             parent_id = dd_context.get(TraceHeader.PARENT_ID)
             sampling_priority = dd_context.get(TraceHeader.SAMPLING_PRIORITY)
             return trace_id, parent_id, sampling_priority
-    except Exception as e:
+    except Exception:
         raise
 
 
@@ -1049,7 +1049,7 @@ def create_inferred_span_from_sqs_event(event, context):
                         body, context
                     )
                     upstream_span.finish(finish_time=start_time)
-            
+
         except Exception as e:
             logger.debug(
                 "Unable to create upstream span from SQS message, with error %s" % e
