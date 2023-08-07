@@ -229,10 +229,29 @@ def create_sns_event(message):
 
 def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     """
-    Extract Datadog trace context from the first SQS message attributes.
+    Extract Datadog trace context from an SQS event.
+
+    The extraction chain goes as follows:
+    EB => SQS (First records body contains EB context), or
+    SNS => SQS (First records body contains SNS context), or
+    SQS or SNS (`messageAttributes` for SQS context,
+                `MessageAttributes` for SNS context), else
+    Lambda Context.
 
     Falls back to lambda context if no trace data is found in the SQS message attributes.
     """
+
+    # EventBridge => SQS
+    try:
+        (
+            trace_id,
+            parent_id,
+            sampling_priority,
+        ) = _extract_context_from_eventbridge_sqs_event(event)
+        return trace_id, parent_id, sampling_priority
+    except Exception:
+        logger.debug("Failed extracting context as EventBridge to SQS.")
+
     try:
         first_record = event.get("Records")[0]
 
@@ -281,6 +300,30 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)
+
+
+def _extract_context_from_eventbridge_sqs_event(event):
+    """
+    Extracts Datadog trace context from an SQS event triggered by
+    EventBridge.
+
+    This is only possible if first record in `Records` contains a
+    `body` field which contains the EventBridge `detail` as a JSON string.
+    """
+    try:
+        first_record = event.get("Records")[0]
+        if "body" in first_record:
+            body_str = first_record.get("body", {})
+            body = json.loads(body_str)
+
+            detail = body.get("detail")
+            dd_context = detail.get("_datadog")
+            trace_id = dd_context.get(TraceHeader.TRACE_ID)
+            parent_id = dd_context.get(TraceHeader.PARENT_ID)
+            sampling_priority = dd_context.get(TraceHeader.SAMPLING_PRIORITY)
+            return trace_id, parent_id, sampling_priority
+    except Exception:
+        raise
 
 
 def extract_context_from_eventbridge_event(event, lambda_context):
@@ -995,21 +1038,33 @@ def create_inferred_span_from_sqs_event(event, context):
     }
     start_time = int(request_time_epoch) / 1000
 
-    # logic to deal with SNS => SQS event
-    sns_span = None
+    upstream_span = None
     if "body" in event_record:
         body_str = event_record.get("body", {})
         try:
             body = json.loads(body_str)
+
+            # logic to deal with SNS => SQS event
             if body.get("Type", "") == "Notification" and "TopicArn" in body:
                 logger.debug("Found SNS message inside SQS event")
-                sns_span = create_inferred_span_from_sns_event(
+                upstream_span = create_inferred_span_from_sns_event(
                     create_sns_event(body), context
                 )
-                sns_span.finish(finish_time=start_time)
+                upstream_span.finish(finish_time=start_time)
+
+            # EventBridge => SQS
+            elif body.get("detail"):
+                detail = body.get("detail")
+                if detail.get("_datadog"):
+                    logger.debug("Found an EventBridge message inside SQS event")
+                    upstream_span = create_inferred_span_from_eventbridge_event(
+                        body, context
+                    )
+                    upstream_span.finish(finish_time=start_time)
+
         except Exception as e:
             logger.debug(
-                "Unable to create SNS span from SQS message, with error %s" % e
+                "Unable to create upstream span from SQS message, with error %s" % e
             )
             pass
 
@@ -1021,8 +1076,8 @@ def create_inferred_span_from_sqs_event(event, context):
     if span:
         span.set_tags(tags)
     span.start = start_time
-    if sns_span:
-        span.parent_id = sns_span.span_id
+    if upstream_span:
+        span.parent_id = upstream_span.span_id
 
     return span
 
