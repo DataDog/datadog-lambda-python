@@ -229,12 +229,19 @@ def create_sns_event(message):
 
 def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     """
-    Extract Datadog trace context from the first SQS message attributes.
+    Extract Datadog trace context from an SQS event.
+
+    The extraction chain goes as follows:
+    EB => SQS (First records body contains EB context), or
+    SNS => SQS (First records body contains SNS context), or
+    SQS or SNS (`messageAttributes` for SQS context,
+                `MessageAttributes` for SNS context), else
+    Lambda Context.
 
     Falls back to lambda context if no trace data is found in the SQS message attributes.
     """
 
-    # EventBrdige => SQS
+    # EventBridge => SQS
     try:
         (
             trace_id,
