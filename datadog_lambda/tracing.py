@@ -29,7 +29,6 @@ from datadog_lambda.xray import (
     send_segment,
     parse_xray_header,
 )
-
 from ddtrace import tracer, patch, Span
 from ddtrace import __version__ as ddtrace_version
 from ddtrace.propagation.http import HTTPPropagator
