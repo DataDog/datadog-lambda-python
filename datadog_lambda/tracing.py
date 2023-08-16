@@ -30,14 +30,6 @@ from datadog_lambda.xray import (
     parse_xray_header,
 )
 
-dd_trace_otel_enabled = (
-    os.environ.get("DD_TRACE_OTEL_ENABLED", "false").lower() == "true"
-)
-if dd_trace_otel_enabled:
-    from opentelemetry.trace import set_tracer_provider
-    from ddtrace.opentelemetry import TracerProvider
-
-    set_tracer_provider(TracerProvider())
 from ddtrace import tracer, patch, Span
 from ddtrace import __version__ as ddtrace_version
 from ddtrace.propagation.http import HTTPPropagator
@@ -49,6 +41,16 @@ from datadog_lambda.trigger import (
     EventTypes,
     EventSubtypes,
 )
+
+dd_trace_otel_enabled = (
+    os.environ.get("DD_TRACE_OTEL_ENABLED", "false").lower() == "true"
+)
+if dd_trace_otel_enabled:
+    from opentelemetry.trace import set_tracer_provider
+    from ddtrace.opentelemetry import TracerProvider
+
+    set_tracer_provider(TracerProvider())
+
 
 logger = logging.getLogger(__name__)
 
