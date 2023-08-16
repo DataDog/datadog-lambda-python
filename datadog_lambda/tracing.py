@@ -29,7 +29,9 @@ from datadog_lambda.xray import (
     send_segment,
     parse_xray_header,
 )
-dd_trace_otel_enabled = os.environ.get("DD_TRACE_OTEL_ENABLED", "false").lower() == "true"
+dd_trace_otel_enabled = (
+    os.environ.get("DD_TRACE_OTEL_ENABLED", "false").lower() == "true"
+)
 if dd_trace_otel_enabled:
     from opentelemetry.trace import set_tracer_provider
     from ddtrace.opentelemetry import TracerProvider
