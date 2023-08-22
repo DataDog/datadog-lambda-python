@@ -125,9 +125,8 @@ class _LambdaDecorator(object):
             else:
                 logger.debug("datadog_lambda_wrapper already wrapped")
                 return _NoopDecorator(func)
-        except Exception:
-            traceback.print_exc()
-            return func
+        except Exception as e:
+            logger.error("Error %s. Traceback: %s", e, traceback.format_exc().replace("\n", "\r"))
 
     def __init__(self, func):
         """Executes when the wrapped function gets wrapped"""
@@ -204,8 +203,8 @@ class _LambdaDecorator(object):
             patch_all()
 
             logger.debug("datadog_lambda_wrapper initialized")
-        except Exception:
-            traceback.print_exc()
+        except Exception as e:
+            logger.error("Error %s. Traceback: %s", e, traceback.format_exc().replace("\n", "\r"))
 
     def __call__(self, event, context, **kwargs):
         """Executes when the wrapped function gets called"""
@@ -291,8 +290,8 @@ class _LambdaDecorator(object):
             if profiling_env_var and is_new_sandbox():
                 self.prof.start(stop_on_exit=False, profile_children=True)
             logger.debug("datadog_lambda_wrapper _before() done")
-        except Exception:
-            traceback.print_exc()
+        except Exception as e:
+            logger.error("Error %s. Traceback: %s", e, traceback.format_exc().replace("\n", "\r"))
 
     def _after(self, event, context):
         try:
@@ -358,8 +357,8 @@ class _LambdaDecorator(object):
                     event.get("requestContext", {}).get("requestId")
                 )
             logger.debug("datadog_lambda_wrapper _after() done")
-        except Exception:
-            traceback.print_exc()
+        except Exception as e:
+            logger.error("Error %s. Traceback: %s", e, traceback.format_exc().replace("\n", "\r"))
 
 
 datadog_lambda_wrapper = _LambdaDecorator
