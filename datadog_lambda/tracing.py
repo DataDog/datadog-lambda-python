@@ -41,6 +41,16 @@ from datadog_lambda.trigger import (
     EventSubtypes,
 )
 
+dd_trace_otel_enabled = (
+    os.environ.get("DD_TRACE_OTEL_ENABLED", "false").lower() == "true"
+)
+if dd_trace_otel_enabled:
+    from opentelemetry.trace import set_tracer_provider
+    from ddtrace.opentelemetry import TracerProvider
+
+    set_tracer_provider(TracerProvider())
+
+
 logger = logging.getLogger(__name__)
 
 dd_trace_context = {}
