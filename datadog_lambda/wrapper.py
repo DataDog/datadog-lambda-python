@@ -127,6 +127,7 @@ class _LambdaDecorator(object):
                 return _NoopDecorator(func)
         except Exception as e:
             logger.error("Error %s. Traceback: %s", e, traceback.format_exc().replace("\n", "\r"))
+            return func
 
     def __init__(self, func):
         """Executes when the wrapped function gets wrapped"""
