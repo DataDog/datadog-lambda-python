@@ -34,7 +34,7 @@ fi
 # Ensure AWS access before proceeding
 ddsaml2aws login -a govcloud-us1-fed-human-engineering
 AWS_PROFILE=govcloud-us1-fed-human-engineering aws sts get-caller-identity
-aws-vault exec prod-engineering -- aws sts get-caller-identity
+aws-vault exec sso-prod-engineering -- aws sts get-caller-identity
 
 # Ensure pypi registry access
 read -p "Do you have access to PyPI (y/n)?" CONT
@@ -64,11 +64,11 @@ echo "Building layers..."
 
 echo
 echo "Signing layers for commercial AWS regions"
-aws-vault exec prod-engineering -- ./scripts/sign_layers.sh prod
+aws-vault exec sso-prod-engineering -- ./scripts/sign_layers.sh prod
 
 echo
 echo "Publishing layers to commercial AWS regions"
-VERSION=$LAYER_VERSION aws-vault exec prod-engineering -- ./scripts/publish_layers.sh
+VERSION=$LAYER_VERSION aws-vault exec sso-prod-engineering -- ./scripts/publish_layers.sh
 
 echo "Publishing layers to GovCloud AWS regions"
 ddsaml2aws login -a govcloud-us1-fed-human-engineering
