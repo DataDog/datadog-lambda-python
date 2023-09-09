@@ -34,20 +34,20 @@ def tag_object(span, key, obj, depth=0):
             formatted_key = "{}.{}".format(key, k)
             tag_object(span, formatted_key, v, depth)
         return
-    if hasattr(obj, 'items'):
+    if hasattr(obj, "items"):
         for k, v in obj.items():
             formatted_key = "{}.{}".format(key, k)
             tag_object(span, formatted_key, v, depth)
         return
-    if hasattr(obj, 'to_dict'):
+    if hasattr(obj, "to_dict"):
         for k, v in obj.to_dict().items():
             formatted_key = "{}.{}".format(key, k)
             tag_object(span, formatted_key, v, depth)
         return
     try:
-        value_as_str= str(obj)
+        value_as_str = str(obj)
     except Exception:
-        value_as_str="UNKNOWN"
+        value_as_str = "UNKNOWN"
     return span.set_tag(key, value_as_str)
 
 

@@ -40,12 +40,12 @@ class TestTagObject(unittest.TestCase):
         tag_object(spanMock, "function.request", payload)
         spanMock.set_tag.assert_has_calls(
             [
-                call("function.request.vals.0.thingOne", 1),
-                call("function.request.vals.1.thingTwo", 2),
+                call("function.request.vals.0.thingOne", "1"),
+                call("function.request.vals.1.thingTwo", "2"),
                 call("function.request.authorization", "redacted"),
                 call("function.request.anotherThing.blah", None),
                 call("function.request.anotherThing.password", "redacted"),
-                call("function.request.anotherThing.nice", True),
+                call("function.request.anotherThing.nice", "True"),
             ],
             True,
         )
@@ -62,7 +62,7 @@ class TestTagObject(unittest.TestCase):
                 call("function.request.token", "redacted"),
                 call("function.request.jsonString.stringifyThisJson.0.here", "is"),
                 call("function.request.jsonString.stringifyThisJson.0.an", "object"),
-                call("function.request.jsonString.stringifyThisJson.0.number", 1),
+                call("function.request.jsonString.stringifyThisJson.0.number", "1"),
             ],
             True,
         )
@@ -79,7 +79,7 @@ class TestTagObject(unittest.TestCase):
                 call("function.request.token", "redacted"),
                 call("function.request.jsonString.stringifyThisJson.0.here", "is"),
                 call("function.request.jsonString.stringifyThisJson.0.an", "object"),
-                call("function.request.jsonString.stringifyThisJson.0.number", 1),
+                call("function.request.jsonString.stringifyThisJson.0.number", "1"),
             ],
             True,
         )
@@ -95,16 +95,12 @@ class TestTagObject(unittest.TestCase):
             True,
         )
 
-
     class CustomResponse(object):
         """
         For example, chalice.app.Response class
         """
-        def __init__(
-            self, body,
-            headers = None,
-            status_code: int = 200
-        ):
+
+        def __init__(self, body, headers=None, status_code: int = 200):
             self.body = body
             if headers is None:
                 headers = {}
@@ -119,7 +115,7 @@ class TestTagObject(unittest.TestCase):
             return self.headers
 
     def test_custom_response(self):
-        payload = self.CustomResponse({'hello':'world'}, {'key1':'val1'}, 200)
+        payload = self.CustomResponse({"hello": "world"}, {"key1": "val1"}, 200)
         spanMock = MagicMock()
         tag_object(spanMock, "function.response", payload)
         spanMock.set_tag.assert_has_calls(
@@ -130,7 +126,7 @@ class TestTagObject(unittest.TestCase):
         )
 
     def test_custom_response_to_dict(self):
-        payload = self.ResponseHasToDict({'hello':'world'}, {'key1':'val1'}, 200)
+        payload = self.ResponseHasToDict({"hello": "world"}, {"key1": "val1"}, 200)
         spanMock = MagicMock()
         tag_object(spanMock, "function.response", payload)
         spanMock.set_tag.assert_has_calls(
