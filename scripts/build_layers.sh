@@ -60,6 +60,9 @@ function docker_build_zip {
     (cd $temp_dir && zip -q -r $destination ./)
 
     rm -rf $temp_dir
+    docker run datadog-lambda-python-${arch}:$1 sh -c "cd /build/python/lib/python$1/site-packages/ && \
+        python -c \"import pkg_resources; packages = sorted(['%s==%s' % (i.key, i.version) for i in pkg_resources.working_set]);\
+        print(*packages,sep ='\n')\"" > dependency.lock.${arch}.$1
     echo "Done creating archive $destination"
 }
 
