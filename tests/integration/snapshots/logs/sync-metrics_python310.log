@@ -48,11 +48,12 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "http.status_code": "200",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python"
+          "language": "python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -84,7 +85,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "http.url": "XXXX.execute-api.us-east-2.amazonaws.com",
           "http.url_details.path": "/Prod/",
           "http.method": "GET",
-          "http.status_code": "200"
+          "http.status_code": "200",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -107,6 +109,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
+          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -132,6 +135,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
+          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -164,6 +168,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "span.kind": "client",
           "http.method": "POST",
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "out.host": "api.datadoghq.com",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0",
@@ -171,7 +176,6 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.measured": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
@@ -230,11 +234,12 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python"
+          "language": "python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -262,7 +267,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
           "function_trigger.event_source": "dynamodb",
-          "function_trigger.event_source_arn": "XXXX"
+          "function_trigger.event_source_arn": "XXXX",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -285,6 +291,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
+          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -310,6 +317,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
+          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -342,6 +350,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "span.kind": "client",
           "http.method": "POST",
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "out.host": "api.datadoghq.com",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0",
@@ -349,7 +358,6 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.measured": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
@@ -402,11 +410,12 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python"
+          "language": "python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -433,7 +442,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
-          "function_trigger.event_source": "eventbridge"
+          "function_trigger.event_source": "eventbridge",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -456,6 +466,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
+          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -481,6 +492,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
+          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -513,6 +525,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "span.kind": "client",
           "http.method": "POST",
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "out.host": "api.datadoghq.com",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0",
@@ -520,7 +533,6 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.measured": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
@@ -583,11 +595,12 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "http.status_code": "200",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python"
+          "language": "python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -619,7 +632,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "http.url": "XXXX.execute-api.eu-west-1.amazonaws.com",
           "http.url_details.path": "/httpapi/get",
           "http.method": "GET",
-          "http.status_code": "200"
+          "http.status_code": "200",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -642,6 +656,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
+          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -667,6 +682,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
+          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -699,6 +715,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "span.kind": "client",
           "http.method": "POST",
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "out.host": "api.datadoghq.com",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0",
@@ -706,7 +723,6 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.measured": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
@@ -765,11 +781,12 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python"
+          "language": "python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -797,7 +814,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
           "function_trigger.event_source": "kinesis",
-          "function_trigger.event_source_arn": "XXXX"
+          "function_trigger.event_source_arn": "XXXX",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -820,6 +838,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
+          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -845,6 +864,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
+          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -877,6 +897,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "span.kind": "client",
           "http.method": "POST",
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "out.host": "api.datadoghq.com",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0",
@@ -884,7 +905,6 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.measured": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
@@ -940,11 +960,12 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python"
+          "language": "python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -972,7 +993,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
           "function_trigger.event_source": "s3",
-          "function_trigger.event_source_arn": "XXXX"
+          "function_trigger.event_source_arn": "XXXX",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -995,6 +1017,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
+          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1020,6 +1043,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
+          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1052,6 +1076,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "span.kind": "client",
           "http.method": "POST",
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "out.host": "api.datadoghq.com",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0",
@@ -1059,7 +1084,6 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.measured": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
@@ -1116,11 +1140,12 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python"
+          "language": "python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -1148,7 +1173,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
           "function_trigger.event_source": "sns",
-          "function_trigger.event_source_arn": "XXXX"
+          "function_trigger.event_source_arn": "XXXX",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -1171,6 +1197,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
+          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1196,6 +1223,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
+          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1228,6 +1256,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "span.kind": "client",
           "http.method": "POST",
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "out.host": "api.datadoghq.com",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0",
@@ -1235,7 +1264,6 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.measured": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
@@ -1291,11 +1319,12 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python"
+          "language": "python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -1323,7 +1352,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
           "function_trigger.event_source": "sqs",
-          "function_trigger.event_source_arn": "XXXX"
+          "function_trigger.event_source_arn": "XXXX",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -1346,6 +1376,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
+          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1371,6 +1402,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
+          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1403,6 +1435,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "span.kind": "client",
           "http.method": "POST",
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "out.host": "api.datadoghq.com",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0",
@@ -1410,7 +1443,6 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.measured": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
@@ -1472,11 +1504,12 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "http.status_code": "200",
           "peer.service": "integration-tests-python",
           "_dd.p.dm": "-0",
-          "language": "python"
+          "language": "python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
@@ -1506,7 +1539,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "function_trigger.event_source": "api-gateway",
           "function_trigger.event_source_arn": "XXXX",
           "http.url": "XXXX.execute-api.eu-west-1.amazonaws.com",
-          "http.status_code": "200"
+          "http.status_code": "200",
+          "_dd.base_service": "integration-tests-python"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -1529,6 +1563,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://datadoghq.com/",
+          "out.host": "datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1554,6 +1589,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "span.kind": "client",
           "http.method": "GET",
           "http.url": "https://www.datadoghq.com/",
+          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
           "http.useragent": "python-requests/X.X.X"
         },
@@ -1586,6 +1622,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "span.kind": "client",
           "http.method": "POST",
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
+          "out.host": "api.datadoghq.com",
           "http.status_code": "202",
           "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
           "_dd.p.dm": "-0",
@@ -1593,7 +1630,6 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
         },
         "metrics": {
           "process_id": XXXX,
-          "_dd.agent_psr": 1,
           "_dd.measured": 1,
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
