@@ -28,7 +28,10 @@ python = ">=3.7.0,<4"
 datadog = ">=0.41.0,<1.0.0"
 wrapt = "^1.11.2"
 ddtrace = "1.15.2"
-urllib3 = "<2.0.0"
+urllib3 = [
+    {version = "<2.0.0", python = "<3.10"},
+    {version = "<2.1.0", python = ">=3.10"},
+]
 importlib_metadata = {version = "*", python = "<3.8"}
 boto3 = { version = "^1.10.33", optional = true }
 typing_extensions = {version = "^4.0", python = "<3.8"}
