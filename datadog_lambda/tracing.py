@@ -21,6 +21,8 @@ except ImportError:
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
+    TraceParent,
+    TraceState,
     TraceContextSource,
     XrayDaemon,
     Headers,
@@ -31,7 +33,8 @@ from datadog_lambda.xray import (
 )
 from ddtrace import tracer, patch, Span
 from ddtrace import __version__ as ddtrace_version
-from ddtrace.propagation.http import HTTPPropagator
+from ddtrace.propagation.http import HTTPPropagator, _TraceContext
+from ddtrace.context import Context
 from datadog_lambda import __version__ as datadog_lambda_version
 from datadog_lambda.trigger import (
     _EventSource,
@@ -110,7 +113,7 @@ def _get_xray_trace_context():
     return trace_context
 
 
-def _get_dd_trace_py_context():
+def _get_dd_trace_py_context():#WHATS THIS
     span = tracer.current_span()
     if not span:
         return None
@@ -163,9 +166,7 @@ def extract_context_from_lambda_context(lambda_context):
         if "_datadog" in client_context.custom:
             # Legacy trace propagation dict
             dd_data = client_context.custom.get("_datadog", {})
-            trace_id = dd_data.get(TraceHeader.TRACE_ID)
-            parent_id = dd_data.get(TraceHeader.PARENT_ID)
-            sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
+            context = propagator.extract(dd_data)
         elif (
             TraceHeader.TRACE_ID in client_context.custom
             and TraceHeader.PARENT_ID in client_context.custom
@@ -175,8 +176,9 @@ def extract_context_from_lambda_context(lambda_context):
             trace_id = client_context.custom.get(TraceHeader.TRACE_ID)
             parent_id = client_context.custom.get(TraceHeader.PARENT_ID)
             sampling_priority = client_context.custom.get(TraceHeader.SAMPLING_PRIORITY)
+            context = Context(trace_id=trace_id, parent_id=parent_id,sampling_priority=sampling_priority)
 
-    return trace_id, parent_id, sampling_priority
+    return context
 
 
 def extract_context_from_http_event_or_context(
@@ -198,13 +200,9 @@ def extract_context_from_http_event_or_context(
         injected_authorizer_data = get_injected_authorizer_data(event, is_http_api)
         if injected_authorizer_data:
             try:
-                # fail fast on any KeyError here
-                trace_id = injected_authorizer_data[TraceHeader.TRACE_ID]
-                parent_id = injected_authorizer_data[TraceHeader.PARENT_ID]
-                sampling_priority = injected_authorizer_data.get(
-                    TraceHeader.SAMPLING_PRIORITY
-                )
-                return trace_id, parent_id, sampling_priority
+                context = propagator.extract(injected_authorizer_data)
+                if context is not None:
+                    return context
             except Exception as e:
                 logger.debug(
                     "extract_context_from_authorizer_event returned with error. \
@@ -212,17 +210,15 @@ def extract_context_from_http_event_or_context(
                     e,
                 )
 
-    headers = event.get("headers", {}) or {}
-    lowercase_headers = {k.lower(): v for k, v in headers.items()}
+    headers = event.get("headers") or {}
+    #TODO make unit test to make sure its not case sensitive
+    context = propagator.extract(headers)
 
-    trace_id = lowercase_headers.get(TraceHeader.TRACE_ID)
-    parent_id = lowercase_headers.get(TraceHeader.PARENT_ID)
-    sampling_priority = lowercase_headers.get(TraceHeader.SAMPLING_PRIORITY)
-
-    if not trace_id or not parent_id or not sampling_priority:
+    if context is None:
         return extract_context_from_lambda_context(lambda_context)
+    
 
-    return trace_id, parent_id, sampling_priority
+    return context
 
 
 def create_sns_event(message):
@@ -253,12 +249,8 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 
     # EventBridge => SQS
     try:
-        (
-            trace_id,
-            parent_id,
-            sampling_priority,
-        ) = _extract_context_from_eventbridge_sqs_event(event)
-        return trace_id, parent_id, sampling_priority
+        context = _extract_context_from_eventbridge_sqs_event(event)
+        return context
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
@@ -302,11 +294,8 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                 "context from String or Binary SQS/SNS message attributes"
             )
         dd_data = json.loads(dd_json_data)
-        trace_id = dd_data.get(TraceHeader.TRACE_ID)
-        parent_id = dd_data.get(TraceHeader.PARENT_ID)
-        sampling_priority = dd_data.get(TraceHeader.SAMPLING_PRIORITY)
-
-        return trace_id, parent_id, sampling_priority
+        context = propagator.extract(dd_data)
+        return context
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)
@@ -328,10 +317,8 @@ def _extract_context_from_eventbridge_sqs_event(event):
 
             detail = body.get("detail")
             dd_context = detail.get("_datadog")
-            trace_id = dd_context.get(TraceHeader.TRACE_ID)
-            parent_id = dd_context.get(TraceHeader.PARENT_ID)
-            sampling_priority = dd_context.get(TraceHeader.SAMPLING_PRIORITY)
-            return trace_id, parent_id, sampling_priority
+            context = propagator.extract(dd_context)
+            return context
     except Exception:
         raise
 
@@ -346,10 +333,8 @@ def extract_context_from_eventbridge_event(event, lambda_context):
         dd_context = detail.get("_datadog")
         if not dd_context:
             return extract_context_from_lambda_context(lambda_context)
-        trace_id = dd_context.get(TraceHeader.TRACE_ID)
-        parent_id = dd_context.get(TraceHeader.PARENT_ID)
-        sampling_priority = dd_context.get(TraceHeader.SAMPLING_PRIORITY)
-        return trace_id, parent_id, sampling_priority
+        context = propagator.extract(dd_context)
+        return context
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)
@@ -371,11 +356,8 @@ def extract_context_from_kinesis_event(event, lambda_context):
 
         if not dd_ctx:
             return extract_context_from_lambda_context(lambda_context)
-
-        trace_id = dd_ctx.get(TraceHeader.TRACE_ID)
-        parent_id = dd_ctx.get(TraceHeader.PARENT_ID)
-        sampling_priority = dd_ctx.get(TraceHeader.SAMPLING_PRIORITY)
-        return trace_id, parent_id, sampling_priority
+        context = propagator.extract(dd_ctx)
+        return context
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)
@@ -424,11 +406,10 @@ def extract_context_custom_extractor(extractor, event, lambda_context):
             parent_id,
             sampling_priority,
         ) = extractor(event, lambda_context)
-        return trace_id, parent_id, sampling_priority
+        return Context(trace_id=trace_id, span_id=parent_id, sampling_priority=sampling_priority)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
-
-        return None, None, None
+        return None
 
 
 def is_authorizer_response(response) -> bool:
@@ -495,56 +476,25 @@ def extract_dd_trace_context(
     event_source = parse_event_source(event)
 
     if extractor is not None:
-        (
-            trace_id,
-            parent_id,
-            sampling_priority,
-        ) = extract_context_custom_extractor(extractor, event, lambda_context)
+        context = extract_context_custom_extractor(extractor, event, lambda_context)
     elif isinstance(event, (set, dict)) and "headers" in event:
-        (
-            trace_id,
-            parent_id,
-            sampling_priority,
-        ) = extract_context_from_http_event_or_context(
+        context = extract_context_from_http_event_or_context(
             event, lambda_context, event_source, decode_authorizer_context
         )
     elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
-        (
-            trace_id,
-            parent_id,
-            sampling_priority,
-        ) = extract_context_from_sqs_or_sns_event_or_context(event, lambda_context)
+        context = extract_context_from_sqs_or_sns_event_or_context(event, lambda_context)
     elif event_source.equals(EventTypes.EVENTBRIDGE):
-        (
-            trace_id,
-            parent_id,
-            sampling_priority,
-        ) = extract_context_from_eventbridge_event(event, lambda_context)
+        context = extract_context_from_eventbridge_event(event, lambda_context)
     elif event_source.equals(EventTypes.KINESIS):
-        (
-            trace_id,
-            parent_id,
-            sampling_priority,
-        ) = extract_context_from_kinesis_event(event, lambda_context)
+        context = extract_context_from_kinesis_event(event, lambda_context)
     elif event_source.equals(EventTypes.STEPFUNCTIONS):
-        (
-            trace_id,
-            parent_id,
-            sampling_priority,
-        ) = extract_context_from_step_functions(event, lambda_context)
+        context = extract_context_from_step_functions(event, lambda_context)
     else:
-        trace_id, parent_id, sampling_priority = extract_context_from_lambda_context(
-            lambda_context
-        )
+        context = extract_context_from_lambda_context(lambda_context)
 
-    if trace_id and parent_id and sampling_priority:
+    if context is not None:
         logger.debug("Extracted Datadog trace context from event or context")
-        metadata = {
-            "trace-id": trace_id,
-            "parent-id": parent_id,
-            "sampling-priority": sampling_priority,
-        }
-        dd_trace_context = metadata.copy()
+        dd_trace_context = context
         trace_context_source = TraceContextSource.EVENT
     else:
         # AWS Lambda runtime caches global variables between invocations,
@@ -668,6 +618,9 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
 
         headers = _context_obj_to_headers(context)
         span_context = propagator.extract(headers)
+        print("=====")
+        print(span_context)
+        #use _tracecontext here
         tracer.context_provider.activate(span_context)
         logger.debug(
             "Set dd trace root context to: %s",

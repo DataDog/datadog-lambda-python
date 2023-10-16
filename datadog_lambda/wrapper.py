@@ -265,7 +265,7 @@ class _LambdaDecorator(object):
             )
             self.event_source = event_source
             # Create a Datadog X-Ray subsegment with the trace context
-            if dd_context and trace_context_source == TraceContextSource.EVENT:
+            if dd_context is not None and trace_context_source == TraceContextSource.EVENT:
                 create_dd_dummy_metadata_subsegment(
                     dd_context, XraySubsegment.TRACE_KEY
                 )
