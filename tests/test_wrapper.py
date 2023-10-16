@@ -9,6 +9,7 @@ from datadog_lambda.constants import TraceHeader
 import datadog_lambda.wrapper as wrapper
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
+from ddtrace import Span
 
 
 def get_mock_context(
@@ -538,9 +539,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         lambda_event = {}
 
         lambda_context = get_mock_context()
-        mock_span = MagicMock()
-        mock_span.context.span_id = "123"
-        mock_span.context.trace_id = "456"
+        mock_span = Span(name="my_inferred_span", span_id=123, trace_id=456)
         mock_span.context.sampling_priority = "1"
         mock_span.context.dd_origin = None
         mock_span.start_ns = 1668127541671386817
