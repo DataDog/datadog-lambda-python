@@ -177,8 +177,8 @@ def extract_context_from_lambda_context(lambda_context):
             parent_id = client_context.custom.get(TraceHeader.PARENT_ID)
             sampling_priority = client_context.custom.get(TraceHeader.SAMPLING_PRIORITY)
             context = Context(trace_id=trace_id, parent_id=parent_id,sampling_priority=sampling_priority)
-
-    return context
+    if context is not None:
+        return context
 
 
 def extract_context_from_http_event_or_context(
@@ -217,8 +217,8 @@ def extract_context_from_http_event_or_context(
     if context is None:
         return extract_context_from_lambda_context(lambda_context)
     
-
-    return context
+    if context is not None:
+        return context
 
 
 def create_sns_event(message):
@@ -250,7 +250,8 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     # EventBridge => SQS
     try:
         context = _extract_context_from_eventbridge_sqs_event(event)
-        return context
+        if context is not None:
+            return context
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
@@ -295,7 +296,8 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
             )
         dd_data = json.loads(dd_json_data)
         context = propagator.extract(dd_data)
-        return context
+        if context is not None:
+            return context
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)
@@ -318,6 +320,7 @@ def _extract_context_from_eventbridge_sqs_event(event):
             detail = body.get("detail")
             dd_context = detail.get("_datadog")
             context = propagator.extract(dd_context)
+        if context is not None:
             return context
     except Exception:
         raise
@@ -334,7 +337,8 @@ def extract_context_from_eventbridge_event(event, lambda_context):
         if not dd_context:
             return extract_context_from_lambda_context(lambda_context)
         context = propagator.extract(dd_context)
-        return context
+        if context is not None:
+            return context
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)
@@ -357,7 +361,8 @@ def extract_context_from_kinesis_event(event, lambda_context):
         if not dd_ctx:
             return extract_context_from_lambda_context(lambda_context)
         context = propagator.extract(dd_ctx)
-        return context
+        if context is not None:
+            return context
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)
