@@ -21,8 +21,6 @@ except ImportError:
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
-    TraceParent,
-    TraceState,
     TraceContextSource,
     XrayDaemon,
     Headers,
@@ -33,7 +31,7 @@ from datadog_lambda.xray import (
 )
 from ddtrace import tracer, patch, Span
 from ddtrace import __version__ as ddtrace_version
-from ddtrace.propagation.http import HTTPPropagator, _TraceContext
+from ddtrace.propagation.http import HTTPPropagator
 from ddtrace.context import Context
 from datadog_lambda import __version__ as datadog_lambda_version
 from datadog_lambda.trigger import (
@@ -55,7 +53,7 @@ if dd_trace_otel_enabled:
 
 
 logger = logging.getLogger(__name__)
-#Context, dict[str,str]
+
 dd_trace_context = None
 dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
 
@@ -155,10 +153,6 @@ def create_dd_dummy_metadata_subsegment(
     tags into its metadata field, so the X-Ray trace can be converted to a Datadog
     trace in the Datadog backend with the correct context.
     """
-    print("AROD")
-    print(subsegment_metadata_key)
-    print(subsegment_metadata_value)
-    print("===")
     send_segment(subsegment_metadata_key, subsegment_metadata_value)
 
 
@@ -519,7 +513,6 @@ def extract_dd_trace_context(
         if dd_trace_context:
             trace_context_source = TraceContextSource.XRAY
     logger.debug("extracted dd trace context %s", dd_trace_context)
-    print("extracted dd trace context %s", dd_trace_context)
     return dd_trace_context, trace_context_source, event_source
 
 
@@ -554,9 +547,7 @@ def get_dd_trace_context():
 
     if dd_trace_context is None:
         return _context_obj_to_headers(xray_context)
-    
-    print("==")
-    print(dd_trace_context)
+
     if isinstance(dd_trace_context, Context):
         dd_trace_context.span_id = xray_context.span_id
         logger.debug("Set parent id from xray trace context: %s", dd_trace_context.span_id)
@@ -564,12 +555,6 @@ def get_dd_trace_context():
         dd_trace_context["parent_id"] = xray_context.span_id
         logger.debug("Set parent id from xray trace context: %s", dd_trace_context.get("parent-id"))
     return _context_obj_to_headers(dd_trace_context)
-    #just for ref this is _context_obj...
-    # return {
-    #     TraceHeader.TRACE_ID: str(obj.get("trace-id")),
-    #     TraceHeader.PARENT_ID: str(obj.get("parent-id")),
-    #     TraceHeader.SAMPLING_PRIORITY: str(obj.get("sampling-priority")),
-    # }
 
 
 def set_correlation_ids():
@@ -637,11 +622,10 @@ def is_lambda_context():
 
 def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
     if trace_context_source == TraceContextSource.EVENT or merge_xray_traces:
-        global dd_trace_context #Timing
+        global dd_trace_context
             
         if merge_xray_traces:
-            xray_context = _get_xray_trace_context() #TODO return Context
-
+            xray_context = _get_xray_trace_context()
             if xray_context is not None:
                 dd_trace_context.span_id = xray_context.span_id
                 dd_trace_context.trace_id = xray_context.trace_id
@@ -649,27 +633,13 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
                 
         headers = _context_obj_to_headers(dd_trace_context)
         span_context = propagator.extract(headers)
-        print("=====")
-        print(span_context)
-        #use _tracecontext here
         tracer.context_provider.activate(span_context)
         logger.debug(
             "Set dd trace root context to: %s",
             (span_context.trace_id, span_context.span_id),
         )
 
-    # if isinstance(obj, Context):
-    #     return {
-    #             TraceHeader.TRACE_ID: str(obj.trace_id),
-    #             TraceHeader.PARENT_ID: str(obj.span_id),
-    #             TraceHeader.SAMPLING_PRIORITY: str(obj.sampling_priority),
-    #         }
-    # elif isinstance(obj, dict):
-    #     return {
-    #         TraceHeader.TRACE_ID: str(obj.get("trace-id")),
-    #         TraceHeader.PARENT_ID: str(obj.get("parent-id")),
-    #         TraceHeader.SAMPLING_PRIORITY: str(obj.get("sampling-priority")),
-    #     }
+
 def create_inferred_span(
     event,
     context,

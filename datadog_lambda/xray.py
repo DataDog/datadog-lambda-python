@@ -62,7 +62,7 @@ def parse_xray_header(raw_trace_id):
         or len(sampled) == len(parts[2])
     ):
         return None
-    return { #possibly remove dict alloc here and instead return Context
+    return { #TODO possibly remove dict alloc here and instead return Context
         "parent_id": parent,
         "trace_id": root,
         "sampled": sampled,
@@ -75,10 +75,6 @@ def generate_random_id():
 
 
 def build_segment(context, key, metadata):
-    print("build_segment")
-    print("context: " + str(context))
-    print("key: " + key)
-    print("metadata: " + str(metadata))
 
     segment = json.dumps(
         {
@@ -119,7 +115,5 @@ def send_segment(key, metadata):
         logger.debug("Skipping sending metadata, x-ray trace was sampled out")
         return None
     segment = build_segment(context, key, metadata)
-
     segment_payload = build_segment_payload(segment)
-    print("segment_payload: " + segment_payload)
     send(host_port_tuple, segment_payload)

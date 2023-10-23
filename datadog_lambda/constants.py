@@ -19,11 +19,6 @@ class TraceHeader(object):
     PARENT_ID = "x-datadog-parent-id"
     SAMPLING_PRIORITY = "x-datadog-sampling-priority"
 
-class TraceState(object):
-    TRACE_STATE = "tracestate"
-class TraceParent(object):
-    TRACE_PARENT = "traceparent"
-
 
 # X-Ray subsegment to save Datadog trace metadata
 class XraySubsegment(object):
