@@ -236,6 +236,7 @@ class _LambdaDecorator(object):
         injected_headers = {}
         source_span = self.inferred_span if self.inferred_span else self.span
         span_context = source_span.context
+        #TODO need to touch this to make sure w3c works here too
         injected_headers[TraceHeader.TRACE_ID] = str(span_context.trace_id)
         injected_headers[TraceHeader.PARENT_ID] = str(span_context.span_id)
         sampling_priority = span_context.sampling_priority
