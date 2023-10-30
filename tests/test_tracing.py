@@ -9,6 +9,8 @@ import ddtrace
 
 from ddtrace import tracer
 from ddtrace.context import Context
+from ddtrace.propagation.http import HTTPPropagator
+
 
 from datadog_lambda.constants import (
     SamplingPriority,
@@ -505,6 +507,13 @@ class TestXRayContextConversion(unittest.TestCase):
             _convert_xray_sampling(False), str(SamplingPriority.USER_REJECT)
         )
 
+class httpPropagator(unittest.TestCase):
+    def extract_dd_context(self):
+        headers = {'x-datadog-trace-id': '1606568926955791363', 'x-datadog-parent-id': '14469470844474460302', 'x-datadog-sampling-priority': '1'}
+        propagator = HTTPPropagator()
+        context = propagator.extract(headers)
+        print(context)
+        self.assertEqual(1,2)
 
 class TestLogsInjection(unittest.TestCase):
     def setUp(self):
@@ -642,9 +651,32 @@ class TestSetTraceRootSpan(unittest.TestCase):
         )  # When merging is off, always use dd-trace-context
 
         expected_context = Context(
-            trace_id=3995693151288333088,  #TODO is this supposed to be ...088 Trace Id from incomming context
+            trace_id=3995693151288333088, #Trace Id from incomming context
             span_id=int(fake_xray_header_value_parent_decimal),  # Parent Id from x-ray
             sampling_priority=2,  # Sampling priority from incomming context
+        )
+        self.mock_activate.assert_called()
+        self.mock_activate.assert_has_calls([call(expected_context)])
+    def test_use_dd_trace_context(self):
+        lambda_ctx = get_mock_context()
+        ctx, source, event_type = extract_dd_trace_context(
+            {
+                "headers": {
+                    TraceHeader.TRACE_ID: "123",
+                    TraceHeader.PARENT_ID: "321",
+                    TraceHeader.SAMPLING_PRIORITY: "1",
+                }
+            },
+            lambda_ctx,
+        )
+        set_dd_trace_py_root(
+            source, False
+        )  # When merging is off, always use dd-trace-context
+
+        expected_context = Context(
+            trace_id=123,  
+            span_id=321,
+            sampling_priority=1,
         )
         self.mock_activate.assert_called()
         self.mock_activate.assert_has_calls([call(expected_context)])
@@ -1866,6 +1898,16 @@ class TestInferredSpans(unittest.TestCase):
         context, source, event_type = extract_dd_trace_context(event, ctx)
         self.assertEqual(context.trace_id, 12345)
         self.assertEqual(context.span_id, 67890)
+
+    def test_extract_dd_trace_context_for_w3c(self):
+        event_sample_source = "lambda-url-w3c"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        context, source, event_type = extract_dd_trace_context(event, ctx)
+        self.assertEqual(context._traceparent, "00-00000000000000005f486460f346b80c-dc070c2bb8714351-01")
+        self.assertEqual(context._tracestate, "dd=s:1;t.dm:-1")
 
     def test_extract_context_from_eventbridge_sqs_event(self):
         event_sample_source = "eventbridge-sqs"
