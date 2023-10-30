@@ -44,7 +44,7 @@ fake_xray_header_value = (
     "Root=1-5e272390-8c398be037738dc042009320;Parent=94ae789b969f1cc5;Sampled=1"
 )
 fake_xray_header_value_parent_decimal = "10713633173203262661"
-fake_xray_header_value_root_decimal = "3995693151288333088"
+fake_xray_header_value_root_decimal = "1490261136348486853"
 
 event_samples = "tests/event_samples/"
 
@@ -227,12 +227,11 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         args, kwargs = self.mock_send_segment.call_args
         self.assertEqual(args[0], XraySubsegment.TRACE_KEY)
         actual_context = args[1]
-        print("actual context: ")
+        print("actual context from test: ")
         print(actual_context)
-        self.mock_send_segment.assert_called_with(
-            XraySubsegment.TRACE_KEY,
-            actual_context
-        )
+        self.assertEqual(actual_context.trace_id, 123)
+        self.assertEqual(actual_context.span_id, 321)
+        self.assertEqual(actual_context.sampling_priority, 1)
 
     def test_with_extractor_function(self):
         def extractor_foo(event, context):

@@ -251,12 +251,15 @@ class _LambdaDecorator(object):
         self.response.setdefault("context", {})
         self.response["context"]["_datadog"] = datadog_data
 
-    def _before(self, event, context):
+    def _before(self, event, context): 
         try:
             self.response = None
             set_cold_start(init_timestamp_ns)
             submit_invocations_metric(context)
             self.trigger_tags = extract_trigger_tags(event, context)
+            print("event below")
+            print(event)
+            
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source, event_source = extract_dd_trace_context(
                 event,
@@ -264,6 +267,12 @@ class _LambdaDecorator(object):
                 extractor=self.trace_extractor,
                 decode_authorizer_context=self.decode_authorizer_context,
             )
+            print("Extracted dd_context (spanid, tid,samp pri, traceparent, tracestate): ")
+            print(dd_context)
+            print(dd_context.span_id)
+            print(dd_context.trace_id)
+            print(dd_context.sampling_priority)
+            print("Extracted dd_context above^")
             self.event_source = event_source
             # Create a Datadog X-Ray subsegment with the trace context
             if dd_context is not None and trace_context_source == TraceContextSource.EVENT:
@@ -288,7 +297,7 @@ class _LambdaDecorator(object):
                     parent_span=self.inferred_span,
                 )
             else:
-                set_correlation_ids()
+                set_correlation_ids() #CHECKED
             if profiling_env_var and is_new_sandbox():
                 self.prof.start(stop_on_exit=False, profile_children=True)
             logger.debug("datadog_lambda_wrapper _before() done")
@@ -312,7 +321,7 @@ class _LambdaDecorator(object):
                 dd_tracing_enabled and self.cold_start_tracing and is_new_sandbox()
             )
             if should_trace_cold_start:
-                trace_ctx = tracer.current_trace_context()
+                trace_ctx = tracer.current_trace_context() #TODO is this a call we can save by passing our extracted context around?
 
             if self.span:
                 if dd_capture_lambda_payload_enabled:

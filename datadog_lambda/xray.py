@@ -6,6 +6,7 @@ import time
 import socket
 
 from datadog_lambda.constants import XrayDaemon, XraySubsegment, TraceContextSource
+from ddtrace.context import Context
 
 logger = logging.getLogger(__name__)
 
@@ -62,25 +63,27 @@ def parse_xray_header(raw_trace_id):
         or len(sampled) == len(parts[2])
     ):
         return None
-    return { #TODO possibly remove dict alloc here and instead return Context
-        "parent_id": parent,
-        "trace_id": root,
-        "sampled": sampled,
-        "source": TraceContextSource.XRAY,
-    }
+    #     trace_context = Context(
+    #     trace_id= _convert_xray_trace_id(xray_trace_entity.get("trace_id")),
+    #     span_id=_convert_xray_entity_id(xray_trace_entity.get("parent_id")),
+    #     sampling_priority=_convert_xray_sampling(xray_trace_entity.get("sampled")),
+    #     dd_origin=xray_trace_entity.get("source")
+    # )
+    context = Context(trace_id=parent, span_id=parent, sampling_priority=sampled, dd_origin=TraceContextSource.XRAY)
+    return context
 
 
 def generate_random_id():
     return binascii.b2a_hex(os.urandom(8)).decode("utf-8")
 
 
-def build_segment(context, key, metadata):
+def build_segment(context: Context, key, metadata):
 
     segment = json.dumps(
         {
             "id": generate_random_id(),
-            "trace_id": context["trace_id"],
-            "parent_id": context["parent_id"],
+            "trace_id": context.trace_id,
+            "parent_id": context.span_id,
             "name": XraySubsegment.NAME,
             "start_time": time.time(),
             "end_time": time.time(),
@@ -111,7 +114,7 @@ def send_segment(key, metadata):
         return None
 
     # Skip adding segment, if the xray trace is going to be sampled away.
-    if context["sampled"] == "0":
+    if context.sampling_priority == "0":
         logger.debug("Skipping sending metadata, x-ray trace was sampled out")
         return None
     segment = build_segment(context, key, metadata)

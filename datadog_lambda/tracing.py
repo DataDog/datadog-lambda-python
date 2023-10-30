@@ -88,24 +88,26 @@ def _convert_xray_sampling(xray_sampled):
 def _get_xray_trace_context():
     if not is_lambda_context():
         return None
-
+    #For review, I dont want to edit parse... as we still need to _convert... in this file
     xray_trace_entity = parse_xray_header(
         os.environ.get(XrayDaemon.XRAY_TRACE_ID_HEADER_NAME, "")
     )
     if xray_trace_entity is None:
         return None
     trace_context = Context(
-        trace_id= _convert_xray_trace_id(xray_trace_entity.get("trace_id")),
-        span_id=_convert_xray_entity_id(xray_trace_entity.get("parent_id")),
-        sampling_priority=_convert_xray_sampling(xray_trace_entity.get("sampled")),
+        trace_id= _convert_xray_trace_id(xray_trace_entity.trace_id),
+        span_id=_convert_xray_entity_id(xray_trace_entity.span_id),
+        sampling_priority=_convert_xray_sampling(xray_trace_entity.sampling_priority),
+        dd_origin=xray_trace_entity.dd_origin
     )
     logger.debug(
         "Converted trace context %s from X-Ray segment %s",
         trace_context,
         (
-            xray_trace_entity["trace_id"],
-            xray_trace_entity["parent_id"],
-            xray_trace_entity["sampled"],
+            xray_trace_entity.trace_id,
+            xray_trace_entity.span_id,
+            xray_trace_entity.sampling_priority,
+            xray_trace_entity.dd_origin,
         ),
     )
     return trace_context
@@ -115,21 +117,12 @@ def _get_dd_trace_py_context():
     span = tracer.current_span()
     if not span:
         return None
-
-    parent_id = span.context.span_id
-    trace_id = span.context.trace_id
-    sampling_priority = span.context.sampling_priority
     logger.debug(
         "found dd trace context: %s", (span.context.trace_id, span.context.span_id)
     )
-    return {
-        "parent-id": str(parent_id),
-        "trace-id": str(trace_id),
-        "sampling-priority": str(sampling_priority),
-        "source": TraceContextSource.DDTRACE,
-    }
+    return span.context 
 
-
+#TODO rm after refactor if no longer used
 def _context_obj_to_headers(obj):
     if isinstance(obj, Context):
         return {
@@ -214,9 +207,9 @@ def extract_context_from_http_event_or_context(
                      Continue without injecting the authorizer span %s",
                     e,
                 )
-
+    print("DEBUGGING event:")
+    print(event)
     headers = event.get("headers") or {}
-    #TODO make unit test to make sure its not case sensitive
     context = propagator.extract(headers)
 
     if context is None:
@@ -400,7 +393,8 @@ def extract_context_from_step_functions(event, lambda_context):
             execution_id + "#" + state_name + "#" + state_entered_time
         )
         sampling_priority = SamplingPriority.AUTO_KEEP
-        return trace_id, parent_id, sampling_priority
+        context = Context(trace_id=trace_id, parent_id= parent_id, sampling_priority=sampling_priority)
+        return context
     except Exception as e:
         logger.debug("The Step Functions trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)
@@ -483,36 +477,47 @@ def extract_dd_trace_context(
     """
     global dd_trace_context
     trace_context_source = None
+    print("Debug: Starting extract_dd_trace_context")  # Debug statement
     event_source = parse_event_source(event)
+    print(f"Debug: Event source determined as {event_source}")  # Debug statement
 
     if extractor is not None:
+        print("Debug: Using custom extractor")  # Debug statement
         context = extract_context_custom_extractor(extractor, event, lambda_context)
     elif isinstance(event, (set, dict)) and "headers" in event:
+        print("Debug: Extracting context from HTTP event or context")  # Debug statement
         context = extract_context_from_http_event_or_context(
             event, lambda_context, event_source, decode_authorizer_context
         )
     elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
+        print("Debug: Extracting context from SNS or SQS event or context")  # Debug statement
         context = extract_context_from_sqs_or_sns_event_or_context(event, lambda_context)
     elif event_source.equals(EventTypes.EVENTBRIDGE):
+        print("Debug: Extracting context from EventBridge event")  # Debug statement
         context = extract_context_from_eventbridge_event(event, lambda_context)
     elif event_source.equals(EventTypes.KINESIS):
+        print("Debug: Extracting context from Kinesis event")  # Debug statement
         context = extract_context_from_kinesis_event(event, lambda_context)
     elif event_source.equals(EventTypes.STEPFUNCTIONS):
+        print("Debug: Extracting context from Step Functions")  # Debug statement
         context = extract_context_from_step_functions(event, lambda_context)
     else:
+        print("Debug: Defaulting to extract context from Lambda context")  # Debug statement
         context = extract_context_from_lambda_context(lambda_context)
 
     if context is not None and context.trace_id and context.span_id and context.sampling_priority:
         logger.debug("Extracted Datadog trace context from event or context")
+        print("Debug: Datadog trace context extracted successfully")  # Debug statement
         dd_trace_context = context
         trace_context_source = TraceContextSource.EVENT
     else:
+        print("Debug: No Datadog trace context found, falling back to X-Ray")  # Debug statement
         # AWS Lambda runtime caches global variables between invocations,
         # reset to avoid using the context from the last invocation.
         dd_trace_context = _get_xray_trace_context()
         if dd_trace_context:
             trace_context_source = TraceContextSource.XRAY
-    logger.debug("extracted dd trace context %s", dd_trace_context)
+    print(f"Debug: Extracted dd trace context: {dd_trace_context}")  # Debug statement
     return dd_trace_context, trace_context_source, event_source
 
 
@@ -531,7 +536,7 @@ def get_dd_trace_context():
     if dd_tracing_enabled:
         dd_trace_py_context = _get_dd_trace_py_context()
         if dd_trace_py_context is not None:
-            return _context_obj_to_headers(dd_trace_py_context)
+            return dd_trace_py_context
 
     global dd_trace_context
 
@@ -542,19 +547,15 @@ def get_dd_trace_context():
             "get_dd_trace_context couldn't read from segment from x-ray, with error %s"
             % e
         )
-    if not xray_context:
-        return {}
+    if xray_context is None:
+        return None
 
     if dd_trace_context is None:
-        return _context_obj_to_headers(xray_context)
-
-    if isinstance(dd_trace_context, Context):
+        return xray_context
+    if xray_context.span_id is not None:
         dd_trace_context.span_id = xray_context.span_id
         logger.debug("Set parent id from xray trace context: %s", dd_trace_context.span_id)
-    elif isinstance(dd_trace_context, dict): 
-        dd_trace_context["parent_id"] = xray_context.span_id
-        logger.debug("Set parent id from xray trace context: %s", dd_trace_context.get("parent-id"))
-    return _context_obj_to_headers(dd_trace_context)
+    return dd_trace_context
 
 
 def set_correlation_ids():
@@ -573,7 +574,7 @@ def set_correlation_ids():
         return
 
     context = get_dd_trace_context()
-    if not context:
+    if context is None:
         return
 
     if isinstance(context, Context) and context is not None:
@@ -630,13 +631,24 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
                 dd_trace_context.span_id = xray_context.span_id
                 dd_trace_context.trace_id = xray_context.trace_id
                 dd_trace_context.sampling_priority = xray_context.sampling_priority
-                
-        headers = _context_obj_to_headers(dd_trace_context)
-        span_context = propagator.extract(headers)
-        tracer.context_provider.activate(span_context)
+                dd_trace_context.dd_origin = xray_context.dd_origin
+        print("set_dd_trace_py_root dd_trace_context (spanid, tid,samp pri, traceparent, tracestate): ")
+        print(dd_trace_context)
+        print(dd_trace_context.span_id)
+        print(dd_trace_context.trace_id)
+        print(dd_trace_context.sampling_priority)
+        print("Extracted dd_trace_context above^")        
+        #headers = _context_obj_to_headers(dd_trace_context)
+        #print("headers")
+        #print(headers)
+        # span_context = propagator.extract
+        #bug inbetween 642 and 639
+        print("dd_trace_context used to activate ddtracepyroot")
+        #print(span_context)
+        tracer.context_provider.activate(dd_trace_context)
         logger.debug(
             "Set dd trace root context to: %s",
-            (span_context.trace_id, span_context.span_id),
+            (dd_trace_context.trace_id, dd_trace_context.span_id),
         )
 
 
@@ -778,7 +790,7 @@ def insert_upstream_authorizer_span(
         start_time_ns (int): the start time of the span in nanoseconds
         finish_time_ns (int): the finish time of the sapn in nanoseconds
     """
-    trace_ctx = tracer.current_trace_context()
+    trace_ctx = tracer.current_trace_context() #here too, why dont we use context we extracted?
     upstream_authorizer_span = tracer.trace(
         "aws.apigateway.authorizer", **kwargs_to_start_span
     )
@@ -988,7 +1000,7 @@ def create_inferred_span_from_http_api_event(
 
 
 def create_inferred_span_from_sqs_event(event, context):
-    trace_ctx = tracer.current_trace_context()
+    trace_ctx = tracer.current_trace_context() #TODO why do we make this call? shouldnt we use the Context we extracted earlier in wrapper?
 
     event_record = get_first_record(event)
     event_source_arn = event_record.get("eventSourceARN")
