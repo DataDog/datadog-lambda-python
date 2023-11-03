@@ -13,12 +13,12 @@ logger = logging.getLogger(__name__)
 
 
 def tag_object(span, key, obj, depth=0):
-    if depth >= max_depth:
-        return
-    else:
-        depth += 1
     if obj is None:
         return span.set_tag(key, obj)
+    if depth >= max_depth:
+        return tag_object(span, key, str(obj))
+    else:
+        depth += 1
     if _should_try_string(obj):
         parsed = None
         try:
