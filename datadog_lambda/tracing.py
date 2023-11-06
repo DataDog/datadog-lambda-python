@@ -57,7 +57,10 @@ dd_trace_context = {}
 dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
 if dd_tracing_enabled:
     # Enable the telemetry client if the user has opted in
-    if os.environ.get("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "false").lower() == "true":
+    if (
+        os.environ.get("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "false").lower()
+        == "true"
+    ):
         from ddtrace.internal.telemetry import telemetry_writer
         telemetry_writer.enable()
 
