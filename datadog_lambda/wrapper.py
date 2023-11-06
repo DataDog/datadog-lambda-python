@@ -73,20 +73,27 @@ DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
 DD_ENV = "DD_ENV"
 
+
 def get_env_as_int(env_key, default_value: int) -> int:
     try:
         return int(os.environ.get(env_key, default_value))
     except Exception as e:
-        logger.warn(f"Failed to parse env {env_key} as int. Using the default value: {default_value}. Error: {e}")
+        logger.warn(
+            f"Failed to parse env {env_key} as int. Using the default value: {default_value}. Error: {e}"
+        )
         return default_value
+
 
 dd_capture_lambda_payload_enabled = (
     os.environ.get(DD_CAPTURE_LAMBDA_PAYLOAD, "false").lower() == "true"
 )
 
 if dd_capture_lambda_payload_enabled:
-   import datadog_lambda.tag_object as tag_object
-   tag_object.max_depth = get_env_as_int(DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH, tag_object.max_depth)
+    import datadog_lambda.tag_object as tag_object
+
+    tag_object.max_depth = get_env_as_int(
+        DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH, tag_object.max_depth
+    )
 
 env_env_var = os.environ.get(DD_ENV, None)
 
@@ -173,7 +180,9 @@ class _LambdaDecorator(object):
             self.cold_start_tracing = depends_on_dd_tracing_enabled(
                 os.environ.get(DD_COLD_START_TRACING, "true").lower() == "true"
             )
-            self.min_cold_start_trace_duration = get_env_as_int(DD_MIN_COLD_START_DURATION, 3)
+            self.min_cold_start_trace_duration = get_env_as_int(
+                DD_MIN_COLD_START_DURATION, 3
+            )
             self.cold_start_trace_skip_lib = [
                 "ddtrace.internal.compat",
                 "ddtrace.filters",

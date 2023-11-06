@@ -33,23 +33,32 @@ class TestTagObject(unittest.TestCase):
     def test_tag_object_max_depth(self):
         payload = {
             "hello": "world",
-            "level1": {"level2_dict": {"level3": 3}, "level2_list": [None, True, "nice", {"l3" :"v3"}], "level2_bool": True, "level2_int": 2},
+            "level1": {
+                "level2_dict": {"level3": 3},
+                "level2_list": [None, True, "nice", {"l3": "v3"}],
+                "level2_bool": True,
+                "level2_int": 2,
+            },
             "vals": [{"thingOne": 1}, {"thingTwo": 2}],
         }
         spanMock = MagicMock()
         import datadog_lambda.tag_object as lib_ref
-        lib_ref.max_depth = 2 # setting up the test
+
+        lib_ref.max_depth = 2  # setting up the test
         tag_object(spanMock, "function.request", payload)
-        lib_ref.max_depth = 10 # revert the setup
+        lib_ref.max_depth = 10  # revert the setup
         spanMock.set_tag.assert_has_calls(
             [
                 call("function.request.vals.0", "{'thingOne': 1}"),
                 call("function.request.vals.1", "{'thingTwo': 2}"),
                 call("function.request.hello", "world"),
                 call("function.request.level1.level2_dict", "{'level3': 3}"),
-                call("function.request.level1.level2_list", "[None, True, 'nice', {'l3': 'v3'}]"),
+                call(
+                    "function.request.level1.level2_list",
+                    "[None, True, 'nice', {'l3': 'v3'}]",
+                ),
                 call("function.request.level1.level2_bool", "True"),
-                call('function.request.level1.level2_int', "2")
+                call("function.request.level1.level2_int", "2"),
             ],
             True,
         )
