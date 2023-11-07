@@ -79,7 +79,7 @@ def get_env_as_int(env_key, default_value: int) -> int:
         return int(os.environ.get(env_key, default_value))
     except Exception as e:
         logger.warn(
-            f"Failed to parse env {env_key} as int. Using the default value: {default_value}. Error: {e}"
+            f"Failed to parse {env_key} as int. Using default value: {default_value}. Error: {e}"
         )
         return default_value
 
