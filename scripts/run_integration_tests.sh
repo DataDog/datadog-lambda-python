@@ -234,7 +234,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(\"datadog_lambda\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g" |
                 sed -E "s/(\"partition_key\"\:\ \")[a-zA-Z0-9\-]+/\1XXXX/g" |
                 sed -E "s/(\"object_etag\"\:\ \")[a-zA-Z0-9\-]+/\1XXXX/g" |
-                sed -E "s/(\"dd_trace\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g" |
+                sed -E "s/(\"dd_trace\"\: \")([0-9]+\.[0-9]+\.[0-9]+)/\1X.X.X/g" |
                 sed -E "s/(traceparent\:)([A-Za-z0-9\-]+)/\1XXX/g" |
                 # Parse out account ID in ARN
                 sed -E "s/([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9\-]+):([a-zA-Z0-9\-\:]+)/\1:\2:\3:\4:XXXX:\4/g" |
