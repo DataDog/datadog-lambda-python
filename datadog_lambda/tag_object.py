@@ -16,7 +16,7 @@ def tag_object(span, key, obj, depth=0):
     if obj is None:
         return span.set_tag(key, obj)
     if depth >= max_depth:
-        return tag_object(span, key, str(obj))
+        return tag_object(span, key, _redact_val(key, str(obj)[0:5000]))
     depth += 1
     if _should_try_string(obj):
         parsed = None
