@@ -236,7 +236,6 @@ class _LambdaDecorator(object):
         injected_headers = {}
         source_span = self.inferred_span if self.inferred_span else self.span
         span_context = source_span.context
-        #TODO need to touch this to make sure w3c works here too
         injected_headers[TraceHeader.TRACE_ID] = str(span_context.trace_id)
         injected_headers[TraceHeader.PARENT_ID] = str(span_context.span_id)
         sampling_priority = span_context.sampling_priority
@@ -251,7 +250,7 @@ class _LambdaDecorator(object):
         self.response.setdefault("context", {})
         self.response["context"]["_datadog"] = datadog_data
 
-    def _before(self, event, context): 
+    def _before(self, event, context):
         try:
             self.response = None
             set_cold_start(init_timestamp_ns)
@@ -321,7 +320,7 @@ class _LambdaDecorator(object):
                 dd_tracing_enabled and self.cold_start_tracing and is_new_sandbox()
             )
             if should_trace_cold_start:
-                trace_ctx = tracer.current_trace_context() #TODO is this a call we can save by passing our extracted context around?
+                trace_ctx = tracer.current_trace_context()
 
             if self.span:
                 if dd_capture_lambda_payload_enabled:

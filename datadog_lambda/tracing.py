@@ -60,29 +60,6 @@ dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "tru
 propagator = HTTPPropagator()
 
 
-def _convert_xray_trace_id(xray_trace_id):
-    """
-    Convert X-Ray trace id (hex)'s last 63 bits to a Datadog trace id (int).
-    """
-    return str(0x7FFFFFFFFFFFFFFF & int(xray_trace_id[-16:], 16))
-
-
-def _convert_xray_entity_id(xray_entity_id):
-    """
-    Convert X-Ray (sub)segement id (hex) to a Datadog span id (int).
-    """
-    return str(int(xray_entity_id, 16))
-
-
-def _convert_xray_sampling(xray_sampled):
-    """
-    Convert X-Ray sampled (True/False) to its Datadog counterpart.
-    """
-    return (
-        str(SamplingPriority.USER_KEEP)
-        if xray_sampled
-        else str(SamplingPriority.USER_REJECT)
-    )
 
 
 def _get_xray_trace_context():
@@ -94,23 +71,11 @@ def _get_xray_trace_context():
     )
     if xray_trace_entity is None:
         return None
-    trace_context = Context(
-        trace_id= _convert_xray_trace_id(xray_trace_entity.trace_id),
-        span_id=_convert_xray_entity_id(xray_trace_entity.span_id),
-        sampling_priority=_convert_xray_sampling(xray_trace_entity.sampling_priority),
-        dd_origin=xray_trace_entity.dd_origin
-    )
     logger.debug(
         "Converted trace context %s from X-Ray segment %s",
-        trace_context,
-        (
-            xray_trace_entity.trace_id,
-            xray_trace_entity.span_id,
-            xray_trace_entity.sampling_priority,
-            xray_trace_entity.dd_origin,
-        ),
+        xray_trace_entity,
     )
-    return trace_context
+    return xray_trace_entity
 
 
 def _get_dd_trace_py_context():
@@ -122,19 +87,11 @@ def _get_dd_trace_py_context():
     )
     return span.context 
 
-#TODO rm after refactor if no longer used
-def _context_obj_to_headers(obj):
-    if isinstance(obj, Context):
-        return {
-                TraceHeader.TRACE_ID: str(obj.trace_id),
-                TraceHeader.PARENT_ID: str(obj.span_id),
-                TraceHeader.SAMPLING_PRIORITY: str(obj.sampling_priority),
-            }
-    elif isinstance(obj, dict):
-        return {
-            TraceHeader.TRACE_ID: str(obj.get("trace-id")),
-            TraceHeader.PARENT_ID: str(obj.get("parent-id")),
-            TraceHeader.SAMPLING_PRIORITY: str(obj.get("sampling-priority")),
+def _context_obj_to_headers(obj: Context):
+    return {
+            TraceHeader.TRACE_ID: str(obj.trace_id),
+            TraceHeader.PARENT_ID: str(obj.span_id),
+            TraceHeader.SAMPLING_PRIORITY: str(obj.sampling_priority),
         }
 
 
@@ -157,26 +114,18 @@ def extract_context_from_lambda_context(lambda_context):
     dd_trace libraries inject this trace context on synchronous invocations
     """
     client_context = lambda_context.client_context
-    trace_id = None
-    parent_id = None
-    sampling_priority = None
     if client_context and client_context.custom:
         if "_datadog" in client_context.custom:
             # Legacy trace propagation dict
-            dd_data = client_context.custom.get("_datadog", {})
+            dd_data = client_context.custom.get("_datadog")
             context = propagator.extract(dd_data)
         elif (
             TraceHeader.TRACE_ID in client_context.custom
             and TraceHeader.PARENT_ID in client_context.custom
             and TraceHeader.SAMPLING_PRIORITY in client_context.custom
         ):
-            # New trace propagation keys
-            trace_id = client_context.custom.get(TraceHeader.TRACE_ID)
-            parent_id = client_context.custom.get(TraceHeader.PARENT_ID)
-            sampling_priority = client_context.custom.get(TraceHeader.SAMPLING_PRIORITY)
-            context = Context(trace_id=trace_id, span_id=parent_id,sampling_priority=sampling_priority)
-        if context is not None:
-            return context
+            context = propagator.extract(client_context.custom)
+        return context
 
 
 def extract_context_from_http_event_or_context(
@@ -209,14 +158,13 @@ def extract_context_from_http_event_or_context(
                 )
     print("DEBUGGING event:")
     print(event)
-    headers = event.get("headers") or {}
+    headers = event.get("headers")
     context = propagator.extract(headers)
 
     if context is None:
         return extract_context_from_lambda_context(lambda_context)
     
-    if context is not None:
-        return context
+    return context
 
 
 def create_sns_event(message):
@@ -309,17 +257,20 @@ def _extract_context_from_eventbridge_sqs_event(event):
     This is only possible if first record in `Records` contains a
     `body` field which contains the EventBridge `detail` as a JSON string.
     """
-    try:
-        first_record = event.get("Records")[0]
-        if "body" in first_record:
-            body_str = first_record.get("body", {})
-            body = json.loads(body_str)
+    first_record = event.get("Records")[0]
+    if "body" in first_record:
+        body_str = first_record.get("body", {})
+        body = json.loads(body_str)
 
-            detail = body.get("detail")
-            dd_context = detail.get("_datadog")
-            context = propagator.extract(dd_context)
-        if context is not None:
+        detail = body.get("detail")
+        dd_context = detail.get("_datadog")
+        context = propagator.extract(dd_context)
             return context
+            return context
+    except Exception:
+        raise
+
+        return context
     except Exception:
         raise
 
@@ -413,8 +364,6 @@ def extract_context_custom_extractor(extractor, event, lambda_context):
         return Context(trace_id=trace_id, span_id=parent_id, sampling_priority=sampling_priority)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
-        return None
-
 
 def is_authorizer_response(response) -> bool:
     try:
@@ -505,7 +454,7 @@ def extract_dd_trace_context(
         print("Debug: Defaulting to extract context from Lambda context")  # Debug statement
         context = extract_context_from_lambda_context(lambda_context)
 
-    if context is not None and context.trace_id and context.span_id and context.sampling_priority:
+    if context is not None:
         logger.debug("Extracted Datadog trace context from event or context")
         print("Debug: Datadog trace context extracted successfully")  # Debug statement
         dd_trace_context = context
@@ -574,12 +523,14 @@ def set_correlation_ids():
         return
 
     context = get_dd_trace_context()
+    print("FOR TEST")
+    print(context)
+    print(type(context))
     if context is None:
         return
 
-    if isinstance(context, Context) and context is not None:
-        tracer.context_provider.activate(context)
 
+    tracer.context_provider.activate(context)
     tracer.trace("dummy.span")
     logger.debug("correlation ids set")
 

@@ -11,6 +11,7 @@ from datadog_lambda.xray import (
     send_segment,
 )
 
+from ddtrace.context import Context
 
 class TestXRay(unittest.TestCase):
     def tearDown(self):
@@ -71,10 +72,7 @@ class TestXRay(unittest.TestCase):
         MagicMock(return_value="1234abcd"),
     )
     def test_build_segment(self):
-        context = {
-            "trace_id": 111000111,
-            "parent_id": 222000222,
-        }
+        context = Context(trace_id=111000111, span_id=222000222)
 
         value = json.dumps({"a": "aaa", "b": "bbb"})
         result = build_segment(context, "myKey", "myValue")

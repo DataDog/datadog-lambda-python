@@ -5,7 +5,7 @@ import binascii
 import time
 import socket
 
-from datadog_lambda.constants import XrayDaemon, XraySubsegment, TraceContextSource
+from datadog_lambda.constants import XrayDaemon, XraySubsegment, TraceContextSource, SamplingPriority
 from ddtrace.context import Context
 
 logger = logging.getLogger(__name__)
@@ -44,6 +44,30 @@ def build_segment_payload(payload):
         return None
     return '{"format": "json", "version": 1}' + "\n" + payload
 
+def _convert_xray_trace_id(xray_trace_id):
+    """
+    Convert X-Ray trace id (hex)'s last 63 bits to a Datadog trace id (int).
+    """
+    return str(0x7FFFFFFFFFFFFFFF & int(xray_trace_id[-16:], 16))
+
+
+def _convert_xray_entity_id(xray_entity_id):
+    """
+    Convert X-Ray (sub)segement id (hex) to a Datadog span id (int).
+    """
+    return str(int(xray_entity_id, 16))
+
+
+def _convert_xray_sampling(xray_sampled):
+    """
+    Convert X-Ray sampled (True/False) to its Datadog counterpart.
+    """
+    return (
+        str(SamplingPriority.USER_KEEP)
+        if xray_sampled
+        else str(SamplingPriority.USER_REJECT)
+    )
+
 
 def parse_xray_header(raw_trace_id):
     # Example:
@@ -63,13 +87,12 @@ def parse_xray_header(raw_trace_id):
         or len(sampled) == len(parts[2])
     ):
         return None
-    #     trace_context = Context(
-    #     trace_id= _convert_xray_trace_id(xray_trace_entity.get("trace_id")),
-    #     span_id=_convert_xray_entity_id(xray_trace_entity.get("parent_id")),
-    #     sampling_priority=_convert_xray_sampling(xray_trace_entity.get("sampled")),
-    #     dd_origin=xray_trace_entity.get("source")
-    # )
-    context = Context(trace_id=parent, span_id=parent, sampling_priority=sampled, dd_origin=TraceContextSource.XRAY)
+    context = Context(
+    trace_id= _convert_xray_trace_id(root),
+    span_id=_convert_xray_entity_id(parent),
+    sampling_priority=_convert_xray_sampling(sampled),
+    dd_origin=TraceContextSource.XRAY
+    )
     return context
 
 
