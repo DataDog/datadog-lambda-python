@@ -265,14 +265,7 @@ def _extract_context_from_eventbridge_sqs_event(event):
         detail = body.get("detail")
         dd_context = detail.get("_datadog")
         context = propagator.extract(dd_context)
-            return context
-            return context
-    except Exception:
-        raise
-
         return context
-    except Exception:
-        raise
 
 
 def extract_context_from_eventbridge_event(event, lambda_context):
