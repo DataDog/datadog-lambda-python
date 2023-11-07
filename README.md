@@ -16,12 +16,14 @@ Follow the [installation instructions](https://docs.datadoghq.com/serverless/ins
 
 Follow the [configuration instructions](https://docs.datadoghq.com/serverless/configuration) to tag your telemetry, capture request/response payloads, filter or scrub sensitive information from logs or traces, and more.
 
+For additional tracing configuration options, check out the [official documentation for Datadog trace client](https://ddtrace.readthedocs.io/en/stable/configuration.html).
+
 Besides the environment variables supported by dd-trace-py, the datadog-lambda-python library added following environment variables.
 
 | Environment Variables | Default ValueDescription |
 | -------------------- | ------------ |
 | DD_ENCODE_AUTHORIZER_CONTEXT      | When set to `true` for Lambda authorizers, the tracing context will be encoded into the response for propagation. Supported for NodeJS and Python. Defaults to `true`. |
-| DD_DECODE_AUTHORIZER_CONTEXT      | When set to `true` for Lambdas that are authorized via Lambda authorizers, it will parse and use the encoded tracing context (if found). Supportedoo for NodeJS and Python. Defaults to `true`. |
+| DD_DECODE_AUTHORIZER_CONTEXT      | When set to `true` for Lambdas that are authorized via Lambda authorizers, it will parse and use the encoded tracing context (if found). Supported for NodeJS and Python. Defaults to `true`. |
 | DD_COLD_START_TRACING | Set to `false` to disable Cold Start Tracing. Used in NodeJS and Python. Defaults to `true`. |
 | DD_MIN_COLD_START_DURATION |  Sets the minimum duration (in milliseconds) for a module load event to be traced via Cold Start Tracing. Number. Defaults to `3`. |
 | DD_COLD_START_TRACE_SKIP_LIB | optionally skip creating Cold Start Spans for a comma-separated list of libraries. Useful to limit depth or skip known libraries. Default depends on runtime. |
