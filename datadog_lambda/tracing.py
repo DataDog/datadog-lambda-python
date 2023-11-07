@@ -62,6 +62,7 @@ if dd_tracing_enabled:
         == "true"
     ):
         from ddtrace.internal.telemetry import telemetry_writer
+
         telemetry_writer.enable()
 
 propagator = HTTPPropagator()
