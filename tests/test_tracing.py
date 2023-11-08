@@ -595,7 +595,7 @@ class TestSetTraceRootSpan(unittest.TestCase):
         dd_tracing_enabled = False
         del os.environ["_X_AMZN_TRACE_ID"]
 
-    def _test_mixed_parent_context_when_merging(self):
+    def test_mixed_parent_context_when_merging(self):
         # When trace merging is enabled, and dd_trace headers are present,
         # use the dd-trace trace-id and the x-ray parent-id
         # This allows parenting relationships like dd-trace -> x-ray -> dd-trace
@@ -615,7 +615,7 @@ class TestSetTraceRootSpan(unittest.TestCase):
         )  # When merging is off, always use dd-trace-context
 
         expected_context = Context(
-            trace_id=3995693151288333088, #Trace Id from incomming context
+            trace_id=int(fake_xray_header_value_root_decimal), #Trace Id from incomming context
             span_id=int(fake_xray_header_value_parent_decimal),  # Parent Id from x-ray
             dd_origin="xray",
             sampling_priority="2",  # Sampling priority from incomming context
