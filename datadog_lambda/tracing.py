@@ -161,11 +161,17 @@ def extract_context_from_http_event_or_context(
     headers = event.get("headers")
     context = propagator.extract(headers)
 
-    if context is None:
+    print(context)
+    if not is_context_complete(context=context):
         return extract_context_from_lambda_context(lambda_context)
     
     return context
 
+def is_context_complete(context: Context):
+    if context.trace_id and context.span_id:
+        return True
+    else:
+        return False
 
 def create_sns_event(message):
     return {
