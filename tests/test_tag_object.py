@@ -28,7 +28,6 @@ class TestTagObject(unittest.TestCase):
             ],
             True,
         )
-        self.assertEqual(1, 1)
 
     def test_tag_object_max_depth(self):
         payload = {
@@ -62,7 +61,6 @@ class TestTagObject(unittest.TestCase):
             ],
             True,
         )
-        self.assertEqual(1, 1)
 
     def test_redacted_tag_object(self):
         payload = {
