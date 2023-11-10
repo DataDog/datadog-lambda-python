@@ -49,17 +49,12 @@ from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
 )
-from datadog_lambda.tag_object import tag_object
 
 profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "true"
 if profiling_env_var:
     from ddtrace.profiling import profiler
 
 logger = logging.getLogger(__name__)
-
-dd_capture_lambda_payload_enabled = (
-    os.environ.get("DD_CAPTURE_LAMBDA_PAYLOAD", "false").lower() == "true"
-)
 
 DD_FLUSH_TO_LOG = "DD_FLUSH_TO_LOG"
 DD_LOGS_INJECTION = "DD_LOGS_INJECTION"
@@ -72,9 +67,33 @@ DD_DECODE_AUTHORIZER_CONTEXT = "DD_DECODE_AUTHORIZER_CONTEXT"
 DD_COLD_START_TRACING = "DD_COLD_START_TRACING"
 DD_MIN_COLD_START_DURATION = "DD_MIN_COLD_START_DURATION"
 DD_COLD_START_TRACE_SKIP_LIB = "DD_COLD_START_TRACE_SKIP_LIB"
+DD_CAPTURE_LAMBDA_PAYLOAD = "DD_CAPTURE_LAMBDA_PAYLOAD"
+DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH = "DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH"
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
 DD_ENV = "DD_ENV"
+
+
+def get_env_as_int(env_key, default_value: int) -> int:
+    try:
+        return int(os.environ.get(env_key, default_value))
+    except Exception as e:
+        logger.warn(
+            f"Failed to parse {env_key} as int. Using default value: {default_value}. Error: {e}"
+        )
+        return default_value
+
+
+dd_capture_lambda_payload_enabled = (
+    os.environ.get(DD_CAPTURE_LAMBDA_PAYLOAD, "false").lower() == "true"
+)
+
+if dd_capture_lambda_payload_enabled:
+    import datadog_lambda.tag_object as tag_object
+
+    tag_object.max_depth = get_env_as_int(
+        DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH, tag_object.max_depth
+    )
 
 env_env_var = os.environ.get(DD_ENV, None)
 
@@ -161,14 +180,9 @@ class _LambdaDecorator(object):
             self.cold_start_tracing = depends_on_dd_tracing_enabled(
                 os.environ.get(DD_COLD_START_TRACING, "true").lower() == "true"
             )
-            self.min_cold_start_trace_duration = 3
-            if DD_MIN_COLD_START_DURATION in os.environ:
-                try:
-                    self.min_cold_start_trace_duration = int(
-                        os.environ[DD_MIN_COLD_START_DURATION]
-                    )
-                except Exception:
-                    logger.debug(f"Malformatted env {DD_MIN_COLD_START_DURATION}")
+            self.min_cold_start_trace_duration = get_env_as_int(
+                DD_MIN_COLD_START_DURATION, 3
+            )
             self.cold_start_trace_skip_lib = [
                 "ddtrace.internal.compat",
                 "ddtrace.filters",
@@ -307,16 +321,14 @@ class _LambdaDecorator(object):
                 create_dd_dummy_metadata_subsegment(
                     self.trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
                 )
-            should_trace_cold_start = (
-                dd_tracing_enabled and self.cold_start_tracing and is_new_sandbox()
-            )
+            should_trace_cold_start = self.cold_start_tracing and is_new_sandbox()
             if should_trace_cold_start:
                 trace_ctx = tracer.current_trace_context()
 
             if self.span:
                 if dd_capture_lambda_payload_enabled:
-                    tag_object(self.span, "function.request", event)
-                    tag_object(self.span, "function.response", self.response)
+                    tag_object.tag_object(self.span, "function.request", event)
+                    tag_object.tag_object(self.span, "function.response", self.response)
 
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)

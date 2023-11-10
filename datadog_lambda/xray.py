@@ -75,7 +75,6 @@ def generate_random_id():
 
 
 def build_segment(context, key, metadata):
-
     segment = json.dumps(
         {
             "id": generate_random_id(),

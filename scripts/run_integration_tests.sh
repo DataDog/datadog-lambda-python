@@ -200,8 +200,8 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(api_key=|'api_key': '|DD-API-KEY:)[a-z0-9\.\-]+/\1XXXX/g" |
                 # Normalize package version so that these snapshots aren't broken on version bumps
                 sed -E "s/(dd_lambda_layer:datadog-python[0-9]+_)[0-9]+\.[0-9]+\.[0-9]+/\1X\.X\.X/g" |
-                sed -E "s/(datadog_lambda:v)([0-9]+\.[0-9]+\.[0-9])/\1XX/g" |
-                sed -E "s/(datadogpy\/)([0-9]+\.[0-9]+\.[0-9])/\1XX/g" |
+                sed -E "s/(datadog_lambda:v)([0-9]+\.[0-9]+\.[0-9]+)/\1XX/g" |
+                sed -E "s/(datadogpy\/)([0-9]+\.[0-9]+\.[0-9]+)/\1XX/g" |
                 sed -E "s/(python )([0-9]\.[0-9]+\.[0-9]+)/\1XX/g" |
                 # Strip out run ID (from function name, resource, etc.)
                 sed -E "s/${!run_id}/XXXX/g" |
@@ -231,7 +231,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(\"connection_id\"\:\ \")[a-zA-Z0-9\-]+/\1XXXX/g" |
                 sed -E "s/(\"shardId\-)([0-9]+)\:([a-zA-Z0-9]+)[a-zA-Z0-9]/\1XXXX:XXXX/g" |
                 sed -E "s/(\"shardId\-)[0-9a-zA-Z]+/\1XXXX/g" |
-                sed -E "s/(\"datadog_lambda\"\: \")([0-9]+\.[0-9]+\.[0-9])/\1X.X.X/g" |
+                sed -E "s/(\"datadog_lambda\"\: \")([0-9]+\.[0-9]+\.[0-9]+)/\1X.X.X/g" |
                 sed -E "s/(\"partition_key\"\:\ \")[a-zA-Z0-9\-]+/\1XXXX/g" |
                 sed -E "s/(\"object_etag\"\:\ \")[a-zA-Z0-9\-]+/\1XXXX/g" |
                 sed -E "s/(\"dd_trace\"\: \")([0-9]+\.[0-9]+\.[0-9]+)/\1X.X.X/g" |
