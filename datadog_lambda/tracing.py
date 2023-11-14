@@ -72,25 +72,21 @@ def _convert_xray_trace_id(xray_trace_id):
     """
     Convert X-Ray trace id (hex)'s last 63 bits to a Datadog trace id (int).
     """
-    return str(0x7FFFFFFFFFFFFFFF & int(xray_trace_id[-16:], 16))
+    return 0x7FFFFFFFFFFFFFFF & int(xray_trace_id[-16:], 16)
 
 
 def _convert_xray_entity_id(xray_entity_id):
     """
     Convert X-Ray (sub)segement id (hex) to a Datadog span id (int).
     """
-    return str(int(xray_entity_id, 16))
+    return int(xray_entity_id, 16)
 
 
 def _convert_xray_sampling(xray_sampled):
     """
     Convert X-Ray sampled (True/False) to its Datadog counterpart.
     """
-    return (
-        str(SamplingPriority.USER_KEEP)
-        if xray_sampled
-        else str(SamplingPriority.USER_REJECT)
-    )
+    return SamplingPriority.USER_KEEP if xray_sampled else SamplingPriority.USER_REJECT
 
 
 def _get_xray_trace_context():
@@ -332,16 +328,16 @@ def extract_context_from_kinesis_event(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
-def _deterministic_md5_hash(s: str) -> str:
+def _deterministic_md5_hash(s: str) -> int:
     """MD5 here is to generate trace_id, not for any encryption."""
     hex_number = hashlib.md5(s.encode("ascii")).hexdigest()
     binary = bin(int(hex_number, 16))
     binary_str = str(binary)
     binary_str_remove_0b = binary_str[2:].rjust(128, "0")
     most_significant_64_bits_without_leading_1 = "0" + binary_str_remove_0b[1:-64]
-    result = str(int(most_significant_64_bits_without_leading_1, 2))
-    if result == "0" * 64:
-        return "1"
+    result = int(most_significant_64_bits_without_leading_1, 2)
+    if result == 0:
+        return 1
     return result
 
 
@@ -378,7 +374,9 @@ def extract_context_custom_extractor(extractor, event, lambda_context):
             sampling_priority,
         ) = extractor(event, lambda_context)
         return Context(
-            trace_id=trace_id, span_id=parent_id, sampling_priority=sampling_priority
+            trace_id=int(trace_id),
+            span_id=int(parent_id),
+            sampling_priority=int(sampling_priority),
         )
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
@@ -480,7 +478,7 @@ def extract_dd_trace_context(
     return dd_trace_context, trace_context_source, event_source
 
 
-def get_dd_trace_context():
+def get_dd_trace_context_obj():
     """
     Return the Datadog trace context to be propagated on the outgoing requests.
 
@@ -517,7 +515,22 @@ def get_dd_trace_context():
         trace_id=dd_trace_context.trace_id,
         span_id=xray_context.span_id,
         sampling_priority=dd_trace_context.sampling_priority,
+        meta=dd_trace_context._meta.copy(),
+        metrics=dd_trace_context._metrics.copy(),
     )
+
+
+def get_dd_trace_context():
+    """
+    Return the Datadog trace context to be propagated on the outgoing requests,
+    as a dict of headers.
+    """
+    headers = {}
+    context = get_dd_trace_context_obj()
+    if not _is_context_complete(context):
+        return headers
+    propagator.inject(context, headers)
+    return headers
 
 
 def set_correlation_ids():
@@ -535,7 +548,7 @@ def set_correlation_ids():
         logger.debug("using ddtrace implementation for spans")
         return
 
-    context = get_dd_trace_context()
+    context = get_dd_trace_context_obj()
     if not _is_context_complete(context):
         return
 
