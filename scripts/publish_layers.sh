@@ -116,17 +116,12 @@ wait_for_processes() {
 }
 
 backfill_layers() {
-    region=$1
-    layer_name=$2
-    aws_version_key=$3
-    layer_path=$4
-    latest_version=$(aws lambda list-layer-versions --region $region --layer-name $layer_name --query 'LayerVersions[0].Version || `0`')
-    if [ $latest_version -ge $VERSION ]; then
-        echo "Layer $layer_name version $VERSION already exists in region $region, skipping..."
-        continue
-    elif [ $latest_version -lt $((VERSION-1)) ]; then
-        echo "WARNING: The latest version of layer $layer_name in region $region is $latest_version, this will publish all the missing versions including $VERSION"
-    fi
+    latest_version=$1
+    region=$2
+    layer_name=$3
+    aws_version_key=$4
+    layer_path=$5
+
     while [ $latest_version -lt $VERSION ]; do
             latest_version=$(publish_layer $region $layer_name $aws_version_key $layer_path)
             echo "Published version $latest_version for layer $layer_name in region $region"
@@ -147,6 +142,13 @@ do
     echo "Starting publishing layer for region $region..."
     # Publish the layers for each version of python
     for layer_name in "${LAYERS[@]}"; do
+        latest_version=$(aws lambda list-layer-versions --region $region --layer-name $layer_name --query 'LayerVersions[0].Version || `0`')
+        if [ $latest_version -ge $VERSION ]; then
+            echo "Layer $layer_name version $VERSION already exists in region $region, skipping..."
+            continue
+        elif [ $latest_version -lt $((VERSION-1)) ]; then
+            echo "WARNING: The latest version of layer $layer_name in region $region is $latest_version, this will publish all the missing versions including $VERSION"
+        fi
 
         index=$(index_of_layer $layer_name)
         aws_version_key="${PYTHON_VERSIONS_FOR_AWS_CLI[$index]}"
