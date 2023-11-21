@@ -11,7 +11,7 @@ set -e
 # These values need to be in sync with serverless.yml, where there needs to be a function
 # defined for every handler_runtime combination
 LAMBDA_HANDLERS=("async-metrics" "sync-metrics")
-RUNTIMES=("python37" "python38" "python39" "python310" "python311")
+RUNTIMES=("python38" "python39" "python310" "python311")
 
 LOGS_WAIT_SECONDS=20
 
@@ -28,13 +28,12 @@ mismatch_found=false
 # [0]: serverless runtime name
 # [1]: python version
 # [2]: random 8-character ID to avoid collisions with other runs
-python37=("python3.7" "3.7" $(xxd -l 4 -c 4 -p < /dev/random))
 python38=("python3.8" "3.8" $(xxd -l 4 -c 4 -p < /dev/random))
 python39=("python3.9" "3.9" $(xxd -l 4 -c 4 -p < /dev/random))
 python310=("python3.10" "3.10" $(xxd -l 4 -c 4 -p < /dev/random))
 python311=("python3.11" "3.11" $(xxd -l 4 -c 4 -p < /dev/random))
 
-PARAMETERS_SETS=("python37" "python38" "python39" "python310" "python311")
+PARAMETERS_SETS=("python38" "python39" "python310" "python311")
 
 if [ -z "$RUNTIME_PARAM" ]; then
     echo "Python version not specified, running for all python versions."
