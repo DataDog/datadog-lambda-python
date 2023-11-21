@@ -1,4 +1,5 @@
 import unittest
+import functools
 import json
 import os
 import copy
@@ -29,7 +30,6 @@ from datadog_lambda.tracing import (
     _convert_xray_entity_id,
     _convert_xray_sampling,
     InferredSpanInfo,
-    extract_context_from_eventbridge_event,
     create_service_mapping,
     determine_service_name,
     service_mapping as global_service_mapping,
@@ -96,6 +96,29 @@ def get_mock_context(
     return lambda_context
 
 
+def with_trace_propagation_style(style):
+    style_list = list(style.split(","))
+
+    def _wrapper(fn):
+        @functools.wraps(fn)
+        def _wrap(*args, **kwargs):
+            from ddtrace.propagation.http import config
+
+            orig_extract = config._propagation_style_extract
+            orig_inject = config._propagation_style_inject
+            config._propagation_style_extract = style_list
+            config._propagation_style_inject = style_list
+            try:
+                return fn(*args, **kwargs)
+            finally:
+                config._propagation_style_extract = orig_extract
+                config._propagation_style_inject = orig_inject
+
+        return _wrap
+
+    return _wrapper
+
+
 class TestExtractAndGetDDTraceContext(unittest.TestCase):
     def setUp(self):
         global dd_tracing_enabled
@@ -114,17 +137,18 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         dd_tracing_enabled = False
         del os.environ["_X_AMZN_TRACE_ID"]
 
+    @with_trace_propagation_style("datadog")
     def test_without_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
         ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
         self.assertEqual(source, "xray")
-        self.assertDictEqual(
+        self.assertEqual(
             ctx,
-            {
-                "trace-id": fake_xray_header_value_root_decimal,
-                "parent-id": fake_xray_header_value_parent_decimal,
-                "sampling-priority": "2",
-            },
+            Context(
+                trace_id=int(fake_xray_header_value_root_decimal),
+                span_id=int(fake_xray_header_value_parent_decimal),
+                sampling_priority=2,
+            ),
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -136,17 +160,18 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             {},
         )
 
+    @with_trace_propagation_style("datadog")
     def test_with_non_object_event(self):
         lambda_ctx = get_mock_context()
         ctx, source, event_source = extract_dd_trace_context(b"", lambda_ctx)
         self.assertEqual(source, "xray")
-        self.assertDictEqual(
+        self.assertEqual(
             ctx,
-            {
-                "trace-id": fake_xray_header_value_root_decimal,
-                "parent-id": fake_xray_header_value_parent_decimal,
-                "sampling-priority": "2",
-            },
+            Context(
+                trace_id=int(fake_xray_header_value_root_decimal),
+                span_id=int(fake_xray_header_value_parent_decimal),
+                sampling_priority=2,
+            ),
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -158,6 +183,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             {},
         )
 
+    @with_trace_propagation_style("datadog")
     def test_with_incomplete_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
         ctx, source, event_source = extract_dd_trace_context(
@@ -165,13 +191,13 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             lambda_ctx,
         )
         self.assertEqual(source, "xray")
-        self.assertDictEqual(
+        self.assertEqual(
             ctx,
-            {
-                "trace-id": fake_xray_header_value_root_decimal,
-                "parent-id": fake_xray_header_value_parent_decimal,
-                "sampling-priority": "2",
-            },
+            Context(
+                trace_id=int(fake_xray_header_value_root_decimal),
+                span_id=int(fake_xray_header_value_parent_decimal),
+                sampling_priority=2,
+            ),
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -182,6 +208,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
 
+    @with_trace_propagation_style("datadog")
     def test_with_complete_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
         ctx, source, event_source = extract_dd_trace_context(
@@ -195,10 +222,8 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             lambda_ctx,
         )
         self.assertEqual(source, "event")
-        self.assertDictEqual(
-            ctx,
-            {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
-        )
+        expected_context = Context(trace_id=123, span_id=321, sampling_priority=1)
+        self.assertEqual(ctx, expected_context)
         self.assertDictEqual(
             get_dd_trace_context(),
             {
@@ -211,9 +236,48 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.mock_send_segment.assert_called()
         self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
-            {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
+            expected_context,
         )
 
+    @with_trace_propagation_style("tracecontext")
+    def test_with_w3c_trace_headers(self):
+        lambda_ctx = get_mock_context()
+        ctx, source, event_source = extract_dd_trace_context(
+            {
+                "headers": {
+                    "traceparent": "00-0000000000000000000000000000007b-0000000000000141-01",
+                    "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+                }
+            },
+            lambda_ctx,
+        )
+        self.assertEqual(source, "event")
+        expected_context = Context(
+            trace_id=123,
+            span_id=321,
+            sampling_priority=2,
+            meta={
+                "traceparent": "00-0000000000000000000000000000007b-0000000000000141-01",
+                "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+                "_dd.p.dm": "-0",
+            },
+        )
+        self.assertEqual(ctx, expected_context)
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                "traceparent": "00-0000000000000000000000000000007b-94ae789b969f1cc5-01",
+                "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+            },
+        )
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_send_segment.assert_called()
+        self.mock_send_segment.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            expected_context,
+        )
+
+    @with_trace_propagation_style("datadog")
     def test_with_extractor_function(self):
         def extractor_foo(event, context):
             foo = event.get("foo", {})
@@ -237,13 +301,13 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             extractor=extractor_foo,
         )
         self.assertEqual(ctx_source, "event")
-        self.assertDictEqual(
+        self.assertEqual(
             ctx,
-            {
-                "trace-id": "123",
-                "parent-id": "321",
-                "sampling-priority": "1",
-            },
+            Context(
+                trace_id=123,
+                span_id=321,
+                sampling_priority=1,
+            ),
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -254,6 +318,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
 
+    @with_trace_propagation_style("datadog")
     def test_graceful_fail_of_extractor_function(self):
         def extractor_raiser(event, context):
             raise Exception("kreator")
@@ -271,13 +336,13 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             extractor=extractor_raiser,
         )
         self.assertEqual(ctx_source, "xray")
-        self.assertDictEqual(
+        self.assertEqual(
             ctx,
-            {
-                "trace-id": fake_xray_header_value_root_decimal,
-                "parent-id": fake_xray_header_value_parent_decimal,
-                "sampling-priority": "2",
-            },
+            Context(
+                trace_id=int(fake_xray_header_value_root_decimal),
+                span_id=int(fake_xray_header_value_parent_decimal),
+                sampling_priority=2,
+            ),
         )
         self.assertDictEqual(
             get_dd_trace_context(),
@@ -288,6 +353,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
 
+    @with_trace_propagation_style("datadog")
     def test_with_sqs_distributed_datadog_trace_data(self):
         lambda_ctx = get_mock_context()
         sqs_event = {
@@ -323,14 +389,12 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         }
         ctx, source, event_source = extract_dd_trace_context(sqs_event, lambda_ctx)
         self.assertEqual(source, "event")
-        self.assertDictEqual(
-            ctx,
-            {
-                "trace-id": "123",
-                "parent-id": "321",
-                "sampling-priority": "1",
-            },
+        expected_context = Context(
+            trace_id=123,
+            span_id=321,
+            sampling_priority=1,
         )
+        self.assertEqual(ctx, expected_context)
         self.assertDictEqual(
             get_dd_trace_context(),
             {
@@ -342,9 +406,69 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
         self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
-            {"trace-id": "123", "parent-id": "321", "sampling-priority": "1"},
+            expected_context,
         )
 
+    @with_trace_propagation_style("tracecontext")
+    def test_with_sqs_distributed_w3c_trace_data(self):
+        lambda_ctx = get_mock_context()
+        sqs_event = {
+            "Records": [
+                {
+                    "messageId": "059f36b4-87a3-44ab-83d2-661975830a7d",
+                    "receiptHandle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
+                    "body": "Test message.",
+                    "attributes": {
+                        "ApproximateReceiveCount": "1",
+                        "SentTimestamp": "1545082649183",
+                        "SenderId": "AIDAIENQZJOLO23YVJ4VO",
+                        "ApproximateFirstReceiveTimestamp": "1545082649185",
+                    },
+                    "messageAttributes": {
+                        "_datadog": {
+                            "stringValue": json.dumps(
+                                {
+                                    "traceparent": "00-0000000000000000000000000000007b-0000000000000141-01",
+                                    "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+                                }
+                            ),
+                            "dataType": "String",
+                        }
+                    },
+                    "md5OfBody": "e4e68fb7bd0e697a0ae8f1bb342846b3",
+                    "eventSource": "aws:sqs",
+                    "eventSourceARN": "arn:aws:sqs:us-east-2:123456789012:my-queue",
+                    "awsRegion": "us-east-2",
+                }
+            ]
+        }
+        ctx, source, event_source = extract_dd_trace_context(sqs_event, lambda_ctx)
+        self.assertEqual(source, "event")
+        expected_context = Context(
+            trace_id=123,
+            span_id=321,
+            sampling_priority=2,
+            meta={
+                "traceparent": "00-0000000000000000000000000000007b-0000000000000141-01",
+                "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+                "_dd.p.dm": "-0",
+            },
+        )
+        self.assertEqual(ctx, expected_context)
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                "traceparent": "00-0000000000000000000000000000007b-94ae789b969f1cc5-01",
+                "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+            },
+        )
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_send_segment.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            expected_context,
+        )
+
+    @with_trace_propagation_style("datadog")
     def test_with_legacy_client_context_datadog_trace_data(self):
         lambda_ctx = get_mock_context(
             custom={
@@ -357,14 +481,12 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
         ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
         self.assertEqual(source, "event")
-        self.assertDictEqual(
-            ctx,
-            {
-                "trace-id": "666",
-                "parent-id": "777",
-                "sampling-priority": "1",
-            },
+        expected_context = Context(
+            trace_id=666,
+            span_id=777,
+            sampling_priority=1,
         )
+        self.assertEqual(ctx, expected_context)
         self.assertDictEqual(
             get_dd_trace_context(),
             {
@@ -377,9 +499,47 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.mock_send_segment.assert_called()
         self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
-            {"trace-id": "666", "parent-id": "777", "sampling-priority": "1"},
+            expected_context,
         )
 
+    @with_trace_propagation_style("tracecontext")
+    def test_with_legacy_client_context_w3c_trace_data(self):
+        lambda_ctx = get_mock_context(
+            custom={
+                "_datadog": {
+                    "traceparent": "00-0000000000000000000000000000029a-0000000000000309-01",
+                    "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+                }
+            }
+        )
+        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
+        self.assertEqual(source, "event")
+        expected_context = Context(
+            trace_id=666,
+            span_id=777,
+            sampling_priority=1,
+            meta={
+                "traceparent": "00-0000000000000000000000000000029a-0000000000000309-01",
+                "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+                "_dd.p.dm": "-0",
+            },
+        )
+        self.assertEqual(ctx, expected_context)
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                "traceparent": "00-0000000000000000000000000000029a-94ae789b969f1cc5-01",
+                "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+            },
+        )
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_send_segment.assert_called()
+        self.mock_send_segment.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            expected_context,
+        )
+
+    @with_trace_propagation_style("datadog")
     def test_with_new_client_context_datadog_trace_data(self):
         lambda_ctx = get_mock_context(
             custom={
@@ -390,14 +550,12 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
         ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
         self.assertEqual(source, "event")
-        self.assertDictEqual(
-            ctx,
-            {
-                "trace-id": "666",
-                "parent-id": "777",
-                "sampling-priority": "1",
-            },
+        expected_context = Context(
+            trace_id=666,
+            span_id=777,
+            sampling_priority=1,
         )
+        self.assertEqual(ctx, expected_context)
         self.assertDictEqual(
             get_dd_trace_context(),
             {
@@ -410,9 +568,45 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.mock_send_segment.assert_called()
         self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
-            {"trace-id": "666", "parent-id": "777", "sampling-priority": "1"},
+            expected_context,
         )
 
+    @with_trace_propagation_style("tracecontext")
+    def test_with_new_client_context_w3c_trace_data(self):
+        lambda_ctx = get_mock_context(
+            custom={
+                "traceparent": "00-0000000000000000000000000000029a-0000000000000309-01",
+                "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+            }
+        )
+        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
+        self.assertEqual(source, "event")
+        expected_context = Context(
+            trace_id=666,
+            span_id=777,
+            sampling_priority=1,
+            meta={
+                "traceparent": "00-0000000000000000000000000000029a-0000000000000309-01",
+                "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+                "_dd.p.dm": "-0",
+            },
+        )
+        self.assertEqual(ctx, expected_context)
+        self.assertDictEqual(
+            get_dd_trace_context(),
+            {
+                "traceparent": "00-0000000000000000000000000000029a-94ae789b969f1cc5-01",
+                "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+            },
+        )
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_send_segment.assert_called()
+        self.mock_send_segment.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            expected_context,
+        )
+
+    @with_trace_propagation_style("datadog")
     def test_with_complete_datadog_trace_headers_with_mixed_casing(self):
         lambda_ctx = get_mock_context()
         extract_dd_trace_context(
@@ -455,51 +649,85 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             ]
         )
 
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data(self):
+        lambda_ctx = get_mock_context()
+        sqs_event = {
+            "Execution": {
+                "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+            },
+            "StateMachine": {},
+            "State": {
+                "Name": "my-awesome-state",
+                "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+            },
+        }
+        ctx, source, event_source = extract_dd_trace_context(sqs_event, lambda_ctx)
+        self.assertEqual(source, "event")
+        expected_context = Context(
+            trace_id=1074655265866231755,
+            span_id=4776286484851030060,
+            sampling_priority=1,
+        )
+        self.assertEqual(ctx, expected_context)
+        self.assertEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "1074655265866231755",
+                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
+                TraceHeader.SAMPLING_PRIORITY: "1",
+            },
+        )
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_send_segment.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            expected_context,
+        )
+
 
 class TestXRayContextConversion(unittest.TestCase):
     def test_convert_xray_trace_id(self):
         self.assertEqual(
-            _convert_xray_trace_id("00000000e1be46a994272793"), "7043144561403045779"
+            _convert_xray_trace_id("00000000e1be46a994272793"), 7043144561403045779
         )
 
         self.assertEqual(
-            _convert_xray_trace_id("bd862e3fe1be46a994272793"), "7043144561403045779"
+            _convert_xray_trace_id("bd862e3fe1be46a994272793"), 7043144561403045779
         )
 
         self.assertEqual(
             _convert_xray_trace_id("ffffffffffffffffffffffff"),
-            "9223372036854775807",  # 0x7FFFFFFFFFFFFFFF
+            9223372036854775807,  # 0x7FFFFFFFFFFFFFFF
         )
 
     def test_convert_xray_entity_id(self):
         self.assertEqual(
-            _convert_xray_entity_id("53995c3f42cd8ad8"), "6023947403358210776"
+            _convert_xray_entity_id("53995c3f42cd8ad8"), 6023947403358210776
         )
 
         self.assertEqual(
-            _convert_xray_entity_id("1000000000000000"), "1152921504606846976"
+            _convert_xray_entity_id("1000000000000000"), 1152921504606846976
         )
 
         self.assertEqual(
-            _convert_xray_entity_id("ffffffffffffffff"), "18446744073709551615"
+            _convert_xray_entity_id("ffffffffffffffff"), 18446744073709551615
         )
 
     def test_convert_xray_sampling(self):
-        self.assertEqual(_convert_xray_sampling(True), str(SamplingPriority.USER_KEEP))
+        self.assertEqual(_convert_xray_sampling(True), SamplingPriority.USER_KEEP)
 
-        self.assertEqual(
-            _convert_xray_sampling(False), str(SamplingPriority.USER_REJECT)
-        )
+        self.assertEqual(_convert_xray_sampling(False), SamplingPriority.USER_REJECT)
 
 
 class TestLogsInjection(unittest.TestCase):
     def setUp(self):
-        patcher = patch("datadog_lambda.tracing.get_dd_trace_context")
+        patcher = patch("datadog_lambda.tracing.get_dd_trace_context_obj")
         self.mock_get_dd_trace_context = patcher.start()
-        self.mock_get_dd_trace_context.return_value = {
-            TraceHeader.TRACE_ID: "123",
-            TraceHeader.PARENT_ID: "456",
-        }
+        self.mock_get_dd_trace_context.return_value = Context(
+            trace_id=int(fake_xray_header_value_root_decimal),
+            span_id=int(fake_xray_header_value_parent_decimal),
+            sampling_priority=1,
+        )
         self.addCleanup(patcher.stop)
 
         patcher = patch("datadog_lambda.tracing.is_lambda_context")
@@ -510,13 +738,13 @@ class TestLogsInjection(unittest.TestCase):
     def test_set_correlation_ids(self):
         set_correlation_ids()
         span = tracer.current_span()
-        self.assertEqual(span.trace_id, 123)
-        self.assertEqual(span.span_id, 456)
+        self.assertEqual(span.trace_id, int(fake_xray_header_value_root_decimal))
+        self.assertEqual(span.parent_id, int(fake_xray_header_value_parent_decimal))
         span.finish()
 
     def test_set_correlation_ids_handle_empty_trace_context(self):
         # neither x-ray or ddtrace is used. no tracing context at all.
-        self.mock_get_dd_trace_context.return_value = {}
+        self.mock_get_dd_trace_context.return_value = Context()
         # no exception thrown
         set_correlation_ids()
         span = tracer.current_span()
@@ -1829,10 +2057,10 @@ class TestInferredSpans(unittest.TestCase):
         with open(test_file, "r") as event:
             event = json.load(event)
         ctx = get_mock_context()
-        trace, parent, sampling = extract_context_from_eventbridge_event(event, ctx)
-        self.assertEqual(trace, "12345")
-        self.assertEqual(parent, "67890"),
-        self.assertEqual(sampling, "2")
+        context, source, event_type = extract_dd_trace_context(event, ctx)
+        self.assertEqual(context.trace_id, 12345)
+        self.assertEqual(context.span_id, 67890),
+        self.assertEqual(context.sampling_priority, 2)
 
     def test_extract_dd_trace_context_for_eventbridge(self):
         event_sample_source = "eventbridge-custom"
@@ -1841,8 +2069,8 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         context, source, event_type = extract_dd_trace_context(event, ctx)
-        self.assertEqual(context["trace-id"], "12345")
-        self.assertEqual(context["parent-id"], "67890")
+        self.assertEqual(context.trace_id, 12345)
+        self.assertEqual(context.span_id, 67890)
 
     def test_extract_context_from_eventbridge_sqs_event(self):
         event_sample_source = "eventbridge-sqs"
@@ -1852,9 +2080,9 @@ class TestInferredSpans(unittest.TestCase):
 
         ctx = get_mock_context()
         context, source, event_type = extract_dd_trace_context(event, ctx)
-        self.assertEqual(context["trace-id"], "7379586022458917877")
-        self.assertEqual(context["parent-id"], "2644033662113726488")
-        self.assertEqual(context["sampling-priority"], "1")
+        self.assertEqual(context.trace_id, 7379586022458917877)
+        self.assertEqual(context.span_id, 2644033662113726488)
+        self.assertEqual(context.sampling_priority, 1)
 
     def test_extract_context_from_sqs_event_with_string_msg_attr(self):
         event_sample_source = "sqs-string-msg-attribute"
@@ -1863,9 +2091,9 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         context, source, event_type = extract_dd_trace_context(event, ctx)
-        self.assertEqual(context["trace-id"], "2684756524522091840")
-        self.assertEqual(context["parent-id"], "7431398482019833808")
-        self.assertEqual(context["sampling-priority"], "1")
+        self.assertEqual(context.trace_id, 2684756524522091840)
+        self.assertEqual(context.span_id, 7431398482019833808)
+        self.assertEqual(context.sampling_priority, 1)
 
     def test_extract_context_from_sqs_batch_event(self):
         event_sample_source = "sqs-batch"
@@ -1874,9 +2102,9 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         context, source, event_source = extract_dd_trace_context(event, ctx)
-        self.assertEqual(context["trace-id"], "2684756524522091840")
-        self.assertEqual(context["parent-id"], "7431398482019833808")
-        self.assertEqual(context["sampling-priority"], "1")
+        self.assertEqual(context.trace_id, 2684756524522091840)
+        self.assertEqual(context.span_id, 7431398482019833808)
+        self.assertEqual(context.sampling_priority, 1)
 
     def test_extract_context_from_sns_event_with_string_msg_attr(self):
         event_sample_source = "sns-string-msg-attribute"
@@ -1885,9 +2113,9 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         context, source, event_source = extract_dd_trace_context(event, ctx)
-        self.assertEqual(context["trace-id"], "4948377316357291421")
-        self.assertEqual(context["parent-id"], "6746998015037429512")
-        self.assertEqual(context["sampling-priority"], "1")
+        self.assertEqual(context.trace_id, 4948377316357291421)
+        self.assertEqual(context.span_id, 6746998015037429512)
+        self.assertEqual(context.sampling_priority, 1)
 
     def test_extract_context_from_sns_event_with_b64_msg_attr(self):
         event_sample_source = "sns-b64-msg-attribute"
@@ -1896,9 +2124,9 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         context, source, event_source = extract_dd_trace_context(event, ctx)
-        self.assertEqual(context["trace-id"], "4948377316357291421")
-        self.assertEqual(context["parent-id"], "6746998015037429512")
-        self.assertEqual(context["sampling-priority"], "1")
+        self.assertEqual(context.trace_id, 4948377316357291421)
+        self.assertEqual(context.span_id, 6746998015037429512)
+        self.assertEqual(context.sampling_priority, 1)
 
     def test_extract_context_from_sns_batch_event(self):
         event_sample_source = "sns-batch"
@@ -1907,9 +2135,9 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         context, source, event_source = extract_dd_trace_context(event, ctx)
-        self.assertEqual(context["trace-id"], "4948377316357291421")
-        self.assertEqual(context["parent-id"], "6746998015037429512")
-        self.assertEqual(context["sampling-priority"], "1")
+        self.assertEqual(context.trace_id, 4948377316357291421)
+        self.assertEqual(context.span_id, 6746998015037429512)
+        self.assertEqual(context.sampling_priority, 1)
 
     def test_extract_context_from_kinesis_event(self):
         event_sample_source = "kinesis"
@@ -1918,9 +2146,9 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         context, source, event_source = extract_dd_trace_context(event, ctx)
-        self.assertEqual(context["trace-id"], "4948377316357291421")
-        self.assertEqual(context["parent-id"], "2876253380018681026")
-        self.assertEqual(context["sampling-priority"], "1")
+        self.assertEqual(context.trace_id, 4948377316357291421)
+        self.assertEqual(context.span_id, 2876253380018681026)
+        self.assertEqual(context.sampling_priority, 1)
 
     def test_extract_context_from_kinesis_batch_event(self):
         event_sample_source = "kinesis-batch"
@@ -1929,9 +2157,9 @@ class TestInferredSpans(unittest.TestCase):
             event = json.load(event)
         ctx = get_mock_context()
         context, source, event_source = extract_dd_trace_context(event, ctx)
-        self.assertEqual(context["trace-id"], "4948377316357291421")
-        self.assertEqual(context["parent-id"], "2876253380018681026")
-        self.assertEqual(context["sampling-priority"], "1")
+        self.assertEqual(context.trace_id, 4948377316357291421)
+        self.assertEqual(context.span_id, 2876253380018681026)
+        self.assertEqual(context.sampling_priority, 1)
 
     def test_create_inferred_span_from_api_gateway_event_no_apiid(self):
         event_sample_source = "api-gateway-no-apiid"
@@ -1998,14 +2226,14 @@ class TestInferredSpans(unittest.TestCase):
 class TestStepFunctionsTraceContext(unittest.TestCase):
     def test_deterministic_m5_hash(self):
         result = _deterministic_md5_hash("some_testing_random_string")
-        self.assertEqual("2251275791555400689", result)
+        self.assertEqual(2251275791555400689, result)
 
     def test_deterministic_m5_hash__result_the_same_as_backend(self):
         result = _deterministic_md5_hash(
             "arn:aws:states:sa-east-1:601427271234:express:DatadogStateMachine:acaf1a67-336a-e854-1599-2a627eb2dd8a"
             ":c8baf081-31f1-464d-971f-70cb17d01111#step-one#2022-12-08T21:08:19.224Z"
         )
-        self.assertEqual("8034507082463708833", result)
+        self.assertEqual(8034507082463708833, result)
 
     def test_deterministic_m5_hash__always_leading_with_zero(self):
         for i in range(100):
