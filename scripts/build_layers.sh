@@ -7,14 +7,14 @@
 
 # Builds datadog-lambda-python layers for Lambda functions
 
-# Usage: PYTHON_VERSION=3.7 ./build_layers.sh
+# Usage: PYTHON_VERSION=3.11 ./build_layers.sh
 # If PYTHON_VERSION is not specified, all versions will be built.
 
 set -e
 
 LAYER_DIR=".layers"
 LAYER_FILES_PREFIX="datadog_lambda_py"
-AVAILABLE_PYTHON_VERSIONS=("3.7" "3.8" "3.9" "3.10" "3.11")
+AVAILABLE_PYTHON_VERSIONS=("3.8" "3.9" "3.10" "3.11")
 
 # Determine which Python versions to build layers for
 if [ -z "$PYTHON_VERSION" ]; then
@@ -68,10 +68,8 @@ mkdir $LAYER_DIR
 
 for python_version in "${PYTHON_VERSIONS[@]}"
 do
-    if [ "$python_version" != "3.7" ]; then
-        echo "Building layer for Python ${python_version} arch=arm64"
-        docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-arm64-${python_version}.zip arm64
-    fi
+    echo "Building layer for Python ${python_version} arch=arm64"
+    docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-arm64-${python_version}.zip arm64
     echo "Building layer for Python ${python_version} arch=amd64"
     docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-amd64-${python_version}.zip amd64
 done
