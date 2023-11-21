@@ -266,6 +266,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                 "Datadog Lambda Python only supports extracting trace"
                 "context from String or Binary SQS/SNS message attributes"
             )
+            return extract_context_from_lambda_context(lambda_context)
         dd_data = json.loads(dd_json_data)
         return propagator.extract(dd_data)
     except Exception as e:
