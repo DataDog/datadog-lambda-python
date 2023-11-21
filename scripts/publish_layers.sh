@@ -19,6 +19,12 @@ AVAILABLE_LAYERS=("Datadog-Python37" "Datadog-Python38" "Datadog-Python38-ARM" "
 ARCHS=("amd64" "amd64" "amd64""amd64" "amd64" "arm64" "amd64" "arm64" "amd64" "arm64")
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 
+BATCH_SIZE=60
+PIDS=()
+
+# Makes sure any subprocesses will be terminated with this process
+trap "pkill -P $$; exit 1;" INT
+
 # Check that the layer files exist
 for layer_file in "${LAYER_PATHS[@]}"
 do
@@ -102,6 +108,35 @@ publish_layer() {
     echo $version_nbr
 }
 
+wait_for_processes() {
+    for pid in "${PIDS[@]}"; do
+        wait $pid
+    done
+    PIDS=()
+}
+
+backfill_layers() {
+    latest_version=$1
+    region=$2
+    layer_name=$3
+    aws_version_key=$4
+    layer_path=$5
+
+    while [ $latest_version -lt $VERSION ]; do
+            latest_version=$(publish_layer $region $layer_name $aws_version_key $layer_path)
+            echo "Published version $latest_version for layer $layer_name in region $region"
+
+            # This shouldn't happen unless someone manually deleted the latest version, say 28, and
+            # then tries to republish 28 again. The published version would actually be 29, because
+            # Lambda layers are immutable and AWS will skip deleted version and use the next number.
+            if [ $latest_version -gt $VERSION ]; then
+                echo "ERROR: Published version $latest_version is greater than the desired version $VERSION!"
+                echo "Exiting"
+                exit 1
+            fi
+    done
+}
+
 for region in $REGIONS
 do
     echo "Starting publishing layer for region $region..."
@@ -112,31 +147,20 @@ do
             echo "Layer $layer_name version $VERSION already exists in region $region, skipping..."
             continue
         elif [ $latest_version -lt $((VERSION-1)) ]; then
-            read -p "WARNING: The latest version of layer $layer_name in region $region is $latest_version, publish all the missing versions including $VERSION or EXIT the script (y/n)?" CONT
-            if [ "$CONT" != "y" ]; then
-                echo "Exiting"
-                exit 1
-            fi
+            echo "WARNING: The latest version of layer $layer_name in region $region is $latest_version, this will publish all the missing versions including $VERSION"
         fi
 
         index=$(index_of_layer $layer_name)
         aws_version_key="${PYTHON_VERSIONS_FOR_AWS_CLI[$index]}"
         layer_path="${LAYER_PATHS[$index]}"
 
-        while [ $latest_version -lt $VERSION ]; do
-            latest_version=$(publish_layer $region $layer_name $aws_version_key $layer_path)
-            echo "Published version $latest_version for layer $layer_name in region $region"
-
-            # This shouldn't happen unless someone manually deleted the latest version, say 28
-            # and then try to republish it again. The published version is actually be 29, because
-            # Lambda layers are immutable and AWS will skip deleted version and use the next number.
-            if [ $latest_version -gt $VERSION ]; then
-                echo "ERROR: Published version $latest_version is greater than the desired version $VERSION!"
-                echo "Exiting"
-                exit 1
-            fi
-        done
+        backfill_layers $latest_version $region $layer_name $aws_version_key $layer_path &
+        PIDS+=($!)
+        if [ ${#PIDS[@]} -ge $BATCH_SIZE ]; then
+                wait_for_processes
+        fi
     done
 done
+wait_for_processes
 
 echo "Done !"
