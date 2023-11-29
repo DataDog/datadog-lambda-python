@@ -89,7 +89,7 @@ def _convert_xray_sampling(xray_sampled):
     return SamplingPriority.USER_KEEP if xray_sampled else SamplingPriority.USER_REJECT
 
 
-def _get_xray_trace_context():
+def _get_xray_trace_context() -> Optional[Context]:
     if not is_lambda_context():
         return None
 
@@ -604,7 +604,7 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
         )
         if merge_xray_traces:
             xray_context = _get_xray_trace_context()
-            if xray_context.span_id:
+            if xray_context and xray_context.span_id:
                 context.span_id = xray_context.span_id
 
         tracer.context_provider.activate(context)
