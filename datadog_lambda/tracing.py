@@ -89,7 +89,7 @@ def _convert_xray_sampling(xray_sampled):
     return SamplingPriority.USER_KEEP if xray_sampled else SamplingPriority.USER_REJECT
 
 
-def _get_xray_trace_context() -> Optional[Context]:
+def _get_xray_trace_context():
     if not is_lambda_context():
         return None
 
