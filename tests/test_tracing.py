@@ -14,6 +14,7 @@ from ddtrace.context import Context
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
+    TraceContextSource,
     XraySubsegment,
 )
 from datadog_lambda.tracing import (
@@ -849,6 +850,30 @@ class TestSetTraceRootSpan(unittest.TestCase):
         expected_context = Context(
             trace_id=123,  # Trace Id from incomming context
             span_id=int(fake_xray_header_value_parent_decimal),  # Parent Id from x-ray
+            sampling_priority=1,  # Sampling priority from incomming context
+        )
+        self.mock_activate.assert_called()
+        self.mock_activate.assert_has_calls([call(expected_context)])
+
+    def test_set_dd_trace_py_root_no_span_id(self):
+        os.environ["_X_AMZN_TRACE_ID"] = "Root=1-5e272390-8c398be037738dc042009320"
+
+        lambda_ctx = get_mock_context()
+        ctx, source, event_type = extract_dd_trace_context(
+            {
+                "headers": {
+                    TraceHeader.TRACE_ID: "123",
+                    TraceHeader.PARENT_ID: "321",
+                    TraceHeader.SAMPLING_PRIORITY: "1",
+                }
+            },
+            lambda_ctx,
+        )
+        set_dd_trace_py_root(TraceContextSource.EVENT, True)
+
+        expected_context = Context(
+            trace_id=123,  # Trace Id from incomming context
+            span_id=321,  # Span Id from incoming context
             sampling_priority=1,  # Sampling priority from incomming context
         )
         self.mock_activate.assert_called()
