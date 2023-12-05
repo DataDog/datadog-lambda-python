@@ -9,7 +9,7 @@ from datadog_lambda.constants import TraceHeader
 import datadog_lambda.wrapper as wrapper
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
-from ddtrace import Span
+from ddtrace import Span, tracer
 
 
 def get_mock_context(
@@ -580,3 +580,70 @@ class TestLambdaDecoratorSettings(unittest.TestCase):
         self.assertFalse(decorator.make_inferred_span)
         self.assertFalse(decorator.encode_authorizer_context)
         self.assertFalse(decorator.decode_authorizer_context)
+
+
+class TestLambdaWrapperWithTraceContext(unittest.TestCase):
+    xray_root = "1-5e272390-8c398be037738dc042009320"
+    xray_parent = "94ae789b969f1cc5"
+    xray_daemon_envvar = "localhost:1234"
+    xray_trace_envvar = (
+        f"Root={xray_root};Parent={xray_parent};Sampled=1;Lineage=c6c5b1b9:0"
+    )
+
+    @patch(
+        "os.environ",
+        {
+            "AWS_XRAY_DAEMON_ADDRESS": xray_daemon_envvar,
+            "_X_AMZN_TRACE_ID": xray_trace_envvar,
+        },
+    )
+    def test_event_bridge_sqs_payload(self):
+        patcher = patch("datadog_lambda.xray.send")
+        mock_send = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        def handler(event, context):
+            return tracer.current_trace_context()
+
+        wrapper.dd_tracing_enabled = True
+        wrapped_handler = wrapper.datadog_lambda_wrapper(handler)
+
+        event_trace_id = 3047453991382739997
+        event_parent_id = 3047453991382739997
+        event = {
+            "headers": {
+                "traceparent": (
+                    f"00-0000000000000000{hex(event_trace_id)[2:]}-{hex(event_parent_id)[2:]}-01"
+                ),
+                "tracestate": "dd=s:1;t.dm:-1",
+                "x-datadog-trace-id": str(event_trace_id),
+                "x-datadog-parent-id": str(event_parent_id),
+                "x-datadog-sampling-priority": "1",
+            },
+        }
+        context = get_mock_context()
+
+        result = wrapped_handler(event, context)
+        aws_lambda_span = wrapped_handler.span
+
+        self.assertIsNotNone(result)
+        self.assertEqual(result.trace_id, event_trace_id)
+        self.assertEqual(result.span_id, aws_lambda_span.span_id)
+        self.assertEqual(result.sampling_priority, 1)
+        mock_send.assert_called_once()
+        (_, raw_payload), _ = mock_send.call_args
+        payload = json.loads(raw_payload[33:])  # strip formatting prefix
+        self.assertEqual(self.xray_root, payload["trace_id"])
+        self.assertEqual(self.xray_parent, payload["parent_id"])
+        self.assertDictEqual(
+            {
+                "datadog": {
+                    "trace": {
+                        "trace-id": str(event_trace_id),
+                        "parent-id": str(event_parent_id),
+                        "sampling-priority": "1",
+                    },
+                },
+            },
+            payload["metadata"],
+        )

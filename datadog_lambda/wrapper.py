@@ -281,7 +281,12 @@ class _LambdaDecorator(object):
             # Create a Datadog X-Ray subsegment with the trace context
             if dd_context and trace_context_source == TraceContextSource.EVENT:
                 create_dd_dummy_metadata_subsegment(
-                    dd_context, XraySubsegment.TRACE_KEY
+                    {
+                        "trace-id": str(dd_context.trace_id),
+                        "parent-id": str(dd_context.span_id),
+                        "sampling-priority": str(dd_context.sampling_priority),
+                    },
+                    XraySubsegment.TRACE_KEY,
                 )
 
             if dd_tracing_enabled:
