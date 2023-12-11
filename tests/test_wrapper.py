@@ -550,10 +550,10 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         raw_inject_data = result["context"]["_datadog"]
         self.assertIsInstance(raw_inject_data, str)
         inject_data = json.loads(base64.b64decode(raw_inject_data))
-        self.assertEquals(inject_data[TraceHeader.PARENT_ID], "123")
-        self.assertEquals(inject_data[TraceHeader.TRACE_ID], "456")
-        self.assertEquals(inject_data[TraceHeader.SAMPLING_PRIORITY], "1")
-        self.assertEquals(result["context"]["scope"], "still here")
+        self.assertEqual(inject_data[TraceHeader.PARENT_ID], "123")
+        self.assertEqual(inject_data[TraceHeader.TRACE_ID], "456")
+        self.assertEqual(inject_data[TraceHeader.SAMPLING_PRIORITY], "1")
+        self.assertEqual(result["context"]["scope"], "still here")
 
     @patch("traceback.print_exc")
     def test_different_return_type_no_error(self, MockPrintExc):
@@ -566,7 +566,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                 return test_result
 
             result = return_type_test({}, mock_context)
-            self.assertEquals(result, test_result)
+            self.assertEqual(result, test_result)
             self.assertFalse(MockPrintExc.called)
 
 

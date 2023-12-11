@@ -12,8 +12,32 @@ set -e
 
 OLD_REGION='us-east-1'
 
-LAYER_NAMES=("Datadog-Python37" "Datadog-Python38" "Datadog-Python38-ARM" "Datadog-Python39" "Datadog-Python39-ARM" "Datadog-Python310" "Datadog-Python310-ARM" "Datadog-Python311" "Datadog-Python311-ARM")
-PYTHON_VERSIONS_FOR_AWS_CLI=("python3.7" "python3.8" "python3.8" "python3.9" "python3.9" "python3.10" "python3.10" "python3.11" "python3.11")
+LAYER_NAMES=(
+    "Datadog-Python37"
+    "Datadog-Python38"
+    "Datadog-Python38-ARM"
+    "Datadog-Python39"
+    "Datadog-Python39-ARM"
+    "Datadog-Python310"
+    "Datadog-Python310-ARM"
+    "Datadog-Python311"
+    "Datadog-Python311-ARM"
+    "Datadog-Python312"
+    "Datadog-Python312-ARM"
+)
+PYTHON_VERSIONS_FOR_AWS_CLI=(
+    "python3.7"
+    "python3.8"
+    "python3.8"
+    "python3.9"
+    "python3.9"
+    "python3.10"
+    "python3.10"
+    "python3.11"
+    "python3.11"
+    "python3.12"
+    "python3.12"
+)
 NEW_REGION=$1
 
 publish_layer() {

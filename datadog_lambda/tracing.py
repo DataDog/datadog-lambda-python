@@ -569,9 +569,8 @@ def inject_correlation_ids():
     # Override the log format of the AWS provided LambdaLoggerHandler
     root_logger = logging.getLogger()
     for handler in root_logger.handlers:
-        if (
-            handler.__class__.__name__ == "LambdaLoggerHandler"
-            and type(handler.formatter) == logging.Formatter
+        if handler.__class__.__name__ == "LambdaLoggerHandler" and isinstance(
+            handler.formatter, logging.Formatter
         ):
             handler.setFormatter(
                 logging.Formatter(
