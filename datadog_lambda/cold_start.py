@@ -144,14 +144,13 @@ def initialize_cold_start_tracing():
         and os.environ.get("DD_TRACE_ENABLED", "true").lower() == "true"
         and os.environ.get("DD_COLD_START_TRACING", "true").lower() == "true"
     ):
-        from sys import version_info, meta_path
+        from sys import meta_path
 
-        if version_info >= (3, 7):  # current implementation only support version > 3.7
-            for importer in meta_path:
-                try:
-                    importer.find_spec = wrap_find_spec(importer.find_spec)
-                except Exception:
-                    pass
+        for importer in meta_path:
+            try:
+                importer.find_spec = wrap_find_spec(importer.find_spec)
+            except Exception:
+                pass
 
 
 class ColdStartTracer(object):

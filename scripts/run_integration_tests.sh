@@ -27,14 +27,13 @@ mismatch_found=false
 # [0]: serverless runtime name
 # [1]: python version
 # [2]: random 8-character ID to avoid collisions with other runs
-python37=("python3.7" "3.7" $(xxd -l 4 -c 4 -p < /dev/random))
 python38=("python3.8" "3.8" $(xxd -l 4 -c 4 -p < /dev/random))
 python39=("python3.9" "3.9" $(xxd -l 4 -c 4 -p < /dev/random))
 python310=("python3.10" "3.10" $(xxd -l 4 -c 4 -p < /dev/random))
 python311=("python3.11" "3.11" $(xxd -l 4 -c 4 -p < /dev/random))
 python312=("python3.12" "3.12" $(xxd -l 4 -c 4 -p < /dev/random))
 
-PARAMETERS_SETS=("python37" "python38" "python39" "python310" "python311" "python312")
+PARAMETERS_SETS=("python38" "python39" "python310" "python311" "python312")
 
 if [ -z "$RUNTIME_PARAM" ]; then
     echo "Python version not specified, running for all python versions."

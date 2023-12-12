@@ -13,7 +13,6 @@ set -e
 OLD_REGION='us-east-1'
 
 LAYER_NAMES=(
-    "Datadog-Python37"
     "Datadog-Python38"
     "Datadog-Python38-ARM"
     "Datadog-Python39"
@@ -26,7 +25,6 @@ LAYER_NAMES=(
     "Datadog-Python312-ARM"
 )
 PYTHON_VERSIONS_FOR_AWS_CLI=(
-    "python3.7"
     "python3.8"
     "python3.8"
     "python3.9"

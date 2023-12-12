@@ -16,7 +16,6 @@ packages = [
     { include = "datadog_lambda" }
 ]
 classifiers = [
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -25,7 +24,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.7.0,<4"
+python = ">=3.8.0,<4"
 datadog = ">=0.41.0,<1.0.0"
 wrapt = "^1.11.2"
 ddtrace = ">=2.3.1"

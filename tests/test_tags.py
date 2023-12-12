@@ -65,5 +65,5 @@ class TestMetricTags(unittest.TestCase):
         )
 
     def test_get_runtime_tag(self):
-        self.mock_python_version_tuple.return_value = ("3", "7", "2")
-        self.assertEqual(get_runtime_tag(), "runtime:python3.7")
+        self.mock_python_version_tuple.return_value = ("3", "12", "0")
+        self.assertEqual(get_runtime_tag(), "runtime:python3.12")
