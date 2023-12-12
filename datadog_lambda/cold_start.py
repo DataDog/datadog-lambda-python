@@ -144,7 +144,7 @@ def initialize_cold_start_tracing():
         and os.environ.get("DD_TRACE_ENABLED", "true").lower() == "true"
         and os.environ.get("DD_COLD_START_TRACING", "true").lower() == "true"
     ):
-        from sys import version_info, meta_path
+        from sys import meta_path
 
         for importer in meta_path:
             try:
