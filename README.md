@@ -47,6 +47,9 @@ The Continuous Profiler works by spawning a thread which periodically wakes up a
 
 ## Major Version Notes
 
+### 5.x / Layer version 86+
+- Python3.7 support has been [deprecated](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html) by AWS, and support removed from this library.
+
 ### 4.x / Layer version 61+
 
 - Python3.6 support has been [deprecated](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html) by AWS, and support removed from this library.
