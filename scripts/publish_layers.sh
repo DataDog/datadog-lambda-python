@@ -14,7 +14,6 @@ set -e
 trap "pkill -P $$; exit 1;" INT
 
 PYTHON_VERSIONS_FOR_AWS_CLI=(
-    "python3.7"
     "python3.8"
     "python3.8"
     "python3.9"
@@ -27,7 +26,6 @@ PYTHON_VERSIONS_FOR_AWS_CLI=(
     "python3.12"
 )
 LAYER_PATHS=(
-    ".layers/datadog_lambda_py-amd64-3.7.zip"
     ".layers/datadog_lambda_py-amd64-3.8.zip"
     ".layers/datadog_lambda_py-arm64-3.8.zip"
     ".layers/datadog_lambda_py-amd64-3.9.zip"
@@ -40,7 +38,6 @@ LAYER_PATHS=(
     ".layers/datadog_lambda_py-arm64-3.12.zip"
 )
 AVAILABLE_LAYERS=(
-    "Datadog-Python37"
     "Datadog-Python38"
     "Datadog-Python38-ARM"
     "Datadog-Python39"

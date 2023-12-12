@@ -11,7 +11,6 @@
 set -e
 
 LAYER_NAMES=(
-    "Datadog-Python37"
     "Datadog-Python38"
     "Datadog-Python38-ARM"
     "Datadog-Python39"
