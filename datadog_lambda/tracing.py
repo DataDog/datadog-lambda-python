@@ -266,6 +266,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                 "Datadog Lambda Python only supports extracting trace"
                 "context from String or Binary SQS/SNS message attributes"
             )
+            return extract_context_from_lambda_context(lambda_context)
         dd_data = json.loads(dd_json_data)
         return propagator.extract(dd_data)
     except Exception as e:
@@ -568,9 +569,8 @@ def inject_correlation_ids():
     # Override the log format of the AWS provided LambdaLoggerHandler
     root_logger = logging.getLogger()
     for handler in root_logger.handlers:
-        if (
-            handler.__class__.__name__ == "LambdaLoggerHandler"
-            and type(handler.formatter) == logging.Formatter
+        if handler.__class__.__name__ == "LambdaLoggerHandler" and isinstance(
+            handler.formatter, logging.Formatter
         ):
             handler.setFormatter(
                 logging.Formatter(
@@ -603,7 +603,7 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
         )
         if merge_xray_traces:
             xray_context = _get_xray_trace_context()
-            if xray_context.span_id:
+            if xray_context and xray_context.span_id:
                 context.span_id = xray_context.span_id
 
         tracer.context_provider.activate(context)
