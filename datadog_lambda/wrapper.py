@@ -10,7 +10,7 @@ from importlib import import_module
 import json
 from time import time_ns
 
-from datadog_lambda.extension import should_use_extension, flush_extension
+from datadog_lambda.extension import should_use_extension
 from datadog_lambda.cold_start import (
     set_cold_start,
     is_cold_start,
@@ -367,8 +367,6 @@ class _LambdaDecorator(object):
 
             if not self.flush_to_log or should_use_extension:
                 flush_stats()
-            if should_use_extension:
-                flush_extension()
 
             if self.encode_authorizer_context and is_authorizer_response(self.response):
                 self._inject_authorizer_span_headers(
