@@ -60,6 +60,7 @@ DD_FLUSH_TO_LOG = "DD_FLUSH_TO_LOG"
 DD_LOGS_INJECTION = "DD_LOGS_INJECTION"
 DD_MERGE_XRAY_TRACES = "DD_MERGE_XRAY_TRACES"
 AWS_LAMBDA_FUNCTION_NAME = "AWS_LAMBDA_FUNCTION_NAME"
+DD_LOCAL_TEST = "DD_LOCAL_TEST"
 DD_TRACE_EXTRACTOR = "DD_TRACE_EXTRACTOR"
 DD_TRACE_MANAGED_SERVICES = "DD_TRACE_MANAGED_SERVICES"
 DD_ENCODE_AUTHORIZER_CONTEXT = "DD_ENCODE_AUTHORIZER_CONTEXT"
@@ -182,6 +183,9 @@ class _LambdaDecorator(object):
             )
             self.min_cold_start_trace_duration = get_env_as_int(
                 DD_MIN_COLD_START_DURATION, 3
+            )
+            self.local_testing_mode = (
+                os.environ.get(DD_LOCAL_TEST, "false").lower() in ("true", "1")
             )
             self.cold_start_trace_skip_lib = [
                 "ddtrace.internal.compat",
@@ -367,7 +371,10 @@ class _LambdaDecorator(object):
 
             if not self.flush_to_log or should_use_extension:
                 flush_stats()
-            if should_use_extension:
+            if should_use_extension and self.local_testing_mode:
+                # when testing locally, the extension does not know when an
+                # invocation completes because it does not have access to the
+                # logs api
                 flush_extension()
 
             if self.encode_authorizer_context and is_authorizer_response(self.response):
