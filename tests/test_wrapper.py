@@ -647,3 +647,44 @@ class TestLambdaWrapperWithTraceContext(unittest.TestCase):
             },
             payload["metadata"],
         )
+
+
+class TestLambdaWrapperFlushExtension(unittest.TestCase):
+    def setUp(self):
+        self.orig_environ = os.environ
+
+    def tearDown(self):
+        os.environ = self.orig_environ
+
+    @patch("datadog_lambda.wrapper.should_use_extension", True)
+    def test_local_test_envvar_flushing(self):
+
+        flushes = []
+        lambda_event = {}
+        lambda_context = get_mock_context()
+
+        def flush():
+            flushes.append(1)
+
+        for environ, flush_called in (
+            ({"DD_LOCAL_TEST": "True"}, True),
+            ({"DD_LOCAL_TEST": "true"}, True),
+            ({"DD_LOCAL_TEST": "1"}, True),
+            ({"DD_LOCAL_TEST": "False"}, False),
+            ({"DD_LOCAL_TEST": "false"}, False),
+            ({"DD_LOCAL_TEST": "0"}, False),
+            ({"DD_LOCAL_TEST": ""}, False),
+            ({}, False),
+        ):
+
+            os.environ = environ
+            flushes.clear()
+
+            @patch("datadog_lambda.wrapper.flush_extension", flush)
+            @wrapper.datadog_lambda_wrapper
+            def lambda_handler(event, context):
+                pass
+
+            lambda_handler(lambda_event, lambda_context)
+
+            self.assertEqual(flush_called, len(flushes) == 1)
