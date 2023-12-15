@@ -184,9 +184,9 @@ class _LambdaDecorator(object):
             self.min_cold_start_trace_duration = get_env_as_int(
                 DD_MIN_COLD_START_DURATION, 3
             )
-            self.local_testing_mode = (
-                os.environ.get(DD_LOCAL_TEST, "false").lower() in ("true", "1")
-            )
+            self.local_testing_mode = os.environ.get(
+                DD_LOCAL_TEST, "false"
+            ).lower() in ("true", "1")
             self.cold_start_trace_skip_lib = [
                 "ddtrace.internal.compat",
                 "ddtrace.filters",
