@@ -49,12 +49,8 @@ function docker_build_zip {
         --build-arg image=python:$1 \
         --build-arg runtime=python$1 \
         --platform linux/${arch} \
-        --load
-
-    # Run the image by runtime tag and copy the output /build/python to the temp dir
-    dockerId=$(docker create datadog-lambda-python-${arch}:$1)
-    docker cp $dockerId:/build/python $temp_dir/python
-
+        --progress=plain \
+        -o $temp_dir/python
 
     # Zip to destination, and keep directory structure as based in $temp_dir
     (cd $temp_dir && zip -q -r $destination ./)
