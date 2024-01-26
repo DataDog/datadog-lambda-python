@@ -15,6 +15,21 @@ set -e
 LAYER_DIR=".layers"
 LAYER_FILES_PREFIX="datadog_lambda_py"
 AVAILABLE_PYTHON_VERSIONS=("3.8" "3.9" "3.10" "3.11" "3.12")
+AVAILABLE_ARCHS=("arm64" "amd64")
+
+if [ -z "$ARCH" ]; then
+    echo "No architectures specified, building layers for all architectures."
+    ARCHS=("${AVAILABLE_ARCHS[@]}")
+else
+    echo "Architecture specified: $ARCH"
+    if [[ ! " ${AVAILABLE_ARCHS[@]} " =~ " ${ARCH} " ]]; then
+        echo "Architecture $ARCH is not a valid option. Choose from: ${AVAILABLE_ARCHS[@]}"
+        echo ""
+        echo "EXITING SCRIPT."
+        exit 1
+    fi
+    ARCHS=$ARCH
+fi
 
 # Determine which Python versions to build layers for
 if [ -z "$PYTHON_VERSION" ]; then
@@ -64,10 +79,11 @@ mkdir $LAYER_DIR
 
 for python_version in "${PYTHON_VERSIONS[@]}"
 do
-    echo "Building layer for Python ${python_version} arch=arm64"
-    docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-arm64-${python_version}.zip arm64
-    echo "Building layer for Python ${python_version} arch=amd64"
-    docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-amd64-${python_version}.zip amd64
+    for architecture in "${ARCHS[@]}"
+    do
+        echo "Building layer for Python ${python_version} arch=${architecture}"
+        docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-${architecture}-${python_version}.zip ${architecture}
+    done
 done
 
 echo "Done creating layers:"
