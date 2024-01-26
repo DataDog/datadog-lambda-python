@@ -1,5 +1,5 @@
 ARG image
-FROM $image
+FROM $image as builder
 
 ARG runtime
 
@@ -23,3 +23,6 @@ RUN find . -name '*.so' -exec strip -g {} \;
 RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
 RUN rm -rf ./python/lib/$runtime/site-packages/setuptools
 RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
+
+FROM scratch
+COPY --from=builder /build/python /
