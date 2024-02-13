@@ -18,7 +18,7 @@ do
         --build-arg python_version=$python_version
     docker run -w /test \
         datadog-lambda-python-test:$python_version \
-        nose2 -v
+        pytest -vv
     docker run -w /test \
         datadog-lambda-python-test:$python_version \
         flake8 datadog_lambda/
