@@ -62,7 +62,7 @@ jobs:
       - name: Run tests
         run: |
           source venv/bin/activate
-          nose2 -v
+          pytest -vv
 
   integration-test:
     runs-on: ubuntu-latest
