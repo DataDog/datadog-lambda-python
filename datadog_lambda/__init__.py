@@ -1,6 +1,5 @@
-import os
-import logging
 from datadog_lambda.cold_start import initialize_cold_start_tracing
+from datadog_lambda.logger import initialize_logging
 
 initialize_cold_start_tracing()
 
@@ -13,5 +12,4 @@ except ModuleNotFoundError:
 
 __version__ = importlib_metadata.version(__name__)
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.getLevelName(os.environ.get("DD_LOG_LEVEL", "INFO").upper()))
+initialize_logging(__name__)
