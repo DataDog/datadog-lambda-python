@@ -37,9 +37,9 @@ check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
   needs: 
-    - build-layer ({{ $runtime.name }})
+    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
-    - build-layer ({{ $runtime.name }})
+    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   script: 
     - PYTHON_VERSION={{ $runtime.python_version }} ./scripts/check_layer_size.sh
 
@@ -68,9 +68,9 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   needs: 
-    - build-layer ({{ $runtime.name }})
+    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
-    - build-layer ({{ $runtime.name }})
+    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   variables:
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
@@ -85,7 +85,7 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
 {{ range $environment := (ds "environments").environments }}
 
 {{ if or (eq $environment.name "prod") }}
-sign-layer ({{ $runtime.name }}):
+sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
@@ -93,13 +93,13 @@ sign-layer ({{ $runtime.name }}):
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
       when: manual
   needs:
-    - build-layer ({{ $runtime.name }})
+    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
     - check-layer-size ({{ $runtime.name }})
-    - lint ({{ $runtime.name }})
-    - unit-test ({{ $runtime.name }})
-    - integration-test ({{ $runtime.name }})
+    - lint ({{ $runtime.name }}-{{ $runtime.arch }})
+    - unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
+    - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
-    - build-layer ({{ $runtime.name }})
+    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   artifacts: # Re specify artifacts so the modified signed file is passed
     expire_in: 1 day # Signed layers should expire after 1 day
     paths:
@@ -123,17 +123,17 @@ publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   needs:
 {{ if or (eq $environment.name "prod") }}
-      - sign-layer ({{ $runtime.name }})
+      - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
 {{ else }}
-      - build-layer ({{ $runtime.name }})
+      - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
       - check-layer-size ({{ $runtime.name }})
-      - lint ({{ $runtime.name }})
-      - unit-test ({{ $runtime.name }})
-      - integration-test ({{ $runtime.name }})
+      - lint ({{ $runtime.name }}-{{ $runtime.arch }})
+      - unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
+      - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
 {{ end }}
   dependencies:
 {{ if or (eq $environment.name "prod") }}
-      - sign-layer ({{ $runtime.name }})
+      - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
 {{ else }}
       - build-layer ({{ $runtime.name }})
 {{ end }}
@@ -161,7 +161,7 @@ publish-npm-package:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   when: manual
   needs: {{ range $runtime := (ds "runtimes").runtimes }}
-    - sign-layer ({{ $runtime.name }})
+    - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
   {{- end }}
   before_script:
     #- *install-node
