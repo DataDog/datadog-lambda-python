@@ -4,6 +4,12 @@ stages:
  - sign
  - publish
 
+.python-before-script: &python-before-script
+  - pip install virtualenv
+  - virtualenv venv
+  - source venv/bin/activate
+  - pip install .[dev]
+
 {{ range $runtime := (ds "runtimes").runtimes }}
 
 # TODO(astuyve) - figure out python build cache
@@ -42,7 +48,7 @@ lint ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.python_version}}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
-  before_script: *node-before-script
+  before_script: *python-before-script
   script: 
     - source venv/bin/activate
     - ./scripts/check_format.sh
@@ -52,7 +58,7 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.python_version }}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
-  before_script: *node-before-script
+  before_script: *python-before-script
   script: 
     - source venv/bin/activate
     - pytest -vv
