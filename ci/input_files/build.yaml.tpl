@@ -46,7 +46,7 @@ check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
 lint ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.python_version}}
+  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   before_script: *python-before-script
   script: 
@@ -56,7 +56,7 @@ lint ({{ $runtime.name }}-{{ $runtime.arch }}):
 unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.python_version }}
+  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   before_script: *python-before-script
   script: 
