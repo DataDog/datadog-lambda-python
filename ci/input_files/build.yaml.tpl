@@ -103,7 +103,7 @@ sign-layer ({{ $runtime.name }}):
     - apt-get install -y uuid-runtime
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
   script:
-    - LAYER_FILE=datadog_lambda_node{{ $runtime.node_version }}.zip ./scripts/sign_layers.sh {{ $environment.name }}
+    - LAYER_FILE=datadog_lambda_python-{{ $runtime.arch}}-{{ $runtime.python_version }}.zip ./scripts/sign_layers.sh {{ $environment.name }}
 {{ end }}
 
 publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
