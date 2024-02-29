@@ -22,7 +22,7 @@ AWS_CLI_PYTHON_VERSIONS=(
     "python3.12"
     "python3.12"
 )
-PYTHON_VERSIONS=("3.8" "3.8-arm" "3.9" "3.9-arm" "3.10" "3.10-arm" "3.11" "3.11-arm" "3.12" "3.12-arm")
+PYTHON_VERSIONS=("3.8-amd64" "3.8-arm64" "3.9-amd64" "3.9-arm64" "3.10-amd64" "3.10-arm64" "3.11-amd64" "3.11-arm64" "3.12-amd64" "3.12-arm64")
 LAYER_PATHS=(
     ".layers/datadog_lambda_py-amd64-3.8.zip"
     ".layers/datadog_lambda_py-arm64-3.8.zip"
@@ -87,9 +87,14 @@ if [[ ! ${PYTHON_VERSIONS[@]} =~ $PYTHON_VERSION ]]; then
     exit 1
 fi
 
+if [ -z $ARCH ]; then
+    printf "[Error] ARCH architecture not specified.\n"
+    exit 1
+fi
+
 index=0
 for i in "${!PYTHON_VERSIONS[@]}"; do
-    if [[ "${PYTHON_VERSIONS[$i]}" = "${PYTHON_VERSION}" ]]; then
+    if [[ "${PYTHON_VERSIONS[$i]}" = "${PYTHON_VERSION}-${ARCH}" ]]; then
        index=$i
     fi
 done
