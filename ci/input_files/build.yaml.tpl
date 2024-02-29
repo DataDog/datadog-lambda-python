@@ -94,7 +94,7 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
       when: manual
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-    - check-layer-size ({{ $runtime.name }})
+    - check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
     - lint ({{ $runtime.name }}-{{ $runtime.arch }})
     - unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
     - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
@@ -126,7 +126,7 @@ publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
       - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
 {{ else }}
       - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-      - check-layer-size ({{ $runtime.name }})
+      - check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
       - lint ({{ $runtime.name }}-{{ $runtime.arch }})
       - unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
       - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
