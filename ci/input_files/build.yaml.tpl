@@ -135,7 +135,7 @@ publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
 {{ if or (eq $environment.name "prod") }}
       - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
 {{ else }}
-      - build-layer ({{ $runtime.name }})
+      - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
 {{ end }}
   parallel:
     matrix:
