@@ -26,7 +26,7 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   artifacts:
     expire_in: 1 hr # Unsigned zips expire in 1 hour
     paths:
-      - .layers/datadog_lambda_python-{{ $runtime.arch }}-{{ $runtime.python_version }}.zip
+      - .layers/datadog_lambda_py-{{ $runtime.arch }}-{{ $runtime.python_version }}.zip
   variables:
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   script:
