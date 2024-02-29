@@ -40,7 +40,7 @@ check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
 lint ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.python_version}}-bullseye
+  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.python_version}}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   before_script: *node-before-script
   script: 
@@ -50,7 +50,7 @@ lint ({{ $runtime.name }}-{{ $runtime.arch }}):
 unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.python_version }}-bullseye
+  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.python_version }}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   before_script: *node-before-script
   script: 
@@ -69,12 +69,12 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   variables:
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   before_script:
-    - *install-node
+    #- *install-node
     - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
     - yarn global add serverless --prefix /usr/local
     - cd integration_tests && yarn install && cd ..
   script:
-    - RUNTIME_PARAM={{ $runtime.node_major_version }} ./scripts/run_integration_tests.sh
+    - RUNTIME_PARAM=python-{{ $runtime.python_version }} ./scripts/run_integration_tests.sh
 
 {{ range $environment := (ds "environments").environments }}
 
@@ -158,6 +158,6 @@ publish-npm-package:
     - sign-layer ({{ $runtime.name }})
   {{- end }}
   before_script:
-    - *install-node
+    #- *install-node
   script:
     - ./ci/publish_npm.sh
