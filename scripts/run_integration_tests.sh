@@ -89,6 +89,11 @@ function remove_stack() {
     done
 }
 
+if [ "$ARCH" = "arm64" ]; then
+    serverless_framework_arch="x86"
+else
+    serverless_framework_arch="arm64"
+fi
 
 
 trap remove_stack EXIT
@@ -100,7 +105,7 @@ for parameters_set in "${PARAMETERS_SETS[@]}"; do
     echo "Deploying functions for runtime : $parameters_set, serverless runtime : ${!serverless_runtime}, \
 python version : ${!python_version} and run id : ${!run_id}"
 
-    PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} ARCH=${ARCH} \
+    PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} ARCH=${ARCH} SLS_ARCH=${serverless_framework_arch} \
     serverless deploy --stage ${!run_id}
 
     echo "Invoking functions for runtime $parameters_set"

@@ -6,7 +6,7 @@ provider:
   region: eu-west-1
   tracing:
     lambda: "PassThrough"
-  architecture: ${env:ARCH}
+  architecture: ${env:SLS_ARCH}
   environment:
     DD_INTEGRATION_TEST: true
     DD_TRACE_ENABLED: true
