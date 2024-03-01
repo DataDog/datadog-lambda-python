@@ -9,7 +9,9 @@ stages:
   - virtualenv venv
   - source venv/bin/activate
   - pip install .[dev]
-  # This is just for serverless framework
+
+# This is for serverless framework
+.install-node: &install-node
   - apt-get update
   - apt-get install -y ca-certificates curl gnupg xxd
   - mkdir -p /etc/apt/keyrings
@@ -85,7 +87,7 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   variables:
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   before_script:
-    #- *install-node
+    - *install-node
     - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
     - yarn global add serverless --prefix /usr/local
     - cd integration_tests && yarn install && cd ..
