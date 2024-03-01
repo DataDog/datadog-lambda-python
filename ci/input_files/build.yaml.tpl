@@ -9,6 +9,16 @@ stages:
   - virtualenv venv
   - source venv/bin/activate
   - pip install .[dev]
+  # This is just for serverless framework
+  - apt-get update
+  - apt-get install -y ca-certificates curl gnupg xxd
+  - mkdir -p /etc/apt/keyrings
+  - curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+  # We are explicitly setting the node_18.x version for the installation
+  - echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_18.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+  - apt-get update
+  - apt-get install nodejs -y
+  - npm install --global yarn
 
 {{ range $runtime := (ds "runtimes").runtimes }}
 
