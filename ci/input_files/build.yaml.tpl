@@ -92,7 +92,7 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
     - yarn global add serverless --prefix /usr/local
     - cd integration_tests && yarn install && cd ..
   script:
-    - RUNTIME_PARAM=python-{{ $runtime.python_version }} ./scripts/run_integration_tests.sh
+    - RUNTIME_PARAM={{ $runtime.name }} ./scripts/run_integration_tests.sh
 
 {{ range $environment := (ds "environments").environments }}
 
