@@ -242,7 +242,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(tracestate\:)([A-Za-z0-9\-\=\:\;].+)/\1XXX/g" |
                 sed -E "s/(\"_dd.p.tid\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(_dd.p.tid=)[a-z0-9\.\-]+/\1XXXX/g" |
-                sed -E 's/arch (aarch64|x86)/arch XXXX/g' |
+                sed -E 's/arch (aarch64|x86_64)/arch XXXX/g' |
                 # Parse out account ID in ARN
                 sed -E "s/([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9\-]+):([a-zA-Z0-9\-\:]+)/\1:\2:\3:\4:XXXX:\4/g" |
                 sed -E "/init complete at epoch/d" |
