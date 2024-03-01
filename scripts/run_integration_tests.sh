@@ -100,7 +100,7 @@ for parameters_set in "${PARAMETERS_SETS[@]}"; do
     echo "Deploying functions for runtime : $parameters_set, serverless runtime : ${!serverless_runtime}, \
 python version : ${!python_version} and run id : ${!run_id}"
 
-    PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} \
+    PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} ARCH=${ARCH} \
     serverless deploy --stage ${!run_id}
 
     echo "Invoking functions for runtime $parameters_set"
