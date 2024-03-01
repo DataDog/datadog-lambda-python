@@ -166,4 +166,4 @@ publish-npm-package:
   before_script:
     #- *install-node
   script:
-    - ./ci/publish_npm.sh
+    - ./ci/publish_pypi.sh
