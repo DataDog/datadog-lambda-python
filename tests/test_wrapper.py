@@ -502,6 +502,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_submit_invocations_metric.assert_called_once()
 
     def test_dd_requests_service_name_default(self):
+        # TODO(astuyve) this is now set by CI, so we need to null it out for this case
+        os.environ["DD_SERVICE"] = "aws.lambda"
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             pass
