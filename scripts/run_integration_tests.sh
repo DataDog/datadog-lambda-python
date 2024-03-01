@@ -91,7 +91,7 @@ function remove_stack() {
 
 serverless_framework_arch=""
 if [ "$ARCH" = "amd64" ]; then
-    serverless_framework_arch="x86"
+    serverless_framework_arch="x86_64"
 else
     serverless_framework_arch="arm64"
 fi
