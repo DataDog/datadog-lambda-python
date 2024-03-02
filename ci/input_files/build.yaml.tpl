@@ -55,7 +55,7 @@ check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   script: 
     - PYTHON_VERSION={{ $runtime.python_version }} ./scripts/check_layer_size.sh
 
-lint ({{ $runtime.name }}-{{ $runtime.arch }}):
+lint python:
   stage: test
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
@@ -107,7 +107,7 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
     - check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
-    - lint ({{ $runtime.name }}-{{ $runtime.arch }})
+    - lint python
     - unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
     - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
@@ -139,7 +139,7 @@ publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
 {{ else }}
       - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
       - check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
-      - lint ({{ $runtime.name }}-{{ $runtime.arch }})
+      - lint python
       - unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
       - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
 {{ end }}
