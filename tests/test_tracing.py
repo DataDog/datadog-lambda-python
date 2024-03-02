@@ -265,7 +265,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "traceparent": "00-0000000000000000000000000000007b-0000000000000141-01",
                 "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
                 "_dd.p.dm": "-0",
-                '_dd.parent_id': '0000000000000000',
+                "_dd.parent_id": "0000000000000000",
             },
         )
         self.assertEqual(ctx, expected_context)
@@ -458,7 +458,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "traceparent": "00-0000000000000000000000000000007b-0000000000000141-01",
                 "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
                 "_dd.p.dm": "-0",
-                '_dd.parent_id': '0000000000000000',
+                "_dd.parent_id": "0000000000000000",
             },
         )
         self.assertEqual(ctx, expected_context)
@@ -598,7 +598,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "traceparent": "00-0000000000000000000000000000029a-0000000000000309-01",
                 "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
                 "_dd.p.dm": "-0",
-                '_dd.parent_id': '0000000000000000',
+                "_dd.parent_id": "0000000000000000",
             },
         )
         self.assertEqual(ctx, expected_context)
