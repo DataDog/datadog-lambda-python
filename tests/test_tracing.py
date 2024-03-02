@@ -529,7 +529,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "traceparent": "00-0000000000000000000000000000029a-0000000000000309-01",
                 "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
                 "_dd.p.dm": "-0",
-                "_dd.parent_id": "0000000000000000"
+                "_dd.parent_id": "0000000000000000",
             },
         )
         print(ctx)
