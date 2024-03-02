@@ -155,6 +155,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             lambda_metric("test.metric", 100)
             time.sleep(11)
             # assert flushing in the thread
+            # TODO(astuyve) flaky test here, sometimes this is zero
             self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 1)
             lambda_metric("test.metric", 200)
 

@@ -163,8 +163,7 @@ publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
 
 {{- end }}
 
-# TODO(astuyve) actually publish pypi package
-publish-npm-package:
+publish-pypi-package:
   stage: publish
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
@@ -175,7 +174,5 @@ publish-npm-package:
   needs: {{ range $runtime := (ds "runtimes").runtimes }}
     - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
   {{- end }}
-  before_script:
-    #- *install-node
   script:
     - ./ci/publish_pypi.sh
