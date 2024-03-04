@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from datadog_lambda.extension import (
-    is_extension_running,
+    is_extension_present,
     flush_extension,
     should_use_extension,
 )
@@ -48,18 +48,11 @@ class TestLambdaExtension(unittest.TestCase):
 
     @patch("datadog_lambda.extension.EXTENSION_PATH", os.path.abspath(__file__))
     def test_is_extension_running_true(self):
-        assert is_extension_running()
-        assert self.server.called
+        assert is_extension_present()
 
     def test_is_extension_running_file_not_found(self):
-        assert not is_extension_running()
+        assert not is_extension_present()
         assert not self.server.called
-
-    @patch("datadog_lambda.extension.EXTENSION_PATH", os.path.abspath(__file__))
-    def test_is_extension_running_http_failure(self):
-        self.server.raises = True
-        assert not is_extension_running()
-        assert self.server.called
 
     @patch("datadog_lambda.extension.EXTENSION_PATH", os.path.abspath(__file__))
     def test_flush_ok(self):
