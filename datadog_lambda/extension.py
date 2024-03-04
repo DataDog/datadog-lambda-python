@@ -13,9 +13,11 @@ def is_extension_present():
         return True
     return False
 
+
 def flush_extension():
     try:
         import urllib.request
+
         req = urllib.request.Request(AGENT_URL + FLUSH_PATH, "".encode("ascii"))
         urllib.request.urlopen(req)
     except Exception as e:
