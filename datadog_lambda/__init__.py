@@ -1,5 +1,13 @@
 from datadog_lambda.cold_start import initialize_cold_start_tracing
 from datadog_lambda.logger import initialize_logging
+import os
+
+
+if os.environ.get("DD_INSTRUMENTATION_TELEMETRY_ENABLED") is None:
+    os.environ["DD_INSTRUMENTATION_TELEMETRY_ENABLED"] = "false"
+
+if os.environ.get("DD_API_SECURITY_ENABLED") is None:
+    os.environ["DD_API_SECURITY_ENABLED"] = "False"
 
 initialize_cold_start_tracing()
 

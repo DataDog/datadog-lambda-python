@@ -29,9 +29,6 @@ from datadog_lambda.xray import (
     parse_xray_header,
 )
 
-if os.environ.get("DD_INSTRUMENTATION_TELEMETRY_ENABLED") is None:
-    os.environ["DD_INSTRUMENTATION_TELEMETRY_ENABLED"] = "false"
-
 from ddtrace import tracer, patch, Span
 from ddtrace import __version__ as ddtrace_version
 from ddtrace.propagation.http import HTTPPropagator
