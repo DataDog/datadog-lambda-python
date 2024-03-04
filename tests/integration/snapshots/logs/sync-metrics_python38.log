@@ -149,7 +149,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -172,7 +172,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
           "out.host": "api.datadoghq.com",
           "http.status_code": "202",
-          "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
+          "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -334,7 +334,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -357,7 +357,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
           "out.host": "api.datadoghq.com",
           "http.status_code": "202",
-          "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
+          "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -512,7 +512,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -535,7 +535,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
           "out.host": "api.datadoghq.com",
           "http.status_code": "202",
-          "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
+          "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -705,7 +705,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -728,7 +728,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
           "out.host": "api.datadoghq.com",
           "http.status_code": "202",
-          "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
+          "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -890,7 +890,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -913,7 +913,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
           "out.host": "api.datadoghq.com",
           "http.status_code": "202",
-          "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
+          "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -1072,7 +1072,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -1095,7 +1095,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
           "out.host": "api.datadoghq.com",
           "http.status_code": "202",
-          "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
+          "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -1255,7 +1255,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -1278,7 +1278,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
           "out.host": "api.datadoghq.com",
           "http.status_code": "202",
-          "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
+          "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -1437,7 +1437,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -1460,7 +1460,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
           "out.host": "api.datadoghq.com",
           "http.status_code": "202",
-          "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
+          "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -1627,7 +1627,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch x86_64)", "traceparent:XXX", "tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -1650,7 +1650,7 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.url": "https://api.datadoghq.com/api/v1/distribution_points",
           "out.host": "api.datadoghq.com",
           "http.status_code": "202",
-          "http.useragent": "datadogpy/XX (python XX; os linux; arch x86_64)",
+          "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"

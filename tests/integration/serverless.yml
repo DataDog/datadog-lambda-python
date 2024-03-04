@@ -6,6 +6,7 @@ provider:
   region: eu-west-1
   tracing:
     lambda: "PassThrough"
+  architecture: ${env:SLS_ARCH}
   environment:
     DD_INTEGRATION_TEST: true
     DD_TRACE_ENABLED: true
@@ -23,7 +24,7 @@ provider:
 layers:
   python:
     package:
-      artifact: ../../.layers/datadog_lambda_py-amd64-${env:PYTHON_VERSION}.zip
+      artifact: ../../.layers/datadog_lambda_py-${env:ARCH}-${env:PYTHON_VERSION}.zip
 
 functions:
   # async-metrics (flushed to logs)

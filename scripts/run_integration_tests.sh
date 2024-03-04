@@ -71,6 +71,12 @@ else
     echo "Not building layers, ensure they've already been built or re-run with 'BUILD_LAYERS=true DD_API_KEY=XXXX ./scripts/run_integration_tests.sh'"
 fi
 
+SERVERLESS_FRAMEWORK_ARCH=""
+if [ "$ARCH" = "amd64" ]; then
+    SERVERLESS_FRAMEWORK_ARCH="x86_64"
+else
+    SERVERLESS_FRAMEWORK_ARCH="arm64"
+fi
 cd $integration_tests_dir
 
 input_event_files=$(ls ./input_events)
@@ -84,12 +90,10 @@ function remove_stack() {
         python_version=$parameters_set[1]
         run_id=$parameters_set[2]
         echo "Removing stack for stage : ${!run_id}"
-        PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} \
+        PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} SLS_ARCH=${SERVERLESS_FRAMEWORK_ARCH} \
         serverless remove --stage ${!run_id}
     done
 }
-
-
 
 trap remove_stack EXIT
 for parameters_set in "${PARAMETERS_SETS[@]}"; do
@@ -100,7 +104,7 @@ for parameters_set in "${PARAMETERS_SETS[@]}"; do
     echo "Deploying functions for runtime : $parameters_set, serverless runtime : ${!serverless_runtime}, \
 python version : ${!python_version} and run id : ${!run_id}"
 
-    PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} \
+    PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} ARCH=${ARCH} SLS_ARCH=${SERVERLESS_FRAMEWORK_ARCH} \
     serverless deploy --stage ${!run_id}
 
     echo "Invoking functions for runtime $parameters_set"
@@ -114,7 +118,7 @@ python version : ${!python_version} and run id : ${!run_id}"
             input_event_name=$(echo "$input_event_file" | sed "s/.json//")
             snapshot_path="./snapshots/return_values/${handler_name}_${input_event_name}.json"
 
-            return_value=$(PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} \
+            return_value=$(PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} SLS_ARCH=${SERVERLESS_FRAMEWORK_ARCH} \
             serverless invoke --stage ${!run_id} -f "$function_name" --path "./input_events/$input_event_file")
 
             if [ ! -f $snapshot_path ]; then
@@ -156,7 +160,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
         # Fetch logs with serverless cli, retrying to avoid AWS account-wide rate limit error
         retry_counter=0
         while [ $retry_counter -lt 10 ]; do
-            raw_logs=$(PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} \
+            raw_logs=$(PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} ARCH=${ARCH} SLS_ARCH=${SERVERLESS_FRAMEWORK_ARCH} \
             serverless logs --stage ${!run_id} -f $function_name --startTime $script_utc_start_time)
             fetch_logs_exit_code=$?
             if [ $fetch_logs_exit_code -eq 1 ]; then
@@ -238,6 +242,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(tracestate\:)([A-Za-z0-9\-\=\:\;].+)/\1XXX/g" |
                 sed -E "s/(\"_dd.p.tid\"\: \")[a-z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(_dd.p.tid=)[a-z0-9\.\-]+/\1XXXX/g" |
+                sed -E 's/arch (aarch64|x86_64)/arch XXXX/g' |
                 # Parse out account ID in ARN
                 sed -E "s/([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9\-]+):([a-zA-Z0-9\-\:]+)/\1:\2:\3:\4:XXXX:\4/g" |
                 sed -E "/init complete at epoch/d" |
