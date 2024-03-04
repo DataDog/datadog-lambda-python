@@ -7,7 +7,7 @@
 set -e
 PYPI_TOKEN=$(aws ssm get-parameter \
     --region us-east-1 \
-    --name "ci.datadog-lambda-python.pypi-token" \ # TODO ASTUYVE encrypt token in SSM
+    --name "ci.datadog-lambda-python.pypi-token" \
     --with-decryption \
     --query "Parameter.Value" \
     --out text)
