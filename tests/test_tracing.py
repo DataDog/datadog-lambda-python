@@ -184,17 +184,14 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             {},
         )
 
-    """
-    TODO(astuyve) I don't think partial extraction is forbidden anymore? ask rey
     @with_trace_propagation_style("datadog")
     def test_with_incomplete_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
         ctx, source, event_source = extract_dd_trace_context(
-            {"headers": {TraceHeader.TRACE_ID: "123", TraceHeader.PARENT_ID: "321"}},
+            {"headers": {TraceHeader.TRACE_ID: "123"}},
             lambda_ctx,
         )
         self.assertEqual(source, "xray")
-        print(ctx)
         self.assertEqual(
             ctx,
             Context(
@@ -211,7 +208,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.SAMPLING_PRIORITY: "2",
             },
         )
-    """
 
     @with_trace_propagation_style("datadog")
     def test_with_complete_datadog_trace_headers(self):
@@ -532,7 +528,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "_dd.parent_id": "0000000000000000",
             },
         )
-        print(ctx)
         self.assertEqual(ctx, expected_context)
         self.assertDictEqual(
             get_dd_trace_context(),
