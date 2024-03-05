@@ -23,7 +23,9 @@ RUN find . -name '*.so' -exec strip -g {} \;
 RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
 RUN rm -rf ./python/lib/$runtime/site-packages/setuptools
 RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
-RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/
+RUN find . -name 'libddwaf.so' -delete
+RUN rm ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_taint_tracking/*.so
+RUN rm ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_stacktrace*.so
 
 FROM scratch
 COPY --from=builder /build/python /
