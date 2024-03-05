@@ -8,7 +8,7 @@ runtimes:
     arch: "arm64"
     image: "3.8"
   - name: "python39"
-    python_version: "3.8"
+    python_version: "3.9"
     arch: "amd64"
     image: "3.9"
   - name: "python39"
