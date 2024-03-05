@@ -60,7 +60,7 @@ publish_layer() {
     layer_path=$4
 
     version_nbr=$(aws lambda publish-layer-version --layer-name $layer_name \
-        --description "Datadog Lambda Layer for Node" \
+        --description "Datadog Lambda Layer for Python" \
         --zip-file "fileb://$layer_path" \
         --region $region \
         --compatible-runtimes $compatible_runtimes \
