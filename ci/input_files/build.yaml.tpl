@@ -174,5 +174,6 @@ publish-pypi-package:
   needs: {{ range $runtime := (ds "runtimes").runtimes }}
     - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
   {{- end }}
+  before_script: *python-before-script
   script:
     - ./ci/publish_pypi.sh
