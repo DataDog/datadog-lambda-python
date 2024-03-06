@@ -41,6 +41,18 @@ if [ "$1" = "prod" ]; then
     S3_BUCKET_NAME="dd-lambda-signing-bucket"
 fi
 
+if [ -z "$LAYER_FILE" ]; then
+    echo "Layer file not specified, running for all layer files."
+else
+    echo "Layer file is specified: $LAYER_FILE"
+    if (printf '%s\n' "${LAYER_FILES[@]}" | grep -xq $LAYER_FILE); then
+        LAYER_FILES=($LAYER_FILE)
+    else
+        echo "Unsupported layer found, valid options are : ${LAYER_FILES[@]}"
+        exit 1
+    fi
+fi
+
 for LAYER_FILE in "${LAYER_FILES[@]}"
 do
     echo
