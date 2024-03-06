@@ -92,11 +92,6 @@ else
     VERSION=$LAYER_VERSION AWS_PROFILE=govcloud-us1-fed-human-engineering ./scripts/publish_layers.sh
 fi
 
-if [ "$CONT" != "y" ]; then
-    echo "Exiting"
-    exit 1
-fi
-
 echo "Answer 'n' if GitLab already did this"
 read -p "Ready to publish $NEW_VERSION to PyPI (y/n)?" CONT
 if [ "$CONT" != "y" ]; then
