@@ -115,13 +115,13 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   artifacts: # Re specify artifacts so the modified signed file is passed
     expire_in: 1 day # Signed layers should expire after 1 day
     paths:
-      - .layers/datadog_lambda_python-{{ $runtime.arch }}-{{ $runtime.python_version }}.zip
+      - .layers/datadog_lambda_py-{{ $runtime.arch }}-{{ $runtime.python_version }}.zip
   before_script:
     - apt-get update
     - apt-get install -y uuid-runtime
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
   script:
-    - LAYER_FILE=datadog_lambda_python-{{ $runtime.arch}}-{{ $runtime.python_version }}.zip ./scripts/sign_layers.sh {{ $environment.name }}
+    - LAYER_FILE=datadog_lambda_py-{{ $runtime.arch}}-{{ $runtime.python_version }}.zip ./scripts/sign_layers.sh {{ $environment.name }}
 {{ end }}
 
 publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
