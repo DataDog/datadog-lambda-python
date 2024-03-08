@@ -2135,6 +2135,17 @@ class TestInferredSpans(unittest.TestCase):
         self.assertEqual(context.span_id, 7431398482019833808)
         self.assertEqual(context.sampling_priority, 1)
 
+    def test_extract_context_from_sqs_java_upstream_event(self):
+        event_sample_source = "sqs-java-upstream"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        context, source, event_type = extract_dd_trace_context(event, ctx)
+        self.assertEqual(context.trace_id, 7925498337868555493)
+        self.assertEqual(context.span_id, 5245570649555658903)
+        self.assertEqual(context.sampling_priority, 1)
+
     def test_extract_context_from_sns_event_with_string_msg_attr(self):
         event_sample_source = "sns-string-msg-attribute"
         test_file = event_samples + event_sample_source + ".json"
