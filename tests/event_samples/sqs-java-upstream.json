@@ -1,0 +1,22 @@
+{
+  "Records": [
+    {
+      "messageId": "f7e888aa-1368-484c-8e15-fc3f0f7c6fea",
+      "receiptHandle": "AQEBN1aYTQ1c5huZh9bkhBYqcMMnqTUMRh8MfUPyGXkEolcn23rvM9saGEg3wTK/7JnJ1s3Uk107uLjaP6yV6+zS3oQRU0vMG2LfyTgHovWhYQ8TnrpC7XpYL+Uf+oc9KoILQopiYi4wsFnOWQqy82yQmlOA3W+CZ3Rvq8N6rNcmyaZEXVdozHG+FyMCMQ8QdTcCHhzR9YKnkZ87Y40+LhysUR57VNPVtRwENI8H1uMEfmxaCkW+CAkdCGoXeX+KioT7pHJDZaEutXM3VRmGXDDzCXvfUJQ9JQIlP5xe66JO8/cpCyl5sDoHsCjLy6X/XCmfG2+XclPObGHBzcMSjG1RQtHsEGTOAJrLREucqf/oj0Ab4svpxz6lR4UXrICygZ2x0NZcNFXcZx3GV2QL9nHmJxzrO2lnNTEOMuYB4SnqtIhsaDTcmkYHumaAJdRHl5BksFcU5qpS7BQrnRvXn5Sz3hYdR2KuYKN5Oq6W1vuT16o=",
+      "body": "{\"hello\":\"world\"}",
+      "attributes": {
+        "ApproximateReceiveCount": "1",
+        "AWSTraceHeader": "Root=1-65eb7350-000000006dfd06bf489aa4e5;Parent=48cc02b6aafae897;Sampled=1",
+        "SentTimestamp": "1709929297382",
+        "SenderId": "AROAWGCM4HXUTHYJKOM7M:DdTraceXLambda-sqsjavache-sqsjavaproducerforPython-moi7s7Hu7Ppy",
+        "ApproximateFirstReceiveTimestamp": "1709929297387"
+      },
+      "messageAttributes": {},
+      "md5OfMessageAttributes": "",
+      "md5OfBody": "fbc24bcc7a1794758fc1327fcfebdaf6",
+      "eventSource": "aws:sqs",
+      "eventSourceARN": "arn:aws:sqs:us-west-2:444442222111:DdTraceXLambda-sqsjavachecksNeste-sqsJavaProducer2sqsjavaproducerfo-dwpHQF6fcZT4",
+      "awsRegion": "us-west-2"
+    }
+  ]
+}
