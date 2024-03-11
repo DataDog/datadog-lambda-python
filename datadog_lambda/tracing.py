@@ -891,9 +891,15 @@ def create_inferred_span_from_api_gateway_event(
     service_name = determine_service_name(
         service_mapping, api_id, "lambda_api_gateway", domain
     )
-    method = event.get("httpMethod")
-    path = event.get("path")
-    resource = "{0} {1}".format(method, path)
+    
+    method = request_context.get("httpMethod")
+    if not method:
+        method = request_context.get("http", {}).get("method")
+    
+    path = event.get("rawPath") or request_context.get("path") or request_context.get("routeKey")
+    resource_path = event.get("rawPath") or request_context.get("resourcePath") or request_context.get("routeKey")
+    
+    resource = "{} {}".format(method if method else domain, resource_path)
     tags = {
         "operation_name": "aws.apigateway.rest",
         "http.url": domain + path,
