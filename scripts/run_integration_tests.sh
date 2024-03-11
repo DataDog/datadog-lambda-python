@@ -56,6 +56,11 @@ if [ -z "$DD_API_KEY" ]; then
     exit 1
 fi
 
+if [ -z "$ARCH" ]; then
+    echo "No ARCH env var set, exiting"
+    exit 1
+fi
+
 if [ -n "$UPDATE_SNAPSHOTS" ]; then
     echo "Overwriting snapshots in this execution"
 fi
