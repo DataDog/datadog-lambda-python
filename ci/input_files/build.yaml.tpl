@@ -53,7 +53,7 @@ check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   dependencies:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   script: 
-    - PYTHON_VERSION={{ $runtime.python_version }} ./scripts/check_layer_size.sh
+    - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/check_layer_size.sh
 
 lint python:
   stage: test
