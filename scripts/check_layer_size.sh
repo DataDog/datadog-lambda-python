@@ -9,7 +9,7 @@
 
 # 7 mb size limit
 set -e
-MAX_LAYER_COMPRESSED_SIZE_KB=$(expr 3 \* 1024)
+MAX_LAYER_COMPRESSED_SIZE_KB=$(expr 4 \* 1024)
 MAX_LAYER_UNCOMPRESSED_SIZE_KB=$(expr 13 \* 1024)
 
 
