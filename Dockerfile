@@ -20,6 +20,7 @@ RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
 RUN rm -rf ./python/lib/$runtime/site-packages/setuptools
 RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
 RUN find . -name 'libddwaf.so' -delete
+RUN rm -rf ./python/lib/$runtime/site-packages/urllib3
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_taint_tracking/*.so
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_stacktrace*.so
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/libdd_wrapper.so
