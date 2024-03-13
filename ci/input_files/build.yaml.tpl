@@ -164,12 +164,17 @@ publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
 
 {{- end }}
 
-publish-pypi-package-test:
+publish-pypi-package:
   stage: publish
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   before_script: *python-before-script
   cache: []
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
   when: manual
+  needs: {{ range $runtime := (ds "runtimes").runtimes }}
+    - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
+  {{- end }}
   script:
     - ./ci/publish_pypi.sh

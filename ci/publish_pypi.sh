@@ -16,7 +16,7 @@ PYPI_TOKEN=$(aws ssm get-parameter \
 if [ -z "$CI_COMMIT_TAG" ]; then
     printf "[Error] No CI_COMMIT_TAG found.\n"
     printf "Exiting script...\n"
-    # exit 1
+    exit 1
 else
     printf "Tag found in environment: $CI_COMMIT_TAG\n"
 fi
@@ -28,4 +28,4 @@ if [ -d "dist" ]; then
 fi
 
 # Publish to pypi
-poetry publish --build --username __token__ --password $PYPI_TOKEN --dry-run
+poetry publish --build --username __token__ --password $PYPI_TOKEN
