@@ -13,6 +13,14 @@ PYPI_TOKEN=$(aws ssm get-parameter \
     --out text)
 # Builds the lambda layer and upload to Pypi
 
+if [ -z "$CI_COMMIT_TAG" ]; then
+    printf "[Error] No CI_COMMIT_TAG found.\n"
+    printf "Exiting script...\n"
+    # exit 1
+else
+    printf "Tag found in environment: $CI_COMMIT_TAG\n"
+fi
+
 # Clear previously built distributions
 if [ -d "dist" ]; then
     echo "Removing folder 'dist' to clear previously built distributions"

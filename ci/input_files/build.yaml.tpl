@@ -168,6 +168,7 @@ publish-pypi-package-test:
   stage: publish
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
+  before_script: *python-before-script
   cache: []
   when: manual
   script:
