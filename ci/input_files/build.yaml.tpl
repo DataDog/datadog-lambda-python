@@ -9,6 +9,7 @@ stages:
   - virtualenv venv
   - source venv/bin/activate
   - pip install .[dev]
+  - pip install poetry
 
 # This is for serverless framework
 .install-node: &install-node
@@ -163,16 +164,11 @@ publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
 
 {{- end }}
 
-publish-pypi-package:
+publish-pypi-package-test:
   stage: publish
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   cache: []
-  rules:
-    - if: '$CI_COMMIT_TAG =~ /^v.*/'
   when: manual
-  needs: {{ range $runtime := (ds "runtimes").runtimes }}
-    - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
-  {{- end }}
   script:
     - ./ci/publish_pypi.sh

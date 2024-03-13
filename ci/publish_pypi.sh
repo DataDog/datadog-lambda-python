@@ -20,4 +20,4 @@ if [ -d "dist" ]; then
 fi
 
 # Publish to pypi
-poetry publish --build --username __token__ --password $PYPI_TOKEN
+poetry publish --build --username __token__ --password $PYPI_TOKEN --dry-run
