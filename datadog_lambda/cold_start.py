@@ -76,10 +76,8 @@ already_wrapped_loaders = set()
 
 
 def reset_node_stacks():
-    global root_nodes
-    root_nodes = []
-    global import_stack
-    import_stack = []
+    root_nodes.clear()
+    import_stack.clear()
 
 
 def push_node(module_name, file_path):
