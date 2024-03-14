@@ -1,9 +1,12 @@
+import os
 import time
 import unittest
-import datadog_lambda.cold_start as cold_start
+
 from sys import modules, meta_path
-import os
 from unittest.mock import MagicMock
+
+import datadog_lambda.cold_start as cold_start
+import datadog_lambda.wrapper as wrapper
 
 
 class TestColdStartTracingSetup(unittest.TestCase):
@@ -234,3 +237,42 @@ class TestColdStartTracer(unittest.TestCase):
         self.cold_start_tracer.trace(nodes)
         self.mock_activate.assert_called_once_with(self.mock_trace_ctx)
         self.assertEqual(self.output_spans, ["node_0", "unittest_cold_start"])
+
+
+def test_lazy_loaded_package_imports(monkeypatch):
+
+    spans = []
+
+    def finish(span):
+        spans.append(span)
+
+    monkeypatch.setattr(wrapper.tracer, "_on_span_finish", finish)
+    monkeypatch.setattr(wrapper, "is_new_sandbox", lambda: True)
+    monkeypatch.setattr("datadog_lambda.wrapper.dd_tracing_enabled", True)
+    monkeypatch.setenv(
+        "DD_COLD_START_TRACE_SKIP_LIB", "ddtrace.contrib.logging,datadog_lambda.wrapper"
+    )
+    monkeypatch.setenv("DD_MIN_COLD_START_DURATION", "0")
+
+    @wrapper.datadog_lambda_wrapper
+    def handler(event, context):
+        import tabnanny
+
+    lambda_context = MagicMock()
+    lambda_context.invoked_function_arn = (
+        "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test:1"
+    )
+
+    handler.cold_start_tracing = True
+    handler({}, lambda_context)
+
+    function_span = import_span = None
+    for span in spans:
+        if span.resource == "tabnanny":
+            import_span = span
+        elif span.name == "aws.lambda":
+            function_span = span
+
+    assert function_span is not None
+    assert import_span is not None
+    assert import_span.parent_id == function_span.span_id

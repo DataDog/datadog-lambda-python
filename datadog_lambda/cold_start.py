@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 _cold_start = True
 _proactive_initialization = False
 _lambda_container_initialized = False
+_tracer = None
 
 
 def set_cold_start(init_timestamp_ns):
@@ -18,6 +19,7 @@ def set_cold_start(init_timestamp_ns):
     global _cold_start
     global _lambda_container_initialized
     global _proactive_initialization
+    global _tracer
     if not _lambda_container_initialized:
         now = time.time_ns()
         if (now - init_timestamp_ns) // 1_000_000_000 > 10:
@@ -29,6 +31,7 @@ def set_cold_start(init_timestamp_ns):
         _cold_start = False
         _proactive_initialization = False
     _lambda_container_initialized = True
+    from ddtrace import tracer as _tracer
 
 
 def is_cold_start():
@@ -62,6 +65,9 @@ class ImportNode(object):
         self.start_time_ns = start_time_ns
         self.end_time_ns = end_time_ns
         self.children = []
+        self.context = None
+        if _lambda_container_initialized:
+            self.context = _tracer.context_provider.active()
 
 
 root_nodes: List[ImportNode] = []
@@ -70,10 +76,8 @@ already_wrapped_loaders = set()
 
 
 def reset_node_stacks():
-    global root_nodes
-    root_nodes = []
-    global import_stack
-    import_stack = []
+    root_nodes.clear()
+    import_stack.clear()
 
 
 def push_node(module_name, file_path):
@@ -183,7 +187,8 @@ class ColdStartTracer(object):
         cold_start_span = self.create_cold_start_span(cold_start_span_start_time_ns)
         while root_nodes:
             root_node = root_nodes.pop()
-            self.trace_tree(root_node, cold_start_span)
+            parent = root_node.context or cold_start_span
+            self.trace_tree(root_node, parent)
         self.finish_span(cold_start_span, cold_start_span_end_time_ns)
 
     def trace_tree(self, import_node: ImportNode, parent_span):
