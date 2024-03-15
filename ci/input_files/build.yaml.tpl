@@ -11,6 +11,13 @@ stages:
   - pip install .[dev]
   - pip install poetry
 
+default:
+  retry:
+    max: 1
+    when:
+      # Retry when the runner fails to start
+      - runner_system_failure
+
 # This is for serverless framework
 .install-node: &install-node
   - apt-get update
