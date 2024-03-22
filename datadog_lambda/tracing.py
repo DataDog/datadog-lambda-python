@@ -23,7 +23,7 @@ from datadog_lambda.constants import (
     TraceContextSource,
     XrayDaemon,
     Headers,
-    TraceHeader
+    TraceHeader,
 )
 from datadog_lambda.xray import (
     send_segment,
@@ -277,20 +277,24 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader (by dd-trace-java)
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
-            x_ray_header  = first_record.get("attributes", {}).get("AWSTraceHeader")
+            x_ray_header = first_record.get("attributes", {}).get("AWSTraceHeader")
             if x_ray_header:
                 x_ray_context = parse_xray_header(x_ray_header)
-                trace_id_parts = x_ray_context.get('trace_id', "").split('-')
-                if len(trace_id_parts) > 2 and trace_id_parts[2].startswith('00000000'):
+                trace_id_parts = x_ray_context.get("trace_id", "").split("-")
+                if len(trace_id_parts) > 2 and trace_id_parts[2].startswith("00000000"):
                     # If the trace id part 2 starts with eight 0's padding, then this AWSTraceHeader contains Datadog injected trace context
                     logger.debug(
                         "Found dd-trace injected trace context from AWSTraceHeader"
                     )
-                    _hex_str_to_decimal_str = lambda hex_str : str(int(hex_str, 16))
+                    _hex_str_to_decimal_str = lambda hex_str: str(int(hex_str, 16))
                     dd_data = {
-                        TraceHeader.TRACE_ID: _hex_str_to_decimal_str(trace_id_parts[2][8:]),
-                        TraceHeader.PARENT_ID: _hex_str_to_decimal_str(x_ray_context['parent_id']),
-                        TraceHeader.SAMPLING_PRIORITY: x_ray_context['sampled'],
+                        TraceHeader.TRACE_ID: _hex_str_to_decimal_str(
+                            trace_id_parts[2][8:]
+                        ),
+                        TraceHeader.PARENT_ID: _hex_str_to_decimal_str(
+                            x_ray_context["parent_id"]
+                        ),
+                        TraceHeader.SAMPLING_PRIORITY: x_ray_context["sampled"],
                     }
                     return propagator.extract(dd_data)
         return extract_context_from_lambda_context(lambda_context)

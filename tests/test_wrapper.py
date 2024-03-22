@@ -662,7 +662,6 @@ class TestLambdaWrapperFlushExtension(unittest.TestCase):
 
     @patch("datadog_lambda.wrapper.should_use_extension", True)
     def test_local_test_envvar_flushing(self):
-
         flushes = []
         lambda_event = {}
         lambda_context = get_mock_context()
@@ -680,7 +679,6 @@ class TestLambdaWrapperFlushExtension(unittest.TestCase):
             ({"DD_LOCAL_TEST": ""}, False),
             ({}, False),
         ):
-
             os.environ = environ
             flushes.clear()
 
