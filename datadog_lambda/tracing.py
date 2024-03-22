@@ -288,12 +288,12 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                         "Found dd-trace injected trace context from AWSTraceHeader"
                     )
                     dd_data = {
-                        TraceHeader.TRACE_ID: str(int(
-                            trace_id_parts[2][8:], 16
-                        )), # remove padding and convert the hex str to a decimal str
-                        TraceHeader.PARENT_ID: str(int(
-                            x_ray_context["parent_id"], 16
-                        )), # convert the hex str to a decimal str
+                        TraceHeader.TRACE_ID: str(
+                            int(trace_id_parts[2][8:], 16)
+                        ),  # remove padding and convert the hex str to a decimal str
+                        TraceHeader.PARENT_ID: str(
+                            int(x_ray_context["parent_id"], 16)
+                        ),  # convert the hex str to a decimal str
                         TraceHeader.SAMPLING_PRIORITY: x_ray_context["sampled"],
                     }
                     return propagator.extract(dd_data)
