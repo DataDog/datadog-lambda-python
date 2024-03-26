@@ -222,7 +222,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
             lambda_ctx,
         )
-        self.assertEqual(source, "event")
+        self.assertEqual(source, "event") # this is broken now
         expected_context = Context(trace_id=123, span_id=321, sampling_priority=1)
         self.assertEqual(ctx, expected_context)
         self.assertDictEqual(
