@@ -22,7 +22,6 @@ from datadog_lambda.constants import (
     TraceContextSource,
     XraySubsegment,
     Headers,
-    TraceHeader,
 )
 from datadog_lambda.metric import (
     flush_stats,
@@ -44,6 +43,7 @@ from datadog_lambda.tracing import (
     InferredSpanInfo,
     is_authorizer_response,
     tracer,
+    propagator,
 )
 from datadog_lambda.trigger import (
     extract_trigger_tags,
@@ -254,13 +254,7 @@ class _LambdaDecorator(object):
         injected_headers = {}
         source_span = self.inferred_span if self.inferred_span else self.span
         span_context = source_span.context
-        injected_headers[TraceHeader.TRACE_ID] = str(span_context.trace_id)
-        injected_headers[TraceHeader.PARENT_ID] = str(span_context.span_id)
-        sampling_priority = span_context.sampling_priority
-        if sampling_priority is not None:
-            injected_headers[TraceHeader.SAMPLING_PRIORITY] = str(
-                span_context.sampling_priority
-            )
+        propagator.inject(span_context, injected_headers)
         injected_headers[Headers.Parent_Span_Finish_Time] = finish_time_ns
         if request_id is not None:
             injected_headers[Headers.Authorizing_Request_Id] = request_id
