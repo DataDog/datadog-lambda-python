@@ -885,21 +885,17 @@ def create_inferred_span_from_api_gateway_websocket_event(
 def create_inferred_span_from_api_gateway_event(
     event, context, decode_authorizer_context: bool = True
 ):
-    request_context = event.get("requestContext")
-    domain = request_context.get("domainName", "")
+    request_context = event.get("requestContext") or {}
+    domain = request_context.get("domainName") or ""
     api_id = request_context.get("apiId")
     service_name = determine_service_name(
         service_mapping, api_id, "lambda_api_gateway", domain
     )
-    
-    method = request_context.get("httpMethod")
-    if not method:
-        method = request_context.get("http", {}).get("method")
-    
-    path = event.get("rawPath") or request_context.get("path") or request_context.get("routeKey")
-    resource_path = event.get("rawPath") or request_context.get("resourcePath") or request_context.get("routeKey")
-    
-    resource = "{} {}".format(method if method else domain, resource_path)
+    method = request_context.get("httpMethod") or request_context.get("http", {}).get("method")
+    path = event.get("rawPath") or request_context.get("path") or request_context.get("routeKey", "")
+    resource_path = _get_resource_path(event, request_context)
+
+    resource = "{} {}".format(method, resource_path)
     tags = {
         "operation_name": "aws.apigateway.rest",
         "http.url": domain + path,
@@ -940,6 +936,16 @@ def create_inferred_span_from_api_gateway_event(
         if upstream_authorizer_span:
             span.parent_id = upstream_authorizer_span.span_id
     return span
+
+
+def _get_resource_path(event, request_context):
+    route_key = request_context.get("routeKey") or ""
+    if "{" in route_key:
+        try:
+            return route_key.split(" ")[1]
+        except Exception as e:
+            logger.debug("Error parsing routeKey: %s", e)
+    return event.get("rawPath") or request_context.get("resourcePath") or route_key
 
 
 def create_inferred_span_from_http_api_event(
