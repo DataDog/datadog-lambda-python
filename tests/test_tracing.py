@@ -50,32 +50,6 @@ fake_xray_header_value_root_decimal = "3995693151288333088"
 
 event_samples = "tests/event_samples/"
 
-span_to_finish = None
-
-
-def _clean_up_span():
-    global span_to_finish
-    if span_to_finish is not None:
-        span_to_finish.finish()
-        span_to_finish = None
-
-
-def register_span(span):
-    global span_to_finish
-    _clean_up_span()
-    span_to_finish = span
-    return span
-
-
-def wrapped_span_creator(span_creator_func):
-    def result_func(*args, **kwargs):
-        return register_span(span_creator_func(*args, **kwargs))
-
-    return result_func
-
-
-create_inferred_span = wrapped_span_creator(create_inferred_span)
-
 
 class ClientContext(object):
     def __init__(self, custom=None):
@@ -1709,7 +1683,7 @@ def test_create_inferred_span(mock_span_finish, source, expect):
         assert actual.get_tag(tag) == value, f"wrong value for tag {tag}"
 
     if expect.parent_name is not None:
-        assert mock_span_finish.call_count == 2
+        assert mock_span_finish.call_count == 1
         args, kwargs = mock_span_finish.call_args_list[0]
         parent = args[0]
         finish_time = kwargs.get("finish_time") or args[1]
@@ -1717,12 +1691,10 @@ def test_create_inferred_span(mock_span_finish, source, expect):
         assert actual.parent_id == parent.span_id
         assert finish_time == expect.start
     else:
-        assert mock_span_finish.call_count < 2
+        assert mock_span_finish.call_count == 0
 
 
 class TestInferredSpans(unittest.TestCase):
-    def tearDown(self):
-        _clean_up_span()
 
     def test_extract_context_from_eventbridge_event(self):
         event_sample_source = "eventbridge-custom"
