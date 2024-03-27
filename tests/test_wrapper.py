@@ -10,6 +10,7 @@ import datadog_lambda.wrapper as wrapper
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 from ddtrace import Span, tracer
+from ddtrace.internal.constants import MAX_UINT_64BITS
 
 
 def get_mock_context(
@@ -543,19 +544,19 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         lambda_event = {}
 
         lambda_context = get_mock_context()
-        mock_span = Span(name="my_inferred_span", span_id=123, trace_id=456)
-        mock_span.context.sampling_priority = "1"
-        mock_span.context.dd_origin = None
-        mock_span.start_ns = 1668127541671386817
-        mock_span.duration_ns = 1e8
-        lambda_handler.inferred_span = mock_span
+        test_span = tracer.trace("test_span")
+        trace_ctx = tracer.current_trace_context()
+        test_span.finish()
+        lambda_handler.inferred_span = test_span
         lambda_handler.make_inferred_span = False
         result = lambda_handler(lambda_event, lambda_context)
         raw_inject_data = result["context"]["_datadog"]
         self.assertIsInstance(raw_inject_data, str)
         inject_data = json.loads(base64.b64decode(raw_inject_data))
-        self.assertEqual(inject_data[TraceHeader.PARENT_ID], "123")
-        self.assertEqual(inject_data[TraceHeader.TRACE_ID], "456")
+        self.assertEqual(inject_data[TraceHeader.PARENT_ID], str(trace_ctx.span_id))
+        self.assertEqual(
+            inject_data[TraceHeader.TRACE_ID], str(MAX_UINT_64BITS & trace_ctx.trace_id)
+        )
         self.assertEqual(inject_data[TraceHeader.SAMPLING_PRIORITY], "1")
         self.assertEqual(result["context"]["scope"], "still here")
 
@@ -662,7 +663,6 @@ class TestLambdaWrapperFlushExtension(unittest.TestCase):
 
     @patch("datadog_lambda.wrapper.should_use_extension", True)
     def test_local_test_envvar_flushing(self):
-
         flushes = []
         lambda_event = {}
         lambda_context = get_mock_context()
@@ -680,7 +680,6 @@ class TestLambdaWrapperFlushExtension(unittest.TestCase):
             ({"DD_LOCAL_TEST": ""}, False),
             ({}, False),
         ):
-
             os.environ = environ
             flushes.clear()
 
