@@ -1760,7 +1760,7 @@ def test_create_inferred_span(mock_span_finish, source, expect):
     for tag, value in expect.tags.items():
         assert actual.get_tag(tag) == value, f"wrong value for tag {tag}"
 
-    if expect.parent_name is not None:
+    if expect.parent_name is not None:  # there are two inferred spans
         assert mock_span_finish.call_count == 1
         args, kwargs = mock_span_finish.call_args_list[0]
         parent = args[0]
@@ -1768,7 +1768,7 @@ def test_create_inferred_span(mock_span_finish, source, expect):
         assert parent.name == expect.parent_name
         assert actual.parent_id == parent.span_id
         assert finish_time == expect.start
-    else:
+    else:  # there is only one inferred span
         assert mock_span_finish.call_count == 0
 
 
