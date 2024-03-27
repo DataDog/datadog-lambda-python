@@ -34,6 +34,7 @@ from datadog_lambda.tracing import (
     create_service_mapping,
     determine_service_name,
     service_mapping as global_service_mapping,
+    propagator,
 )
 from datadog_lambda.trigger import EventTypes
 
@@ -209,74 +210,49 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             },
         )
 
-    @with_trace_propagation_style("datadog")
-    def test_with_complete_datadog_trace_headers(self):
-        lambda_ctx = get_mock_context()
+    def common_tests_with_trace_context_extraction_injection(
+        self, headers, event_containing_headers, lambda_context=get_mock_context()
+    ):
         ctx, source, event_source = extract_dd_trace_context(
-            {
-                "headers": {
-                    TraceHeader.TRACE_ID: "123",
-                    TraceHeader.PARENT_ID: "321",
-                    TraceHeader.SAMPLING_PRIORITY: "1",
-                }
-            },
-            lambda_ctx,
+            event_containing_headers,
+            lambda_context,
         )
-        self.assertEqual(source, "event") # this is broken now
-        expected_context = Context(trace_id=123, span_id=321, sampling_priority=1)
+        self.assertEqual(source, "event")
+        expected_context = propagator.extract(headers)
         self.assertEqual(ctx, expected_context)
-        self.assertDictEqual(
-            get_dd_trace_context(),
-            {
-                TraceHeader.TRACE_ID: "123",
-                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
-                TraceHeader.SAMPLING_PRIORITY: "1",
-            },
-        )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
         self.mock_send_segment.assert_called()
         self.mock_send_segment.assert_called_with(
             XraySubsegment.TRACE_KEY,
             expected_context,
+        )
+        # when no active ddtrace context, xray context would be used
+        expected_context.span_id = int(fake_xray_header_value_parent_decimal)
+        expected_headers = {}
+        propagator.inject(expected_context, expected_headers)
+        dd_context_headers = get_dd_trace_context()
+        self.assertDictEqual(expected_headers, dd_context_headers)
+
+    @with_trace_propagation_style("datadog")
+    def test_with_complete_datadog_trace_headers(self):
+        lambda_ctx = get_mock_context()
+        headers = {
+            TraceHeader.TRACE_ID: "123",
+            TraceHeader.PARENT_ID: "321",
+            TraceHeader.SAMPLING_PRIORITY: "1",
+        }
+        self.common_tests_with_trace_context_extraction_injection(
+            headers, {"headers": headers}
         )
 
     @with_trace_propagation_style("tracecontext")
     def test_with_w3c_trace_headers(self):
-        lambda_ctx = get_mock_context()
-        ctx, source, event_source = extract_dd_trace_context(
-            {
-                "headers": {
-                    "traceparent": "00-0000000000000000000000000000007b-0000000000000141-01",
-                    "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-                }
-            },
-            lambda_ctx,
-        )
-        self.assertEqual(source, "event")
-        expected_context = Context(
-            trace_id=123,
-            span_id=321,
-            sampling_priority=2,
-            meta={
-                "traceparent": "00-0000000000000000000000000000007b-0000000000000141-01",
-                "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-                "_dd.p.dm": "-0",
-                "_dd.parent_id": "0000000000000000",
-            },
-        )
-        self.assertEqual(ctx, expected_context)
-        self.assertDictEqual(
-            get_dd_trace_context(),
-            {
-                "traceparent": "00-0000000000000000000000000000007b-94ae789b969f1cc5-01",
-                "tracestate": "dd=p:94ae789b969f1cc5;s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-            },
-        )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_send_segment.assert_called()
-        self.mock_send_segment.assert_called_with(
-            XraySubsegment.TRACE_KEY,
-            expected_context,
+        headers = {
+            "traceparent": "00-0000000000000000000000000000007b-0000000000000141-01",
+            "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+        }
+        self.common_tests_with_trace_context_extraction_injection(
+            headers, {"headers": headers}
         )
 
     @with_trace_propagation_style("datadog")
@@ -357,7 +333,11 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     @with_trace_propagation_style("datadog")
     def test_with_sqs_distributed_datadog_trace_data(self):
-        lambda_ctx = get_mock_context()
+        headers = {
+            TraceHeader.TRACE_ID: "123",
+            TraceHeader.PARENT_ID: "321",
+            TraceHeader.SAMPLING_PRIORITY: "1",
+        }
         sqs_event = {
             "Records": [
                 {
@@ -372,13 +352,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     },
                     "messageAttributes": {
                         "_datadog": {
-                            "stringValue": json.dumps(
-                                {
-                                    TraceHeader.TRACE_ID: "123",
-                                    TraceHeader.PARENT_ID: "321",
-                                    TraceHeader.SAMPLING_PRIORITY: "1",
-                                }
-                            ),
+                            "stringValue": json.dumps(headers),
                             "dataType": "String",
                         }
                     },
@@ -389,31 +363,14 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 }
             ]
         }
-        ctx, source, event_source = extract_dd_trace_context(sqs_event, lambda_ctx)
-        self.assertEqual(source, "event")
-        expected_context = Context(
-            trace_id=123,
-            span_id=321,
-            sampling_priority=1,
-        )
-        self.assertEqual(ctx, expected_context)
-        self.assertDictEqual(
-            get_dd_trace_context(),
-            {
-                TraceHeader.TRACE_ID: "123",
-                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
-                TraceHeader.SAMPLING_PRIORITY: "1",
-            },
-        )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_send_segment.assert_called_with(
-            XraySubsegment.TRACE_KEY,
-            expected_context,
-        )
+        self.common_tests_with_trace_context_extraction_injection(headers, sqs_event)
 
     @with_trace_propagation_style("tracecontext")
     def test_with_sqs_distributed_w3c_trace_data(self):
-        lambda_ctx = get_mock_context()
+        headers = {
+            "traceparent": "00-0000000000000000000000000000007b-0000000000000141-01",
+            "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+        }
         sqs_event = {
             "Records": [
                 {
@@ -428,12 +385,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     },
                     "messageAttributes": {
                         "_datadog": {
-                            "stringValue": json.dumps(
-                                {
-                                    "traceparent": "00-0000000000000000000000000000007b-0000000000000141-01",
-                                    "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-                                }
-                            ),
+                            "stringValue": json.dumps(headers),
                             "dataType": "String",
                         }
                     },
@@ -444,194 +396,71 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 }
             ]
         }
-        ctx, source, event_source = extract_dd_trace_context(sqs_event, lambda_ctx)
-        self.assertEqual(source, "event")
-        expected_context = Context(
-            trace_id=123,
-            span_id=321,
-            sampling_priority=2,
-            meta={
-                "traceparent": "00-0000000000000000000000000000007b-0000000000000141-01",
-                "tracestate": "dd=s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-                "_dd.p.dm": "-0",
-                "_dd.parent_id": "0000000000000000",
-            },
-        )
-        self.assertEqual(ctx, expected_context)
-        self.assertDictEqual(
-            get_dd_trace_context(),
-            {
-                "traceparent": "00-0000000000000000000000000000007b-94ae789b969f1cc5-01",
-                "tracestate": "dd=p:94ae789b969f1cc5;s:2;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-            },
-        )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_send_segment.assert_called_with(
-            XraySubsegment.TRACE_KEY,
-            expected_context,
-        )
+        self.common_tests_with_trace_context_extraction_injection(headers, sqs_event)
 
     @with_trace_propagation_style("datadog")
     def test_with_legacy_client_context_datadog_trace_data(self):
-        lambda_ctx = get_mock_context(
-            custom={
-                "_datadog": {
-                    TraceHeader.TRACE_ID: "666",
-                    TraceHeader.PARENT_ID: "777",
-                    TraceHeader.SAMPLING_PRIORITY: "1",
-                }
-            }
-        )
-        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
-        self.assertEqual(source, "event")
-        expected_context = Context(
-            trace_id=666,
-            span_id=777,
-            sampling_priority=1,
-        )
-        self.assertEqual(ctx, expected_context)
-        self.assertDictEqual(
-            get_dd_trace_context(),
-            {
-                TraceHeader.TRACE_ID: "666",
-                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
-                TraceHeader.SAMPLING_PRIORITY: "1",
-            },
-        )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_send_segment.assert_called()
-        self.mock_send_segment.assert_called_with(
-            XraySubsegment.TRACE_KEY,
-            expected_context,
+        headers = {
+            TraceHeader.TRACE_ID: "666",
+            TraceHeader.PARENT_ID: "777",
+            TraceHeader.SAMPLING_PRIORITY: "1",
+        }
+        lambda_ctx = get_mock_context(custom={"_datadog": headers})
+        self.common_tests_with_trace_context_extraction_injection(
+            headers, {}, lambda_ctx
         )
 
     @with_trace_propagation_style("tracecontext")
     def test_with_legacy_client_context_w3c_trace_data(self):
-        lambda_ctx = get_mock_context(
-            custom={
-                "_datadog": {
-                    "traceparent": "00-0000000000000000000000000000029a-0000000000000309-01",
-                    "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-                }
-            }
-        )
-        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
-        self.assertEqual(source, "event")
-        expected_context = Context(
-            trace_id=666,
-            span_id=777,
-            sampling_priority=1,
-            meta={
-                "traceparent": "00-0000000000000000000000000000029a-0000000000000309-01",
-                "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-                "_dd.p.dm": "-0",
-                "_dd.parent_id": "0000000000000000",
-            },
-        )
-        self.assertEqual(ctx, expected_context)
-        self.assertDictEqual(
-            get_dd_trace_context(),
-            {
-                "traceparent": "00-0000000000000000000000000000029a-94ae789b969f1cc5-01",
-                "tracestate": "dd=p:94ae789b969f1cc5;s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-            },
-        )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_send_segment.assert_called()
-        self.mock_send_segment.assert_called_with(
-            XraySubsegment.TRACE_KEY,
-            expected_context,
+        headers = {
+            "traceparent": "00-0000000000000000000000000000029a-0000000000000309-01",
+            "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+        }
+        lambda_ctx = get_mock_context(custom={"_datadog": headers})
+        self.common_tests_with_trace_context_extraction_injection(
+            headers, {}, lambda_ctx
         )
 
     @with_trace_propagation_style("datadog")
     def test_with_new_client_context_datadog_trace_data(self):
-        lambda_ctx = get_mock_context(
-            custom={
-                TraceHeader.TRACE_ID: "666",
-                TraceHeader.PARENT_ID: "777",
-                TraceHeader.SAMPLING_PRIORITY: "1",
-            }
-        )
-        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
-        self.assertEqual(source, "event")
-        expected_context = Context(
-            trace_id=666,
-            span_id=777,
-            sampling_priority=1,
-        )
-        self.assertEqual(ctx, expected_context)
-        self.assertDictEqual(
-            get_dd_trace_context(),
-            {
-                TraceHeader.TRACE_ID: "666",
-                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
-                TraceHeader.SAMPLING_PRIORITY: "1",
-            },
-        )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_send_segment.assert_called()
-        self.mock_send_segment.assert_called_with(
-            XraySubsegment.TRACE_KEY,
-            expected_context,
+        headers = {
+            TraceHeader.TRACE_ID: "666",
+            TraceHeader.PARENT_ID: "777",
+            TraceHeader.SAMPLING_PRIORITY: "1",
+        }
+        lambda_ctx = get_mock_context(custom=headers)
+        self.common_tests_with_trace_context_extraction_injection(
+            headers, {}, lambda_ctx
         )
 
     @with_trace_propagation_style("tracecontext")
     def test_with_new_client_context_w3c_trace_data(self):
-        lambda_ctx = get_mock_context(
-            custom={
-                "traceparent": "00-0000000000000000000000000000029a-0000000000000309-01",
-                "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-            }
-        )
-        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
-        self.assertEqual(source, "event")
-        expected_context = Context(
-            trace_id=666,
-            span_id=777,
-            sampling_priority=1,
-            meta={
-                "traceparent": "00-0000000000000000000000000000029a-0000000000000309-01",
-                "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-                "_dd.p.dm": "-0",
-                "_dd.parent_id": "0000000000000000",
-            },
-        )
-        self.assertEqual(ctx, expected_context)
-        self.assertDictEqual(
-            get_dd_trace_context(),
-            {
-                "traceparent": "00-0000000000000000000000000000029a-94ae789b969f1cc5-01",
-                "tracestate": "dd=p:94ae789b969f1cc5;s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
-            },
-        )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_send_segment.assert_called()
-        self.mock_send_segment.assert_called_with(
-            XraySubsegment.TRACE_KEY,
-            expected_context,
+        headers = {
+            "traceparent": "00-0000000000000000000000000000029a-0000000000000309-01",
+            "tracestate": "dd=s:1;t.dm:-0,rojo=00f067aa0ba902b7,congo=t61rcWkgMzE",
+        }
+        lambda_ctx = get_mock_context(custom=headers)
+        self.common_tests_with_trace_context_extraction_injection(
+            headers, {}, lambda_ctx
         )
 
     @with_trace_propagation_style("datadog")
     def test_with_complete_datadog_trace_headers_with_mixed_casing(self):
         lambda_ctx = get_mock_context()
+        headers = {
+            "X-Datadog-Trace-Id": "123",
+            "X-Datadog-Parent-Id": "321",
+            "X-Datadog-Sampling-Priority": "1",
+        }
         extract_dd_trace_context(
-            {
-                "headers": {
-                    "X-Datadog-Trace-Id": "123",
-                    "X-Datadog-Parent-Id": "321",
-                    "X-Datadog-Sampling-Priority": "1",
-                }
-            },
+            {"headers": headers},
             lambda_ctx,
         )
-        self.assertDictEqual(
-            get_dd_trace_context(),
-            {
-                TraceHeader.TRACE_ID: "123",
-                TraceHeader.PARENT_ID: fake_xray_header_value_parent_decimal,
-                TraceHeader.SAMPLING_PRIORITY: "1",
-            },
-        )
+        extract_headers = {}
+        context = propagator.extract(headers)
+        context.span_id = fake_xray_header_value_parent_decimal
+        propagator.inject(context, extract_headers)
+        self.assertDictEqual(extract_headers, get_dd_trace_context())
 
     def test_with_complete_datadog_trace_headers_with_trigger_tags(self):
         trigger_tags = {
