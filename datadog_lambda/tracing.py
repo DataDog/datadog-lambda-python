@@ -68,6 +68,8 @@ if dd_tracing_enabled:
 
 propagator = HTTPPropagator()
 
+DD_TRACE_JAVA_TRACE_ID_PADDING = "00000000"
+
 
 def _convert_xray_trace_id(xray_trace_id):
     """
@@ -248,28 +250,52 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
             first_record.get("Sns", {}).get("MessageAttributes", {}),
         )
         dd_payload = msg_attributes.get("_datadog", {})
-        # SQS uses dataType and binaryValue/stringValue
-        # SNS uses Type and Value
-        dd_json_data_type = dd_payload.get("Type", dd_payload.get("dataType", ""))
-        if dd_json_data_type == "Binary":
-            dd_json_data = dd_payload.get(
-                "binaryValue",
-                dd_payload.get("Value", r"{}"),
-            )
-            dd_json_data = base64.b64decode(dd_json_data)
-        elif dd_json_data_type == "String":
-            dd_json_data = dd_payload.get(
-                "stringValue",
-                dd_payload.get("Value", r"{}"),
-            )
+        if dd_payload:
+            # SQS uses dataType and binaryValue/stringValue
+            # SNS uses Type and Value
+            dd_json_data = None
+            dd_json_data_type = dd_payload.get("Type", dd_payload.get("dataType", ""))
+            if dd_json_data_type == "Binary":
+                dd_json_data = dd_payload.get(
+                    "binaryValue",
+                    dd_payload.get("Value", r"{}"),
+                )
+                dd_json_data = base64.b64decode(dd_json_data)
+            elif dd_json_data_type == "String":
+                dd_json_data = dd_payload.get(
+                    "stringValue",
+                    dd_payload.get("Value", r"{}"),
+                )
+            else:
+                logger.debug(
+                    "Datadog Lambda Python only supports extracting trace"
+                    "context from String or Binary SQS/SNS message attributes"
+                )
+
+            if dd_json_data:
+                dd_data = json.loads(dd_json_data)
+                return propagator.extract(dd_data)
         else:
-            logger.debug(
-                "Datadog Lambda Python only supports extracting trace"
-                "context from String or Binary SQS/SNS message attributes"
-            )
-            return extract_context_from_lambda_context(lambda_context)
-        dd_data = json.loads(dd_json_data)
-        return propagator.extract(dd_data)
+            # Handle case where trace context is injected into attributes.AWSTraceHeader
+            # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
+            x_ray_header = first_record.get("attributes", {}).get("AWSTraceHeader")
+            if x_ray_header:
+                x_ray_context = parse_xray_header(x_ray_header)
+                trace_id_parts = x_ray_context.get("trace_id", "").split("-")
+                if len(trace_id_parts) > 2 and trace_id_parts[2].startswith(
+                    DD_TRACE_JAVA_TRACE_ID_PADDING
+                ):
+                    # If it starts with eight 0's padding,
+                    # then this AWSTraceHeader contains Datadog injected trace context
+                    logger.debug(
+                        "Found dd-trace injected trace context from AWSTraceHeader"
+                    )
+                    return Context(
+                        trace_id=int(trace_id_parts[2][8:], 16),
+                        span_id=int(int(x_ray_context["parent_id"], 16)),
+                        sampling_priority=float(x_ray_context["sampled"]),
+                    )
+        return extract_context_from_lambda_context(lambda_context)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)

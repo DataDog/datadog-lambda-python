@@ -240,7 +240,6 @@ class TestColdStartTracer(unittest.TestCase):
 
 
 def test_lazy_loaded_package_imports(monkeypatch):
-
     spans = []
 
     def finish(span):
