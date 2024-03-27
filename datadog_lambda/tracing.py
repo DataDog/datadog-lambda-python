@@ -69,6 +69,8 @@ if dd_tracing_enabled:
 
 propagator = HTTPPropagator()
 
+DD_TRACE_JAVA_TRACE_ID_PADDING = "00000000"
+
 
 def _convert_xray_trace_id(xray_trace_id):
     """
@@ -281,7 +283,9 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
             if x_ray_header:
                 x_ray_context = parse_xray_header(x_ray_header)
                 trace_id_parts = x_ray_context.get("trace_id", "").split("-")
-                if len(trace_id_parts) > 2 and trace_id_parts[2].startswith("00000000"):
+                if len(trace_id_parts) > 2 and trace_id_parts[2].startswith(
+                    DD_TRACE_JAVA_TRACE_ID_PADDING
+                ):
                     # If it starts with eight 0's padding,
                     # then this AWSTraceHeader contains Datadog injected trace context
                     logger.debug(
