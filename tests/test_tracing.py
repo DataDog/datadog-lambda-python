@@ -1,4 +1,3 @@
-import collections
 import copy
 import functools
 import json
@@ -1191,9 +1190,16 @@ class TestServiceMapping(unittest.TestCase):
         self.assertEqual(span2.get_tag("operation_name"), "aws.eventbridge")
         self.assertEqual(span2.service, "eventbridge")
 
-_Span = collections.namedtuple(
-    "Span", ("service", "start", "span_type", "parent_name", "tags"),
-    defaults=(None, {}))
+
+class _Span(object):
+    def __init__(self, service, start, span_type, parent_name=None, tags=None):
+        self.service = service
+        self.start = start
+        self.span_type = span_type
+        self.parent_name = parent_name
+        self.tags = tags or {}
+
+
 _test_create_inferred_span = (
     ("api-gateway", _Span(
         service="70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
