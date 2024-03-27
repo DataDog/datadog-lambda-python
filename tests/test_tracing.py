@@ -235,7 +235,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     @with_trace_propagation_style("datadog")
     def test_with_complete_datadog_trace_headers(self):
-        lambda_ctx = get_mock_context()
         headers = {
             TraceHeader.TRACE_ID: "123",
             TraceHeader.PARENT_ID: "321",
