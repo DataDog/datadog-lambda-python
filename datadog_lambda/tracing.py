@@ -23,7 +23,6 @@ from datadog_lambda.constants import (
     TraceContextSource,
     XrayDaemon,
     Headers,
-    TraceHeader,
 )
 from datadog_lambda.xray import (
     send_segment,
