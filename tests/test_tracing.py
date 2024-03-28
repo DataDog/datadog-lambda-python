@@ -97,40 +97,149 @@ def with_trace_propagation_style(style):
 
 
 _test_extract_dd_trace_context = (
-        ("api-gateway", Context(trace_id=12345, span_id=67890, sampling_priority=2)),
-        ("api-gateway-no-apiid", Context(trace_id=12345, span_id=67890, sampling_priority=2)),
-        ("api-gateway-non-proxy", Context(trace_id=12345, span_id=67890, sampling_priority=2)),
-        ("api-gateway-non-proxy-async", Context(trace_id=12345, span_id=67890, sampling_priority=2)),
-        ("api-gateway-websocket-connect", Context(trace_id=12345, span_id=67890, sampling_priority=2)),
-        ("api-gateway-websocket-default", Context(trace_id=12345, span_id=67890, sampling_priority=2)),
-        ("api-gateway-websocket-disconnect", Context(trace_id=12345, span_id=67890, sampling_priority=2)),
-        ("authorizer-request-api-gateway-v1", Context(trace_id=13478705995797221209, span_id=8471288263384216896, sampling_priority=1)),
-        ("authorizer-request-api-gateway-v1-cached", None),
-        ("authorizer-request-api-gateway-v2", Context(trace_id=14356983619852933354, span_id=12658621083505413809, sampling_priority=1)),
-        ("authorizer-request-api-gateway-v2-cached", None),
-        ("authorizer-request-api-gateway-websocket-connect", Context(trace_id=5351047404834723189, span_id=18230460631156161837, sampling_priority=1)),
-        ("authorizer-request-api-gateway-websocket-message", None),
-        ("authorizer-token-api-gateway-v1", Context(trace_id=17874798268144902712, span_id=16184667399315372101, sampling_priority=1)),
-        ("authorizer-token-api-gateway-v1-cached", None),
-        ("cloudfront", None),
-        ("cloudwatch-events", None),
-        ("cloudwatch-logs", None),
-        ("custom", None),
-        ("dynamodb", None),
-        ("eventbridge-custom", Context(trace_id=12345, span_id=67890, sampling_priority=2)),
-        ("eventbridge-sqs", Context(trace_id=7379586022458917877, span_id=2644033662113726488, sampling_priority=1)),
-        ("http-api", Context(trace_id=12345, span_id=67890, sampling_priority=2)),
-        ("kinesis", Context(trace_id=4948377316357291421, span_id=2876253380018681026, sampling_priority=1)),
-        ("kinesis-batch", Context(trace_id=4948377316357291421, span_id=2876253380018681026, sampling_priority=1)),
-        ("lambda-url", None),
-        ("s3", None),
-        ("sns-b64-msg-attribute", Context(trace_id=4948377316357291421, span_id=6746998015037429512, sampling_priority=1)),
-        ("sns-batch", Context(trace_id=4948377316357291421, span_id=6746998015037429512, sampling_priority=1)),
-        ("sns-string-msg-attribute", Context(trace_id=4948377316357291421, span_id=6746998015037429512, sampling_priority=1)),
-        ("sqs-batch", Context(trace_id=2684756524522091840, span_id=7431398482019833808, sampling_priority=1)),
-        ("sqs-java-upstream", Context(trace_id=7925498337868555493, span_id=5245570649555658903, sampling_priority=1)),
-        ("sqs-string-msg-attribute", Context(trace_id=2684756524522091840, span_id=7431398482019833808, sampling_priority=1)),
-        ({"headers": None}, None),
+    ("api-gateway", Context(trace_id=12345, span_id=67890, sampling_priority=2)),
+    (
+        "api-gateway-no-apiid",
+        Context(trace_id=12345, span_id=67890, sampling_priority=2),
+    ),
+    (
+        "api-gateway-non-proxy",
+        Context(trace_id=12345, span_id=67890, sampling_priority=2),
+    ),
+    (
+        "api-gateway-non-proxy-async",
+        Context(trace_id=12345, span_id=67890, sampling_priority=2),
+    ),
+    (
+        "api-gateway-websocket-connect",
+        Context(trace_id=12345, span_id=67890, sampling_priority=2),
+    ),
+    (
+        "api-gateway-websocket-default",
+        Context(trace_id=12345, span_id=67890, sampling_priority=2),
+    ),
+    (
+        "api-gateway-websocket-disconnect",
+        Context(trace_id=12345, span_id=67890, sampling_priority=2),
+    ),
+    (
+        "authorizer-request-api-gateway-v1",
+        Context(
+            trace_id=13478705995797221209,
+            span_id=8471288263384216896,
+            sampling_priority=1,
+        ),
+    ),
+    ("authorizer-request-api-gateway-v1-cached", None),
+    (
+        "authorizer-request-api-gateway-v2",
+        Context(
+            trace_id=14356983619852933354,
+            span_id=12658621083505413809,
+            sampling_priority=1,
+        ),
+    ),
+    ("authorizer-request-api-gateway-v2-cached", None),
+    (
+        "authorizer-request-api-gateway-websocket-connect",
+        Context(
+            trace_id=5351047404834723189,
+            span_id=18230460631156161837,
+            sampling_priority=1,
+        ),
+    ),
+    ("authorizer-request-api-gateway-websocket-message", None),
+    (
+        "authorizer-token-api-gateway-v1",
+        Context(
+            trace_id=17874798268144902712,
+            span_id=16184667399315372101,
+            sampling_priority=1,
+        ),
+    ),
+    ("authorizer-token-api-gateway-v1-cached", None),
+    ("cloudfront", None),
+    ("cloudwatch-events", None),
+    ("cloudwatch-logs", None),
+    ("custom", None),
+    ("dynamodb", None),
+    ("eventbridge-custom", Context(trace_id=12345, span_id=67890, sampling_priority=2)),
+    (
+        "eventbridge-sqs",
+        Context(
+            trace_id=7379586022458917877,
+            span_id=2644033662113726488,
+            sampling_priority=1,
+        ),
+    ),
+    ("http-api", Context(trace_id=12345, span_id=67890, sampling_priority=2)),
+    (
+        "kinesis",
+        Context(
+            trace_id=4948377316357291421,
+            span_id=2876253380018681026,
+            sampling_priority=1,
+        ),
+    ),
+    (
+        "kinesis-batch",
+        Context(
+            trace_id=4948377316357291421,
+            span_id=2876253380018681026,
+            sampling_priority=1,
+        ),
+    ),
+    ("lambda-url", None),
+    ("s3", None),
+    (
+        "sns-b64-msg-attribute",
+        Context(
+            trace_id=4948377316357291421,
+            span_id=6746998015037429512,
+            sampling_priority=1,
+        ),
+    ),
+    (
+        "sns-batch",
+        Context(
+            trace_id=4948377316357291421,
+            span_id=6746998015037429512,
+            sampling_priority=1,
+        ),
+    ),
+    (
+        "sns-string-msg-attribute",
+        Context(
+            trace_id=4948377316357291421,
+            span_id=6746998015037429512,
+            sampling_priority=1,
+        ),
+    ),
+    (
+        "sqs-batch",
+        Context(
+            trace_id=2684756524522091840,
+            span_id=7431398482019833808,
+            sampling_priority=1,
+        ),
+    ),
+    (
+        "sqs-java-upstream",
+        Context(
+            trace_id=7925498337868555493,
+            span_id=5245570649555658903,
+            sampling_priority=1,
+        ),
+    ),
+    (
+        "sqs-string-msg-attribute",
+        Context(
+            trace_id=2684756524522091840,
+            span_id=7431398482019833808,
+            sampling_priority=1,
+        ),
+    ),
+    ({"headers": None}, None),
 )
 
 
@@ -1825,7 +1934,6 @@ def test_create_inferred_span(mock_span_finish, source, expect):
 
 
 class TestInferredSpans(unittest.TestCase):
-
     @patch("datadog_lambda.tracing.submit_errors_metric")
     def test_mark_trace_as_error_for_5xx_responses_getting_400_response_code(
         self, mock_submit_errors_metric
