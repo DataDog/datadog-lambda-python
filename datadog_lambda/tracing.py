@@ -885,17 +885,16 @@ def create_inferred_span_from_api_gateway_websocket_event(
 def create_inferred_span_from_api_gateway_event(
     event, context, decode_authorizer_context: bool = True
 ):
-    request_context = event.get("requestContext") or {}
-    domain = request_context.get("domainName") or ""
+    request_context = event.get("requestContext")
+    domain = request_context.get("domainName", "")
     api_id = request_context.get("apiId")
     service_name = determine_service_name(
         service_mapping, api_id, "lambda_api_gateway", domain
     )
-    method = request_context.get("httpMethod") or request_context.get("http", {}).get("method")
-    path = event.get("rawPath") or request_context.get("path") or request_context.get("routeKey", "")
+    method = event.get("httpMethod")
+    path = event.get("path")
     resource_path = _get_resource_path(event, request_context)
-
-    resource = "{} {}".format(method, resource_path)
+    resource = "{0} {1}".format(method, resource_path)
     tags = {
         "operation_name": "aws.apigateway.rest",
         "http.url": domain + path,
@@ -959,7 +958,8 @@ def create_inferred_span_from_http_api_event(
     )
     method = request_context.get("http", {}).get("method")
     path = event.get("rawPath")
-    resource = "{0} {1}".format(method, path)
+    resource_path = _get_resource_path(event, request_context)
+    resource = "{0} {1}".format(method, resource_path)
     tags = {
         "operation_name": "aws.httpapi",
         "endpoint": path,
