@@ -893,7 +893,8 @@ def create_inferred_span_from_api_gateway_event(
     )
     method = event.get("httpMethod")
     path = event.get("path")
-    resource = "{0} {1}".format(method, path)
+    resource_path = _get_resource_path(event, request_context)
+    resource = "{0} {1}".format(method, resource_path)
     tags = {
         "operation_name": "aws.apigateway.rest",
         "http.url": domain + path,
@@ -936,6 +937,16 @@ def create_inferred_span_from_api_gateway_event(
     return span
 
 
+def _get_resource_path(event, request_context):
+    route_key = request_context.get("routeKey") or ""
+    if "{" in route_key:
+        try:
+            return route_key.split(" ")[1]
+        except Exception as e:
+            logger.debug("Error parsing routeKey: %s", e)
+    return event.get("rawPath") or request_context.get("resourcePath") or route_key
+
+
 def create_inferred_span_from_http_api_event(
     event, context, decode_authorizer_context: bool = True
 ):
@@ -947,7 +958,8 @@ def create_inferred_span_from_http_api_event(
     )
     method = request_context.get("http", {}).get("method")
     path = event.get("rawPath")
-    resource = "{0} {1}".format(method, path)
+    resource_path = _get_resource_path(event, request_context)
+    resource = "{0} {1}".format(method, resource_path)
     tags = {
         "operation_name": "aws.httpapi",
         "endpoint": path,
