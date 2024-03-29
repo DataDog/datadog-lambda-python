@@ -4,23 +4,8 @@ from datadog_lambda import __version__
 from datadog_lambda.cold_start import get_cold_start_tag
 
 
-def _format_dd_lambda_layer_tag():
-    """
-    Formats the dd_lambda_layer tag, e.g., 'dd_lambda_layer:datadog-python39_1'
-    """
-    major, minor = sys.version_info[0], sys.version_info[1]
-    return f"dd_lambda_layer:datadog-python{major}{minor}_{__version__}"
-
-
-def tag_dd_lambda_layer(tags):
-    """
-    Used by lambda_metric to insert the dd_lambda_layer tag
-    """
-    dd_lambda_layer_tag = _format_dd_lambda_layer_tag()
-    if tags:
-        return tags + [dd_lambda_layer_tag]
-    else:
-        return [dd_lambda_layer_tag]
+_major, _minor = sys.version_info[0], sys.version_info[1]
+dd_lambda_layer_tag = f"dd_lambda_layer:datadog-python{_major}{_minor}_{__version__}"
 
 
 def parse_lambda_tags_from_arn(lambda_context):
