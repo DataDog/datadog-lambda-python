@@ -50,14 +50,14 @@ def is_new_sandbox():
 
 def get_cold_start_tag():
     """Returns the cold start tag to be used in metrics"""
-    return "cold_start:true" if is_cold_start() else "cold_start:false"
+    return "cold_start:true" if _cold_start else "cold_start:false"
 
 
 def get_proactive_init_tag():
     """Returns the proactive init tag to be used in metrics"""
     return (
         "proactive_initialization:true"
-        if is_proactive_init()
+        if _proactive_initialization
         else "proactive_initialization:false"
     )
 
