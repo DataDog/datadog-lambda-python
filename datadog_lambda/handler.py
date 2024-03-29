@@ -22,7 +22,7 @@ if path is None:
     )
 parts = path.rsplit(".", 1)
 if len(parts) != 2:
-    raise HandlerError("Value %s for DD_LAMBDA_HANDLER has invalid format." % path)
+    raise HandlerError(f"Value {path} for DD_LAMBDA_HANDLER has invalid format.")
 
 
 (mod_name, handler_name) = parts

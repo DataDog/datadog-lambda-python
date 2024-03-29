@@ -381,9 +381,8 @@ class _LambdaDecorator(object):
 
 
 def format_err_with_traceback(e):
-    return "Error {}. Traceback: {}".format(
-        e, traceback.format_exc().replace("\n", "\r")
-    )
+    tb = traceback.format_exc().replace("\n", "\r")
+    return f"Error {e}. Traceback: {tb}"
 
 
 datadog_lambda_wrapper = _LambdaDecorator

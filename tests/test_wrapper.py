@@ -66,9 +66,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_is_cold_start.return_value = True
         self.addCleanup(patcher.stop)
 
-        patcher = patch("datadog_lambda.tags.python_version_tuple")
+        patcher = patch("sys.version_info", (3, 9, 10))
         self.mock_python_version_tuple = patcher.start()
-        self.mock_python_version_tuple.return_value = ("3", "9", "10")
         self.addCleanup(patcher.stop)
 
         patcher = patch("datadog_lambda.metric.write_metric_point_to_stdout")

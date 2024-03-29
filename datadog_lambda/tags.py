@@ -1,7 +1,5 @@
 import sys
 
-from platform import python_version_tuple
-
 from datadog_lambda import __version__
 from datadog_lambda.cold_start import get_cold_start_tag
 
@@ -10,8 +8,8 @@ def _format_dd_lambda_layer_tag():
     """
     Formats the dd_lambda_layer tag, e.g., 'dd_lambda_layer:datadog-python39_1'
     """
-    runtime = "python{}{}".format(sys.version_info[0], sys.version_info[1])
-    return "dd_lambda_layer:datadog-{}_{}".format(runtime, __version__)
+    major, minor = sys.version_info[0], sys.version_info[1]
+    return f"dd_lambda_layer:datadog-python{major}{minor}_{__version__}"
 
 
 def tag_dd_lambda_layer(tags):
@@ -44,9 +42,9 @@ def parse_lambda_tags_from_arn(lambda_context):
 
     # Add the standard tags to a list
     tags = [
-        "region:{}".format(region),
-        "account_id:{}".format(account_id),
-        "functionname:{}".format(function_name),
+        f"region:{region}",
+        f"account_id:{account_id}",
+        f"functionname:{function_name}",
     ]
 
     # Check if we have a version or alias
@@ -56,12 +54,12 @@ def parse_lambda_tags_from_arn(lambda_context):
             alias = alias[1:]
         # Versions are numeric. Aliases need the executed version tag
         elif not check_if_number(alias):
-            tags.append("executedversion:{}".format(lambda_context.function_version))
+            tags.append(f"executedversion:{lambda_context.function_version}")
         # create resource tag with function name and alias/version
-        resource = "resource:{}:{}".format(function_name, alias)
+        resource = f"resource:{function_name}:{alias}"
     else:
         # Resource is only the function name otherwise
-        resource = "resource:{}".format(function_name)
+        resource = f"resource:{function_name}"
 
     tags.append(resource)
 
@@ -70,23 +68,20 @@ def parse_lambda_tags_from_arn(lambda_context):
 
 def get_runtime_tag():
     """Get the runtime tag from the current Python version"""
-    major_version, minor_version, _ = python_version_tuple()
-
-    return "runtime:python{major}.{minor}".format(
-        major=major_version, minor=minor_version
-    )
+    major, minor = sys.version_info[0], sys.version_info[1]
+    return f"runtime:python{major}.{minor}"
 
 
 def get_library_version_tag():
     """Get datadog lambda library tag"""
-    return "datadog_lambda:v{}".format(__version__)
+    return f"datadog_lambda:v{__version__}"
 
 
 def get_enhanced_metrics_tags(lambda_context):
     """Get the list of tags to apply to enhanced metrics"""
     return parse_lambda_tags_from_arn(lambda_context) + [
         get_cold_start_tag(),
-        "memorysize:{}".format(lambda_context.memory_limit_in_mb),
+        f"memorysize:{lambda_context.memory_limit_in_mb}",
         get_runtime_tag(),
         get_library_version_tag(),
     ]

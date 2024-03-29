@@ -204,9 +204,7 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
         distribution_id = (
             event_record.get("cf", {}).get("config", {}).get("distributionId")
         )
-        return "arn:{}:cloudfront::{}:distribution/{}".format(
-            aws_arn, account_id, distribution_id
-        )
+        return f"arn:{aws_arn}:cloudfront::{account_id}:distribution/{distribution_id}"
 
     # e.g. arn:aws:lambda:<region>:<account_id>:url:<function-name>:<function-qualifier>
     if source.equals(EventTypes.LAMBDA_FUNCTION_URL):
@@ -223,9 +221,9 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
     # e.g. arn:aws:apigateway:us-east-1::/restapis/xyz123/stages/default
     if source.event_type == EventTypes.API_GATEWAY:
         request_context = event.get("requestContext")
-        return "arn:{}:apigateway:{}::/restapis/{}/stages/{}".format(
-            aws_arn, region, request_context.get("apiId"), request_context.get("stage")
-        )
+        api_id = request_context.get("apiId")
+        stage = request_context.get("stage")
+        return f"arn:{aws_arn}:apigateway:{region}::/restapis/{api_id}/stages/{stage}"
 
     # e.g. arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/lambda-xyz/123
     if source.event_type == EventTypes.ALB:
@@ -240,9 +238,7 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
             data = b"".join(BufferedReader(decompress_stream))
         logs = json.loads(data)
         log_group = logs.get("logGroup", "cloudwatch")
-        return "arn:{}:logs:{}:{}:log-group:{}".format(
-            aws_arn, region, account_id, log_group
-        )
+        return f"arn:{aws_arn}:logs:{region}:{account_id}:log-group:{log_group}"
 
     # e.g. arn:aws:events:us-east-1:123456789012:rule/my-schedule
     if source.event_type == EventTypes.CLOUDWATCH_EVENTS and event.get("resources"):
