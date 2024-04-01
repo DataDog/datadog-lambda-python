@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 
-from datadog_lambda.tags import parse_lambda_tags_from_arn, get_runtime_tag
+from datadog_lambda.tags import parse_lambda_tags_from_arn
 
 
 def get_mock_context(
@@ -63,6 +63,3 @@ class TestMetricTags(unittest.TestCase):
                 "resource:swf-hello-test:my_alias-1",
             ],
         )
-
-    def test_get_runtime_tag(self):
-        self.assertEqual(get_runtime_tag(), "runtime:python3.12")

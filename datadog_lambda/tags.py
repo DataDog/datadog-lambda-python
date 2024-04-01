@@ -6,6 +6,7 @@ from datadog_lambda.cold_start import get_cold_start_tag
 
 _major, _minor = sys.version_info[0], sys.version_info[1]
 dd_lambda_layer_tag = f"dd_lambda_layer:datadog-python{_major}{_minor}_{__version__}"
+runtime_tag = f"runtime:python{_major}.{_minor}"
 
 
 def parse_lambda_tags_from_arn(lambda_context):
@@ -51,12 +52,6 @@ def parse_lambda_tags_from_arn(lambda_context):
     return tags
 
 
-def get_runtime_tag():
-    """Get the runtime tag from the current Python version"""
-    major, minor = sys.version_info[0], sys.version_info[1]
-    return f"runtime:python{major}.{minor}"
-
-
 def get_library_version_tag():
     """Get datadog lambda library tag"""
     return f"datadog_lambda:v{__version__}"
@@ -67,7 +62,7 @@ def get_enhanced_metrics_tags(lambda_context):
     return parse_lambda_tags_from_arn(lambda_context) + [
         get_cold_start_tag(),
         f"memorysize:{lambda_context.memory_limit_in_mb}",
-        get_runtime_tag(),
+        runtime_tag,
         get_library_version_tag(),
     ]
 
