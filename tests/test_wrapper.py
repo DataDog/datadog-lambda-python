@@ -61,9 +61,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_patch_all = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("datadog_lambda.cold_start.is_cold_start")
-        self.mock_is_cold_start = patcher.start()
-        self.mock_is_cold_start.return_value = True
+        patcher = patch("datadog_lambda.tags.get_cold_start_tag")
+        self.mock_get_cold_start_tag = patcher.start()
+        self.mock_get_cold_start_tag.return_value = "cold_start:true"
         self.addCleanup(patcher.stop)
 
         patcher = patch("sys.version_info", (3, 9, 10))
@@ -353,7 +353,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         lambda_handler(lambda_event, get_mock_context())
 
-        self.mock_is_cold_start.return_value = False
+        self.mock_get_cold_start_tag.return_value = "cold_start:false"
 
         lambda_handler(
             lambda_event, get_mock_context(aws_request_id="second-request-id")
