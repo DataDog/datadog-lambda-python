@@ -467,7 +467,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         )
 
     def test_no_enhanced_metrics_without_env_var(self):
-        os.environ["DD_ENHANCED_METRICS"] = "false"
+        patcher = patch("datadog_lambda.metric.enhanced_metrics_enabled", False)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -479,8 +481,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             lambda_handler(lambda_event, get_mock_context())
 
         self.mock_write_metric_point_to_stdout.assert_not_called()
-
-        del os.environ["DD_ENHANCED_METRICS"]
 
     def test_only_one_wrapper_in_use(self):
         patcher = patch("datadog_lambda.wrapper.submit_invocations_metric")

@@ -32,6 +32,10 @@ else:
     flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
     lambda_stats = ThreadStatsWriter(flush_in_thread)
 
+enhanced_metrics_enabled = (
+    os.environ.get("DD_ENHANCED_METRICS", "true").lower() == "true"
+)
+
 
 def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=False):
     """
@@ -90,16 +94,6 @@ def flush_stats():
     lambda_stats.flush()
 
 
-def are_enhanced_metrics_enabled():
-    """Check env var to find if enhanced metrics should be submitted
-
-    Returns:
-        boolean for whether enhanced metrics are enabled
-    """
-    # DD_ENHANCED_METRICS defaults to true
-    return os.environ.get("DD_ENHANCED_METRICS", "true").lower() == "true"
-
-
 def submit_enhanced_metric(metric_name, lambda_context):
     """Submits the enhanced metric with the given name
 
@@ -107,7 +101,7 @@ def submit_enhanced_metric(metric_name, lambda_context):
         metric_name (str): metric name w/o enhanced prefix i.e. "invocations" or "errors"
         lambda_context (dict): Lambda context dict passed to the function by AWS
     """
-    if not are_enhanced_metrics_enabled():
+    if not enhanced_metrics_enabled:
         logger.debug(
             "Not submitting enhanced metric %s because enhanced metrics are disabled",
             metric_name,

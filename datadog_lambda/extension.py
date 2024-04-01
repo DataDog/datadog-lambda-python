@@ -1,5 +1,5 @@
 import logging
-from os import path
+import os
 
 AGENT_URL = "http://127.0.0.1:8124"
 FLUSH_PATH = "/lambda/flush"
@@ -9,9 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def is_extension_present():
-    if path.exists(EXTENSION_PATH):
-        return True
-    return False
+    return os.path.exists(EXTENSION_PATH)
 
 
 def flush_extension():
