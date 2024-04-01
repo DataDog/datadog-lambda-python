@@ -9,7 +9,7 @@ import time
 import logging
 
 from datadog_lambda.extension import should_use_extension
-from datadog_lambda.tags import get_enhanced_metrics_tags, tag_dd_lambda_layer
+from datadog_lambda.tags import get_enhanced_metrics_tags, dd_lambda_layer_tag
 from datadog_lambda.api import init_api
 
 logger = logging.getLogger(__name__)
@@ -50,7 +50,8 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     and always use the layer to send metrics to the extension
     """
     flush_to_logs = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
-    tags = tag_dd_lambda_layer(tags)
+    tags = [] if tags is None else list(tags)
+    tags.append(dd_lambda_layer_tag)
 
     if should_use_extension:
         logger.debug(

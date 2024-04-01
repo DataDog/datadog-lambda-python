@@ -4,23 +4,10 @@ from datadog_lambda import __version__
 from datadog_lambda.cold_start import get_cold_start_tag
 
 
-def _format_dd_lambda_layer_tag():
-    """
-    Formats the dd_lambda_layer tag, e.g., 'dd_lambda_layer:datadog-python39_1'
-    """
-    major, minor = sys.version_info[0], sys.version_info[1]
-    return f"dd_lambda_layer:datadog-python{major}{minor}_{__version__}"
-
-
-def tag_dd_lambda_layer(tags):
-    """
-    Used by lambda_metric to insert the dd_lambda_layer tag
-    """
-    dd_lambda_layer_tag = _format_dd_lambda_layer_tag()
-    if tags:
-        return tags + [dd_lambda_layer_tag]
-    else:
-        return [dd_lambda_layer_tag]
+_major, _minor = sys.version_info[0], sys.version_info[1]
+dd_lambda_layer_tag = f"dd_lambda_layer:datadog-python{_major}{_minor}_{__version__}"
+runtime_tag = f"runtime:python{_major}.{_minor}"
+library_version_tag = f"datadog_lambda:v{__version__}"
 
 
 def parse_lambda_tags_from_arn(lambda_context):
@@ -30,12 +17,12 @@ def parse_lambda_tags_from_arn(lambda_context):
             ex: lambda_context.arn = arn:aws:lambda:us-east-1:123597598159:function:my-lambda:1
     """
     # Set up flag for extra testing to distinguish between a version or alias
-    hasAlias = False
+    has_alias = False
     # Cap the number of times to spli
     split_arn = lambda_context.invoked_function_arn.split(":")
 
     if len(split_arn) > 7:
-        hasAlias = True
+        has_alias = True
         _, _, _, region, account_id, _, function_name, alias = split_arn
     else:
         _, _, _, region, account_id, _, function_name = split_arn
@@ -48,7 +35,7 @@ def parse_lambda_tags_from_arn(lambda_context):
     ]
 
     # Check if we have a version or alias
-    if hasAlias:
+    if has_alias:
         # If $Latest, drop the $ for datadog tag convention. A lambda alias can't start with $
         if alias.startswith("$"):
             alias = alias[1:]
@@ -66,25 +53,14 @@ def parse_lambda_tags_from_arn(lambda_context):
     return tags
 
 
-def get_runtime_tag():
-    """Get the runtime tag from the current Python version"""
-    major, minor = sys.version_info[0], sys.version_info[1]
-    return f"runtime:python{major}.{minor}"
-
-
-def get_library_version_tag():
-    """Get datadog lambda library tag"""
-    return f"datadog_lambda:v{__version__}"
-
-
 def get_enhanced_metrics_tags(lambda_context):
     """Get the list of tags to apply to enhanced metrics"""
-    return parse_lambda_tags_from_arn(lambda_context) + [
-        get_cold_start_tag(),
-        f"memorysize:{lambda_context.memory_limit_in_mb}",
-        get_runtime_tag(),
-        get_library_version_tag(),
-    ]
+    tags = parse_lambda_tags_from_arn(lambda_context)
+    tags.append(get_cold_start_tag())
+    tags.append(f"memorysize:{lambda_context.memory_limit_in_mb}")
+    tags.append(runtime_tag)
+    tags.append(library_version_tag)
+    return tags
 
 
 def check_if_number(alias):

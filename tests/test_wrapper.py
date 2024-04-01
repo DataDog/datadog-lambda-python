@@ -66,25 +66,27 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_get_cold_start_tag.return_value = "cold_start:true"
         self.addCleanup(patcher.stop)
 
-        patcher = patch("sys.version_info", (3, 9, 10))
-        self.mock_python_version_tuple = patcher.start()
+        patcher = patch("datadog_lambda.tags.runtime_tag", "runtime:python3.9")
+        self.mock_runtime_tag = patcher.start()
         self.addCleanup(patcher.stop)
 
         patcher = patch("datadog_lambda.metric.write_metric_point_to_stdout")
         self.mock_write_metric_point_to_stdout = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("datadog_lambda.tags.get_library_version_tag")
-        self.mock_format_dd_lambda_layer_tag = patcher.start()
-        # Mock the layer version so we don't have to update tests on every version bump
-        self.mock_format_dd_lambda_layer_tag.return_value = "datadog_lambda:v6.6.6"
-
-        patcher = patch("datadog_lambda.tags._format_dd_lambda_layer_tag")
-        self.mock_format_dd_lambda_layer_tag = patcher.start()
-        # Mock the layer version so we don't have to update tests on every version bump
-        self.mock_format_dd_lambda_layer_tag.return_value = (
-            "dd_lambda_layer:datadog-python39_X.X.X"
+        patcher = patch(
+            "datadog_lambda.tags.library_version_tag", "datadog_lambda:v6.6.6"
         )
+        # Mock the layer version so we don't have to update tests on every version bump
+        self.mock_library_version_tag = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch(
+            "datadog_lambda.metric.dd_lambda_layer_tag",
+            "dd_lambda_layer:datadog-python39_X.X.X",
+        )
+        # Mock the layer version so we don't have to update tests on every version bump
+        self.mock_dd_lambda_layer_tag = patcher.start()
         self.addCleanup(patcher.stop)
 
     def test_datadog_lambda_wrapper(self):
