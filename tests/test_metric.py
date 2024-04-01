@@ -23,12 +23,11 @@ class TestLambdaMetric(unittest.TestCase):
         lambda_metric("test", 1)
         lambda_metric("test", 1, 123, [])
         lambda_metric("test", 1, tags=["tag1:test"])
-        expected_tag = dd_lambda_layer_tag
         self.mock_metric_lambda_stats.distribution.assert_has_calls(
             [
-                call("test", 1, timestamp=None, tags=[expected_tag]),
-                call("test", 1, timestamp=123, tags=[expected_tag]),
-                call("test", 1, timestamp=None, tags=["tag1:test", expected_tag]),
+                call("test", 1, timestamp=None, tags=[dd_lambda_layer_tag]),
+                call("test", 1, timestamp=123, tags=[dd_lambda_layer_tag]),
+                call("test", 1, timestamp=None, tags=["tag1:test", dd_lambda_layer_tag]),
             ]
         )
 
@@ -37,9 +36,8 @@ class TestLambdaMetric(unittest.TestCase):
     def test_lambda_metric_flush_to_log_with_extension(self):
         os.environ["DD_FLUSH_TO_LOG"] = "True"
         lambda_metric("test", 1)
-        expected_tag = dd_lambda_layer_tag
         self.mock_metric_lambda_stats.distribution.assert_has_calls(
-            [call("test", 1, timestamp=None, tags=[expected_tag])]
+            [call("test", 1, timestamp=None, tags=[dd_lambda_layer_tag])]
         )
         del os.environ["DD_FLUSH_TO_LOG"]
 
