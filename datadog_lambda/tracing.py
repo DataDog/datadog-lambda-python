@@ -530,7 +530,7 @@ def get_dd_trace_context_obj():
     except Exception as e:
         logger.debug(
             "get_dd_trace_context couldn't read from segment from x-ray, with error %s",
-            e
+            e,
         )
     if not xray_context:
         return None
