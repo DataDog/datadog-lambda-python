@@ -1,3 +1,11 @@
 Component,Origin,License,Copyright
-flake8,gitlab.com/pycqa/flake8,MIT,"Copyright (C) 2011-2013 Tarek Ziade <tarek@ziade.org>. Copyright (C) 2012-2016 Ian Cordasco <graffatcolmingov@gmail.com>."
+datadog,github.com/DataDog/datadogpy,BSD-3-Clause,"Copyright (c) 2015-Present Datadog, Inc <opensource@datadoghq.com>"
 wrapt,github.com/GrahamDumpleton/wrapt,BSD-2-Clause,"Copyright (c) 2013-2019, Graham Dumpleton"
+ddtrace,github.com/DataDog/dd-trace-py,BSD-3-Clause,"Copyright (c) 2016, Datadog <info@datadoghq.com>"
+urllib3,github.com/urllib3/urllib3,MIT,Copyright (c) 2008-2020 Andrey Petrov and contributors.
+importlib_metadata,github.com/python/importlib_metadata,Apache-2.0,Copyright © Jason R. Coombs
+boto3,github.com/boto/boto3,Apache-2.0,"Copyright 2013-2017 Amazon.com, Inc. or its affiliates. All Rights Reserved."
+typing_extensions,github.com/python/typing_extensions,PSF-2.0,"Copyright (c) 1991 - 1995, Stichting Mathematisch Centrum Amsterdam, The Netherlands. All rights reserved"
+requests,github.com/psf/requests,Apache-2.0,"Copyright 2018 Kenneth Reitz"
+pytest,github.com/pytest-dev/pytest,MIT,Copyright (c) 2004 Holger Krekel and others
+flake8,gitlab.com/pycqa/flake8,MIT,"Copyright (C) 2011-2013 Tarek Ziade <tarek@ziade.org>. Copyright (C) 2012-2016 Ian Cordasco <graffatcolmingov@gmail.com>."
