@@ -27,7 +27,9 @@ class TestLambdaMetric(unittest.TestCase):
             [
                 call("test", 1, timestamp=None, tags=[dd_lambda_layer_tag]),
                 call("test", 1, timestamp=123, tags=[dd_lambda_layer_tag]),
-                call("test", 1, timestamp=None, tags=["tag1:test", dd_lambda_layer_tag]),
+                call(
+                    "test", 1, timestamp=None, tags=["tag1:test", dd_lambda_layer_tag]
+                ),
             ]
         )
 

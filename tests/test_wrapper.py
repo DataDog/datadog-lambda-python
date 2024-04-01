@@ -74,7 +74,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_write_metric_point_to_stdout = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("datadog_lambda.tags.library_version_tag", "datadog_lambda:v6.6.6")
+        patcher = patch(
+            "datadog_lambda.tags.library_version_tag", "datadog_lambda:v6.6.6"
+        )
         # Mock the layer version so we don't have to update tests on every version bump
         self.mock_library_version_tag = patcher.start()
         self.addCleanup(patcher.stop)
