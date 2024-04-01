@@ -529,8 +529,8 @@ def get_dd_trace_context_obj():
         xray_context = _get_xray_trace_context()  # xray (sub)segment
     except Exception as e:
         logger.debug(
-            "get_dd_trace_context couldn't read from segment from x-ray, with error %s"
-            % e
+            "get_dd_trace_context couldn't read from segment from x-ray, with error %s",
+            e
         )
     if not xray_context:
         return None
@@ -1051,7 +1051,7 @@ def create_inferred_span_from_sqs_event(event, context):
 
         except Exception as e:
             logger.debug(
-                "Unable to create upstream span from SQS message, with error %s" % e
+                "Unable to create upstream span from SQS message, with error %s", e
             )
             pass
 
