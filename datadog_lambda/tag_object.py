@@ -30,17 +30,17 @@ def tag_object(span, key, obj, depth=0):
         return span.set_tag(key, str(obj))
     if isinstance(obj, list):
         for k, v in enumerate(obj):
-            formatted_key = "{}.{}".format(key, k)
+            formatted_key = f"{key}.{k}"
             tag_object(span, formatted_key, v, depth)
         return
     if hasattr(obj, "items"):
         for k, v in obj.items():
-            formatted_key = "{}.{}".format(key, k)
+            formatted_key = f"{key}.{k}"
             tag_object(span, formatted_key, v, depth)
         return
     if hasattr(obj, "to_dict"):
         for k, v in obj.to_dict().items():
-            formatted_key = "{}.{}".format(key, k)
+            formatted_key = f"{key}.{k}"
             tag_object(span, formatted_key, v, depth)
         return
     try:

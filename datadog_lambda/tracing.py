@@ -734,7 +734,7 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
     service_name = determine_service_name(service_mapping, api_id, "lambda_url", domain)
     method = request_context.get("http", {}).get("method")
     path = request_context.get("http", {}).get("path")
-    resource = "{0} {1}".format(method, path)
+    resource = f"{method} {path}"
     tags = {
         "operation_name": "aws.lambda.url",
         "http.url": domain + path,
@@ -894,7 +894,7 @@ def create_inferred_span_from_api_gateway_event(
     method = event.get("httpMethod")
     path = event.get("path")
     resource_path = _get_resource_path(event, request_context)
-    resource = "{0} {1}".format(method, resource_path)
+    resource = f"{method} {resource_path}"
     tags = {
         "operation_name": "aws.apigateway.rest",
         "http.url": domain + path,
@@ -959,7 +959,7 @@ def create_inferred_span_from_http_api_event(
     method = request_context.get("http", {}).get("method")
     path = event.get("rawPath")
     resource_path = _get_resource_path(event, request_context)
-    resource = "{0} {1}".format(method, resource_path)
+    resource = f"{method} {resource_path}"
     tags = {
         "operation_name": "aws.httpapi",
         "endpoint": path,

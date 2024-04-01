@@ -18,7 +18,7 @@ def get_mock_context(
 
 class TestMetricTags(unittest.TestCase):
     def setUp(self):
-        patcher = patch("datadog_lambda.tags.python_version_tuple")
+        patcher = patch("sys.version_info", (3, 12, 0))
         self.mock_python_version_tuple = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -65,5 +65,4 @@ class TestMetricTags(unittest.TestCase):
         )
 
     def test_get_runtime_tag(self):
-        self.mock_python_version_tuple.return_value = ("3", "12", "0")
         self.assertEqual(get_runtime_tag(), "runtime:python3.12")
