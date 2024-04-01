@@ -31,11 +31,11 @@ def send(host_port_tuple, payload):
         sock.connect(host_port_tuple)
         sock.send(payload.encode("utf-8"))
     except Exception as e_send:
-        logger.error("Error occurred submitting to xray daemon: %s", str(e_send))
+        logger.error("Error occurred submitting to xray daemon: %s", e_send)
     try:
         sock.close()
     except Exception as e_close:
-        logger.error("Error while closing the socket: %s", str(e_close))
+        logger.error("Error while closing the socket: %s", e_close)
 
 
 def build_segment_payload(payload):
