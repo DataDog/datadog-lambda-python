@@ -47,11 +47,11 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "http.status_code": "200",
           "peer.service": "integration-tests-python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
@@ -236,16 +236,16 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
@@ -415,16 +415,16 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
@@ -603,16 +603,16 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "http.status_code": "200",
           "peer.service": "integration-tests-python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "http"
       },
@@ -792,16 +792,16 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
@@ -974,16 +974,16 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
@@ -1073,6 +1073,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
   ]
 }
 HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "Content-Encoding:deflate", "Content-Length:XXXX", "Content-Type:application/json", "DD-API-KEY:XXXX", "User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)", "traceparent:XXX", "tracestate:XXX
+END Duration: XXXX ms Memory Used: XXXX MB
 {
   "traces": [
     [
@@ -1111,7 +1112,6 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
     ]
   ]
 }
-END Duration: XXXX ms Memory Used: XXXX MB
 START
 {
   "m": "aws.lambda.enhanced.invocations",
@@ -1157,16 +1157,16 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
@@ -1339,16 +1339,16 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
@@ -1527,16 +1527,16 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "
           "_inferred_span.tag_source": "self",
           "http.status_code": "200",
           "peer.service": "integration-tests-python",
+          "_dd.peer.service.source": "peer.service",
+          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python"
+          "language": "python"
         },
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
