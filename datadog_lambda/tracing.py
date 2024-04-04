@@ -253,19 +253,13 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
             # SQS uses dataType and binaryValue/stringValue
             # SNS uses Type and Value
             dd_json_data = None
-            dd_json_data_type = dd_payload.get("Type")
-            if dd_json_data_type is None:
-                dd_json_data_type = dd_payload.get("dataType")
+            dd_json_data_type = dd_payload.get("Type") or dd_payload.get("dataType")
             if dd_json_data_type == "Binary":
-                dd_json_data = dd_payload.get("binaryValue")
-                if dd_json_data is None:
-                    dd_json_data = dd_payload.get("Value")
+                dd_json_data = dd_payload.get("binaryValue") or dd_payload.get("Value")
                 if dd_json_data:
                     dd_json_data = base64.b64decode(dd_json_data)
             elif dd_json_data_type == "String":
-                dd_json_data = dd_payload.get("stringValue")
-                if dd_json_data is None:
-                    dd_json_data = dd_payload.get("Value")
+                dd_json_data = dd_payload.get("stringValue") or dd_payload.get("Value")
             else:
                 logger.debug(
                     "Datadog Lambda Python only supports extracting trace"
