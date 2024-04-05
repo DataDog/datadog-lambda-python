@@ -3,7 +3,7 @@ import json
 import os
 import unittest
 
-from unittest.mock import patch, call, ANY, MagicMock
+from unittest.mock import patch, call, ANY
 from datadog_lambda.constants import TraceHeader
 
 import datadog_lambda.wrapper as wrapper
@@ -12,21 +12,7 @@ from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 from ddtrace import Span, tracer
 from ddtrace.internal.constants import MAX_UINT_64BITS
 
-
-def get_mock_context(
-    aws_request_id="request-id-1",
-    memory_limit_in_mb="256",
-    invoked_function_arn="arn:aws:lambda:us-west-1:123457598159:function:python-layer-test:1",
-    function_version="1",
-    client_context={},
-):
-    lambda_context = MagicMock()
-    lambda_context.aws_request_id = aws_request_id
-    lambda_context.memory_limit_in_mb = memory_limit_in_mb
-    lambda_context.invoked_function_arn = invoked_function_arn
-    lambda_context.function_version = function_version
-    lambda_context.client_context = client_context
-    return lambda_context
+from tests.utils import get_mock_context
 
 
 class TestDatadogLambdaWrapper(unittest.TestCase):
@@ -232,7 +218,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "resource:python-layer-test:1",
+                        "resource:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
                         "runtime:python3.9",
@@ -263,7 +249,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "resource:python-layer-test:1",
+                        "resource:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
                         "runtime:python3.9",
@@ -279,7 +265,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "resource:python-layer-test:1",
+                        "resource:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
                         "runtime:python3.9",
@@ -318,7 +304,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "resource:python-layer-test:1",
+                        "resource:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
                         "runtime:python3.9",
@@ -334,7 +320,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "resource:python-layer-test:1",
+                        "resource:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
                         "runtime:python3.9",
@@ -370,7 +356,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "resource:python-layer-test:1",
+                        "resource:python-layer-test",
                         "cold_start:true",
                         "memorysize:256",
                         "runtime:python3.9",
@@ -386,7 +372,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                         "region:us-west-1",
                         "account_id:123457598159",
                         "functionname:python-layer-test",
-                        "resource:python-layer-test:1",
+                        "resource:python-layer-test",
                         "cold_start:false",
                         "memorysize:256",
                         "runtime:python3.9",

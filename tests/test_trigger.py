@@ -11,14 +11,10 @@ from datadog_lambda.trigger import (
     extract_http_status_code_tag,
 )
 
+from tests.utils import get_mock_context
+
 event_samples = "tests/event_samples/"
 function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
-
-
-def get_mock_context(invoked_function_arn=function_arn):
-    lambda_context = MagicMock()
-    lambda_context.invoked_function_arn = invoked_function_arn
-    return lambda_context
 
 
 class TestGetEventSourceAndARN(unittest.TestCase):

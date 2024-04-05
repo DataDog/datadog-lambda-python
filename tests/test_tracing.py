@@ -5,7 +5,7 @@ import pytest
 import os
 import unittest
 
-from unittest.mock import MagicMock, Mock, patch, call
+from unittest.mock import Mock, patch, call
 
 import ddtrace
 
@@ -39,6 +39,9 @@ from datadog_lambda.tracing import (
 )
 from datadog_lambda.trigger import EventTypes
 
+from tests.utils import get_mock_context
+
+
 function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
 
 fake_xray_header_value = (
@@ -48,29 +51,6 @@ fake_xray_header_value_parent_decimal = "10713633173203262661"
 fake_xray_header_value_root_decimal = "3995693151288333088"
 
 event_samples = "tests/event_samples/"
-
-
-class ClientContext(object):
-    def __init__(self, custom=None):
-        self.custom = custom
-
-
-def get_mock_context(
-    aws_request_id="request-id-1",
-    memory_limit_in_mb="256",
-    invoked_function_arn=function_arn,
-    function_version="1",
-    function_name="Function",
-    custom=None,
-):
-    lambda_context = MagicMock()
-    lambda_context.aws_request_id = aws_request_id
-    lambda_context.memory_limit_in_mb = memory_limit_in_mb
-    lambda_context.invoked_function_arn = invoked_function_arn
-    lambda_context.function_version = function_version
-    lambda_context.function_name = function_name
-    lambda_context.client_context = ClientContext(custom)
-    return lambda_context
 
 
 def with_trace_propagation_style(style):
