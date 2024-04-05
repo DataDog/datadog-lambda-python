@@ -1,7 +1,5 @@
 import unittest
 
-from unittest.mock import patch, call, MagicMock
-
 from datadog_lambda.module_name import modify_module_name
 
 
