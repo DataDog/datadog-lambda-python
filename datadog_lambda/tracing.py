@@ -66,6 +66,8 @@ if dd_tracing_enabled:
 
         telemetry_writer.enable()
 
+is_lambda_context = os.environ.get(XrayDaemon.FUNCTION_NAME_HEADER_NAME) != ""
+
 propagator = HTTPPropagator()
 
 DD_TRACE_JAVA_TRACE_ID_PADDING = "00000000"
@@ -93,7 +95,7 @@ def _convert_xray_sampling(xray_sampled):
 
 
 def _get_xray_trace_context():
-    if not is_lambda_context():
+    if not is_lambda_context:
         return None
 
     xray_trace_entity = parse_xray_header(
@@ -109,11 +111,7 @@ def _get_xray_trace_context():
     logger.debug(
         "Converted trace context %s from X-Ray segment %s",
         trace_context,
-        (
-            xray_trace_entity["trace_id"],
-            xray_trace_entity["parent_id"],
-            xray_trace_entity["sampled"],
-        ),
+        xray_trace_entity,
     )
     return trace_context
 
@@ -124,7 +122,9 @@ def _get_dd_trace_py_context():
         return None
 
     logger.debug(
-        "found dd trace context: %s", (span.context.trace_id, span.context.span_id)
+        "found dd trace context: trace_id=%s span_id=%s",
+        span.context.trace_id,
+        span.context.span_id,
     )
     return span.context
 
@@ -235,37 +235,31 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 
         # logic to deal with SNS => SQS event
         if "body" in first_record:
-            body_str = first_record.get("body", {})
+            body_str = first_record.get("body")
             try:
                 body = json.loads(body_str)
                 if body.get("Type", "") == "Notification" and "TopicArn" in body:
                     logger.debug("Found SNS message inside SQS event")
                     first_record = get_first_record(create_sns_event(body))
             except Exception:
-                first_record = event.get("Records")[0]
                 pass
 
-        msg_attributes = first_record.get(
-            "messageAttributes",
-            first_record.get("Sns", {}).get("MessageAttributes", {}),
-        )
-        dd_payload = msg_attributes.get("_datadog", {})
+        msg_attributes = first_record.get("messageAttributes")
+        if msg_attributes is None:
+            sns_record = first_record.get("Sns") or {}
+            msg_attributes = sns_record.get("MessageAttributes") or {}
+        dd_payload = msg_attributes.get("_datadog")
         if dd_payload:
             # SQS uses dataType and binaryValue/stringValue
             # SNS uses Type and Value
             dd_json_data = None
-            dd_json_data_type = dd_payload.get("Type", dd_payload.get("dataType", ""))
+            dd_json_data_type = dd_payload.get("Type") or dd_payload.get("dataType")
             if dd_json_data_type == "Binary":
-                dd_json_data = dd_payload.get(
-                    "binaryValue",
-                    dd_payload.get("Value", r"{}"),
-                )
-                dd_json_data = base64.b64decode(dd_json_data)
+                dd_json_data = dd_payload.get("binaryValue") or dd_payload.get("Value")
+                if dd_json_data:
+                    dd_json_data = base64.b64decode(dd_json_data)
             elif dd_json_data_type == "String":
-                dd_json_data = dd_payload.get(
-                    "stringValue",
-                    dd_payload.get("Value", r"{}"),
-                )
+                dd_json_data = dd_payload.get("stringValue") or dd_payload.get("Value")
             else:
                 logger.debug(
                     "Datadog Lambda Python only supports extracting trace"
@@ -278,23 +272,25 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
-            x_ray_header = first_record.get("attributes", {}).get("AWSTraceHeader")
-            if x_ray_header:
-                x_ray_context = parse_xray_header(x_ray_header)
-                trace_id_parts = x_ray_context.get("trace_id", "").split("-")
-                if len(trace_id_parts) > 2 and trace_id_parts[2].startswith(
-                    DD_TRACE_JAVA_TRACE_ID_PADDING
-                ):
-                    # If it starts with eight 0's padding,
-                    # then this AWSTraceHeader contains Datadog injected trace context
-                    logger.debug(
-                        "Found dd-trace injected trace context from AWSTraceHeader"
-                    )
-                    return Context(
-                        trace_id=int(trace_id_parts[2][8:], 16),
-                        span_id=int(int(x_ray_context["parent_id"], 16)),
-                        sampling_priority=float(x_ray_context["sampled"]),
-                    )
+            attrs = first_record.get("attributes")
+            if attrs:
+                x_ray_header = attrs.get("AWSTraceHeader")
+                if x_ray_header:
+                    x_ray_context = parse_xray_header(x_ray_header)
+                    trace_id_parts = x_ray_context.get("trace_id", "").split("-")
+                    if len(trace_id_parts) > 2 and trace_id_parts[2].startswith(
+                        DD_TRACE_JAVA_TRACE_ID_PADDING
+                    ):
+                        # If it starts with eight 0's padding,
+                        # then this AWSTraceHeader contains Datadog injected trace context
+                        logger.debug(
+                            "Found dd-trace injected trace context from AWSTraceHeader"
+                        )
+                        return Context(
+                            trace_id=int(trace_id_parts[2][8:], 16),
+                            span_id=int(x_ray_context["parent_id"], 16),
+                            sampling_priority=float(x_ray_context["sampled"]),
+                        )
         return extract_context_from_lambda_context(lambda_context)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
@@ -339,21 +335,22 @@ def extract_context_from_kinesis_event(event, lambda_context):
     """
     try:
         record = get_first_record(event)
-        data = record.get("kinesis", {}).get("data", None)
+        kinesis = record.get("kinesis")
+        if not kinesis:
+            return extract_context_from_lambda_context(lambda_context)
+        data = kinesis.get("data")
         if data:
             b64_bytes = data.encode("ascii")
             str_bytes = base64.b64decode(b64_bytes)
             data_str = str_bytes.decode("ascii")
             data_obj = json.loads(data_str)
             dd_ctx = data_obj.get("_datadog")
-
-        if not dd_ctx:
-            return extract_context_from_lambda_context(lambda_context)
-
-        return propagator.extract(dd_ctx)
+            if dd_ctx:
+                return propagator.extract(dd_ctx)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
-        return extract_context_from_lambda_context(lambda_context)
+
+    return extract_context_from_lambda_context(lambda_context)
 
 
 def _deterministic_md5_hash(s: str) -> int:
@@ -380,7 +377,7 @@ def extract_context_from_step_functions(event, lambda_context):
         state_entered_time = event.get("State").get("EnteredTime")
         trace_id = _deterministic_md5_hash(execution_id)
         parent_id = _deterministic_md5_hash(
-            execution_id + "#" + state_name + "#" + state_entered_time
+            f"{execution_id}#{state_name}#{state_entered_time}"
         )
         sampling_priority = SamplingPriority.AUTO_KEEP
         return Context(
@@ -396,11 +393,7 @@ def extract_context_custom_extractor(extractor, event, lambda_context):
     Extract Datadog trace context using a custom trace extractor function
     """
     try:
-        (
-            trace_id,
-            parent_id,
-            sampling_priority,
-        ) = extractor(event, lambda_context)
+        trace_id, parent_id, sampling_priority = extractor(event, lambda_context)
         return Context(
             trace_id=int(trace_id),
             span_id=int(parent_id),
@@ -426,15 +419,20 @@ def is_authorizer_response(response) -> bool:
 
 def get_injected_authorizer_data(event, is_http_api) -> dict:
     try:
-        authorizer_headers = event.get("requestContext", {}).get("authorizer")
+        req_ctx = event.get("requestContext")
+        if not req_ctx:
+            return None
+        authorizer_headers = req_ctx.get("authorizer")
         if not authorizer_headers:
             return None
 
-        dd_data_raw = (
-            authorizer_headers.get("lambda", {}).get("_datadog")
-            if is_http_api
-            else authorizer_headers.get("_datadog")
-        )
+        if is_http_api:
+            lambda_hdr = authorizer_headers.get("lambda")
+            if not lambda_hdr:
+                return None
+            dd_data_raw = lambda_hdr.get("_datadog")
+        else:
+            dd_data_raw = authorizer_headers.get("_datadog")
 
         if not dd_data_raw:
             return None
@@ -448,16 +446,19 @@ def get_injected_authorizer_data(event, is_http_api) -> dict:
         # that case, we use the injected Authorizing_Request_Id to tell if it's cached. But token
         # authorizers don't pass on the requestId. The Authorizing_Request_Id can't work for all
         # cases neither. As a result, we combine both methods as shown below.
-        if authorizer_headers.get("integrationLatency", 0) > 0 or event.get(
-            "requestContext", {}
-        ).get("requestId") == injected_data.get(Headers.Authorizing_Request_Id):
+        if authorizer_headers.get("integrationLatency", 0) > 0:
             return injected_data
-        else:
+        req_ctx = event.get("requestContext")
+        if not req_ctx:
             return None
+        if req_ctx.get("requestId") == injected_data.get(
+            Headers.Authorizing_Request_Id
+        ):
+            return injected_data
+        return None
 
     except Exception as e:
         logger.debug("Failed to check if invocated by an authorizer. error %s", e)
-        return None
 
 
 def extract_dd_trace_context(
@@ -569,7 +570,7 @@ def set_correlation_ids():
 
     TODO: Remove me when Datadog tracer is natively supported in Lambda.
     """
-    if not is_lambda_context():
+    if not is_lambda_context:
         logger.debug("set_correlation_ids is only supported in LambdaContext")
         return
     if dd_tracing_enabled:
@@ -613,14 +614,6 @@ def inject_correlation_ids():
     logger.debug("logs injection configured")
 
 
-def is_lambda_context():
-    """
-    Return True if the X-Ray context is `LambdaContext`, rather than the
-    regular `Context` (e.g., when testing lambda functions locally).
-    """
-    return os.environ.get(XrayDaemon.FUNCTION_NAME_HEADER_NAME, "") != ""
-
-
 def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
     if trace_context_source == TraceContextSource.EVENT or merge_xray_traces:
         context = Context(
@@ -635,8 +628,9 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
 
         tracer.context_provider.activate(context)
         logger.debug(
-            "Set dd trace root context to: %s",
-            (context.trace_id, context.span_id),
+            "Set dd trace root context to: trace_id=%s span_id=%s",
+            context.trace_id,
+            context.span_id,
         )
 
 
@@ -697,9 +691,7 @@ def create_inferred_span(
             event_source.to_string(),
             e,
         )
-        return None
     logger.debug("Unable to infer a span: unknown event type")
-    return None
 
 
 def create_service_mapping(val):
@@ -721,10 +713,11 @@ def determine_service_name(service_mapping, specific_key, generic_key, default_v
     return service_name
 
 
-service_mapping = {}
 # Initialization code
 service_mapping_str = os.getenv("DD_SERVICE_MAPPING", "")
 service_mapping = create_service_mapping(service_mapping_str)
+
+_dd_origin = {"_dd.origin": "lambda"}
 
 
 def create_inferred_span_from_lambda_function_url_event(event, context):
@@ -732,8 +725,9 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
     api_id = request_context.get("apiId")
     domain = request_context.get("domainName")
     service_name = determine_service_name(service_mapping, api_id, "lambda_url", domain)
-    method = request_context.get("http", {}).get("method")
-    path = request_context.get("http", {}).get("path")
+    http = request_context.get("http")
+    method = http.get("method") if http else None
+    path = http.get("path") if http else None
     resource = f"{method} {path}"
     tags = {
         "operation_name": "aws.lambda.url",
@@ -744,16 +738,11 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
         "request_id": context.aws_request_id,
     }
     request_time_epoch = request_context.get("timeEpoch")
-    args = {
-        "service": service_name,
-        "resource": resource,
-        "span_type": "http",
-    }
-    tracer.set_tags(
-        {"_dd.origin": "lambda"}
-    )  # function urls don't count as lambda_inferred,
+    tracer.set_tags(_dd_origin)  # function urls don't count as lambda_inferred,
     # because they're in the same service as the inferring lambda function
-    span = tracer.trace("aws.lambda.url", **args)
+    span = tracer.trace(
+        "aws.lambda.url", service=service_name, resource=resource, span_type="http"
+    )
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     if span:
         span.set_tags(tags)
@@ -762,7 +751,10 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
 
 
 def is_api_gateway_invocation_async(event):
-    return event.get("headers", {}).get("X-Amz-Invocation-Type") == "Event"
+    hdrs = event.get("headers")
+    if not hdrs:
+        return False
+    return hdrs.get("X-Amz-Invocation-Type") == "Event"
 
 
 def insert_upstream_authorizer_span(
@@ -862,7 +854,7 @@ def create_inferred_span_from_api_gateway_websocket_event(
         "resource": endpoint,
         "span_type": "web",
     }
-    tracer.set_tags({"_dd.origin": "lambda"})
+    tracer.set_tags(_dd_origin)
     upstream_authorizer_span = None
     finish_time_ns = None
     if decode_authorizer_context:
@@ -916,7 +908,7 @@ def create_inferred_span_from_api_gateway_event(
         "resource": resource,
         "span_type": "http",
     }
-    tracer.set_tags({"_dd.origin": "lambda"})
+    tracer.set_tags(_dd_origin)
     upstream_authorizer_span = None
     finish_time_ns = None
     if decode_authorizer_context:
@@ -956,7 +948,8 @@ def create_inferred_span_from_http_api_event(
     service_name = determine_service_name(
         service_mapping, api_id, "lambda_api_gateway", domain
     )
-    method = request_context.get("http", {}).get("method")
+    http = request_context.get("http") or {}
+    method = http.get("method")
     path = event.get("rawPath")
     resource_path = _get_resource_path(event, request_context)
     resource = f"{method} {resource_path}"
@@ -964,10 +957,10 @@ def create_inferred_span_from_http_api_event(
         "operation_name": "aws.httpapi",
         "endpoint": path,
         "http.url": domain + path,
-        "http.method": request_context.get("http", {}).get("method"),
-        "http.protocol": request_context.get("http", {}).get("protocol"),
-        "http.source_ip": request_context.get("http", {}).get("sourceIp"),
-        "http.user_agent": request_context.get("http", {}).get("userAgent"),
+        "http.method": http.get("method"),
+        "http.protocol": http.get("protocol"),
+        "http.source_ip": http.get("sourceIp"),
+        "http.user_agent": http.get("userAgent"),
         "resource_names": resource,
         "request_id": context.aws_request_id,
         "apiid": api_id,
@@ -979,12 +972,7 @@ def create_inferred_span_from_http_api_event(
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     else:
         InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
-    args = {
-        "service": service_name,
-        "resource": resource,
-        "span_type": "http",
-    }
-    tracer.set_tags({"_dd.origin": "lambda"})
+    tracer.set_tags(_dd_origin)
     inferred_span_start_ns = request_time_epoch_ms * 1e6
     if decode_authorizer_context:
         injected_authorizer_data = get_injected_authorizer_data(event, True)
@@ -992,7 +980,9 @@ def create_inferred_span_from_http_api_event(
             inferred_span_start_ns = injected_authorizer_data.get(
                 Headers.Parent_Span_Finish_Time
             )
-    span = tracer.trace("aws.httpapi", **args)
+    span = tracer.trace(
+        "aws.httpapi", service=service_name, resource=resource, span_type="http"
+    )
     if span:
         span.set_tags(tags)
         span.start_ns = int(inferred_span_start_ns)
@@ -1008,21 +998,17 @@ def create_inferred_span_from_sqs_event(event, context):
     service_name = determine_service_name(
         service_mapping, queue_name, "lambda_sqs", "sqs"
     )
+    attrs = event_record.get("attributes") or {}
     tags = {
         "operation_name": "aws.sqs",
         "resource_names": queue_name,
         "queuename": queue_name,
         "event_source_arn": event_source_arn,
         "receipt_handle": event_record.get("receiptHandle"),
-        "sender_id": event_record.get("attributes", {}).get("SenderId"),
+        "sender_id": attrs.get("SenderId"),
     }
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
-    request_time_epoch = event_record.get("attributes", {}).get("SentTimestamp")
-    args = {
-        "service": service_name,
-        "resource": queue_name,
-        "span_type": "web",
-    }
+    request_time_epoch = attrs.get("SentTimestamp")
     start_time = int(request_time_epoch) / 1000
 
     upstream_span = None
@@ -1058,8 +1044,10 @@ def create_inferred_span_from_sqs_event(event, context):
     # trace context needs to be set again as it is reset
     # when sns_span.finish executes
     tracer.context_provider.activate(trace_ctx)
-    tracer.set_tags({"_dd.origin": "lambda"})
-    span = tracer.trace("aws.sqs", **args)
+    tracer.set_tags(_dd_origin)
+    span = tracer.trace(
+        "aws.sqs", service=service_name, resource=queue_name, span_type="web"
+    )
     if span:
         span.set_tags(tags)
     span.start = start_time
@@ -1071,8 +1059,8 @@ def create_inferred_span_from_sqs_event(event, context):
 
 def create_inferred_span_from_sns_event(event, context):
     event_record = get_first_record(event)
-    sns_message = event_record.get("Sns")
-    topic_arn = event_record.get("Sns", {}).get("TopicArn")
+    sns_message = event_record.get("Sns") or {}
+    topic_arn = sns_message.get("TopicArn")
     topic_name = topic_arn.split(":")[-1]
     service_name = determine_service_name(
         service_mapping, topic_name, "lambda_sns", "sns"
@@ -1087,21 +1075,19 @@ def create_inferred_span_from_sns_event(event, context):
     }
 
     # Subject not available in SNS => SQS scenario
-    if "Subject" in sns_message and sns_message["Subject"]:
-        tags["subject"] = sns_message.get("Subject")
+    subject = sns_message.get("Subject")
+    if subject:
+        tags["subject"] = subject
 
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
     sns_dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
-    timestamp = event_record.get("Sns", {}).get("Timestamp")
+    timestamp = sns_message.get("Timestamp")
     dt = datetime.strptime(timestamp, sns_dt_format)
 
-    args = {
-        "service": service_name,
-        "resource": topic_name,
-        "span_type": "web",
-    }
-    tracer.set_tags({"_dd.origin": "lambda"})
-    span = tracer.trace("aws.sns", **args)
+    tracer.set_tags(_dd_origin)
+    span = tracer.trace(
+        "aws.sns", service=service_name, resource=topic_name, span_type="web"
+    )
     if span:
         span.set_tags(tags)
     span.start = dt.replace(tzinfo=timezone.utc).timestamp()
@@ -1117,6 +1103,7 @@ def create_inferred_span_from_kinesis_event(event, context):
     service_name = determine_service_name(
         service_mapping, stream_name, "lambda_kinesis", "kinesis"
     )
+    kinesis = event_record.get("kinesis") or {}
     tags = {
         "operation_name": "aws.kinesis",
         "resource_names": stream_name,
@@ -1126,20 +1113,15 @@ def create_inferred_span_from_kinesis_event(event, context):
         "event_id": event_id,
         "event_name": event_record.get("eventName"),
         "event_version": event_record.get("eventVersion"),
-        "partition_key": event_record.get("kinesis", {}).get("partitionKey"),
+        "partition_key": kinesis.get("partitionKey"),
     }
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
-    request_time_epoch = event_record.get("kinesis", {}).get(
-        "approximateArrivalTimestamp"
-    )
+    request_time_epoch = kinesis.get("approximateArrivalTimestamp")
 
-    args = {
-        "service": service_name,
-        "resource": stream_name,
-        "span_type": "web",
-    }
-    tracer.set_tags({"_dd.origin": "lambda"})
-    span = tracer.trace("aws.kinesis", **args)
+    tracer.set_tags(_dd_origin)
+    span = tracer.trace(
+        "aws.kinesis", service=service_name, resource=stream_name, span_type="web"
+    )
     if span:
         span.set_tags(tags)
     span.start = request_time_epoch
@@ -1153,7 +1135,7 @@ def create_inferred_span_from_dynamodb_event(event, context):
     service_name = determine_service_name(
         service_mapping, table_name, "lambda_dynamodb", "dynamodb"
     )
-    dynamodb_message = event_record.get("dynamodb")
+    dynamodb_message = event_record.get("dynamodb") or {}
     tags = {
         "operation_name": "aws.dynamodb",
         "resource_names": table_name,
@@ -1166,16 +1148,11 @@ def create_inferred_span_from_dynamodb_event(event, context):
         "size_bytes": str(dynamodb_message.get("SizeBytes")),
     }
     InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
-    request_time_epoch = event_record.get("dynamodb", {}).get(
-        "ApproximateCreationDateTime"
+    request_time_epoch = dynamodb_message.get("ApproximateCreationDateTime")
+    tracer.set_tags(_dd_origin)
+    span = tracer.trace(
+        "aws.dynamodb", service=service_name, resource=table_name, span_type="web"
     )
-    args = {
-        "service": service_name,
-        "resource": table_name,
-        "span_type": "web",
-    }
-    tracer.set_tags({"_dd.origin": "lambda"})
-    span = tracer.trace("aws.dynamodb", **args)
     if span:
         span.set_tags(tags)
 
@@ -1185,7 +1162,10 @@ def create_inferred_span_from_dynamodb_event(event, context):
 
 def create_inferred_span_from_s3_event(event, context):
     event_record = get_first_record(event)
-    bucket_name = event_record.get("s3", {}).get("bucket", {}).get("name")
+    s3 = event_record.get("s3") or {}
+    bucket = s3.get("bucket") or {}
+    obj = s3.get("object") or {}
+    bucket_name = bucket.get("name")
     service_name = determine_service_name(
         service_mapping, bucket_name, "lambda_s3", "s3"
     )
@@ -1194,23 +1174,20 @@ def create_inferred_span_from_s3_event(event, context):
         "resource_names": bucket_name,
         "event_name": event_record.get("eventName"),
         "bucketname": bucket_name,
-        "bucket_arn": event_record.get("s3", {}).get("bucket", {}).get("arn"),
-        "object_key": event_record.get("s3", {}).get("object", {}).get("key"),
-        "object_size": str(event_record.get("s3", {}).get("object", {}).get("size")),
-        "object_etag": event_record.get("s3", {}).get("object", {}).get("eTag"),
+        "bucket_arn": bucket.get("arn"),
+        "object_key": obj.get("key"),
+        "object_size": str(obj.get("size")),
+        "object_etag": obj.get("eTag"),
     }
     InferredSpanInfo.set_tags(tags, synchronicity="async", tag_source="self")
     dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
     timestamp = event_record.get("eventTime")
     dt = datetime.strptime(timestamp, dt_format)
 
-    args = {
-        "service": service_name,
-        "resource": bucket_name,
-        "span_type": "web",
-    }
-    tracer.set_tags({"_dd.origin": "lambda"})
-    span = tracer.trace("aws.s3", **args)
+    tracer.set_tags(_dd_origin)
+    span = tracer.trace(
+        "aws.s3", service=service_name, resource=bucket_name, span_type="web"
+    )
     if span:
         span.set_tags(tags)
     span.start = dt.replace(tzinfo=timezone.utc).timestamp()
@@ -1236,13 +1213,10 @@ def create_inferred_span_from_eventbridge_event(event, context):
     timestamp = event.get("time")
     dt = datetime.strptime(timestamp, dt_format)
 
-    args = {
-        "service": service_name,
-        "resource": source,
-        "span_type": "web",
-    }
-    tracer.set_tags({"_dd.origin": "lambda"})
-    span = tracer.trace("aws.eventbridge", **args)
+    tracer.set_tags(_dd_origin)
+    span = tracer.trace(
+        "aws.eventbridge", service=service_name, resource=source, span_type="web"
+    )
     if span:
         span.set_tags(tags)
     span.start = dt.replace(tzinfo=timezone.utc).timestamp()
@@ -1259,7 +1233,7 @@ def create_function_execution_span(
     trigger_tags,
     parent_span=None,
 ):
-    tags = {}
+    tags = None
     if context:
         function_arn = (context.invoked_function_arn or "").lower()
         tk = function_arn.split(":")
@@ -1278,18 +1252,19 @@ def create_function_execution_span(
             "dd_trace": ddtrace_version,
             "span.name": "aws.lambda",
         }
+    tags = tags or {}
     if is_proactive_init:
         tags["proactive_initialization"] = str(is_proactive_init).lower()
     if trace_context_source == TraceContextSource.XRAY and merge_xray_traces:
         tags["_dd.parent_source"] = trace_context_source
     tags.update(trigger_tags)
-    args = {
-        "service": "aws.lambda",
-        "resource": function_name,
-        "span_type": "serverless",
-    }
-    tracer.set_tags({"_dd.origin": "lambda"})
-    span = tracer.trace("aws.lambda", **args)
+    tracer.set_tags(_dd_origin)
+    span = tracer.trace(
+        "aws.lambda",
+        service="aws.lambda",
+        resource=function_name,
+        span_type="serverless",
+    )
     if span:
         span.set_tags(tags)
     if parent_span:
