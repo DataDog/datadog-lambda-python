@@ -41,3 +41,5 @@ pip-log.txt
 
 node_modules
 yarn-lock.json
+
+.benchmarks
