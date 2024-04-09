@@ -30,13 +30,6 @@ class Socket(object):
         except Exception as e_send:
             logger.error("Error occurred submitting to xray daemon: %s", e_send)
 
-    def reset(self):
-        if hasattr(self, "_host_port_tuple"):
-            del self._host_port_tuple
-        if self.sock:
-            self.sock.close()
-            self.sock = None
-
     def _connect(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.sock.setblocking(0)

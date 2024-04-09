@@ -5,11 +5,12 @@ import os
 from unittest.mock import MagicMock, patch
 
 from datadog_lambda.xray import build_segment_payload, build_segment, send_segment, sock
+from tests.utils import reset_xray_connection
 
 
 class TestXRay(unittest.TestCase):
     def setUp(self):
-        sock.reset()
+        reset_xray_connection()
 
     def tearDown(self):
         if os.environ.get("_X_AMZN_TRACE_ID"):

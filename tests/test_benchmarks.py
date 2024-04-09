@@ -13,7 +13,7 @@ from datadog_lambda import xray
 
 from datadog_lambda.constants import XrayDaemon, XraySubsegment
 
-from tests.utils import get_mock_context
+from tests.utils import get_mock_context, reset_xray_connection
 
 
 event_samples_dir = "tests/event_samples"
@@ -74,7 +74,7 @@ def test_trigger_extract_trigger_tags(event, benchmark):
 
 
 def test_xray_send_segment(benchmark, monkeypatch):
-    xray.sock.reset()
+    reset_xray_connection()
 
     monkeypatch.setenv(XrayDaemon.XRAY_DAEMON_ADDRESS, "localhost:9000")
     monkeypatch.setenv(

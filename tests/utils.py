@@ -24,3 +24,13 @@ def get_mock_context(
     lambda_context.function_name = function_name
     lambda_context.client_context = ClientContext(custom)
     return lambda_context
+
+
+def reset_xray_connection():
+    from datadog_lambda.xray import sock
+
+    if hasattr(sock, "_host_port_tuple"):
+        del sock._host_port_tuple
+    if sock.sock:
+        sock.sock.close()
+        sock.sock = None

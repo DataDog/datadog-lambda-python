@@ -13,7 +13,7 @@ from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 from ddtrace import Span, tracer
 from ddtrace.internal.constants import MAX_UINT_64BITS
 
-from tests.utils import get_mock_context
+from tests.utils import get_mock_context, reset_xray_connection
 
 
 class TestDatadogLambdaWrapper(unittest.TestCase):
@@ -591,7 +591,7 @@ class TestLambdaWrapperWithTraceContext(unittest.TestCase):
         },
     )
     def test_event_bridge_sqs_payload(self):
-        xray.sock.reset()
+        reset_xray_connection()
 
         patcher = patch("datadog_lambda.xray.sock.send")
         mock_send = patcher.start()
