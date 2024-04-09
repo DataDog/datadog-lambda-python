@@ -20,7 +20,7 @@ except ModuleNotFoundError:
 __version__ = importlib_metadata.version(__name__)
 
 
-from datadog_lambda.logger import initialize_logging
+from datadog_lambda.logger import initialize_logging  # noqa: E402
 
 
 initialize_logging(__name__)
