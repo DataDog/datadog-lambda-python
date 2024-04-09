@@ -1,5 +1,4 @@
 from datadog_lambda.cold_start import initialize_cold_start_tracing
-from datadog_lambda.logger import initialize_logging
 import os
 
 
@@ -19,5 +18,9 @@ except ModuleNotFoundError:
     import importlib_metadata
 
 __version__ = importlib_metadata.version(__name__)
+
+
+from datadog_lambda.logger import initialize_logging  # noqa: E402
+
 
 initialize_logging(__name__)
