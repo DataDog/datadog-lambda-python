@@ -10,32 +10,52 @@ from datadog_lambda.constants import XrayDaemon, XraySubsegment, TraceContextSou
 logger = logging.getLogger(__name__)
 
 
-def get_xray_host_port(address):
-    if address == "":
-        logger.debug("X-Ray daemon env var not set, not sending sub-segment")
-        return None
-    parts = address.split(":")
-    if len(parts) <= 1:
-        logger.debug("X-Ray daemon env var not set, not sending sub-segment")
-        return None
-    port = int(parts[1])
-    host = parts[0]
-    return (host, port)
+class Socket(object):
+    def __init__(self):
+        self.sock = None
+
+    @property
+    def host_port_tuple(self):
+        if not hasattr(self, "_host_port_tuple"):
+            self._host_port_tuple = self._get_xray_host_port(
+                os.environ.get(XrayDaemon.XRAY_DAEMON_ADDRESS, "")
+            )
+        return self._host_port_tuple
+
+    def send(self, payload):
+        if not self.sock:
+            self._connect()
+        try:
+            self.sock.send(payload.encode("utf-8"))
+        except Exception as e_send:
+            logger.error("Error occurred submitting to xray daemon: %s", e_send)
+
+    def reset(self):
+        if hasattr(self, "_host_port_tuple"):
+            del self._host_port_tuple
+        if self.sock:
+            self.sock.close()
+            self.sock = None
+
+    def _connect(self):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock.setblocking(0)
+        self.sock.connect(self.host_port_tuple)
+
+    def _get_xray_host_port(self, address):
+        if address == "":
+            logger.debug("X-Ray daemon env var not set, not sending sub-segment")
+            return None
+        parts = address.split(":")
+        if len(parts) <= 1:
+            logger.debug("X-Ray daemon env var not set, not sending sub-segment")
+            return None
+        port = int(parts[1])
+        host = parts[0]
+        return (host, port)
 
 
-def send(host_port_tuple, payload):
-    sock = None
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.setblocking(0)
-        sock.connect(host_port_tuple)
-        sock.send(payload.encode("utf-8"))
-    except Exception as e_send:
-        logger.error("Error occurred submitting to xray daemon: %s", e_send)
-    try:
-        sock.close()
-    except Exception as e_close:
-        logger.error("Error while closing the socket: %s", e_close)
+sock = Socket()
 
 
 def build_segment_payload(payload):
@@ -95,10 +115,7 @@ def build_segment(context, key, metadata):
 
 
 def send_segment(key, metadata):
-    host_port_tuple = get_xray_host_port(
-        os.environ.get(XrayDaemon.XRAY_DAEMON_ADDRESS, "")
-    )
-    if host_port_tuple is None:
+    if sock.host_port_tuple is None:
         return None
     context = parse_xray_header(
         os.environ.get(XrayDaemon.XRAY_TRACE_ID_HEADER_NAME, "")
@@ -115,4 +132,4 @@ def send_segment(key, metadata):
         return None
     segment = build_segment(context, key, metadata)
     segment_payload = build_segment_payload(segment)
-    send(host_port_tuple, segment_payload)
+    sock.send(segment_payload)

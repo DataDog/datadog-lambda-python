@@ -4,15 +4,13 @@ import os
 
 from unittest.mock import MagicMock, patch
 
-from datadog_lambda.xray import (
-    get_xray_host_port,
-    build_segment_payload,
-    build_segment,
-    send_segment,
-)
+from datadog_lambda.xray import build_segment_payload, build_segment, send_segment, sock
 
 
 class TestXRay(unittest.TestCase):
+    def setUp(self):
+        sock.reset()
+
     def tearDown(self):
         if os.environ.get("_X_AMZN_TRACE_ID"):
             os.environ.pop("_X_AMZN_TRACE_ID")
@@ -21,15 +19,15 @@ class TestXRay(unittest.TestCase):
         return super().tearDown()
 
     def test_get_xray_host_port_empty_(self):
-        result = get_xray_host_port("")
+        result = sock._get_xray_host_port("")
         self.assertIsNone(result)
 
     def test_get_xray_host_port_invalid_value(self):
-        result = get_xray_host_port("myVar")
+        result = sock._get_xray_host_port("myVar")
         self.assertIsNone(result)
 
     def test_get_xray_host_port_success(self):
-        result = get_xray_host_port("mySuperHost:1000")
+        result = sock._get_xray_host_port("mySuperHost:1000")
         self.assertEqual("mySuperHost", result[0])
         self.assertEqual(1000, result[1])
 
@@ -40,7 +38,7 @@ class TestXRay(unittest.TestCase):
         ] = "Root=1-5e272390-8c398be037738dc042009320;Parent=94ae789b969f1cc5;Sampled=0;Lineage=c6c5b1b9:0"
 
         with patch(
-            "datadog_lambda.xray.send", MagicMock(return_value=None)
+            "datadog_lambda.xray.sock.send", MagicMock(return_value=None)
         ) as mock_send:
             # XRay trace won't be sampled according to the trace header.
             send_segment("my_key", {"data": "value"})
@@ -52,7 +50,7 @@ class TestXRay(unittest.TestCase):
             "_X_AMZN_TRACE_ID"
         ] = "Root=1-5e272390-8c398be037738dc042009320;Parent=94ae789b969f1cc5;Sampled=1;Lineage=c6c5b1b9:0"
         with patch(
-            "datadog_lambda.xray.send", MagicMock(return_value=None)
+            "datadog_lambda.xray.sock.send", MagicMock(return_value=None)
         ) as mock_send:
             # X-Ray trace will be sampled according to the trace header.
             send_segment("my_key", {"data": "value"})
