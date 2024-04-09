@@ -13,7 +13,7 @@ from datadog_lambda import xray
 
 from datadog_lambda.constants import XrayDaemon, XraySubsegment
 
-from tests.utils import get_mock_context
+from tests.utils import get_mock_context, reset_xray_connection
 
 
 event_samples_dir = "tests/event_samples"
@@ -74,14 +74,24 @@ def test_trigger_extract_trigger_tags(event, benchmark):
 
 
 def test_xray_send_segment(benchmark, monkeypatch):
+    reset_xray_connection()
+
     monkeypatch.setenv(XrayDaemon.XRAY_DAEMON_ADDRESS, "localhost:9000")
     monkeypatch.setenv(
         XrayDaemon.XRAY_TRACE_ID_HEADER_NAME,
         "Root=1-5e272390-8c398be037738dc042009320;Parent=94ae789b969f1cc5;Sampled=1;Lineage=c6c5b1b9:0",
     )
+
+    def socket_send(*a, **k):
+        sends.append(True)
+
+    sends = []
+    monkeypatch.setattr("socket.socket.send", socket_send)
+
     key = {
         "trace-id": "12345678901234567890123456789012",
         "parent-id": "1234567890123456",
         "sampling-priority": "1",
     }
     benchmark(xray.send_segment, XraySubsegment.TRACE_KEY, key)
+    assert sends

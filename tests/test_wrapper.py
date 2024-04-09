@@ -7,12 +7,13 @@ from unittest.mock import patch, call, ANY
 from datadog_lambda.constants import TraceHeader
 
 import datadog_lambda.wrapper as wrapper
+import datadog_lambda.xray as xray
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 from ddtrace import Span, tracer
 from ddtrace.internal.constants import MAX_UINT_64BITS
 
-from tests.utils import get_mock_context
+from tests.utils import get_mock_context, reset_xray_connection
 
 
 class TestDatadogLambdaWrapper(unittest.TestCase):
@@ -590,7 +591,9 @@ class TestLambdaWrapperWithTraceContext(unittest.TestCase):
         },
     )
     def test_event_bridge_sqs_payload(self):
-        patcher = patch("datadog_lambda.xray.send")
+        reset_xray_connection()
+
+        patcher = patch("datadog_lambda.xray.sock.send")
         mock_send = patcher.start()
         self.addCleanup(patcher.stop)
 
@@ -623,7 +626,7 @@ class TestLambdaWrapperWithTraceContext(unittest.TestCase):
         self.assertEqual(result.span_id, aws_lambda_span.span_id)
         self.assertEqual(result.sampling_priority, 1)
         mock_send.assert_called_once()
-        (_, raw_payload), _ = mock_send.call_args
+        (raw_payload,), _ = mock_send.call_args
         payload = json.loads(raw_payload[33:])  # strip formatting prefix
         self.assertEqual(self.xray_root, payload["trace_id"])
         self.assertEqual(self.xray_parent, payload["parent_id"])
