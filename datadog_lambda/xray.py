@@ -102,7 +102,8 @@ def build_segment(context, key, metadata):
                     key: metadata,
                 }
             },
-        }
+        },
+        escape_forward_slashes=False,
     )
     return segment
 

@@ -85,7 +85,8 @@ def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
                 "v": value,
                 "e": timestamp or int(time.time()),
                 "t": tags,
-            }
+            },
+            escape_forward_slashes=False,
         )
     )
 

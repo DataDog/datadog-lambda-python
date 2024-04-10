@@ -144,14 +144,14 @@ def _print_request_string(request):
         data = zlib.decompress(data)
     data_dict = json.loads(data)
     data_dict.get("series", []).sort(key=lambda series: series.get("metric"))
-    sorted_data = json.dumps(data_dict)
+    sorted_data = json.dumps(data_dict, escape_forward_slashes=False)
 
     # Sort headers to prevent any differences in ordering
     headers = request.headers or {}
     sorted_headers = sorted(
         "{}:{}".format(key, value) for key, value in headers.items()
     )
-    sorted_header_str = json.dumps(sorted_headers)
+    sorted_header_str = json.dumps(sorted_headers, escape_forward_slashes=False)
     print(
         "HTTP {} {} Headers: {} Data: {}".format(
             method, url, sorted_header_str, sorted_data
