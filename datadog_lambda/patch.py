@@ -3,11 +3,11 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
-import json
 import os
 import sys
 import logging
 import zlib
+import ujson as json
 
 from wrapt import wrap_function_wrapper as wrap
 from wrapt.importer import when_imported

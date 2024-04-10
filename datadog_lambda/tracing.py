@@ -5,8 +5,8 @@
 import hashlib
 import logging
 import os
-import json
 import base64
+import ujson as json
 from datetime import datetime, timezone
 from typing import Optional, Dict
 

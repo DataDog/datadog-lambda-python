@@ -6,8 +6,8 @@ import base64
 import os
 import logging
 import traceback
+import ujson as json
 from importlib import import_module
-import json
 from time import time_ns
 
 from datadog_lambda.extension import should_use_extension, flush_extension

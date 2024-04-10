@@ -4,8 +4,8 @@
 # Copyright 2021 Datadog, Inc.
 
 from decimal import Decimal
-import json
 import logging
+import ujson as json
 
 redactable_keys = ["authorization", "x-authorization", "password", "token"]
 max_depth = 10

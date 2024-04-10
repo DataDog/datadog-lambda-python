@@ -1,9 +1,9 @@
 import os
 import logging
-import json
 import binascii
 import time
 import socket
+import ujson as json
 
 from datadog_lambda.constants import XrayDaemon, XraySubsegment, TraceContextSource
 

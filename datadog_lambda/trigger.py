@@ -5,7 +5,7 @@
 
 import base64
 import gzip
-import json
+import ujson as json
 from io import BytesIO, BufferedReader
 from enum import Enum
 from typing import Any
