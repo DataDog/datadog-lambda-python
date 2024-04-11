@@ -3,11 +3,11 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
-import json
 import os
 import sys
 import logging
 import zlib
+import ujson as json
 
 from wrapt import wrap_function_wrapper as wrap
 from wrapt.importer import when_imported
@@ -144,14 +144,14 @@ def _print_request_string(request):
         data = zlib.decompress(data)
     data_dict = json.loads(data)
     data_dict.get("series", []).sort(key=lambda series: series.get("metric"))
-    sorted_data = json.dumps(data_dict)
+    sorted_data = json.dumps(data_dict, escape_forward_slashes=False)
 
     # Sort headers to prevent any differences in ordering
     headers = request.headers or {}
     sorted_headers = sorted(
         "{}:{}".format(key, value) for key, value in headers.items()
     )
-    sorted_header_str = json.dumps(sorted_headers)
+    sorted_header_str = json.dumps(sorted_headers, escape_forward_slashes=False)
     print(
         "HTTP {} {} Headers: {} Data: {}".format(
             method, url, sorted_header_str, sorted_data

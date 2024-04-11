@@ -1,9 +1,9 @@
 import os
 import logging
-import json
 import binascii
 import time
 import socket
+import ujson as json
 
 from datadog_lambda.constants import XrayDaemon, XraySubsegment, TraceContextSource
 
@@ -102,7 +102,8 @@ def build_segment(context, key, metadata):
                     key: metadata,
                 }
             },
-        }
+        },
+        escape_forward_slashes=False,
     )
     return segment
 

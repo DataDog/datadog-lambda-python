@@ -4,9 +4,9 @@
 # Copyright 2019 Datadog, Inc.
 
 import os
-import json
 import time
 import logging
+import ujson as json
 
 from datadog_lambda.extension import should_use_extension
 from datadog_lambda.tags import get_enhanced_metrics_tags, dd_lambda_layer_tag
@@ -85,7 +85,8 @@ def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
                 "v": value,
                 "e": timestamp or int(time.time()),
                 "t": tags,
-            }
+            },
+            escape_forward_slashes=False,
         )
     )
 
