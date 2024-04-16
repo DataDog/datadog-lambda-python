@@ -53,10 +53,11 @@ if [ "$CONT" != "y" ]; then
     echo "Skipping updating package.json version"
 else
     echo
-    echo "Replacing version in pyproject.toml"
+    echo "Replacing version in pyproject.toml and datadog_lambda/version.py"
     echo
 
     poetry version ${NEW_VERSION}
+    echo "__version__ = \"${NEW_VERSION}\"" > datadog_lambda/version.py
 fi
 
 echo
@@ -110,7 +111,7 @@ if [ "$CONT" != "y" ]; then
 else
     echo
     echo 'Publishing updates to github'
-    git commit pyproject.toml -m "Bump version to ${NEW_VERSION}"
+    git commit pyproject.toml datadog_lambda/version.py -m "Bump version to ${NEW_VERSION}"
     git push origin main
     git tag "v$LAYER_VERSION"
     git push origin "refs/tags/v$LAYER_VERSION"
