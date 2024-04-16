@@ -534,6 +534,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         lambda_context = get_mock_context()
         test_span = tracer.trace("test_span")
         trace_ctx = tracer.current_trace_context()
+        trace_ctx.sampling_priority = 1
         test_span.finish()
         lambda_handler.inferred_span = test_span
         lambda_handler.make_inferred_span = False
