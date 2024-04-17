@@ -1,6 +1,7 @@
 import copy
 import functools
 import json
+import traceback
 import pytest
 import os
 import unittest
@@ -36,6 +37,7 @@ from datadog_lambda.tracing import (
     determine_service_name,
     service_mapping as global_service_mapping,
     propagator,
+    emit_telemetry_on_exception_outside_of_handler,
 )
 from datadog_lambda.trigger import EventTypes
 
@@ -1999,3 +2001,48 @@ class TestStepFunctionsTraceContext(unittest.TestCase):
             # Leading zeros will be omitted, so only test for full 64 bits present
             if len(result_in_binary) == 66:  # "0b" + 64 bits.
                 self.assertTrue(result_in_binary.startswith("0b0"))
+
+
+class TestExceptionOutsideHandler(unittest.TestCase):
+    @patch("datadog_lambda.tracing.submit_errors_metric")
+    def test_exception_outside_handler(self, mock_submit_errors_metric):
+        fake_error = ValueError("Some error message")
+        resource_name = "my_handler"
+        span_type = "aws.lambda"
+        mock_span = Mock()
+        context = get_mock_context()
+        with patch(
+            "datadog_lambda.tracing.tracer.trace", return_value=mock_span
+        ) as mock_trace:
+            emit_telemetry_on_exception_outside_of_handler(
+                context, fake_error, resource_name, 42
+            )
+
+        mock_submit_errors_metric.assert_called_once_with(context)
+
+        mock_trace.assert_called_once_with(
+            span_type,
+            service="aws.lambda",
+            resource=resource_name,
+            span_type="serverless",
+        )
+        mock_span.set_tags.assert_called_once_with(
+            {
+                "error.status": 500,
+                "error.type": "ValueError",
+                "error.message": fake_error,
+                "error.stack": "".join(
+                    traceback.format_exception(
+                        type(fake_error), fake_error, fake_error.__traceback__
+                    )
+                ),
+                "resource_names": resource_name,
+                "resource.name": resource_name,
+                "operation_name": span_type,
+                "status": "error",
+                "request_id": context.aws_request_id,
+            }
+        )
+        mock_span.finish.assert_called_once()
+        assert mock_span.error == 1
+        assert mock_span.start_ns == 42

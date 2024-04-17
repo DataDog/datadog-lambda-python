@@ -6,6 +6,7 @@ import hashlib
 import logging
 import os
 import base64
+import traceback
 import ujson as json
 from datetime import datetime, timezone
 from typing import Optional, Dict
@@ -1320,3 +1321,38 @@ class InferredSpanInfo(object):
                 e,
             )
             return False
+
+
+def emit_telemetry_on_exception_outside_of_handler(
+    context, exception, resource_name, start_time_ns
+):
+    """
+    Emit an enhanced error metric and create a span for exceptions occuring outside of the handler
+    """
+    submit_errors_metric(context)
+
+    span = tracer.trace(
+        "aws.lambda",
+        service="aws.lambda",
+        resource=resource_name,
+        span_type="serverless",
+    )
+    span.start_ns = start_time_ns
+    tags = {
+        "error.status": 500,
+        "error.type": type(exception).__name__,
+        "error.message": exception,
+        "error.stack": "".join(
+            traceback.format_exception(
+                type(exception), exception, exception.__traceback__
+            )
+        ),
+        "resource_names": resource_name,
+        "resource.name": resource_name,
+        "operation_name": "aws.lambda",
+        "status": "error",
+        "request_id": context.aws_request_id,
+    }
+    span.set_tags(tags)
+    span.error = 1
+    span.finish()
