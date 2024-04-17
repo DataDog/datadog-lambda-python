@@ -26,7 +26,7 @@ RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/st
 RUN find . -name "*.dist-info" -type d | xargs rm -rf
 
 
-RUN python -m compileall -b ./python/lib/$runtime/site-packages
+RUN python -m compileall -o 2 -b ./python/lib/$runtime/site-packages
 RUN find ./python/lib/$runtime/site-packages -name \*.py -delete
 RUN find ./python/lib/$runtime/site-packages -name __pycache__ -type d -exec rm -r {} \+
 
