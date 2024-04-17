@@ -27,5 +27,9 @@ RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/li
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/ddup/_ddup.*.so
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/stack_v2/_stack_v2.*.so
 
+RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/contrib/pytest*
+RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/contrib/unittest
+RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/contrib/coverage
+
 FROM scratch
 COPY --from=builder /build/python /
