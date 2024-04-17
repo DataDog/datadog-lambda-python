@@ -11,9 +11,6 @@ WORKDIR /build
 COPY . .
 RUN pip install . -t ./python/lib/$runtime/site-packages
 
-# Remove *.pyc files
-RUN find ./python/lib/$runtime/site-packages -name \*.pyc -delete
-
 # Remove botocore (40MB) to reduce package size. aws-xray-sdk
 # installs it, while it's already provided by the Lambda Runtime.
 RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
@@ -28,6 +25,10 @@ RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/dd
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/stack_v2/_stack_v2.*.so
 RUN find . -name "*.dist-info" -type d | xargs rm -rf
 
+
+RUN python -m compileall -b ./python/lib/$runtime/site-packages
+RUN find ./python/lib/$runtime/site-packages -name \*.py -delete
+RUN find ./python/lib/$runtime/site-packages -name __pycache__ -type d -exec rm -r {} \+
 
 FROM scratch
 COPY --from=builder /build/python /
