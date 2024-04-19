@@ -27,12 +27,12 @@ RUN find . -name "*.dist-info" -type d | xargs rm -rf
 
 
 # Precompile all .pyc files and remove .py files. This speeds up load time.
-# Compile with optimization level 2 (-o 2) and PYTHONNODEBUGRANGES=1 to redtce
+# Compile with optimization level 2 (-OO) and PYTHONNODEBUGRANGES=1 to redtce
 # size of .pyc files.
 # See https://docs.python.org/3/tutorial/modules.html#compiled-python-files
 # https://docs.python.org/3.11/using/cmdline.html#cmdoption-O
 # https://docs.python.org/3/using/cmdline.html#envvar-PYTHONNODEBUGRANGES
-RUN PYTHONNODEBUGRANGES=1 python -m compileall -o 2 -b ./python/lib/$runtime/site-packages
+RUN PYTHONNODEBUGRANGES=1 python -OO -m compileall -b ./python/lib/$runtime/site-packages
 RUN find ./python/lib/$runtime/site-packages -name \*.py -delete
 RUN find ./python/lib/$runtime/site-packages -name __pycache__ -type d -exec rm -r {} \+
 
