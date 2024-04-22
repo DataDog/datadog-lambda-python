@@ -33,7 +33,10 @@ RUN find . -name "*.dist-info" -type d | xargs rm -rf
 # https://docs.python.org/3.11/using/cmdline.html#cmdoption-O
 # https://docs.python.org/3/using/cmdline.html#envvar-PYTHONNODEBUGRANGES
 RUN PYTHONNODEBUGRANGES=1 python -OO -m compileall -b ./python/lib/$runtime/site-packages
-RUN find ./python/lib/$runtime/site-packages -name \*.py -delete
+# remove all .py files except ddtrace/contrib/*/__init__.py which are necessary
+# for ddtrace.patch to discover instrumationation packages.
+RUN find ./python/lib/$runtime/site-packages -name \*.py | grep -v ddtrace/contrib | xargs rm -rf
+RUN find ./python/lib/$runtime/site-packages/ddtrace/contrib -name \*.py | grep -v __init__ | xargs rm -rf
 RUN find ./python/lib/$runtime/site-packages -name __pycache__ -type d -exec rm -r {} \+
 
 FROM scratch
