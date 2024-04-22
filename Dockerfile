@@ -25,7 +25,6 @@ RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/dd
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/stack_v2/_stack_v2.*.so
 RUN find . -name "*.dist-info" -type d | xargs rm -rf
 
-
 # Precompile all .pyc files and remove .py files. This speeds up load time.
 # Compile with optimization level 2 (-OO) and PYTHONNODEBUGRANGES=1 to redtce
 # size of .pyc files.
