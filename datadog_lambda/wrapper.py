@@ -44,6 +44,7 @@ from datadog_lambda.tracing import (
     is_authorizer_response,
     tracer,
     propagator,
+    emit_telemetry_on_exception_outside_of_handler,
 )
 from datadog_lambda.trigger import (
     extract_trigger_tags,
@@ -382,9 +383,31 @@ class _LambdaDecorator(object):
             logger.error(format_err_with_traceback(e))
 
 
+class _ErrorFallbackHandler(object):
+    """
+    Fallback handler for when an exception occurs outside of the handler function.
+    Emits telemetry and re-raises the exception.
+    """
+
+    def __init__(self, exception, modified_mod_name, start_time_ns):
+        self.exception = exception
+        self.modified_mod_name = modified_mod_name
+        self.start_time_ns = start_time_ns
+
+    def __call__(self, event, context, **kwargs):
+        emit_telemetry_on_exception_outside_of_handler(
+            context,
+            self.exception,
+            self.modified_mod_name,
+            self.start_time_ns,
+        )
+        raise self.exception
+
+
 def format_err_with_traceback(e):
     tb = traceback.format_exc().replace("\n", "\r")
     return f"Error {e}. Traceback: {tb}"
 
 
 datadog_lambda_wrapper = _LambdaDecorator
+error_fallback_handler = _ErrorFallbackHandler

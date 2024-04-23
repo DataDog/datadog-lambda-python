@@ -30,7 +30,7 @@ class TestHandler(unittest.TestCase):
             )
 
     @patch.dict(os.environ, {"DD_LAMBDA_HANDLER": "nonsense.nonsense"}, clear=True)
-    @patch("datadog_lambda.tracing.emit_telemetry_on_exception_outside_of_handler")
+    @patch("datadog_lambda.wrapper.emit_telemetry_on_exception_outside_of_handler")
     @patch("time.time_ns", return_value=42)
     def test_exception_importing_module(self, mock_time, mock_emit_telemetry):
         with self.assertRaises(ModuleNotFoundError) as test_context:
@@ -44,7 +44,7 @@ class TestHandler(unittest.TestCase):
 
     @patch.dict(os.environ, {"DD_LAMBDA_HANDLER": "nonsense.nonsense"}, clear=True)
     @patch("importlib.import_module", return_value=None)
-    @patch("datadog_lambda.tracing.emit_telemetry_on_exception_outside_of_handler")
+    @patch("datadog_lambda.wrapper.emit_telemetry_on_exception_outside_of_handler")
     @patch("time.time_ns", return_value=42)
     def test_exception_getting_handler_func(
         self, mock_time, mock_emit_telemetry, mock_import
@@ -60,7 +60,7 @@ class TestHandler(unittest.TestCase):
 
     @patch.dict(os.environ, {"DD_LAMBDA_HANDLER": "nonsense.nonsense"}, clear=True)
     @patch("importlib.import_module")
-    @patch("datadog_lambda.tracing.emit_telemetry_on_exception_outside_of_handler")
+    @patch("datadog_lambda.wrapper.emit_telemetry_on_exception_outside_of_handler")
     @patch("time.time_ns", return_value=42)
     @patch("datadog_lambda.wrapper.datadog_lambda_wrapper")
     def test_handler_success(
