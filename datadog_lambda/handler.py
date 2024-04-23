@@ -18,7 +18,7 @@ class HandlerError(Exception):
     pass
 
 
-class _ErrorOutsideHandlerDecorator(object):
+class _ErrorFallbackHandler(object):
     """
     Decorator for when an exception occurs outside of the handler function.
     Emits telemetry and re-raises the exception.
@@ -58,4 +58,4 @@ try:
     handler_func = getattr(handler_module, handler_name)
     handler = datadog_lambda_wrapper(handler_func)
 except Exception as e:
-    handler = _ErrorOutsideHandlerDecorator(e, modified_mod_name, start_time_ns)
+    handler = _ErrorFallbackHandler(e, modified_mod_name, start_time_ns)
