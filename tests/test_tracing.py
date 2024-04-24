@@ -2005,7 +2005,8 @@ class TestStepFunctionsTraceContext(unittest.TestCase):
 
 class TestExceptionOutsideHandler(unittest.TestCase):
     @patch("datadog_lambda.tracing.submit_errors_metric")
-    def test_exception_outside_handler(self, mock_submit_errors_metric):
+    @patch("datadog_lambda.tracing.time_ns", return_value=100)
+    def test_exception_outside_handler(self, mock_time, mock_submit_errors_metric):
         fake_error = ValueError("Some error message")
         resource_name = "my_handler"
         span_type = "aws.lambda"
@@ -2045,4 +2046,4 @@ class TestExceptionOutsideHandler(unittest.TestCase):
         )
         mock_span.finish.assert_called_once()
         assert mock_span.error == 1
-        assert mock_span.start_ns == 42
+        assert mock_span.start_ns == 58

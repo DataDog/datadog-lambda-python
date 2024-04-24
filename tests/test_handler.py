@@ -39,7 +39,7 @@ class TestHandler(unittest.TestCase):
             lambda_context = get_mock_context()
             datadog_lambda.handler.handler.__call__(None, lambda_context)
         mock_emit_telemetry.assert_called_once_with(
-            lambda_context, test_context.exception, "nonsense", 42
+            lambda_context, test_context.exception, "nonsense", 0
         )
 
     @patch.dict(os.environ, {"DD_LAMBDA_HANDLER": "nonsense.nonsense"}, clear=True)
@@ -55,16 +55,15 @@ class TestHandler(unittest.TestCase):
             lambda_context = get_mock_context()
             datadog_lambda.handler.handler.__call__(None, lambda_context)
         mock_emit_telemetry.assert_called_once_with(
-            lambda_context, test_context.exception, "nonsense", 42
+            lambda_context, test_context.exception, "nonsense", 0
         )
 
     @patch.dict(os.environ, {"DD_LAMBDA_HANDLER": "nonsense.nonsense"}, clear=True)
     @patch("importlib.import_module")
     @patch("datadog_lambda.wrapper.emit_telemetry_on_exception_outside_of_handler")
-    @patch("time.time_ns", return_value=42)
     @patch("datadog_lambda.wrapper.datadog_lambda_wrapper")
     def test_handler_success(
-        self, mock_lambda_wrapper, mock_time, mock_emit_telemetry, mock_import
+        self, mock_lambda_wrapper, mock_emit_telemetry, mock_import
     ):
         def nonsense():
             pass

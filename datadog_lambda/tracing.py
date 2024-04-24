@@ -9,6 +9,7 @@ import base64
 import traceback
 import ujson as json
 from datetime import datetime, timezone
+from time import time_ns
 from typing import Optional, Dict
 
 from datadog_lambda.metric import submit_errors_metric
@@ -1324,7 +1325,7 @@ class InferredSpanInfo(object):
 
 
 def emit_telemetry_on_exception_outside_of_handler(
-    context, exception, resource_name, start_time_ns
+    context, exception, resource_name, handler_load_duration
 ):
     """
     Emit an enhanced error metric and create a span for exceptions occuring outside of the handler
@@ -1337,7 +1338,8 @@ def emit_telemetry_on_exception_outside_of_handler(
         resource=resource_name,
         span_type="serverless",
     )
-    span.start_ns = start_time_ns
+    span.start_ns = time_ns() - handler_load_duration
+
     tags = {
         "error.status": 500,
         "error.type": type(exception).__name__,

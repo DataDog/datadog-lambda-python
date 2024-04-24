@@ -389,17 +389,17 @@ class _ErrorFallbackHandler(object):
     Emits telemetry and re-raises the exception.
     """
 
-    def __init__(self, exception, modified_mod_name, start_time_ns):
+    def __init__(self, exception, modified_mod_name, handler_load_duration_ns):
         self.exception = exception
         self.modified_mod_name = modified_mod_name
-        self.start_time_ns = start_time_ns
+        self.handler_load_duration_ns = handler_load_duration_ns
 
     def __call__(self, event, context, **kwargs):
         emit_telemetry_on_exception_outside_of_handler(
             context,
             self.exception,
             self.modified_mod_name,
-            self.start_time_ns,
+            self.handler_load_duration_ns,
         )
         raise self.exception
 

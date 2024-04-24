@@ -7,7 +7,7 @@ from __future__ import absolute_import
 from importlib import import_module
 
 import os
-import time
+from time import time_ns
 
 from datadog_lambda.wrapper import datadog_lambda_wrapper, error_fallback_handler
 from datadog_lambda.module_name import modify_module_name
@@ -31,9 +31,11 @@ if len(parts) != 2:
 modified_mod_name = modify_module_name(mod_name)
 
 try:
-    start_time_ns = time.time_ns()
+    handler_load_start_time_ns = time_ns()
     handler_module = import_module(modified_mod_name)
     handler_func = getattr(handler_module, handler_name)
     handler = datadog_lambda_wrapper(handler_func)
 except Exception as e:
-    handler = error_fallback_handler(e, modified_mod_name, start_time_ns)
+    handler = error_fallback_handler(
+        e, modified_mod_name, time_ns() - handler_load_start_time_ns
+    )
