@@ -746,7 +746,7 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     if span:
         span.set_tags(tags)
-    span.start = request_time_epoch / 1000
+        span.start_ns = int(request_time_epoch) * 1e6
     return span
 
 
