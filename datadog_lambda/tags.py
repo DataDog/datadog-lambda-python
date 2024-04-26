@@ -55,9 +55,12 @@ def parse_lambda_tags_from_arn(lambda_context):
 
 def get_enhanced_metrics_tags(lambda_context):
     """Get the list of tags to apply to enhanced metrics"""
-    tags = parse_lambda_tags_from_arn(lambda_context)
+    if lambda_context:
+        tags = parse_lambda_tags_from_arn(lambda_context)
+        tags.append(f"memorysize:{lambda_context.memory_limit_in_mb}")
+    else:
+        tags = []
     tags.append(get_cold_start_tag())
-    tags.append(f"memorysize:{lambda_context.memory_limit_in_mb}")
     tags.append(runtime_tag)
     tags.append(library_version_tag)
     return tags

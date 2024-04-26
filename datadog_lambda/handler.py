@@ -9,7 +9,8 @@ from importlib import import_module
 import os
 from time import time_ns
 
-from datadog_lambda.wrapper import datadog_lambda_wrapper, error_fallback_handler
+from datadog_lambda.tracing import emit_telemetry_on_exception_outside_of_handler
+from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog_lambda.module_name import modify_module_name
 
 
@@ -34,8 +35,12 @@ try:
     handler_load_start_time_ns = time_ns()
     handler_module = import_module(modified_mod_name)
     handler_func = getattr(handler_module, handler_name)
-    handler = datadog_lambda_wrapper(handler_func)
 except Exception as e:
-    handler = error_fallback_handler(
-        e, modified_mod_name, time_ns() - handler_load_start_time_ns
+    emit_telemetry_on_exception_outside_of_handler(
+        e,
+        modified_mod_name,
+        handler_load_start_time_ns,
     )
+    raise
+
+handler = datadog_lambda_wrapper(handler_func)

@@ -2006,7 +2006,7 @@ class TestStepFunctionsTraceContext(unittest.TestCase):
 class TestExceptionOutsideHandler(unittest.TestCase):
     @patch("datadog_lambda.tracing.dd_tracing_enabled", True)
     @patch("datadog_lambda.tracing.submit_errors_metric")
-    @patch("datadog_lambda.tracing.time_ns", return_value=100)
+    @patch("time.time_ns", return_value=42)
     def test_exception_outside_handler_tracing_enabled(
         self, mock_time, mock_submit_errors_metric
     ):
@@ -2014,15 +2014,14 @@ class TestExceptionOutsideHandler(unittest.TestCase):
         resource_name = "my_handler"
         span_type = "aws.lambda"
         mock_span = Mock()
-        context = get_mock_context()
         with patch(
             "datadog_lambda.tracing.tracer.trace", return_value=mock_span
         ) as mock_trace:
             emit_telemetry_on_exception_outside_of_handler(
-                context, fake_error, resource_name, 42
+                fake_error, resource_name, 42
             )
 
-        mock_submit_errors_metric.assert_called_once_with(context)
+        mock_submit_errors_metric.assert_called_once_with(None)
 
         mock_trace.assert_called_once_with(
             span_type,
@@ -2035,35 +2034,29 @@ class TestExceptionOutsideHandler(unittest.TestCase):
                 "error.status": 500,
                 "error.type": "ValueError",
                 "error.message": fake_error,
-                "error.stack": "".join(
-                    traceback.format_exception(
-                        type(fake_error), fake_error, fake_error.__traceback__
-                    )
-                ),
+                "error.stack": traceback.format_exc(),
                 "resource_names": resource_name,
                 "resource.name": resource_name,
                 "operation_name": span_type,
                 "status": "error",
-                "request_id": context.aws_request_id,
             }
         )
         mock_span.finish.assert_called_once()
         assert mock_span.error == 1
-        assert mock_span.start_ns == 58
+        assert mock_span.start_ns == 42
 
     @patch("datadog_lambda.tracing.dd_tracing_enabled", False)
     @patch("datadog_lambda.tracing.submit_errors_metric")
-    @patch("datadog_lambda.tracing.time_ns", return_value=100)
+    @patch("time.time_ns", return_value=42)
     def test_exception_outside_handler_tracing_disabled(
         self, mock_time, mock_submit_errors_metric
     ):
         fake_error = ValueError("Some error message")
         resource_name = "my_handler"
-        context = get_mock_context()
         with patch("datadog_lambda.tracing.tracer.trace") as mock_trace:
             emit_telemetry_on_exception_outside_of_handler(
-                context, fake_error, resource_name, 42
+                fake_error, resource_name, 42
             )
 
-        mock_submit_errors_metric.assert_called_once_with(context)
+        mock_submit_errors_metric.assert_called_once_with(None)
         mock_trace.assert_not_called()

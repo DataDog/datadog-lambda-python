@@ -30,21 +30,19 @@ class TestHandler(unittest.TestCase):
             )
 
     @patch.dict(os.environ, {"DD_LAMBDA_HANDLER": "nonsense.nonsense"}, clear=True)
-    @patch("datadog_lambda.wrapper.emit_telemetry_on_exception_outside_of_handler")
+    @patch("datadog_lambda.tracing.emit_telemetry_on_exception_outside_of_handler")
     @patch("time.time_ns", return_value=42)
     def test_exception_importing_module(self, mock_time, mock_emit_telemetry):
         with self.assertRaises(ModuleNotFoundError) as test_context:
             import datadog_lambda.handler
 
-            lambda_context = get_mock_context()
-            datadog_lambda.handler.handler.__call__(None, lambda_context)
         mock_emit_telemetry.assert_called_once_with(
-            lambda_context, test_context.exception, "nonsense", 0
+            test_context.exception, "nonsense", 42
         )
 
     @patch.dict(os.environ, {"DD_LAMBDA_HANDLER": "nonsense.nonsense"}, clear=True)
     @patch("importlib.import_module", return_value=None)
-    @patch("datadog_lambda.wrapper.emit_telemetry_on_exception_outside_of_handler")
+    @patch("datadog_lambda.tracing.emit_telemetry_on_exception_outside_of_handler")
     @patch("time.time_ns", return_value=42)
     def test_exception_getting_handler_func(
         self, mock_time, mock_emit_telemetry, mock_import
@@ -52,15 +50,13 @@ class TestHandler(unittest.TestCase):
         with self.assertRaises(AttributeError) as test_context:
             import datadog_lambda.handler
 
-            lambda_context = get_mock_context()
-            datadog_lambda.handler.handler.__call__(None, lambda_context)
         mock_emit_telemetry.assert_called_once_with(
-            lambda_context, test_context.exception, "nonsense", 0
+            test_context.exception, "nonsense", 42
         )
 
     @patch.dict(os.environ, {"DD_LAMBDA_HANDLER": "nonsense.nonsense"}, clear=True)
     @patch("importlib.import_module")
-    @patch("datadog_lambda.wrapper.emit_telemetry_on_exception_outside_of_handler")
+    @patch("datadog_lambda.tracing.emit_telemetry_on_exception_outside_of_handler")
     @patch("datadog_lambda.wrapper.datadog_lambda_wrapper")
     def test_handler_success(
         self, mock_lambda_wrapper, mock_emit_telemetry, mock_import
@@ -71,9 +67,6 @@ class TestHandler(unittest.TestCase):
         mock_import.nonsense.return_value = nonsense
 
         import datadog_lambda.handler
-
-        lambda_context = get_mock_context()
-        datadog_lambda.handler.handler.__call__(None, lambda_context)
 
         mock_emit_telemetry.assert_not_called()
         mock_lambda_wrapper.assert_called_once_with(mock_import().nonsense)
