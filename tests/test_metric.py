@@ -43,6 +43,18 @@ class TestLambdaMetric(unittest.TestCase):
         )
         del os.environ["DD_FLUSH_TO_LOG"]
 
+    @patch("datadog_lambda.metric.should_use_extension", True)
+    def test_lambda_metric_timestamp_with_extension(self):
+        patcher = patch("datadog_lambda.metric.extension_thread_stats")
+        self.mock_metric_extension_thread_stats = patcher.start()
+        self.addCleanup(patcher.stop)
+        
+        lambda_metric("test_timestamp", 1, 123)
+        self.mock_metric_lambda_stats.distribution.assert_not_called()
+        self.mock_metric_extension_thread_stats.distribution.assert_called_with(
+            "test_timestamp", 1, timestamp=123, tags=[dd_lambda_layer_tag]
+        )
+
     def test_lambda_metric_flush_to_log(self):
         os.environ["DD_FLUSH_TO_LOG"] = "True"
 

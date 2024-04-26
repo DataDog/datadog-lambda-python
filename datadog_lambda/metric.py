@@ -10,13 +10,13 @@ import ujson as json
 
 from datadog_lambda.extension import should_use_extension
 from datadog_lambda.tags import get_enhanced_metrics_tags, dd_lambda_layer_tag
-from datadog_lambda.api import init_api
 
 logger = logging.getLogger(__name__)
 
 lambda_stats = None
+extension_thread_stats = None
 
-init_api()
+flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
 
 if should_use_extension:
     from datadog_lambda.statsd_writer import StatsDWriter
@@ -28,8 +28,9 @@ else:
     # end of invocation. To make metrics submitted from a long-running Lambda
     # function available sooner, consider using the Datadog Lambda extension.
     from datadog_lambda.thread_stats_writer import ThreadStatsWriter
+    from datadog_lambda.api import init_api
 
-    flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
+    init_api()
     lambda_stats = ThreadStatsWriter(flush_in_thread)
 
 enhanced_metrics_enabled = (
@@ -56,6 +57,22 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     flush_to_logs = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
     tags = [] if tags is None else list(tags)
     tags.append(dd_lambda_layer_tag)
+
+    if should_use_extension and timestamp is not None:
+        # The extension does not support timestamps for distributions so we create a
+        # a thread stats writer to submit metrics with timestamps to the API
+        global extension_thread_stats
+        if extension_thread_stats is None:
+            from datadog_lambda.thread_stats_writer import ThreadStatsWriter
+            from datadog_lambda.api import init_api
+
+            init_api()
+            extension_thread_stats = ThreadStatsWriter(flush_in_thread)
+
+        extension_thread_stats.distribution(
+            metric_name, value, tags=tags, timestamp=timestamp
+        )
+        return
 
     if should_use_extension:
         logger.debug(
@@ -93,6 +110,9 @@ def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
 
 def flush_stats():
     lambda_stats.flush()
+
+    if extension_thread_stats is not None:
+        extension_thread_stats.flush()
 
 
 def submit_enhanced_metric(metric_name, lambda_context):
