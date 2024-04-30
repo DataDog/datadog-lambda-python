@@ -38,5 +38,14 @@ RUN find ./python/lib/$runtime/site-packages -name \*.py | grep -v ddtrace/contr
 RUN find ./python/lib/$runtime/site-packages/ddtrace/contrib -name \*.py | grep -v __init__ | xargs rm -rf
 RUN find ./python/lib/$runtime/site-packages -name __pycache__ -type d -exec rm -r {} \+
 
+# When building ddtrace from branch, remove extra source files.  These are
+# removed by the ddtrace build process before publishing a wheel to PyPI.
+RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.c -delete
+RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.cpp -delete
+RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.cc -delete
+RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.h -delete
+RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.hpp -delete
+RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.pyx -delete
+
 FROM scratch
 COPY --from=builder /build/python /
