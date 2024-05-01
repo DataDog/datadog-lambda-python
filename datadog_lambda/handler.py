@@ -7,6 +7,9 @@ from __future__ import absolute_import
 from importlib import import_module
 
 import os
+from time import time_ns
+
+from datadog_lambda.tracing import emit_telemetry_on_exception_outside_of_handler
 from datadog_lambda.wrapper import datadog_lambda_wrapper
 from datadog_lambda.module_name import modify_module_name
 
@@ -27,5 +30,17 @@ if len(parts) != 2:
 
 (mod_name, handler_name) = parts
 modified_mod_name = modify_module_name(mod_name)
-handler_module = import_module(modified_mod_name)
-handler = datadog_lambda_wrapper(getattr(handler_module, handler_name))
+
+try:
+    handler_load_start_time_ns = time_ns()
+    handler_module = import_module(modified_mod_name)
+    handler_func = getattr(handler_module, handler_name)
+except Exception as e:
+    emit_telemetry_on_exception_outside_of_handler(
+        e,
+        modified_mod_name,
+        handler_load_start_time_ns,
+    )
+    raise
+
+handler = datadog_lambda_wrapper(handler_func)

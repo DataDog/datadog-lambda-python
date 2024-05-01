@@ -100,7 +100,7 @@ def submit_enhanced_metric(metric_name, lambda_context):
 
     Args:
         metric_name (str): metric name w/o enhanced prefix i.e. "invocations" or "errors"
-        lambda_context (dict): Lambda context dict passed to the function by AWS
+        lambda_context (object): Lambda context dict passed to the function by AWS
     """
     if not enhanced_metrics_enabled:
         logger.debug(
@@ -118,7 +118,7 @@ def submit_invocations_metric(lambda_context):
     """Increment aws.lambda.enhanced.invocations by 1, applying runtime, layer, and cold_start tags
 
     Args:
-        lambda_context (dict): Lambda context dict passed to the function by AWS
+        lambda_context (object): Lambda context dict passed to the function by AWS
     """
     submit_enhanced_metric("invocations", lambda_context)
 
@@ -127,6 +127,6 @@ def submit_errors_metric(lambda_context):
     """Increment aws.lambda.enhanced.errors by 1, applying runtime, layer, and cold_start tags
 
     Args:
-        lambda_context (dict): Lambda context dict passed to the function by AWS
+        lambda_context (object): Lambda context dict passed to the function by AWS
     """
     submit_enhanced_metric("errors", lambda_context)
