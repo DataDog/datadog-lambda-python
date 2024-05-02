@@ -271,27 +271,33 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                 dd_data = json.loads(dd_json_data)
                 return propagator.extract(dd_data)
         else:
+            x_ray_header = None
             # Handle case where trace context is injected into attributes.AWSTraceHeader
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
             attrs = first_record.get("attributes")
             if attrs:
                 x_ray_header = attrs.get("AWSTraceHeader")
-                if x_ray_header:
-                    x_ray_context = parse_xray_header(x_ray_header)
-                    trace_id_parts = x_ray_context.get("trace_id", "").split("-")
-                    if len(trace_id_parts) > 2 and trace_id_parts[2].startswith(
-                        DD_TRACE_JAVA_TRACE_ID_PADDING
-                    ):
-                        # If it starts with eight 0's padding,
-                        # then this AWSTraceHeader contains Datadog injected trace context
-                        logger.debug(
-                            "Found dd-trace injected trace context from AWSTraceHeader"
-                        )
-                        return Context(
-                            trace_id=int(trace_id_parts[2][8:], 16),
-                            span_id=int(x_ray_context["parent_id"], 16),
-                            sampling_priority=float(x_ray_context["sampled"]),
-                        )
+            if not x_ray_header:
+                if msg_attributes:
+                    X_Amzn_Trace_Id = msg_attributes.get("X-Amzn-Trace-Id")
+                    if X_Amzn_Trace_Id:
+                        x_ray_header = X_Amzn_Trace_Id.get("Value")
+            if x_ray_header:
+                x_ray_context = parse_xray_header(x_ray_header)
+                trace_id_parts = x_ray_context.get("trace_id", "").split("-")
+                if len(trace_id_parts) > 2 and trace_id_parts[2].startswith(
+                    DD_TRACE_JAVA_TRACE_ID_PADDING
+                ):
+                    # If it starts with eight 0's padding,
+                    # then this AWSTraceHeader contains Datadog injected trace context
+                    logger.debug(
+                        "Found dd-trace injected trace context from AWSTraceHeader"
+                    )
+                    return Context(
+                        trace_id=int(trace_id_parts[2][8:], 16),
+                        span_id=int(x_ray_context["parent_id"], 16),
+                        sampling_priority=float(x_ray_context["sampled"]),
+                    )
         return extract_context_from_lambda_context(lambda_context)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
