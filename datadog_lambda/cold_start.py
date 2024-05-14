@@ -197,7 +197,8 @@ class ColdStartTracer(object):
 
     def trace_tree(self, import_node: ImportNode, parent_span):
         if (
-            import_node.end_time_ns - import_node.start_time_ns
+            not self.trace_ctx
+            or import_node.end_time_ns - import_node.start_time_ns
             < self.min_duration_ms * 1e6
             or import_node.module_name in self.ignored_libs
         ):
