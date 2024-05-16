@@ -214,6 +214,14 @@ _test_extract_dd_trace_context = (
         ),
     ),
     (
+        "sns-sqs-java-upstream",
+        Context(
+            trace_id=4781801699472307582,
+            span_id=7752697518321801287,
+            sampling_priority=1,
+        ),
+    ),
+    (
         "sqs-string-msg-attribute",
         Context(
             trace_id=2684756524522091840,
