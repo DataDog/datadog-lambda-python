@@ -1,0 +1,32 @@
+{
+  "Records": [
+    {
+      "messageId": "892f0033-3a4e-4d61-9e26-70d6f7901cd5",
+      "receiptHandle": "AQEBa1vYusKmlcrFsXDOh8/il3nFWZt+cGeLSU7cjEEpF+N4dPfHzkFpVXKEZebtXbUGyJ18lpBpRtXMpbL7gNukCv3z3Uj61NQbwTTabhsX0Y0iAbh2TSTNgaC/egNVbl3mwDjtXhmIvQIA8Zzzl4AqIlS7a76QiTeTVAjLb1c2FtJYq+znDb52GNPzZ62fSJtDpjfhFEkHwL+w23NQo/Yx4rCmaygR/F7/5hOFtsOwERpTFBei7fDM0z87HVT0nLkqvtg9wyM1kKSsMX8ltjdI3cwFSMs9aTMGFA3uAee6JKswkMp0HCXxNZZ8lp3T9wdQTBUwS8y01vMxl9e0qtYwUpakBYfdlmGHDIbZGEsf59ZpLYlUek0iFl0pdW+5LquNvlA2hA/J9ENpxJYHN4eguTNwRxxpEyzSwmfNXgukgRqDmcZT84UY9GkeaGJ2f2jfyCE525sqB2CAPcK7zx9MZ2Jt/UxsbX5APdX4skXDgck=",
+      "body": {
+        "Type": "Notification",
+        "MessageId": "6dacdb4e-f8dd-5752-9f49-858ee02bcd55",
+        "TopicArn": "arn:aws:sns:us-west-2:425362996713:DdTraceXLambda-snssqschecksNestedStacksnssqschecksNestedStackResource58F786C6-11NORKTA1JFML-snsProducerJavaForPythonNonRawsnssqsproducerjavaforpythonnonrawtopicDDBAB6EA-ZBb8uCZzkS0S",
+        "Message": "hello from DdTraceXLambda-snssqschec-snssqsproducerjavaforpyt-z0t7yDk3zWt1",
+        "Timestamp": "2024-05-16T14:22:46.902Z",
+        "SignatureVersion": "1",
+        "Signature": "HBf+KLJg/1Crvg3T5a8jJwVwIjmiNe1jEZ1QXOw11x8At/nqXUrevdm/j8KR33w4gmW/MG6WPpafH8K5k+M+tmn8Mr4sWfJhzsfV4in8s6qbbesBCVL5TsGkfauBfSeOkvrH+2/MAnexUx1m28m+qLJyeTzozelT9IdEhm1ATg5bASeVQS3mFTWYvnO4DoJdMSS9O15ZUQSitjhB8Lv5/DRLKGIYYwhAqOVBVKBfbEbz/BbaI47dqu+uarxL4+m5wAUQIACncg/mxCIsB+oGdBVvFCd0YS7NahSpIKkL08tC78mvKZGiITPOzXw0VlmryWruNYyIXPPnTDhE31Pw6Q==",
+        "SigningCertURL": "https://sns.us-west-2.amazonaws.com/SimpleNotificationService-60eadc530605d63b8e62a523676ef735.pem",
+        "UnsubscribeURL": "https://sns.us-west-2.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-west-2:425362996713:DdTraceXLambda-snssqschecksNestedStacksnssqschecksNestedStackResource58F786C6-11NORKTA1JFML-snsProducerJavaForPythonNonRawsnssqsproducerjavaforpythonnonrawtopicDDBAB6EA-ZBb8uCZzkS0S:d44c53e8-538c-472f-89e1-89c131d9cd26",
+        "MessageAttributes": {}
+      },
+      "attributes": {
+        "ApproximateReceiveCount": "1",
+        "AWSTraceHeader": "Root=1-664616b6-00000000425c5f4f8367f57e;Parent=6b971d513e9f9847;Sampled=1",
+        "SentTimestamp": "1715869366931",
+        "SenderId": "AIDAIYLAVTDLUXBIEIX46",
+        "ApproximateFirstReceiveTimestamp": "1715869366945"
+      },
+      "messageAttributes": {},
+      "md5OfBody": "e4f9d1cfee42abb22f764d004e88e7f2",
+      "eventSource": "aws:sqs",
+      "eventSourceARN": "arn:aws:sqs:us-west-2:425362996713:DdTraceXLambda-snssqschecksNested-snsProducerJavaForPythonNonRawsns-1vws7QPqW8e6",
+      "awsRegion": "us-west-2"
+    }
+  ]
+}
