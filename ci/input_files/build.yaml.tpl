@@ -186,12 +186,12 @@ publish-pypi-package:
   script:
     - ./ci/publish_pypi.sh
 
-publish-layer-sandbox-for-dd-trace-x-integration-tests
+publish-layer-sandbox-for-dd-trace-x-integration-tests:
   stage: publish
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
-    - if: '$CI_COMMIT_BRANCH == "joey/test-cicd"'
+    - if: '$CI_COMMIT_BRANCH == joey/test-cicd'
       when: on_success
       allow_failure: true
   needs:
