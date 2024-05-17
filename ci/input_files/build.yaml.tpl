@@ -195,13 +195,13 @@ publish-layer-sandbox-for-dd-trace-x-integration-tests:
       when: on_success
       allow_failure: true
   needs:
-    - build-layer python39-amd64
-    - check-layer-size python39-amd64
+    - build-layer (python39-amd64)
+    - check-layer-size (python39-amd64)
     - lint python
-    - unit-test python39-amd64
-    - integration-test python39-amd64
+    - unit-test (python39-amd64)
+    - integration-test (python39-amd64)
   dependencies:
-    - build-layer python39-amd64
+    - build-layer (python39-amd64)
   before_script:
     - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
   script:
