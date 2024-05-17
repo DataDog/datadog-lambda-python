@@ -202,11 +202,7 @@ publish-layer-sandbox-for-dd-trace-x-integration-tests
       - integration-test python39-amd64
   dependencies:
       - build-layer python39-amd64
-  parallel:
-    matrix:
-      - REGION:
-          - us-west-2
   before_script:
     - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
   script:
-    - STAGE=sandbox PYTHON_VERSION=3.9 ARCH=amd64 ./ci/publish_layers.sh
+    - STAGE=sandbox REGION=us-west-2 PYTHON_VERSION=3.9 ARCH=amd64 ./ci/publish_layers.sh
