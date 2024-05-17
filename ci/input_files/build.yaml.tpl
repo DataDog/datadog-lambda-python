@@ -191,7 +191,7 @@ publish-layer-sandbox-for-dd-trace-x-integration-tests:
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
-    - if: '$CI_COMMIT_BRANCH == joey/test-cicd'
+    - if: $CI_COMMIT_BRANCH == "joey/test-cicd"
       when: on_success
       allow_failure: true
   needs:
