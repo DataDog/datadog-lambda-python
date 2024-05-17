@@ -56,11 +56,11 @@ check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
-  needs: 
+  needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-  script: 
+  script:
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/check_layer_size.sh
 
 lint python:
@@ -69,7 +69,7 @@ lint python:
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   before_script: *python-before-script
-  script: 
+  script:
     - source venv/bin/activate
     - ./scripts/check_format.sh
 
@@ -79,7 +79,7 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   before_script: *python-before-script
-  script: 
+  script:
     - source venv/bin/activate
     - pytest -vv
 
@@ -87,7 +87,7 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
-  needs: 
+  needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
@@ -185,3 +185,28 @@ publish-pypi-package:
   {{- end }}
   script:
     - ./ci/publish_pypi.sh
+
+publish-layer-sandbox-for-dd-trace-x-integration-tests
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_BRANCH ==  joey/test-cicd'
+      when: on_success
+      allow_failure: true
+  needs:
+      - build-layer python39-amd64
+      - check-layer-size python39-amd64
+      - lint python
+      - unit-test python39-amd64
+      - integration-test python39-amd64
+  dependencies:
+      - build-layer python39-amd64
+  parallel:
+    matrix:
+      - REGION:
+          - us-west-2
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.9 ARCH=amd64 ./ci/publish_layers.sh
