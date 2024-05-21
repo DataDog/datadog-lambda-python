@@ -7,6 +7,11 @@ ARG runtime
 RUN mkdir -p /build/python/lib/$runtime/site-packages
 WORKDIR /build
 
+# Add Rust compiler which is needed to build dd-trace-py from source
+RUN curl https://sh.rustup.rs -sSf | \
+    sh -s -- --default-toolchain stable -y
+ENV PATH=/root/.cargo/bin:$PATH
+
 # Install datadog_lambda and dependencies from local
 COPY . .
 RUN pip install . -t ./python/lib/$runtime/site-packages
