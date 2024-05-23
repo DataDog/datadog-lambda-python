@@ -1999,7 +1999,7 @@ class TestStepFunctionsTraceContext(unittest.TestCase):
         result = _deterministic_sha256_hash(
             "arn:aws:states:sa-east-1:425362996713:stateMachine:MyStateMachine-b276uka1j"
             "#lambda#1",
-            HIGHER_64_BITS
+            HIGHER_64_BITS,
         )
         self.assertEqual(3711631873188331089, result)
 
@@ -2007,7 +2007,7 @@ class TestStepFunctionsTraceContext(unittest.TestCase):
         result = _deterministic_sha256_hash(
             "arn:aws:states:sa-east-1:425362996713:stateMachine:MyStateMachine-b276uka1j"
             "#lambda#2",
-            HIGHER_64_BITS
+            HIGHER_64_BITS,
         )
         self.assertEqual(5759173372325510050, result)
 
