@@ -1998,14 +1998,16 @@ class TestStepFunctionsTraceContext(unittest.TestCase):
     def test_deterministic_m5_hash__result_the_same_as_backend_1(self):
         result = _deterministic_sha256_hash(
             "arn:aws:states:sa-east-1:425362996713:stateMachine:MyStateMachine-b276uka1j"
-            "#lambda#1", HIGHER_64_BITS
+            "#lambda#1",
+            HIGHER_64_BITS
         )
         self.assertEqual(3711631873188331089, result)
 
     def test_deterministic_m5_hash__result_the_same_as_backend_2(self):
         result = _deterministic_sha256_hash(
             "arn:aws:states:sa-east-1:425362996713:stateMachine:MyStateMachine-b276uka1j"
-            "#lambda#2", HIGHER_64_BITS
+            "#lambda#2",
+            HIGHER_64_BITS
         )
         self.assertEqual(5759173372325510050, result)
 
