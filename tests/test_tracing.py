@@ -20,7 +20,7 @@ from datadog_lambda.constants import (
     XraySubsegment,
 )
 from datadog_lambda.tracing import (
-    _deterministic_md5_hash,
+    _deterministic_sha256_hash,
     create_inferred_span,
     extract_dd_trace_context,
     create_dd_dummy_metadata_subsegment,
@@ -1992,18 +1992,18 @@ class TestInferredSpans(unittest.TestCase):
 
 class TestStepFunctionsTraceContext(unittest.TestCase):
     def test_deterministic_m5_hash(self):
-        result = _deterministic_md5_hash("some_testing_random_string", 128)
+        result = _deterministic_sha256_hash("some_testing_random_string", 128)
         self.assertEqual(80506605202309154694697844088692857990, result)
 
     def test_deterministic_m5_hash__result_the_same_as_backend_1(self):
-        result = _deterministic_md5_hash(
+        result = _deterministic_sha256_hash(
             "arn:aws:states:sa-east-1:425362996713:stateMachine:MyStateMachine-b276uka1j"
             "#lambda#1", 64
         )
         self.assertEqual(3711631873188331089, result)
 
     def test_deterministic_m5_hash__result_the_same_as_backend_2(self):
-        result = _deterministic_md5_hash(
+        result = _deterministic_sha256_hash(
             "arn:aws:states:sa-east-1:425362996713:stateMachine:MyStateMachine-b276uka1j"
             "#lambda#2", 64
         )
@@ -2011,7 +2011,7 @@ class TestStepFunctionsTraceContext(unittest.TestCase):
 
     def test_deterministic_m5_hash__always_leading_with_zero(self):
         for i in range(100):
-            result = _deterministic_md5_hash(str(i), 64)
+            result = _deterministic_sha256_hash(str(i), 64)
             result_in_binary = bin(int(result))
             # Leading zeros will be omitted, so only test for full 64 bits present
             if len(result_in_binary) == 66:  # "0b" + 64 bits.

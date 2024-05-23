@@ -72,7 +72,8 @@ is_lambda_context = os.environ.get(XrayDaemon.FUNCTION_NAME_HEADER_NAME) != ""
 propagator = HTTPPropagator()
 
 DD_TRACE_JAVA_TRACE_ID_PADDING = "00000000"
-
+HIGHER_64_BITS = "HIGHER_64_BITS"
+LOWER_64_BITS = "LOWER_64_BITS"
 
 def _convert_xray_trace_id(xray_trace_id):
     """
@@ -354,17 +355,16 @@ def extract_context_from_kinesis_event(event, lambda_context):
     return extract_context_from_lambda_context(lambda_context)
 
 
-def _deterministic_md5_hash(s: str, bits: int) -> (int, int):
+def _deterministic_sha256_hash(s: str, part: str) -> (int, int):
     """MD5 here is to generate trace_id, not for any encryption."""
     sha256_hash = hashlib.sha256(s.encode()).hexdigest()
 
-    # First two chars is '0b'. zfill to ensure 256 bits
+    # First two chars is '0b'. zfill to ensure 256 bits, but we only care about the first 128 bits
     binary_hash = bin(int(sha256_hash, 16))[2:].zfill(256)
-    if bits == 64:
+    if part == HIGHER_64_BITS:
         updated_binary_hash = '0' + binary_hash[1: 64]
-    else:  # bits == 128
-        # set 1st and 65th bit to '0'
-        updated_binary_hash = '0' + binary_hash[1: 64] + '0' + binary_hash[65: 128]
+    else:
+        updated_binary_hash = '0' + binary_hash[65: 128]
     result = int(updated_binary_hash, 2)
     if result == 0:
         return 1
@@ -383,14 +383,20 @@ def extract_context_from_step_functions(event, lambda_context):
         # returning 128 bits since 128bit traceId will be break up into
         # traditional traceId and _dd.p.tid tag
         # https://github.com/DataDog/dd-trace-py/blob/3e34d21cb9b5e1916e549047158cb119317b96ab/ddtrace/propagation/http.py#L232-L240
-        trace_id = _deterministic_md5_hash(execution_id, 128)
+        trace_id = _deterministic_sha256_hash(execution_id, LOWER_64_BITS)
 
-        parent_id = _deterministic_md5_hash(
-            f"{execution_id}#{state_name}#{state_entered_time}", 64
+        parent_id = _deterministic_sha256_hash(
+            f"{execution_id}#{state_name}#{state_entered_time}", HIGHER_64_BITS
         )
+        print(f"trace_id: ${trace_id}")
+        print(f"parent_id: ${parent_id}")
+        print(f"_dd.p.tid: ${hex(_deterministic_sha256_hash(execution_id, HIGHER_64_BITS))[2:]}")
+
         sampling_priority = SamplingPriority.AUTO_KEEP
         return Context(
-            trace_id=trace_id, span_id=parent_id, sampling_priority=sampling_priority
+            trace_id=trace_id, span_id=parent_id, sampling_priority=sampling_priority,
+            # take the higher 64 bits as _dd.p.tid tag and use hex to encode
+            meta={"_dd.p.tid": hex(_deterministic_sha256_hash(execution_id, HIGHER_64_BITS))[2:]}
         )
     except Exception as e:
         logger.debug("The Step Functions trace extractor returned with error %s", e)
