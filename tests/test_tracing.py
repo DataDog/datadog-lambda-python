@@ -20,7 +20,9 @@ from datadog_lambda.constants import (
     XraySubsegment,
 )
 from datadog_lambda.tracing import (
-    HIGHER_64_BITS, LOWER_64_BITS, _deterministic_sha256_hash,
+    HIGHER_64_BITS,
+    LOWER_64_BITS,
+    _deterministic_sha256_hash,
     create_inferred_span,
     extract_dd_trace_context,
     create_dd_dummy_metadata_subsegment,
