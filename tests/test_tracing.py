@@ -629,7 +629,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             trace_id=3675572987363469717,
             span_id=6880978411788117524,
             sampling_priority=1,
-            meta={'_dd.p.tid': 'e987c84b36b11ab'}
+            meta={"_dd.p.tid": "e987c84b36b11ab"},
         )
         self.assertEqual(ctx, expected_context)
         self.assertEqual(
@@ -638,8 +638,8 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.TRACE_ID: "3675572987363469717",
                 TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
-                "x-datadog-tags": '_dd.p.tid=e987c84b36b11ab'
-            }
+                "x-datadog-tags": "_dd.p.tid=e987c84b36b11ab",
+            },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
         self.mock_send_segment.assert_called_with(
