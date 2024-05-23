@@ -396,6 +396,7 @@ def extract_context_from_step_functions(event, lambda_context):
             span_id=parent_id,
             sampling_priority=sampling_priority,
             # take the higher 64 bits as _dd.p.tid tag and use hex to encode
+            # [2:] to remove '0x' in the hex str
             meta={
                 "_dd.p.tid": hex(
                     _deterministic_sha256_hash(execution_id, HIGHER_64_BITS)
