@@ -354,14 +354,18 @@ def extract_context_from_kinesis_event(event, lambda_context):
     return extract_context_from_lambda_context(lambda_context)
 
 
-def _deterministic_md5_hash(s: str) -> int:
+def _deterministic_md5_hash(s: str, bits: int) -> (int, int):
     """MD5 here is to generate trace_id, not for any encryption."""
-    hex_number = hashlib.md5(s.encode("ascii")).hexdigest()
-    binary = bin(int(hex_number, 16))
-    binary_str = str(binary)
-    binary_str_remove_0b = binary_str[2:].rjust(128, "0")
-    most_significant_64_bits_without_leading_1 = "0" + binary_str_remove_0b[1:-64]
-    result = int(most_significant_64_bits_without_leading_1, 2)
+    sha256_hash = hashlib.sha256(s.encode()).hexdigest()
+
+    # First two chars is '0b'. zfill to ensure 256 bits
+    binary_hash = bin(int(sha256_hash, 16))[2:].zfill(256)
+    if bits == 64:
+        updated_binary_hash = '0' + binary_hash[1: 64]
+    else:  # bits == 128
+        # set 1st and 65th bit to '0'
+        updated_binary_hash = '0' + binary_hash[1: 64] + '0' + binary_hash[65: 128]
+    result = int(updated_binary_hash, 2)
     if result == 0:
         return 1
     return result
@@ -376,9 +380,13 @@ def extract_context_from_step_functions(event, lambda_context):
         execution_id = event.get("Execution").get("Id")
         state_name = event.get("State").get("Name")
         state_entered_time = event.get("State").get("EnteredTime")
-        trace_id = _deterministic_md5_hash(execution_id)
+        # returning 128 bits since 128bit traceId will be break up into
+        # traditional traceId and _dd.p.tid tag
+        # https://github.com/DataDog/dd-trace-py/blob/3e34d21cb9b5e1916e549047158cb119317b96ab/ddtrace/propagation/http.py#L232-L240
+        trace_id = _deterministic_md5_hash(execution_id, 128)
+
         parent_id = _deterministic_md5_hash(
-            f"{execution_id}#{state_name}#{state_entered_time}"
+            f"{execution_id}#{state_name}#{state_entered_time}", 64
         )
         sampling_priority = SamplingPriority.AUTO_KEEP
         return Context(
