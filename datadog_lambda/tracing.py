@@ -389,10 +389,10 @@ def extract_context_from_step_functions(event, lambda_context):
         parent_id = _deterministic_sha256_hash(
             f"{execution_id}#{state_name}#{state_entered_time}", HIGHER_64_BITS
         )
-        print(f"trace_id: ${trace_id}")
-        print(f"parent_id: ${parent_id}")
+        print(f"trace_id: {trace_id}")
+        print(f"parent_id: {parent_id}")
         print(
-            f"_dd.p.tid: ${hex(_deterministic_sha256_hash(execution_id, HIGHER_64_BITS))[2:]}"
+            f"_dd.p.tid: {hex(_deterministic_sha256_hash(execution_id, HIGHER_64_BITS))[2:]}"
         )
 
         sampling_priority = SamplingPriority.AUTO_KEEP
