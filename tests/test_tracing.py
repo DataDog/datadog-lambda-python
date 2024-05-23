@@ -20,7 +20,7 @@ from datadog_lambda.constants import (
     XraySubsegment,
 )
 from datadog_lambda.tracing import (
-    _deterministic_sha256_hash,
+    HIGHER_64_BITS, LOWER_64_BITS, _deterministic_sha256_hash,
     create_inferred_span,
     extract_dd_trace_context,
     create_dd_dummy_metadata_subsegment,
@@ -1992,20 +1992,20 @@ class TestInferredSpans(unittest.TestCase):
 
 class TestStepFunctionsTraceContext(unittest.TestCase):
     def test_deterministic_m5_hash(self):
-        result = _deterministic_sha256_hash("some_testing_random_string", 128)
-        self.assertEqual(80506605202309154694697844088692857990, result)
+        result = _deterministic_sha256_hash("some_testing_random_string", LOWER_64_BITS)
+        self.assertEqual(7456137785171041414, result)
 
     def test_deterministic_m5_hash__result_the_same_as_backend_1(self):
         result = _deterministic_sha256_hash(
             "arn:aws:states:sa-east-1:425362996713:stateMachine:MyStateMachine-b276uka1j"
-            "#lambda#1", 64
+            "#lambda#1", HIGHER_64_BITS
         )
         self.assertEqual(3711631873188331089, result)
 
     def test_deterministic_m5_hash__result_the_same_as_backend_2(self):
         result = _deterministic_sha256_hash(
             "arn:aws:states:sa-east-1:425362996713:stateMachine:MyStateMachine-b276uka1j"
-            "#lambda#2", 64
+            "#lambda#2", HIGHER_64_BITS
         )
         self.assertEqual(5759173372325510050, result)
 
