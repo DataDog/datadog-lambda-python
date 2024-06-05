@@ -47,6 +47,9 @@ The Continuous Profiler works by spawning a thread which periodically wakes up a
 
 ## Major Version Notes
 
+### 6.x / Layer version 95+
+- The release changed how Lambda's traceID is hashed if the incoming payload contains Step Functions context object. This change only affects those who uses inject Step Functions context object into Lambda payload.
+
 ### 5.x / Layer version 86+
 - Python3.7 support has been [deprecated](https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html) by AWS, and support removed from this library.
 
