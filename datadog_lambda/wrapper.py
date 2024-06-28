@@ -54,6 +54,10 @@ profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "
 if profiling_env_var:
     from ddtrace.profiling import profiler
 
+llmobs_env_var = os.environ.get("DD_LLMOBS_ENABLED", "false").lower() in ("true", "1")
+if llmobs_env_var:
+    from ddtrace.llmobs import LLMObs
+
 logger = logging.getLogger(__name__)
 
 DD_FLUSH_TO_LOG = "DD_FLUSH_TO_LOG"
@@ -329,6 +333,9 @@ class _LambdaDecorator(object):
             should_trace_cold_start = self.cold_start_tracing and is_new_sandbox()
             if should_trace_cold_start:
                 trace_ctx = tracer.current_trace_context()
+
+            if llmobs_env_var:
+                LLMObs.flush()
 
             if self.span:
                 if dd_capture_lambda_payload_enabled:
