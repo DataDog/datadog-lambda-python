@@ -225,6 +225,10 @@ class _LambdaDecorator(object):
             # Patch third-party libraries for tracing
             patch_all()
 
+            # Enable LLM Observability
+            if llmobs_env_var:
+                LLMObs.enable()
+
             logger.debug("datadog_lambda_wrapper initialized")
         except Exception as e:
             logger.error(format_err_with_traceback(e))
