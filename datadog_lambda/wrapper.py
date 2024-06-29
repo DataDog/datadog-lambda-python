@@ -338,9 +338,6 @@ class _LambdaDecorator(object):
             if should_trace_cold_start:
                 trace_ctx = tracer.current_trace_context()
 
-            if llmobs_env_var:
-                LLMObs.flush()
-
             if self.span:
                 if dd_capture_lambda_payload_enabled:
                     tag_object.tag_object(self.span, "function.request", event)
@@ -349,6 +346,9 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
                 self.span.finish()
+
+            if llmobs_env_var:
+                LLMObs.flush()
 
             if self.inferred_span:
                 if status_code:
