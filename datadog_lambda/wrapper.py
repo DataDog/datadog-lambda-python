@@ -347,9 +347,6 @@ class _LambdaDecorator(object):
                     self.span.set_tag("http.status_code", status_code)
                 self.span.finish()
 
-            if llmobs_env_var:
-                LLMObs.flush()
-
             if self.inferred_span:
                 if status_code:
                     self.inferred_span.set_tag("http.status_code", status_code)
@@ -383,6 +380,9 @@ class _LambdaDecorator(object):
                 # invocation completes because it does not have access to the
                 # logs api
                 flush_extension()
+
+            if llmobs_env_var:
+                LLMObs.flush()
 
             if self.encode_authorizer_context and is_authorizer_response(self.response):
                 self._inject_authorizer_span_headers(
