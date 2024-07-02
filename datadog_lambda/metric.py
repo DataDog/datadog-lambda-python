@@ -7,6 +7,7 @@ import os
 import time
 import logging
 import ujson as json
+from datetime import datetime, timedelta
 
 from datadog_lambda.extension import should_use_extension
 from datadog_lambda.tags import get_enhanced_metrics_tags, dd_lambda_layer_tag
@@ -61,6 +62,16 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     if should_use_extension and timestamp is not None:
         # The extension does not support timestamps for distributions so we create a
         # a thread stats writer to submit metrics with timestamps to the API
+        timestampCeiling = int(
+            (datetime.now() - timedelta(hours=4)).timestamp()
+        )  # 4 hours ago
+        if timestampCeiling > timestamp:
+            logger.warning(
+                "Timestamp %s is older than 4 hours, not submitting metric %s",
+                timestamp,
+                metric_name,
+            )
+            return
         global extension_thread_stats
         if extension_thread_stats is None:
             from datadog_lambda.thread_stats_writer import ThreadStatsWriter
