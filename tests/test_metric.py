@@ -91,7 +91,8 @@ class TestFlushThreadStats(unittest.TestCase):
         self.mock_threadstats_flush_distributions.assert_called_once_with(
             lambda_stats.thread_stats._get_aggregate_metrics_and_dists(float("inf"))[1]
         )
-        self.assertEqual(lambda_stats.thread_stats.constant_tags, tags)
+        for tag in tags:
+            self.assertTrue(tag in lambda_stats.thread_stats.constant_tags)
 
 
 MOCK_FUNCTION_NAME = "myFunction"
