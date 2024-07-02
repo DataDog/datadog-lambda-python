@@ -108,11 +108,14 @@ def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
     )
 
 
-def flush_stats():
+def flush_stats(lambda_context=None):
     lambda_stats.flush()
 
     if extension_thread_stats is not None:
-        extension_thread_stats.flush()
+        if lambda_context is not None:
+            tags = get_enhanced_metrics_tags(lambda_context)
+            tags.append("function_arn:" + lambda_context.invoked_function_arn)
+        extension_thread_stats.flush(tags)
 
 
 def submit_enhanced_metric(metric_name, lambda_context):

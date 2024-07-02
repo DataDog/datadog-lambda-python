@@ -84,6 +84,15 @@ class TestFlushThreadStats(unittest.TestCase):
         lambda_stats.flush()
         self.assertEqual(self.mock_threadstats_flush_distributions.call_count, 2)
 
+    def test_flush_stats_with_tags(self):
+        lambda_stats = ThreadStatsWriter(True)
+        tags = ["tag1:value1", "tag2:value2"]
+        lambda_stats.flush(tags)
+        self.mock_threadstats_flush_distributions.assert_called_once_with(
+            lambda_stats.thread_stats._get_aggregate_metrics_and_dists(float("inf"))[1]
+        )
+        self.assertEqual(lambda_stats.thread_stats.constant_tags, tags)
+
 
 MOCK_FUNCTION_NAME = "myFunction"
 

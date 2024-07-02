@@ -366,7 +366,7 @@ class _LambdaDecorator(object):
                     logger.debug("Failed to create cold start spans. %s", e)
 
             if not self.flush_to_log or should_use_extension:
-                flush_stats()
+                flush_stats(context)
             if should_use_extension and self.local_testing_mode:
                 # when testing locally, the extension does not know when an
                 # invocation completes because it does not have access to the
