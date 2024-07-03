@@ -62,10 +62,10 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     if should_use_extension and timestamp is not None:
         # The extension does not support timestamps for distributions so we create a
         # a thread stats writer to submit metrics with timestamps to the API
-        timestampCeiling = int(
+        timestamp_ceiling = int(
             (datetime.now() - timedelta(hours=4)).timestamp()
         )  # 4 hours ago
-        if timestampCeiling > timestamp:
+        if timestamp_ceiling > timestamp:
             logger.warning(
                 "Timestamp %s is older than 4 hours, not submitting metric %s",
                 timestamp,
