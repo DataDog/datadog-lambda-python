@@ -125,7 +125,12 @@ def flush_stats(lambda_context=None):
     if extension_thread_stats is not None:
         if lambda_context is not None:
             tags = get_enhanced_metrics_tags(lambda_context)
-            tags.append("function_arn:" + lambda_context.invoked_function_arn)
+            split_arn = lambda_context.invoked_function_arn.split(":")
+            if len(split_arn) > 7:
+                # Get rid of the alias
+                split_arn.pop()
+            arn = ":".join(split_arn)
+            tags.append("function_arn:" + arn)
         extension_thread_stats.flush(tags)
 
 
