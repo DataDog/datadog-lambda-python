@@ -7,6 +7,7 @@ import os
 import time
 import logging
 import ujson as json
+from datetime import datetime, timedelta
 
 from datadog_lambda.extension import should_use_extension
 from datadog_lambda.tags import get_enhanced_metrics_tags, dd_lambda_layer_tag
@@ -61,6 +62,16 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     if should_use_extension and timestamp is not None:
         # The extension does not support timestamps for distributions so we create a
         # a thread stats writer to submit metrics with timestamps to the API
+        timestamp_ceiling = int(
+            (datetime.now() - timedelta(hours=4)).timestamp()
+        )  # 4 hours ago
+        if timestamp_ceiling > timestamp:
+            logger.warning(
+                "Timestamp %s is older than 4 hours, not submitting metric %s",
+                timestamp,
+                metric_name,
+            )
+            return
         global extension_thread_stats
         if extension_thread_stats is None:
             from datadog_lambda.thread_stats_writer import ThreadStatsWriter
@@ -108,11 +119,19 @@ def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
     )
 
 
-def flush_stats():
+def flush_stats(lambda_context=None):
     lambda_stats.flush()
 
     if extension_thread_stats is not None:
-        extension_thread_stats.flush()
+        if lambda_context is not None:
+            tags = get_enhanced_metrics_tags(lambda_context)
+            split_arn = lambda_context.invoked_function_arn.split(":")
+            if len(split_arn) > 7:
+                # Get rid of the alias
+                split_arn.pop()
+            arn = ":".join(split_arn)
+            tags.append("function_arn:" + arn)
+        extension_thread_stats.flush(tags)
 
 
 def submit_enhanced_metric(metric_name, lambda_context):
