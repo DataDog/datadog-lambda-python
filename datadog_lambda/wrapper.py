@@ -54,6 +54,10 @@ profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "
 if profiling_env_var:
     from ddtrace.profiling import profiler
 
+llmobs_env_var = os.environ.get("DD_LLMOBS_ENABLED", "false").lower() in ("true", "1")
+if llmobs_env_var:
+    from ddtrace.llmobs import LLMObs
+
 logger = logging.getLogger(__name__)
 
 DD_FLUSH_TO_LOG = "DD_FLUSH_TO_LOG"
@@ -221,6 +225,10 @@ class _LambdaDecorator(object):
             # Patch third-party libraries for tracing
             patch_all()
 
+            # Enable LLM Observability
+            if llmobs_env_var:
+                LLMObs.enable()
+
             logger.debug("datadog_lambda_wrapper initialized")
         except Exception as e:
             logger.error(format_err_with_traceback(e))
@@ -366,12 +374,15 @@ class _LambdaDecorator(object):
                     logger.debug("Failed to create cold start spans. %s", e)
 
             if not self.flush_to_log or should_use_extension:
-                flush_stats()
+                flush_stats(context)
             if should_use_extension and self.local_testing_mode:
                 # when testing locally, the extension does not know when an
                 # invocation completes because it does not have access to the
                 # logs api
                 flush_extension()
+
+            if llmobs_env_var:
+                LLMObs.flush()
 
             if self.encode_authorizer_context and is_authorizer_response(self.response):
                 self._inject_authorizer_span_headers(
