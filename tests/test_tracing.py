@@ -40,6 +40,7 @@ from datadog_lambda.tracing import (
     service_mapping as global_service_mapping,
     propagator,
     emit_telemetry_on_exception_outside_of_handler,
+    is_legacy_lambda_step_function,
 )
 from datadog_lambda.trigger import EventTypes
 
@@ -662,6 +663,10 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 },
             }
         }
+
+        if is_legacy_lambda_step_function(sqs_event):
+            sqs_event = sqs_event["Payload"]
+
         ctx, source, event_source = extract_dd_trace_context(sqs_event, lambda_ctx)
         self.assertEqual(source, "event")
         expected_context = Context(
