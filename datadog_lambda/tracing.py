@@ -407,6 +407,17 @@ def extract_context_from_step_functions(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
+def is_legacy_lambda_step_function(event):
+    """
+    Check if the event is a step function that called a legacy lambda
+    """
+    if "Payload" in event:
+        event = event["Payload"]
+        return "Execution" in event and "StateMachine" in event and "State" in event
+
+    return False
+
+
 def extract_context_custom_extractor(extractor, event, lambda_context):
     """
     Extract Datadog trace context using a custom trace extractor function
