@@ -928,9 +928,9 @@ doc = ["furo", "jaraco.packaging (>=9.3)", "jaraco.tidelift (>=1.4)", "rst.linke
 test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more-itertools", "pytest (>=6,!=8.1.*)", "pytest-checkdocs (>=2.4)", "pytest-cov", "pytest-enabler (>=2.2)", "pytest-ignore-flaky", "pytest-mypy", "pytest-ruff (>=0.2.1)"]
 
 [extras]
-dev = ["boto3", "requests"]
+dev = ["boto3", "flake8", "pytest", "pytest-benchmark", "requests"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0,<4"
-content-hash = "967eb5efa819010997d953f36d32b61bb0c1009c97e21b26c4e4aeab7686f2b7"
+content-hash = "bf1aca9cf4f75b18197105ef45c4ef035790dbe8ad10598becad6f31340c4442"
