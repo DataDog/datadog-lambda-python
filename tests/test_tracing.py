@@ -647,6 +647,45 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             expected_context,
         )
 
+    @with_trace_propagation_style("datadog")
+    def test_step_function_legacy_lambda_trace_data(self):
+        lambda_ctx = get_mock_context()
+        sqs_event = {
+            "Payload": {
+                "Execution": {
+                    "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                },
+                "StateMachine": {},
+                "State": {
+                    "Name": "my-awesome-state",
+                    "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+                },
+            }
+        }
+        ctx, source, event_source = extract_dd_trace_context(sqs_event, lambda_ctx)
+        self.assertEqual(source, "event")
+        expected_context = Context(
+            trace_id=3675572987363469717,
+            span_id=6880978411788117524,
+            sampling_priority=1,
+            meta={"_dd.p.tid": "e987c84b36b11ab"},
+        )
+        self.assertEqual(ctx, expected_context)
+        self.assertEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "3675572987363469717",
+                TraceHeader.PARENT_ID: "10713633173203262661",
+                TraceHeader.SAMPLING_PRIORITY: "1",
+                "x-datadog-tags": "_dd.p.tid=e987c84b36b11ab",
+            },
+        )
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_send_segment.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            expected_context,
+        )
+
 
 class TestXRayContextConversion(unittest.TestCase):
     def test_convert_xray_trace_id(self):
