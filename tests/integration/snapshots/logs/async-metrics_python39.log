@@ -9,8 +9,8 @@ START
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
-    "memorysize:1024",
     "cold_start:true",
+    "memorysize:1024",
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
@@ -36,8 +36,8 @@ START
     "dd_lambda_layer:datadog-python39_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -180,8 +180,8 @@ START
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
-    "memorysize:1024",
     "cold_start:false",
+    "memorysize:1024",
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
@@ -207,8 +207,8 @@ START
     "dd_lambda_layer:datadog-python39_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -246,7 +246,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
@@ -346,8 +346,8 @@ START
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
-    "memorysize:1024",
     "cold_start:false",
+    "memorysize:1024",
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
@@ -373,8 +373,8 @@ START
     "dd_lambda_layer:datadog-python39_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -505,8 +505,8 @@ START
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
-    "memorysize:1024",
     "cold_start:false",
+    "memorysize:1024",
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
@@ -532,8 +532,8 @@ START
     "dd_lambda_layer:datadog-python39_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -575,7 +575,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "http"
       },
@@ -679,8 +679,8 @@ START
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
-    "memorysize:1024",
     "cold_start:false",
+    "memorysize:1024",
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
@@ -706,8 +706,8 @@ START
     "dd_lambda_layer:datadog-python39_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -745,7 +745,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
@@ -845,8 +845,8 @@ START
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
-    "memorysize:1024",
     "cold_start:false",
+    "memorysize:1024",
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
@@ -872,8 +872,8 @@ START
     "dd_lambda_layer:datadog-python39_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -908,7 +908,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
@@ -1008,8 +1008,8 @@ START
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
-    "memorysize:1024",
     "cold_start:false",
+    "memorysize:1024",
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
@@ -1035,8 +1035,9 @@ START
     "dd_lambda_layer:datadog-python39_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
+END Duration: XXXX ms Memory Used: XXXX MB
 {
   "traces": [
     [
@@ -1072,7 +1073,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
@@ -1161,7 +1162,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
     ]
   ]
 }
-END Duration: XXXX ms Memory Used: XXXX MB
 START
 {
   "m": "aws.lambda.enhanced.invocations",
@@ -1172,8 +1172,8 @@ START
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
-    "memorysize:1024",
     "cold_start:false",
+    "memorysize:1024",
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
@@ -1199,8 +1199,8 @@ START
     "dd_lambda_layer:datadog-python39_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -1235,7 +1235,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
@@ -1335,8 +1335,8 @@ START
     "account_id:XXXX",
     "functionname:integration-tests-python-XXXX-async-metrics_python39",
     "resource:integration-tests-python-XXXX-async-metrics_python39",
-    "memorysize:1024",
     "cold_start:false",
+    "memorysize:1024",
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
@@ -1362,8 +1362,8 @@ START
     "dd_lambda_layer:datadog-python39_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate", "Accept:*/*", "Connection:keep-alive", "User-Agent:python-requests/X.X.X", "traceparent:XXX", "tracestate:XXX
 {
   "traces": [
     [
@@ -1404,7 +1404,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "metrics": {
           "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": -1
         },
         "type": "web"
       },
