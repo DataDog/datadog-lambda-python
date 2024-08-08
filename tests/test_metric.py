@@ -59,6 +59,19 @@ class TestLambdaMetric(unittest.TestCase):
         )
 
     @patch("datadog_lambda.metric.should_use_extension", True)
+    def test_lambda_metric_datetime_with_extension(self):
+        patcher = patch("datadog_lambda.metric.extension_thread_stats")
+        self.mock_metric_extension_thread_stats = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        delta = timedelta(hours=5)
+        timestamp = datetime.now() - delta
+
+        lambda_metric("test_timestamp", 1, timestamp)
+        self.mock_metric_lambda_stats.distribution.assert_not_called()
+        self.mock_metric_extension_thread_stats.distribution.assert_not_called()
+
+    @patch("datadog_lambda.metric.should_use_extension", True)
     def test_lambda_metric_invalid_timestamp_with_extension(self):
         patcher = patch("datadog_lambda.metric.extension_thread_stats")
         self.mock_metric_extension_thread_stats = patcher.start()
