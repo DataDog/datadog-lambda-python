@@ -29,10 +29,6 @@ datadog = ">=0.41.0,<1.0.0"
 wrapt = "^1.11.2"
 ddtrace = ">=2.9.0"
 ujson = ">=5.9.0"
-urllib3 = [
-    {version = "<2.0.0", python = "<3.11", optional = true},
-    {version = "<2.1.0", python = ">=3.11", optional = true},
-]
 boto3 = { version = "^1.28.0", optional = true }
 requests = { version ="^2.22.0", optional = true }
 pytest = { version= "^8.0.0", optional = true }
