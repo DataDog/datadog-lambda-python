@@ -22,11 +22,13 @@ class ThreadStatsWriter(StatsWriter):
             metric_name, value, tags=tags, timestamp=timestamp
         )
 
-    def flush(self):
+    def flush(self, tags=None):
         """ "Flush distributions from ThreadStats to Datadog.
         Modified based on `datadog.threadstats.base.ThreadStats.flush()`,
         to gain better control over exception handling.
         """
+        if tags:
+            self.thread_stats.constant_tags = self.thread_stats.constant_tags + tags
         _, dists = self.thread_stats._get_aggregate_metrics_and_dists(float("inf"))
         count_dists = len(dists)
         if not count_dists:
