@@ -411,11 +411,8 @@ def is_legacy_lambda_step_function(event):
     """
     Check if the event is a step function that called a legacy lambda
     """
-    if "Payload" in event:
-        event = event["Payload"]
-        return "Execution" in event and "StateMachine" in event and "State" in event
-
-    return False
+    event = event.get("Payload", {})
+    return "Execution" in event and "StateMachine" in event and "State" in event
 
 
 def extract_context_custom_extractor(extractor, event, lambda_context):
