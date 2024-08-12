@@ -40,6 +40,7 @@ from datadog_lambda.tracing import (
     service_mapping as global_service_mapping,
     propagator,
     emit_telemetry_on_exception_outside_of_handler,
+    is_legacy_lambda_step_function,
 )
 from datadog_lambda.trigger import EventTypes
 
@@ -646,6 +647,33 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             XraySubsegment.TRACE_KEY,
             expected_context,
         )
+
+    def test_is_legacy_lambda_step_function(self):
+        sf_event = {
+            "Payload": {
+                "Execution": {
+                    "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                },
+                "StateMachine": {},
+                "State": {
+                    "Name": "my-awesome-state",
+                    "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+                },
+            }
+        }
+        self.assertTrue(is_legacy_lambda_step_function(sf_event))
+
+        sf_event = {
+            "Execution": {
+                "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+            },
+            "StateMachine": {},
+            "State": {
+                "Name": "my-awesome-state",
+                "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+            },
+        }
+        self.assertFalse(is_legacy_lambda_step_function(sf_event))
 
 
 class TestXRayContextConversion(unittest.TestCase):
