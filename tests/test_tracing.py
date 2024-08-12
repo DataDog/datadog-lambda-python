@@ -649,7 +649,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     def test_is_legacy_lambda_step_function(self):
-        sqs_event = {
+        sf_event = {
             "Payload": {
                 "Execution": {
                     "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
@@ -661,9 +661,9 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 },
             }
         }
-        self.assertTrue(is_legacy_lambda_step_function(sqs_event))
+        self.assertTrue(is_legacy_lambda_step_function(sf_event))
 
-        sqs_event = {
+        sf_event = {
             "Execution": {
                 "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
             },
@@ -673,7 +673,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
             },
         }
-        self.assertFalse(is_legacy_lambda_step_function(sqs_event))
+        self.assertFalse(is_legacy_lambda_step_function(sf_event))
 
 
 class TestXRayContextConversion(unittest.TestCase):
