@@ -65,6 +65,8 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
         timestamp_ceiling = int(
             (datetime.now() - timedelta(hours=4)).timestamp()
         )  # 4 hours ago
+        if isinstance(timestamp, datetime):
+            timestamp = int(timestamp.timestamp())
         if timestamp_ceiling > timestamp:
             logger.warning(
                 "Timestamp %s is older than 4 hours, not submitting metric %s",
