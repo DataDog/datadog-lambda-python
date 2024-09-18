@@ -30,6 +30,7 @@ from datadog_lambda.metric import (
 )
 from datadog_lambda.module_name import modify_module_name
 from datadog_lambda.patch import patch_all
+from datadog_lambda.span_pointers import calculate_span_pointers
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
     create_dd_dummy_metadata_subsegment,
@@ -315,6 +316,7 @@ class _LambdaDecorator(object):
                     self.merge_xray_traces,
                     self.trigger_tags,
                     parent_span=self.inferred_span,
+                    span_pointers=calculate_span_pointers(event_source, event),
                 )
             else:
                 set_correlation_ids()

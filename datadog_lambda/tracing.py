@@ -1259,6 +1259,7 @@ def create_function_execution_span(
     merge_xray_traces,
     trigger_tags,
     parent_span=None,
+    span_pointers=None,
 ):
     tags = None
     if context:
@@ -1296,6 +1297,14 @@ def create_function_execution_span(
         span.set_tags(tags)
     if parent_span:
         span.parent_id = parent_span.span_id
+    if span_pointers:
+        for span_pointer_description in span_pointers:
+            span._add_span_pointer(
+                pointer_kind=span_pointer_description.pointer_kind,
+                pointer_direction=span_pointer_description.pointer_direction,
+                pointer_hash=span_pointer_description.pointer_hash,
+                extra_attributes=span_pointer_description.extra_attributes,
+            )
     return span
 
 
