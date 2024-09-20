@@ -2,7 +2,9 @@ from itertools import chain
 import logging
 from typing import List
 
-from ddtrace._trace.utils_botocore.span_pointers import _aws_s3_object_span_pointer_description
+from ddtrace._trace.utils_botocore.span_pointers import (
+    _aws_s3_object_span_pointer_description,
+)
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
 from datadog_lambda.trigger import EventTypes
@@ -40,20 +42,24 @@ def _calculate_s3_span_pointers_for_event(event) -> List[_SpanPointerDescription
     )
 
 
-def _calculate_s3_span_pointers_for_event_record(record) -> List[_SpanPointerDescription]:
+def _calculate_s3_span_pointers_for_event_record(
+    record,
+) -> List[_SpanPointerDescription]:
     # Event types:
     # https://docs.aws.amazon.com/AmazonS3/latest/userguide/notification-how-to-event-types-and-destinations.html
 
     if record.get("eventName").startswith("ObjectCreated:"):
         s3_information = record.get("s3", None)
         if s3_information is not None:
-            return _calculate_s3_span_pointers_for_object_created_s3_information(s3_information)
+            return _calculate_s3_span_pointers_for_object_created_s3_information(
+                s3_information
+            )
 
     return []
 
 
 def _calculate_s3_span_pointers_for_object_created_s3_information(
-    s3_information
+    s3_information,
 ) -> List[_SpanPointerDescription]:
     try:
         bucket = s3_information["bucket"]["name"]
