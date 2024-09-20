@@ -1,9 +1,11 @@
 from itertools import chain
+import logging
+from typing import List
+
 from ddtrace._trace.utils_botocore.span_pointers import _aws_s3_object_span_pointer_description
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
 from datadog_lambda.trigger import EventTypes
-import logging
 
 
 logger = logging.getLogger(__name__)
@@ -12,14 +14,21 @@ logger = logging.getLogger(__name__)
 def calculate_span_pointers(
     event_source,
     event,
-) -> list[_SpanPointerDescription]:
-    if event_source.equals(EventTypes.S3):
-        return _calculate_s3_span_pointers_for_event(event)
+) -> List[_SpanPointerDescription]:
+    try:
+        if event_source.equals(EventTypes.S3):
+            return _calculate_s3_span_pointers_for_event(event)
+
+    except Exception as e:
+        logger.warning(
+            "failed to calculate span pointers for event: %s",
+            str(e),
+        )
 
     return []
 
 
-def _calculate_s3_span_pointers_for_event(event) -> list[_SpanPointerDescription]:
+def _calculate_s3_span_pointers_for_event(event) -> List[_SpanPointerDescription]:
     # Example event:
     # https://docs.aws.amazon.com/lambda/latest/dg/with-s3.html
 
@@ -31,7 +40,7 @@ def _calculate_s3_span_pointers_for_event(event) -> list[_SpanPointerDescription
     )
 
 
-def _calculate_s3_span_pointers_for_event_record(record) -> list[_SpanPointerDescription]:
+def _calculate_s3_span_pointers_for_event_record(record) -> List[_SpanPointerDescription]:
     # Event types:
     # https://docs.aws.amazon.com/AmazonS3/latest/userguide/notification-how-to-event-types-and-destinations.html
 
@@ -43,7 +52,9 @@ def _calculate_s3_span_pointers_for_event_record(record) -> list[_SpanPointerDes
     return []
 
 
-def _calculate_s3_span_pointers_for_object_created_s3_information(s3_information) -> list[_SpanPointerDescription]:
+def _calculate_s3_span_pointers_for_object_created_s3_information(
+    s3_information
+) -> List[_SpanPointerDescription]:
     try:
         bucket = s3_information["bucket"]["name"]
         key = s3_information["object"]["key"]

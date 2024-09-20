@@ -12,6 +12,9 @@ import ddtrace
 
 from ddtrace import tracer
 from ddtrace.context import Context
+from ddtrace._trace._span_pointer import _SpanPointer
+from ddtrace._trace._span_pointer import _SpanPointerDirection
+from ddtrace._trace._span_pointer import _SpanPointerDescription
 
 from datadog_lambda.constants import (
     SamplingPriority,
@@ -746,12 +749,20 @@ class TestFunctionSpanTags(unittest.TestCase):
     def test_function(self):
         ctx = get_mock_context()
         span = create_function_execution_span(
-            ctx, "", False, False, {"source": ""}, False, {}
+            context=ctx,
+            function_name="",
+            is_cold_start=False,
+            is_proactive_init=False,
+            trace_context_source={"source": ""},
+            merge_xray_traces=False,
+            trigger_tags={},
+            span_pointers=None,
         )
         self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("function_version"), "$LATEST")
         self.assertEqual(span.get_tag("resource_names"), "Function")
         self.assertEqual(span.get_tag("functionname"), "function")
+        self.assertEqual(span._links, [])
 
     def test_function_with_version(self):
         function_version = "1"
@@ -759,7 +770,13 @@ class TestFunctionSpanTags(unittest.TestCase):
             invoked_function_arn=function_arn + ":" + function_version
         )
         span = create_function_execution_span(
-            ctx, "", False, False, {"source": ""}, False, {}
+            context=ctx,
+            function_name="",
+            is_cold_start=False,
+            is_proactive_init=False,
+            trace_context_source={"source": ""},
+            merge_xray_traces=False,
+            trigger_tags={},
         )
         self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("function_version"), function_version)
@@ -770,7 +787,13 @@ class TestFunctionSpanTags(unittest.TestCase):
         function_alias = "alias"
         ctx = get_mock_context(invoked_function_arn=function_arn + ":" + function_alias)
         span = create_function_execution_span(
-            ctx, "", False, False, {"source": ""}, False, {}
+            context=ctx,
+            function_name="",
+            is_cold_start=False,
+            is_proactive_init=False,
+            trace_context_source={"source": ""},
+            merge_xray_traces=False,
+            trigger_tags={},
         )
         self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("function_version"), function_alias)
@@ -780,13 +803,13 @@ class TestFunctionSpanTags(unittest.TestCase):
     def test_function_with_trigger_tags(self):
         ctx = get_mock_context()
         span = create_function_execution_span(
-            ctx,
-            "",
-            False,
-            False,
-            {"source": ""},
-            False,
-            {"function_trigger.event_source": "cloudwatch-logs"},
+            context=ctx,
+            function_name="",
+            is_cold_start=False,
+            is_proactive_init=False,
+            trace_context_source={"source": ""},
+            merge_xray_traces=False,
+            trigger_tags={"function_trigger.event_source": "cloudwatch-logs"},
         )
         self.assertEqual(span.get_tag("function_arn"), function_arn)
         self.assertEqual(span.get_tag("resource_names"), "Function")
@@ -794,6 +817,46 @@ class TestFunctionSpanTags(unittest.TestCase):
         self.assertEqual(
             span.get_tag("function_trigger.event_source"), "cloudwatch-logs"
         )
+
+    def test_function_with_span_pointers(self):
+        ctx = get_mock_context()
+        span = create_function_execution_span(
+            context=ctx,
+            function_name="",
+            is_cold_start=False,
+            is_proactive_init=False,
+            trace_context_source={"source": ""},
+            merge_xray_traces=False,
+            trigger_tags={},
+            span_pointers=[
+                _SpanPointerDescription(
+                    pointer_kind="some.kind",
+                    pointer_direction=_SpanPointerDirection.UPSTREAM,
+                    pointer_hash="some.hash",
+                    extra_attributes={},
+                ),
+                _SpanPointerDescription(
+                    pointer_kind="other.kind",
+                    pointer_direction=_SpanPointerDirection.DOWNSTREAM,
+                    pointer_hash="other.hash",
+                    extra_attributes={"extra": "stuff"},
+                ),
+            ],
+        )
+        self.assertEqual(span._links, [
+            _SpanPointer(
+                pointer_kind="some.kind",
+                pointer_direction=_SpanPointerDirection.UPSTREAM,
+                pointer_hash="some.hash",
+                extra_attributes={},
+            ),
+            _SpanPointer(
+                pointer_kind="other.kind",
+                pointer_direction=_SpanPointerDirection.DOWNSTREAM,
+                pointer_hash="other.hash",
+                extra_attributes={"extra": "stuff"},
+            ),
+        ])
 
 
 class TestSetTraceRootSpan(unittest.TestCase):

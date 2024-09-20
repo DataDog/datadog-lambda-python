@@ -308,13 +308,13 @@ class _LambdaDecorator(object):
                         event, context, event_source, self.decode_authorizer_context
                     )
                 self.span = create_function_execution_span(
-                    context,
-                    self.function_name,
-                    is_cold_start(),
-                    is_proactive_init(),
-                    trace_context_source,
-                    self.merge_xray_traces,
-                    self.trigger_tags,
+                    context=context,
+                    function_name=self.function_name,
+                    is_cold_start=is_cold_start(),
+                    is_proactive_init=is_proactive_init(),
+                    trace_context_source=trace_context_source,
+                    merge_xray_traces=self.merge_xray_traces,
+                    trigger_tags=self.trigger_tags,
                     parent_span=self.inferred_span,
                     span_pointers=calculate_span_pointers(event_source, event),
                 )

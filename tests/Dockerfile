@@ -3,6 +3,11 @@ FROM python:$python_version
 
 ENV PYTHONDONTWRITEBYTECODE True
 
+ENV CARGO_ROOT=/root/.cargo
+ENV PATH=$CARGO_ROOT/bin:$PATH
+RUN curl https://sh.rustup.rs -sSf | \
+    sh -s -- --default-toolchain stable -y
+
 RUN mkdir -p /test/datadog_lambda
 WORKDIR /test
 
