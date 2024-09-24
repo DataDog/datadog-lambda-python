@@ -84,6 +84,10 @@ class TestCalculateSpanPointers:
         ids=lambda test_case: test_case.name,
     )
     def test_calculate_span_pointers(self, test_case: SpanPointersCase):
-        assert calculate_span_pointers(
-            test_case.event_source, test_case.event,
-        ) == test_case.span_pointers
+        assert (
+            calculate_span_pointers(
+                test_case.event_source,
+                test_case.event,
+            )
+            == test_case.span_pointers
+        )

@@ -843,20 +843,23 @@ class TestFunctionSpanTags(unittest.TestCase):
                 ),
             ],
         )
-        self.assertEqual(span._links, [
-            _SpanPointer(
-                pointer_kind="some.kind",
-                pointer_direction=_SpanPointerDirection.UPSTREAM,
-                pointer_hash="some.hash",
-                extra_attributes={},
-            ),
-            _SpanPointer(
-                pointer_kind="other.kind",
-                pointer_direction=_SpanPointerDirection.DOWNSTREAM,
-                pointer_hash="other.hash",
-                extra_attributes={"extra": "stuff"},
-            ),
-        ])
+        self.assertEqual(
+            span._links,
+            [
+                _SpanPointer(
+                    pointer_kind="some.kind",
+                    pointer_direction=_SpanPointerDirection.UPSTREAM,
+                    pointer_hash="some.hash",
+                    extra_attributes={},
+                ),
+                _SpanPointer(
+                    pointer_kind="other.kind",
+                    pointer_direction=_SpanPointerDirection.DOWNSTREAM,
+                    pointer_hash="other.hash",
+                    extra_attributes={"extra": "stuff"},
+                ),
+            ],
+        )
 
 
 class TestSetTraceRootSpan(unittest.TestCase):
