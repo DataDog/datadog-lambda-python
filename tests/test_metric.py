@@ -7,7 +7,7 @@ from botocore.exceptions import ClientError as BotocoreClientError
 from datadog.api.exceptions import ClientError
 from datetime import datetime, timedelta
 
-from datadog_lambda.metric import lambda_metric
+from datadog_lambda.metric import lambda_metric, flush_stats
 from datadog_lambda.api import decrypt_kms_api_key, KMS_ENCRYPTION_CONTEXT_KEY
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 from datadog_lambda.tags import dd_lambda_layer_tag
@@ -101,6 +101,12 @@ class TestFlushThreadStats(unittest.TestCase):
         self.mock_threadstats_flush_distributions = patcher.start()
         self.addCleanup(patcher.stop)
 
+        patcher = patch(
+            "datadog_lambda.metric.extension_thread_stats"
+        )
+        self.mock_extension_thread_stats = patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_retry_on_remote_disconnected(self):
         # Raise the RemoteDisconnected error
         lambda_stats = ThreadStatsWriter(True)
@@ -122,6 +128,10 @@ class TestFlushThreadStats(unittest.TestCase):
         )
         for tag in tags:
             self.assertTrue(tag in lambda_stats.thread_stats.constant_tags)
+
+    def test_flush_stats_without_context(self):
+        flush_stats(lambda_context=None)
+        self.mock_extension_thread_stats.flush.assert_called_with(None)
 
 
 MOCK_FUNCTION_NAME = "myFunction"
