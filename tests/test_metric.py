@@ -101,9 +101,7 @@ class TestFlushThreadStats(unittest.TestCase):
         self.mock_threadstats_flush_distributions = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch(
-            "datadog_lambda.metric.extension_thread_stats"
-        )
+        patcher = patch("datadog_lambda.metric.extension_thread_stats")
         self.mock_extension_thread_stats = patcher.start()
         self.addCleanup(patcher.stop)
 
