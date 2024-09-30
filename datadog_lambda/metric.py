@@ -125,6 +125,7 @@ def flush_stats(lambda_context=None):
     lambda_stats.flush()
 
     if extension_thread_stats is not None:
+        tags = None
         if lambda_context is not None:
             tags = get_enhanced_metrics_tags(lambda_context)
             split_arn = lambda_context.invoked_function_arn.split(":")
