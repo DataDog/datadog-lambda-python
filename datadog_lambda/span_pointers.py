@@ -2,7 +2,7 @@ from itertools import chain
 import logging
 from typing import List
 
-from ddtrace._trace.utils_botocore.span_pointers import (
+from ddtrace._trace.utils_botocore.span_pointers.s3 import (
     _aws_s3_object_span_pointer_description,
 )
 from ddtrace._trace._span_pointer import _SpanPointerDirection
