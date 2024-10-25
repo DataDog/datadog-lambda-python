@@ -299,6 +299,11 @@ def extract_http_tags(event):
     if headers and headers.get("Referer"):
         http_tags["http.referer"] = headers.get("Referer")
 
+    # Try to get `routeKey` from API GW v2; otherwise try to get `resource` from API GW v1
+    route = event.get("routeKey") or event.get("resource")
+    if route:
+        http_tags["http.route"] = route
+
     return http_tags
 
 
