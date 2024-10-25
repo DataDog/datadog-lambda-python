@@ -86,6 +86,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "XXXX.execute-api.us-east-2.amazonaws.com",
           "http.url_details.path": "/Prod/",
           "http.method": "GET",
+          "http.route": "/",
           "http.status_code": "200",
           "_dd.base_service": "integration-tests-python"
         },
@@ -642,6 +643,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "XXXX.execute-api.eu-west-1.amazonaws.com",
           "http.url_details.path": "/httpapi/get",
           "http.method": "GET",
+          "http.route": "GET /httpapi/get",
           "http.status_code": "200",
           "_dd.base_service": "integration-tests-python"
         },
