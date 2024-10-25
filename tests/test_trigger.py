@@ -258,6 +258,7 @@ class GetTriggerTags(unittest.TestCase):
                 "http.url": "70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
                 "http.url_details.path": "/prod/path/to/resource",
                 "http.method": "POST",
+                "http.route": "/{proxy+}",
             },
         )
 
@@ -276,6 +277,7 @@ class GetTriggerTags(unittest.TestCase):
                 "http.url": "lgxbo6a518.execute-api.eu-west-1.amazonaws.com",
                 "http.url_details.path": "/dev/http/get",
                 "http.method": "GET",
+                "http.route": "/http/get",
             },
         )
 
@@ -342,6 +344,7 @@ class GetTriggerTags(unittest.TestCase):
                 "http.url": "x02yirxc7a.execute-api.eu-west-1.amazonaws.com",
                 "http.url_details.path": "/httpapi/get",
                 "http.method": "GET",
+                "http.route": "GET /httpapi/get",
             },
         )
 
