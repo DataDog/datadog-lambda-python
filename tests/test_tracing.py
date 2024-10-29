@@ -652,7 +652,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     @with_trace_propagation_style("datadog")
-    def test_step_function_trace_data(self):
+    def test_step_function_trace_data_with_header(self):
         lambda_ctx = get_mock_context()
         sf_event = {
             "Execution": {
