@@ -386,7 +386,7 @@ def extract_context_from_step_functions(event, lambda_context):
         if "_datadog" in event:
             # use the trace ID from the top-most parent when it exists
             trace_header = event.get("_datadog")
-            trace_id = trace_header.get(TraceHeader.TRACE_ID)
+            trace_id = int(trace_header.get(TraceHeader.TRACE_ID))
             tags = trace_header.get(TraceHeader.TAGS)
             for tag in tags.split(","):
                 tag_key, tag_val = tag.split("=")
