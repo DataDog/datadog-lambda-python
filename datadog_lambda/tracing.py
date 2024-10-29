@@ -24,6 +24,7 @@ from datadog_lambda.constants import (
     TraceContextSource,
     XrayDaemon,
     Headers,
+    TraceHeader,
 )
 from datadog_lambda.xray import (
     send_segment,
@@ -380,10 +381,26 @@ def extract_context_from_step_functions(event, lambda_context):
         execution_id = event.get("Execution").get("Id")
         state_name = event.get("State").get("Name")
         state_entered_time = event.get("State").get("EnteredTime")
-        # returning 128 bits since 128bit traceId will be break up into
-        # traditional traceId and _dd.p.tid tag
-        # https://github.com/DataDog/dd-trace-py/blob/3e34d21cb9b5e1916e549047158cb119317b96ab/ddtrace/propagation/http.py#L232-L240
-        trace_id = _deterministic_sha256_hash(execution_id, LOWER_64_BITS)
+        meta = {}
+
+        if "_datadog" in event:
+            # use the trace ID from the top-most parent when it exists
+            trace_header = event.get("_datadog")
+            trace_id = trace_header.get(TraceHeader.TRACE_ID)
+            tags = trace_header.get(TraceHeader.TAGS)
+            for tag in tags.split(","):
+                tag_key, tag_val = tag.split("=")
+                meta[tag_key] = tag_val
+        else:
+            # returning 128 bits since 128bit traceId will be break up into
+            # traditional traceId and _dd.p.tid tag
+            # https://github.com/DataDog/dd-trace-py/blob/3e34d21cb9b5e1916e549047158cb119317b96ab/ddtrace/propagation/http.py#L232-L240
+            trace_id = _deterministic_sha256_hash(execution_id, LOWER_64_BITS)
+            # take the higher 64 bits as _dd.p.tid tag and use hex to encode
+            # [2:] to remove '0x' in the hex str
+            meta["_dd.p.tid"] = hex(
+                _deterministic_sha256_hash(execution_id, HIGHER_64_BITS)
+            )[2:]
 
         parent_id = _deterministic_sha256_hash(
             f"{execution_id}#{state_name}#{state_entered_time}", HIGHER_64_BITS
@@ -394,13 +411,7 @@ def extract_context_from_step_functions(event, lambda_context):
             trace_id=trace_id,
             span_id=parent_id,
             sampling_priority=sampling_priority,
-            # take the higher 64 bits as _dd.p.tid tag and use hex to encode
-            # [2:] to remove '0x' in the hex str
-            meta={
-                "_dd.p.tid": hex(
-                    _deterministic_sha256_hash(execution_id, HIGHER_64_BITS)
-                )[2:]
-            },
+            meta=meta,
         )
     except Exception as e:
         logger.debug("The Step Functions trace extractor returned with error %s", e)
