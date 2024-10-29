@@ -344,7 +344,7 @@ class GetTriggerTags(unittest.TestCase):
                 "http.url": "x02yirxc7a.execute-api.eu-west-1.amazonaws.com",
                 "http.url_details.path": "/httpapi/get",
                 "http.method": "GET",
-                "http.route": "GET /httpapi/get",
+                "http.route": "/httpapi/get",
             },
         )
 
