@@ -279,7 +279,39 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "metrics": {
           "_dd.top_level": 1
         },
-        "type": "serverless"
+        "type": "serverless",
+        "span_links": [
+          {
+            "trace_id": "XXXX",
+            "span_id": "XXXX",
+            "attributes": {
+              "ptr.kind": "aws.dynamodb.item",
+              "ptr.dir": "u",
+              "ptr.hash": "e2af34d333891f765c7f02d2da80895e",
+              "link.kind": "span-pointer"
+            }
+          },
+          {
+            "trace_id": "XXXX",
+            "span_id": "XXXX",
+            "attributes": {
+              "ptr.kind": "aws.dynamodb.item",
+              "ptr.dir": "u",
+              "ptr.hash": "e2af34d333891f765c7f02d2da80895e",
+              "link.kind": "span-pointer"
+            }
+          },
+          {
+            "trace_id": "XXXX",
+            "span_id": "XXXX",
+            "attributes": {
+              "ptr.kind": "aws.dynamodb.item",
+              "ptr.dir": "u",
+              "ptr.hash": "e2af34d333891f765c7f02d2da80895e",
+              "link.kind": "span-pointer"
+            }
+          }
+        ]
       },
       {
         "trace_id": "XXXX",
@@ -942,7 +974,19 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "metrics": {
           "_dd.top_level": 1
         },
-        "type": "serverless"
+        "type": "serverless",
+        "span_links": [
+          {
+            "trace_id": "XXXX",
+            "span_id": "XXXX",
+            "attributes": {
+              "ptr.kind": "aws.s3.object",
+              "ptr.dir": "u",
+              "ptr.hash": "1dc3e5d00dae48c1f07d95371a747788",
+              "link.kind": "span-pointer"
+            }
+          }
+        ]
       },
       {
         "trace_id": "XXXX",
