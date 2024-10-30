@@ -3,6 +3,11 @@ FROM python:$python_version
 
 ENV PYTHONDONTWRITEBYTECODE True
 
+# Add Rust compiler which is needed to build dd-trace-py from source
+RUN curl https://sh.rustup.rs -sSf | \
+    sh -s -- --default-toolchain stable -y
+ENV PATH=/root/.cargo/bin:$PATH
+
 RUN mkdir -p /test/datadog_lambda
 WORKDIR /test
 
