@@ -80,6 +80,67 @@ class TestCalculateSpanPointers:
                 },
                 span_pointers=[],
             ),
+            SpanPointersCase(
+                name="empty dynamodb event",
+                event_source=_EventSource(EventTypes.DYNAMODB),
+                event={},
+                span_pointers=[],
+            ),
+            SpanPointersCase(
+                name="sensible dynamodb event",
+                event_source=_EventSource(EventTypes.DYNAMODB),
+                event={
+                    "Records": [
+                        {
+                            "eventSourceARN": "arn:aws:dynamodb:us-west-2:123456789012:table/some-table/stream/2015-06-27T00:48:05.899",
+                            "dynamodb": {
+                                "Keys": {
+                                    "some-key": {"S": "some-value"},
+                                },
+                            },
+                        },
+                        {
+                            "eventSourceARN": "arn:aws:dynamodb:us-west-2:123456789012:table/some-table/stream/2015-06-27T00:48:05.899",
+                            "dynamodb": {
+                                "Keys": {
+                                    "some-key": {"S": "some-other-value"},
+                                },
+                            },
+                        },
+                    ],
+                },
+                span_pointers=[
+                    _SpanPointerDescription(
+                        pointer_kind="aws.dynamodb.item",
+                        pointer_direction=_SpanPointerDirection.UPSTREAM,
+                        pointer_hash="7f1aee721472bcb48701d45c7c7f7821",
+                        extra_attributes={},
+                    ),
+                    _SpanPointerDescription(
+                        pointer_kind="aws.dynamodb.item",
+                        pointer_direction=_SpanPointerDirection.UPSTREAM,
+                        pointer_hash="36b820424312a6069bd3f2185f1af584",
+                        extra_attributes={},
+                    ),
+                ],
+            ),
+            SpanPointersCase(
+                name="malformed dynamodb event",
+                event_source=_EventSource(EventTypes.DYNAMODB),
+                event={
+                    "Records": [
+                        {
+                            "eventSourceARN": "arn:aws:dynamodb:us-west-2:123456789012:table/some-table",  # missing stream info
+                            "dynamodb": {
+                                "Keys": {
+                                    "some-key": {"S": "some-value"},
+                                },
+                            },
+                        },
+                    ],
+                },
+                span_pointers=[],
+            ),
         ],
         ids=lambda test_case: test_case.name,
     )
