@@ -30,7 +30,7 @@ def calculate_span_pointers(
     except Exception as e:
         logger.warning(
             "failed to calculate span pointers for event: %s",
-            str(e),
+            e,
         )
 
     return []
@@ -75,7 +75,7 @@ def _calculate_s3_span_pointers_for_object_created_s3_information(
     except KeyError as e:
         logger.warning(
             "missing s3 information required to make a span pointer: %s",
-            str(e),
+            e,
         )
         return []
 
@@ -92,7 +92,7 @@ def _calculate_s3_span_pointers_for_object_created_s3_information(
     except Exception as e:
         logger.warning(
             "failed to generate S3 span pointer: %s",
-            str(e),
+            e,
         )
         return []
 
@@ -119,7 +119,7 @@ def _calculate_dynamodb_span_pointers_for_event_record(
     except Exception as e:
         logger.warning(
             "missing DynamoDB information required to make a span pointer: %s",
-            str(e),
+            e,
         )
         return []
 
@@ -135,7 +135,7 @@ def _calculate_dynamodb_span_pointers_for_event_record(
     except Exception as e:
         logger.warning(
             "failed to generate DynamoDB span pointer: %s",
-            str(e),
+            e,
         )
         return []
 
