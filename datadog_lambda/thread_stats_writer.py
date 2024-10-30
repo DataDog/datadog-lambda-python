@@ -27,8 +27,11 @@ class ThreadStatsWriter(StatsWriter):
         Modified based on `datadog.threadstats.base.ThreadStats.flush()`,
         to gain better control over exception handling.
         """
+        original_constant_tags = self.thread_stats.constant_tags.copy()
         if tags:
-            self.thread_stats.constant_tags = self.thread_stats.constant_tags + tags
+            # Temporarily add tags for this flush
+            self.thread_stats.constant_tags = original_constant_tags + tags
+
         _, dists = self.thread_stats._get_aggregate_metrics_and_dists(float("inf"))
         count_dists = len(dists)
         if not count_dists:
@@ -62,6 +65,9 @@ class ThreadStatsWriter(StatsWriter):
                 logger.debug(
                     "Flush #%s failed", self.thread_stats.flush_count, exc_info=True
                 )
+        finally:
+            # Reset constant_tags to its original state
+            self.thread_stats.constant_tags = original_constant_tags
 
     def stop(self):
         self.thread_stats.stop()
