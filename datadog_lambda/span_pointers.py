@@ -152,7 +152,7 @@ def _extract_table_name_from_dynamodb_stream_record(record) -> str:
         raise ValueError(f"unexpected eventSourceARN format: {event_source_arn}")
 
     [_table, table_name, _stream, _timestamp] = dynamodb_info.split("/")
-    if not _table == "table" or not _stream == "stream":
+    if _table != "table" or _stream != "stream":
         raise ValueError(f"unexpected eventSourceARN format: {event_source_arn}")
 
     return table_name
