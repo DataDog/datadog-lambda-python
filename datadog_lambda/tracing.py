@@ -384,13 +384,20 @@ def extract_context_from_step_functions(event, lambda_context):
         meta = {}
 
         if "_datadog" in event:
-            # use the trace ID from the top-most parent when it exists
             trace_header = event.get("_datadog")
-            trace_id = int(trace_header.get(TraceHeader.TRACE_ID))
-            tags = trace_header.get(TraceHeader.TAGS)
-            for tag in tags.split(","):
-                tag_key, tag_val = tag.split("=")
-                meta[tag_key] = tag_val
+            if TraceHeader.TRACE_ID in trace_header:
+                # use the trace ID from the top-most parent when it exists
+                trace_id = int(trace_header.get(TraceHeader.TRACE_ID))
+                tags = trace_header.get(TraceHeader.TAGS, "")
+                for tag in tags.split(","):
+                    tag_key, tag_val = tag.split("=")
+                    meta[tag_key] = tag_val
+            elif "x-datadog-execution-arn" in trace_header:
+                root_execution_id = trace_header.get("x-datadog-execution-arn")
+                trace_id = _deterministic_sha256_hash(root_execution_id, LOWER_64_BITS)
+                meta["_dd.p.tid"] = hex(
+                    _deterministic_sha256_hash(root_execution_id, HIGHER_64_BITS)
+                )[2:]
         else:
             # returning 128 bits since 128bit traceId will be break up into
             # traditional traceId and _dd.p.tid tag
