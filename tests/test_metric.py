@@ -119,13 +119,69 @@ class TestFlushThreadStats(unittest.TestCase):
 
     def test_flush_stats_with_tags(self):
         lambda_stats = ThreadStatsWriter(True)
+        original_constant_tags = lambda_stats.thread_stats.constant_tags.copy()
         tags = ["tag1:value1", "tag2:value2"]
-        lambda_stats.flush(tags)
-        self.mock_threadstats_flush_distributions.assert_called_once_with(
-            lambda_stats.thread_stats._get_aggregate_metrics_and_dists(float("inf"))[1]
-        )
-        for tag in tags:
-            self.assertTrue(tag in lambda_stats.thread_stats.constant_tags)
+
+        # Add a metric to be flushed
+        lambda_stats.distribution("test.metric", 1, tags=["metric:tag"])
+
+        with patch.object(
+            lambda_stats.thread_stats.reporter, "flush_distributions"
+        ) as mock_flush_distributions:
+            lambda_stats.flush(tags)
+            mock_flush_distributions.assert_called_once()
+            # Verify that after flush, constant_tags is reset to original
+            self.assertEqual(
+                lambda_stats.thread_stats.constant_tags, original_constant_tags
+            )
+
+    def test_flush_temp_constant_tags(self):
+        lambda_stats = ThreadStatsWriter(flush_in_thread=True)
+        lambda_stats.thread_stats.constant_tags = ["initial:tag"]
+        original_constant_tags = lambda_stats.thread_stats.constant_tags.copy()
+
+        lambda_stats.distribution("test.metric", 1, tags=["metric:tag"])
+        flush_tags = ["flush:tag1", "flush:tag2"]
+
+        with patch.object(
+            lambda_stats.thread_stats.reporter, "flush_distributions"
+        ) as mock_flush_distributions:
+            lambda_stats.flush(tags=flush_tags)
+            mock_flush_distributions.assert_called_once()
+            flushed_dists = mock_flush_distributions.call_args[0][0]
+
+            # Expected tags: original constant_tags + flush_tags + metric tags
+            expected_tags = original_constant_tags + flush_tags + ["metric:tag"]
+
+            # Verify the tags on the metric
+            self.assertEqual(len(flushed_dists), 1)
+            metric = flushed_dists[0]
+            self.assertEqual(sorted(metric["tags"]), sorted(expected_tags))
+
+            # Verify that constant_tags is reset after flush
+            self.assertEqual(
+                lambda_stats.thread_stats.constant_tags, original_constant_tags
+            )
+
+        # Repeat to ensure tags do not accumulate over multiple flushes
+        new_flush_tags = ["flush:tag3"]
+        lambda_stats.distribution("test.metric2", 2, tags=["metric2:tag"])
+
+        with patch.object(
+            lambda_stats.thread_stats.reporter, "flush_distributions"
+        ) as mock_flush_distributions:
+            lambda_stats.flush(tags=new_flush_tags)
+            mock_flush_distributions.assert_called_once()
+            flushed_dists = mock_flush_distributions.call_args[0][0]
+            # Expected tags for the new metric
+            expected_tags = original_constant_tags + new_flush_tags + ["metric2:tag"]
+
+            self.assertEqual(len(flushed_dists), 1)
+            metric = flushed_dists[0]
+            self.assertEqual(sorted(metric["tags"]), sorted(expected_tags))
+            self.assertEqual(
+                lambda_stats.thread_stats.constant_tags, original_constant_tags
+            )
 
     def test_flush_stats_without_context(self):
         flush_stats(lambda_context=None)
