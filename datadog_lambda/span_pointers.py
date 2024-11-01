@@ -2,12 +2,6 @@ from itertools import chain
 import logging
 from typing import List
 
-from ddtrace._trace.utils_botocore.span_pointers.dynamodb import (
-    _aws_dynamodb_item_span_pointer_description,
-)
-from ddtrace._trace.utils_botocore.span_pointers.s3 import (
-    _aws_s3_object_span_pointer_description,
-)
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
 from datadog_lambda.trigger import EventTypes
@@ -80,6 +74,10 @@ def _calculate_s3_span_pointers_for_object_created_s3_information(
         return []
 
     try:
+        from ddtrace._trace.utils_botocore.span_pointers.s3 import (
+            _aws_s3_object_span_pointer_description,
+        )
+
         return [
             _aws_s3_object_span_pointer_description(
                 pointer_direction=_SpanPointerDirection.UPSTREAM,
@@ -124,6 +122,10 @@ def _calculate_dynamodb_span_pointers_for_event_record(
         return []
 
     try:
+        from ddtrace._trace.utils_botocore.span_pointers.dynamodb import (
+            _aws_dynamodb_item_span_pointer_description,
+        )
+
         return [
             _aws_dynamodb_item_span_pointer_description(
                 pointer_direction=_SpanPointerDirection.UPSTREAM,
