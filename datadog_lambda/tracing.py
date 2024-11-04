@@ -383,22 +383,27 @@ def extract_context_from_step_functions(event, lambda_context):
         state_entered_time = event.get("State").get("EnteredTime")
         meta = {}
 
+        trace_id = None
         if "_datadog" in event:
             trace_header = event.get("_datadog")
-            if TraceHeader.TRACE_ID in trace_header:
-                # use the trace ID from the top-most parent when it exists
-                trace_id = int(trace_header.get(TraceHeader.TRACE_ID))
+            explicit_context = propagator.extract(trace_header)
+            if _is_context_complete(explicit_context):
                 tags = trace_header.get(TraceHeader.TAGS, "")
                 for tag in tags.split(","):
                     tag_key, tag_val = tag.split("=")
                     meta[tag_key] = tag_val
-            elif "x-datadog-execution-arn" in trace_header:
-                root_execution_id = trace_header.get("x-datadog-execution-arn")
+                explicit_context.span_id = _deterministic_sha256_hash(
+                    f"{execution_id}#{state_name}#{state_entered_time}", HIGHER_64_BITS
+                )
+                return explicit_context
+            if "x-datadog-execution-arn" in trace_header:
+                root_execution_id = trace_header.get("x-datadog-root-execution-arn")
                 trace_id = _deterministic_sha256_hash(root_execution_id, LOWER_64_BITS)
                 meta["_dd.p.tid"] = hex(
                     _deterministic_sha256_hash(root_execution_id, HIGHER_64_BITS)
                 )[2:]
-        else:
+
+        if not trace_id:
             # returning 128 bits since 128bit traceId will be break up into
             # traditional traceId and _dd.p.tid tag
             # https://github.com/DataDog/dd-trace-py/blob/3e34d21cb9b5e1916e549047158cb119317b96ab/ddtrace/propagation/http.py#L232-L240

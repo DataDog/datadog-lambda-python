@@ -664,26 +664,28 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
             },
             "_datadog": {
-                "x-datadog-trace-id": "4061173386180447114",
-                "x-datadog-tags": "_dd.p.tid=aac3639aa724716",
+                "x-datadog-trace-id": "11742251842529032210",
+                "x-datadog-parent-id": "13977111940858727778",
+                "x-datadog-sampling-priority": "1",
+                "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=6728f8ec00000000"
             },
         }
         ctx, source, event_source = extract_dd_trace_context(sf_event, lambda_ctx)
         self.assertEqual(source, "event")
         expected_context = Context(
-            trace_id=4061173386180447114,
+            trace_id=137123224175615787006624409899264538642,
             span_id=6880978411788117524,
             sampling_priority=1,
-            meta={"_dd.p.tid": "aac3639aa724716"},
+            meta={'_dd.p.dm': '-0', "_dd.p.tid": "6728f8ec00000000"},
         )
         self.assertEqual(ctx, expected_context)
         self.assertEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "4061173386180447114",
+                TraceHeader.TRACE_ID: "11742251842529032210",
                 TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.tid=aac3639aa724716",
+                TraceHeader.TAGS: "_dd.p.dm=-0,_dd.p.tid=6728f8ec00000000",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
@@ -705,25 +707,25 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
             },
             "_datadog": {
-                "x-datadog-execution-arn": "ca7383bc-e370-4a85-a266-a4686bd7d00f"
+                "x-datadog-root-execution-arn": "ca7383bc-e370-4a85-a266-a4686bd7d00f"
             },
         }
         ctx, source, event_source = extract_dd_trace_context(sf_event, lambda_ctx)
         self.assertEqual(source, "event")
         expected_context = Context(
-            trace_id=6970872619724504833,
+            trace_id=3675572987363469717,
             span_id=6880978411788117524,
             sampling_priority=1,
-            meta={"_dd.p.tid": "71dab8f4d4629263"},
+            meta={"_dd.p.tid": "e987c84b36b11ab"},
         )
         self.assertEqual(ctx, expected_context)
         self.assertEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "6970872619724504833",
+                TraceHeader.TRACE_ID: "3675572987363469717",
                 TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.tid=71dab8f4d4629263",
+                TraceHeader.TAGS: "_dd.p.tid=e987c84b36b11ab",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
