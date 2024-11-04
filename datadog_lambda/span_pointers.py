@@ -1,5 +1,6 @@
 from itertools import chain
 import logging
+import os
 from typing import List
 
 from ddtrace._trace._span_pointer import _SpanPointerDirection
@@ -10,16 +11,21 @@ from datadog_lambda.trigger import EventTypes
 logger = logging.getLogger(__name__)
 
 
+dd_botocore_add_span_pointers = os.environ.get("DD_BOTOCORE_ADD_SPAN_POINTERS", "true").lower() in ("true", "1")
+
+
 def calculate_span_pointers(
     event_source,
     event,
+    botocore_add_span_pointers=dd_botocore_add_span_pointers,
 ) -> List[_SpanPointerDescription]:
     try:
-        if event_source.equals(EventTypes.S3):
-            return _calculate_s3_span_pointers_for_event(event)
+        if botocore_add_span_pointers:
+            if event_source.equals(EventTypes.S3):
+                return _calculate_s3_span_pointers_for_event(event)
 
-        elif event_source.equals(EventTypes.DYNAMODB):
-            return _calculate_dynamodb_span_pointers_for_event(event)
+            elif event_source.equals(EventTypes.DYNAMODB):
+                return _calculate_dynamodb_span_pointers_for_event(event)
 
     except Exception as e:
         logger.warning(

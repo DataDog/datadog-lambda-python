@@ -14,6 +14,7 @@ class TestCalculateSpanPointers:
         name: str
         event_source: _EventSource
         event: dict
+        dd_botocore_span_pointers: bool
         span_pointers: List[_SpanPointerDescription]
 
     @pytest.mark.parametrize(
@@ -23,12 +24,14 @@ class TestCalculateSpanPointers:
                 name="some unsupported event",
                 event_source=_EventSource(EventTypes.UNKNOWN),
                 event={},
+                dd_botocore_span_pointers=True,
                 span_pointers=[],
             ),
             SpanPointersCase(
                 name="empty s3 event",
                 event_source=_EventSource(EventTypes.S3),
                 event={},
+                dd_botocore_span_pointers=True,
                 span_pointers=[],
             ),
             SpanPointersCase(
@@ -50,6 +53,7 @@ class TestCalculateSpanPointers:
                         },
                     ],
                 },
+                dd_botocore_span_pointers=True,
                 span_pointers=[
                     _SpanPointerDescription(
                         pointer_kind="aws.s3.object",
@@ -58,6 +62,28 @@ class TestCalculateSpanPointers:
                         extra_attributes={},
                     ),
                 ],
+            ),
+            SpanPointersCase(
+                name="sensible s3 event with dd_botocore_span_pointers disabled",
+                event_source=_EventSource(EventTypes.S3),
+                event={
+                    "Records": [
+                        {
+                            "eventName": "ObjectCreated:Put",
+                            "s3": {
+                                "bucket": {
+                                    "name": "mybucket",
+                                },
+                                "object": {
+                                    "key": "mykey",
+                                    "eTag": "123abc",
+                                },
+                            },
+                        },
+                    ],
+                },
+                dd_botocore_span_pointers=False,
+                span_pointers=[],
             ),
             SpanPointersCase(
                 name="malformed s3 event",
@@ -78,12 +104,14 @@ class TestCalculateSpanPointers:
                         },
                     ],
                 },
+                dd_botocore_span_pointers=True,
                 span_pointers=[],
             ),
             SpanPointersCase(
                 name="empty dynamodb event",
                 event_source=_EventSource(EventTypes.DYNAMODB),
                 event={},
+                dd_botocore_span_pointers=True,
                 span_pointers=[],
             ),
             SpanPointersCase(
@@ -109,6 +137,7 @@ class TestCalculateSpanPointers:
                         },
                     ],
                 },
+                dd_botocore_span_pointers=True,
                 span_pointers=[
                     _SpanPointerDescription(
                         pointer_kind="aws.dynamodb.item",
@@ -139,16 +168,18 @@ class TestCalculateSpanPointers:
                         },
                     ],
                 },
+                dd_botocore_span_pointers=True,
                 span_pointers=[],
             ),
         ],
         ids=lambda test_case: test_case.name,
     )
-    def test_calculate_span_pointers(self, test_case: SpanPointersCase):
+    def test_calculate_span_pointers(self, test_case: SpanPointersCase) -> None:
         assert (
             calculate_span_pointers(
                 test_case.event_source,
                 test_case.event,
+                botocore_add_span_pointers=test_case.dd_botocore_span_pointers,
             )
             == test_case.span_pointers
         )
