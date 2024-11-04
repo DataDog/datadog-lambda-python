@@ -11,7 +11,9 @@ from datadog_lambda.trigger import EventTypes
 logger = logging.getLogger(__name__)
 
 
-dd_botocore_add_span_pointers = os.environ.get("DD_BOTOCORE_ADD_SPAN_POINTERS", "true").lower() in ("true", "1")
+dd_botocore_add_span_pointers = os.environ.get(
+    "DD_BOTOCORE_ADD_SPAN_POINTERS", "true"
+).lower() in ("true", "1")
 
 
 def calculate_span_pointers(
