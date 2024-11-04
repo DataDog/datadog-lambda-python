@@ -667,7 +667,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "x-datadog-trace-id": "11742251842529032210",
                 "x-datadog-parent-id": "13977111940858727778",
                 "x-datadog-sampling-priority": "1",
-                "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=6728f8ec00000000"
+                "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=6728f8ec00000000",
             },
         }
         ctx, source, event_source = extract_dd_trace_context(sf_event, lambda_ctx)
@@ -676,7 +676,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             trace_id=137123224175615787006624409899264538642,
             span_id=6880978411788117524,
             sampling_priority=1,
-            meta={'_dd.p.dm': '-0', "_dd.p.tid": "6728f8ec00000000"},
+            meta={"_dd.p.dm": "-0", "_dd.p.tid": "6728f8ec00000000"},
         )
         self.assertEqual(ctx, expected_context)
         self.assertEqual(
