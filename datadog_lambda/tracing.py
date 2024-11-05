@@ -411,6 +411,9 @@ def is_legacy_lambda_step_function(event):
     """
     Check if the event is a step function that called a legacy lambda
     """
+    if not isinstance(event, dict):
+        return False
+
     event = event.get("Payload", {})
     return "Execution" in event and "StateMachine" in event and "State" in event
 
