@@ -389,11 +389,7 @@ def extract_context_from_step_functions(event, lambda_context):
             )
             if "x-datadog-trace-id" in dd_data:  # lambda root
                 dd_data["x-datadog-parent-id"] = str(parent_id)
-                explicit_context = propagator.extract(dd_data)
-                if _is_context_complete(explicit_context):
-                    return explicit_context
-                else:
-                    return None
+                return propagator.extract(dd_data)
             else:  # sfn root
                 trace_id = _sha256_to_binary_part(
                     dd_data.get("x-datadog-trace-id-hash"), LOWER_64_BITS
