@@ -146,7 +146,9 @@ def parse_event_source(event: dict) -> _EventSource:
     if event.get("source") == "aws.events" or has_event_categories:
         event_source = _EventSource(EventTypes.CLOUDWATCH_EVENTS)
 
-    if "Execution" in event and "StateMachine" in event and "State" in event:
+    if (
+        "_datadog" in event and event.get("_datadog").get("serverless-version") == "v2"
+    ) or ("Execution" in event and "StateMachine" in event and "State" in event):
         event_source = _EventSource(EventTypes.STEPFUNCTIONS)
 
     event_record = get_first_record(event)

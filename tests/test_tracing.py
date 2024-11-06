@@ -617,7 +617,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     @with_trace_propagation_style("datadog")
     def test_step_function_trace_data(self):
         lambda_ctx = get_mock_context()
-        sf_event = {
+        sfn_event = {
             "Execution": {
                 "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
             },
@@ -627,7 +627,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
             },
         }
-        ctx, source, event_source = extract_dd_trace_context(sf_event, lambda_ctx)
+        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
         self.assertEqual(source, "event")
         expected_context = Context(
             trace_id=3675572987363469717,
@@ -652,40 +652,35 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     @with_trace_propagation_style("datadog")
-    def test_step_function_trace_data_with_trace_header(self):
+    def test_step_function_trace_data_lambda_root(self):
         lambda_ctx = get_mock_context()
-        sf_event = {
-            "Execution": {
-                "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
-            },
-            "StateMachine": {},
-            "State": {
-                "Name": "my-awesome-state",
-                "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
-            },
+        sfn_event = {
             "_datadog": {
-                "x-datadog-trace-id": "11742251842529032210",
-                "x-datadog-parent-id": "13977111940858727778",
+                "x-datadog-trace-id": "5821803790426892636",
                 "x-datadog-sampling-priority": "1",
-                "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=6728f8ec00000000",
-            },
+                "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
+                "traceparent": "00-672a7cb10000000050cb33b3c06ae95c-5fda9d8d1d1373f9-01",
+                "tracestate": "dd=p:5fda9d8d1d1373f9;s:1;t.dm:-0;t.tid:672a7cb100000000",
+                "x-datadog-parent-id-hash": "a926584eba705d6ec904c54db2ecc4d4a2c91e7dabe7ce87ac26edb43388fbc5",
+                "serverless-version": "v2",
+            }
         }
-        ctx, source, event_source = extract_dd_trace_context(sf_event, lambda_ctx)
+        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
         self.assertEqual(source, "event")
         expected_context = Context(
-            trace_id=137123224175615787006624409899264538642,
-            span_id=6880978411788117524,
+            trace_id=137131089076080415507232535361568303452,
+            span_id=2965154499828669806,
             sampling_priority=1,
-            meta={"_dd.p.dm": "-0", "_dd.p.tid": "6728f8ec00000000"},
+            meta={"_dd.p.dm": "-0", "_dd.p.tid": "672a7cb100000000"},
         )
         self.assertEqual(ctx, expected_context)
         self.assertEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "11742251842529032210",
+                TraceHeader.TRACE_ID: "5821803790426892636",
                 TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.dm=-0,_dd.p.tid=6728f8ec00000000",
+                TraceHeader.TAGS: "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
@@ -695,37 +690,31 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     @with_trace_propagation_style("datadog")
-    def test_step_function_trace_data_with_arn_header(self):
+    def test_step_function_trace_data_sfn_root(self):
         lambda_ctx = get_mock_context()
-        sf_event = {
-            "Execution": {
-                "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
-            },
-            "StateMachine": {},
-            "State": {
-                "Name": "my-awesome-state",
-                "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
-            },
+        sfn_event = {
             "_datadog": {
-                "x-datadog-root-execution-arn": "ca7383bc-e370-4a85-a266-a4686bd7d00f"
-            },
+                "x-datadog-trace-id-hash": "fed93f8c162880cb9aa90fcd1f8395383835841d5470d30215f3dd52906ebc58",
+                "x-datadog-parent-id-hash": "c5eb94cc9220ab5783e1db53debd54b8c93f6f2a3eae1c680d7b849f2d34e551",
+                "serverless-version": "v2"
+            }
         }
-        ctx, source, event_source = extract_dd_trace_context(sf_event, lambda_ctx)
+        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
         self.assertEqual(source, "event")
         expected_context = Context(
-            trace_id=3675572987363469717,
-            span_id=6880978411788117524,
+            trace_id=1921084089721656632,
+            span_id=5038284214489885527,
             sampling_priority=1,
-            meta={"_dd.p.tid": "e987c84b36b11ab"},
+            meta={"_dd.p.tid": "7ed93f8c162880cb"},
         )
         self.assertEqual(ctx, expected_context)
         self.assertEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "3675572987363469717",
+                TraceHeader.TRACE_ID: "1921084089721656632",
                 TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.tid=e987c84b36b11ab",
+                TraceHeader.TAGS: "_dd.p.tid=7ed93f8c162880cb",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)

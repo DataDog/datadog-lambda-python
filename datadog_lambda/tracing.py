@@ -358,8 +358,10 @@ def extract_context_from_kinesis_event(event, lambda_context):
 
 
 def _deterministic_sha256_hash(s: str, part: str) -> (int, int):
-    sha256_hash = hashlib.sha256(s.encode()).hexdigest()
+    return _sha256_to_binary_part(hashlib.sha256(s.encode()).hexdigest(), part)
 
+
+def _sha256_to_binary_part(sha256_hash: str, part: str) -> (int, int):
     # First two chars is '0b'. zfill to ensure 256 bits, but we only care about the first 128 bits
     binary_hash = bin(int(sha256_hash, 16))[2:].zfill(256)
     if part == HIGHER_64_BITS:
@@ -378,32 +380,33 @@ def extract_context_from_step_functions(event, lambda_context):
     into lambda's event dict.
     """
     try:
-        execution_id = event.get("Execution").get("Id")
-        state_name = event.get("State").get("Name")
-        state_entered_time = event.get("State").get("EnteredTime")
         meta = {}
 
-        trace_id = None
         if "_datadog" in event:
-            trace_header = event.get("_datadog")
-            explicit_context = propagator.extract(trace_header)
-            if _is_context_complete(explicit_context):
-                tags = trace_header.get(TraceHeader.TAGS, "")
-                for tag in tags.split(","):
-                    tag_key, tag_val = tag.split("=")
-                    meta[tag_key] = tag_val
-                explicit_context.span_id = _deterministic_sha256_hash(
-                    f"{execution_id}#{state_name}#{state_entered_time}", HIGHER_64_BITS
+            dd_data = event.get("_datadog")
+            parent_id = _sha256_to_binary_part(
+                dd_data.get("x-datadog-parent-id-hash"), HIGHER_64_BITS
+            )
+            if "x-datadog-trace-id" in dd_data:  # lambda root
+                dd_data["x-datadog-parent-id"] = str(parent_id)
+                explicit_context = propagator.extract(dd_data)
+                if _is_context_complete(explicit_context):
+                    return explicit_context
+                else:
+                    return None
+            else:  # sfn root
+                trace_id = _sha256_to_binary_part(
+                    dd_data.get("x-datadog-trace-id-hash"), LOWER_64_BITS
                 )
-                return explicit_context
-            if "x-datadog-execution-arn" in trace_header:
-                root_execution_id = trace_header.get("x-datadog-root-execution-arn")
-                trace_id = _deterministic_sha256_hash(root_execution_id, LOWER_64_BITS)
                 meta["_dd.p.tid"] = hex(
-                    _deterministic_sha256_hash(root_execution_id, HIGHER_64_BITS)
+                    _sha256_to_binary_part(
+                        dd_data.get("x-datadog-trace-id-hash"), HIGHER_64_BITS
+                    )
                 )[2:]
-
-        if not trace_id:
+        else:
+            execution_id = event.get("Execution").get("Id")
+            state_name = event.get("State").get("Name")
+            state_entered_time = event.get("State").get("EnteredTime")
             # returning 128 bits since 128bit traceId will be break up into
             # traditional traceId and _dd.p.tid tag
             # https://github.com/DataDog/dd-trace-py/blob/3e34d21cb9b5e1916e549047158cb119317b96ab/ddtrace/propagation/http.py#L232-L240
@@ -414,9 +417,9 @@ def extract_context_from_step_functions(event, lambda_context):
                 _deterministic_sha256_hash(execution_id, HIGHER_64_BITS)
             )[2:]
 
-        parent_id = _deterministic_sha256_hash(
-            f"{execution_id}#{state_name}#{state_entered_time}", HIGHER_64_BITS
-        )
+            parent_id = _deterministic_sha256_hash(
+                f"{execution_id}#{state_name}#{state_entered_time}", HIGHER_64_BITS
+            )
 
         sampling_priority = SamplingPriority.AUTO_KEEP
         return Context(
