@@ -432,8 +432,13 @@ def is_legacy_lambda_step_function(event):
     """
     Check if the event is a step function that called a legacy lambda
     """
-    event = event.get("Payload", {})
-    return "Execution" in event and "StateMachine" in event and "State" in event
+    if not isinstance(event, dict) or "Payload" not in event:
+        return False
+
+    event = event.get("Payload")
+    return "_datadog" in event or (
+        "Execution" in event and "StateMachine" in event and "State" in event
+    )
 
 
 def extract_context_custom_extractor(extractor, event, lambda_context):
@@ -688,6 +693,7 @@ def create_inferred_span(
     event_source: _EventSource = None,
     decode_authorizer_context: bool = True,
 ):
+    logger.debug("abhinav event %s", event)
     if event_source is None:
         event_source = parse_event_source(event)
     try:

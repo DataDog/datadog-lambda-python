@@ -739,6 +739,17 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertTrue(is_legacy_lambda_step_function(sf_event))
 
         sf_event = {
+            "Payload": {
+                "_datadog": {
+                    "x-datadog-trace-id-hash": "fed93f8c162880cb9aa90fcd1f8395383835841d5470d30215f3dd52906ebc58",
+                    "x-datadog-parent-id-hash": "c5eb94cc9220ab5783e1db53debd54b8c93f6f2a3eae1c680d7b849f2d34e551",
+                    "serverless-version": "v2",
+                }
+            }
+        }
+        self.assertTrue(is_legacy_lambda_step_function(sf_event))
+
+        sf_event = {
             "Execution": {
                 "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
             },
