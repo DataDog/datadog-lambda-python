@@ -1,13 +1,8 @@
 from itertools import chain
 import logging
+import os
 from typing import List
 
-from ddtrace._trace.utils_botocore.span_pointers.dynamodb import (
-    _aws_dynamodb_item_span_pointer_description,
-)
-from ddtrace._trace.utils_botocore.span_pointers.s3 import (
-    _aws_s3_object_span_pointer_description,
-)
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
 from datadog_lambda.trigger import EventTypes
@@ -16,16 +11,23 @@ from datadog_lambda.trigger import EventTypes
 logger = logging.getLogger(__name__)
 
 
+dd_botocore_add_span_pointers = os.environ.get(
+    "DD_BOTOCORE_ADD_SPAN_POINTERS", "true"
+).lower() in ("true", "1")
+
+
 def calculate_span_pointers(
     event_source,
     event,
+    botocore_add_span_pointers=dd_botocore_add_span_pointers,
 ) -> List[_SpanPointerDescription]:
     try:
-        if event_source.equals(EventTypes.S3):
-            return _calculate_s3_span_pointers_for_event(event)
+        if botocore_add_span_pointers:
+            if event_source.equals(EventTypes.S3):
+                return _calculate_s3_span_pointers_for_event(event)
 
-        elif event_source.equals(EventTypes.DYNAMODB):
-            return _calculate_dynamodb_span_pointers_for_event(event)
+            elif event_source.equals(EventTypes.DYNAMODB):
+                return _calculate_dynamodb_span_pointers_for_event(event)
 
     except Exception as e:
         logger.warning(
@@ -80,6 +82,10 @@ def _calculate_s3_span_pointers_for_object_created_s3_information(
         return []
 
     try:
+        from ddtrace._trace.utils_botocore.span_pointers.s3 import (
+            _aws_s3_object_span_pointer_description,
+        )
+
         return [
             _aws_s3_object_span_pointer_description(
                 pointer_direction=_SpanPointerDirection.UPSTREAM,
@@ -124,6 +130,10 @@ def _calculate_dynamodb_span_pointers_for_event_record(
         return []
 
     try:
+        from ddtrace._trace.utils_botocore.span_pointers.dynamodb import (
+            _aws_dynamodb_item_span_pointer_description,
+        )
+
         return [
             _aws_dynamodb_item_span_pointer_description(
                 pointer_direction=_SpanPointerDirection.UPSTREAM,
