@@ -775,6 +775,9 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         }
         self.assertFalse(is_legacy_lambda_step_function(sf_event))
 
+        other_event = ["foo", "bar"]
+        self.assertFalse(is_legacy_lambda_step_function(other_event))
+
 
 class TestXRayContextConversion(unittest.TestCase):
     def test_convert_xray_trace_id(self):
