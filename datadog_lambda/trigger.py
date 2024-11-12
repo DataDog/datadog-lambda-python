@@ -256,6 +256,14 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
     if source.event_type == EventTypes.CLOUDWATCH_EVENTS and event.get("resources"):
         return event.get("resources")[0]
 
+    # todo: testme
+    # e.g. arn:aws:states:us-east-1:123456789012:stateMachine:stateMachineName
+    if source.event_type == EventTypes.STEPFUNCTIONS:
+        context = event
+        if "_datadog" in event:
+            context = event.get("_datadog")
+        return context.get("StateMachine").get("Id")
+
 
 def get_event_source_arn(source: _EventSource, event: dict, context: Any) -> str:
     event_source_arn = event.get("eventSourceARN") or event.get("eventSourceArn")

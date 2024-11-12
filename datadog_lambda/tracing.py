@@ -403,8 +403,10 @@ def extract_context_from_step_functions(event, lambda_context):
 
         if dd_data and dd_data.get("serverless-version") == "v2":
             if "x-datadog-trace-id" in dd_data:  # lambda root
-                trace_id = dd_data.get("x-datadog-trace-id")
-                high_64_bit_trace_id = _parse_high_64_bits(dd_data.get("x-datadog-tags"))
+                trace_id = int(dd_data.get("x-datadog-trace-id"))
+                high_64_bit_trace_id = _parse_high_64_bits(
+                    dd_data.get("x-datadog-tags")
+                )
                 if high_64_bit_trace_id:
                     meta["_dd.p.tid"] = high_64_bit_trace_id
             else:  # sfn root
@@ -709,7 +711,6 @@ def create_inferred_span(
     event_source: _EventSource = None,
     decode_authorizer_context: bool = True,
 ):
-    logger.debug("abhinav event %s", event)
     if event_source is None:
         event_source = parse_event_source(event)
     try:
