@@ -656,22 +656,29 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         lambda_ctx = get_mock_context()
         sfn_event = {
             "_datadog": {
+                "Execution": {
+                    "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                },
+                "StateMachine": {},
+                "State": {
+                    "Name": "my-awesome-state",
+                    "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+                },
                 "x-datadog-trace-id": "5821803790426892636",
                 "x-datadog-sampling-priority": "1",
                 "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
                 "traceparent": "00-672a7cb10000000050cb33b3c06ae95c-5fda9d8d1d1373f9-01",
                 "tracestate": "dd=p:5fda9d8d1d1373f9;s:1;t.dm:-0;t.tid:672a7cb100000000",
-                "x-datadog-parent-id-hash": "a926584eba705d6ec904c54db2ecc4d4a2c91e7dabe7ce87ac26edb43388fbc5",
                 "serverless-version": "v2",
             }
         }
         ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
         self.assertEqual(source, "event")
         expected_context = Context(
-            trace_id=137131089076080415507232535361568303452,
-            span_id=2965154499828669806,
+            trace_id=5821803790426892636,
+            span_id=6880978411788117524,
             sampling_priority=1,
-            meta={"_dd.p.dm": "-0", "_dd.p.tid": "672a7cb100000000"},
+            meta={"_dd.p.tid": "672a7cb100000000"},
         )
         self.assertEqual(ctx, expected_context)
         self.assertEqual(
@@ -680,7 +687,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.TRACE_ID: "5821803790426892636",
                 TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
+                TraceHeader.TAGS: "_dd.p.tid=672a7cb100000000",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
@@ -694,27 +701,34 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         lambda_ctx = get_mock_context()
         sfn_event = {
             "_datadog": {
-                "x-datadog-trace-id-hash": "fed93f8c162880cb9aa90fcd1f8395383835841d5470d30215f3dd52906ebc58",
-                "x-datadog-parent-id-hash": "c5eb94cc9220ab5783e1db53debd54b8c93f6f2a3eae1c680d7b849f2d34e551",
+                "Execution": {
+                    "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                },
+                "StateMachine": {},
+                "State": {
+                    "Name": "my-awesome-state",
+                    "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+                },
+                "RootExecutionId": "4875aba4-ae31-4a4c-bf8a-63e9eee31dad",
                 "serverless-version": "v2",
             }
         }
         ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
         self.assertEqual(source, "event")
         expected_context = Context(
-            trace_id=1921084089721656632,
-            span_id=5038284214489885527,
+            trace_id=4521899030418994483,
+            span_id=6880978411788117524,
             sampling_priority=1,
-            meta={"_dd.p.tid": "7ed93f8c162880cb"},
+            meta={"_dd.p.tid": "12d1270d99cc5e03"},
         )
         self.assertEqual(ctx, expected_context)
         self.assertEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "1921084089721656632",
+                TraceHeader.TRACE_ID: "4521899030418994483",
                 TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.tid=7ed93f8c162880cb",
+                TraceHeader.TAGS: "_dd.p.tid=12d1270d99cc5e03",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
