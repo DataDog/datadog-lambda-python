@@ -371,7 +371,10 @@ def _deterministic_sha256_hash(s: str, part: str) -> int:
 
 
 def _parse_high_64_bits(trace_tags: str) -> str:
-    # todo: testme
+    """
+    Parse a list of trace tags such as [_dd.p.tid=66bcb5eb00000000,_dd.p.dm=-0] and return the value of the _dd.p.tid
+    tag or an empty string if not found.
+    """
     if trace_tags:
         for tag in trace_tags.split(","):
             if "_dd.p.tid=" in tag:
@@ -380,7 +383,6 @@ def _parse_high_64_bits(trace_tags: str) -> str:
     return ""
 
 
-# todo: testme
 def _generate_sfn_parent_id(context: dict) -> int:
     execution_id = context.get("Execution").get("Id")
     state_name = context.get("State").get("Name")
@@ -391,24 +393,31 @@ def _generate_sfn_parent_id(context: dict) -> int:
     )
 
 
-# take the higher 64 bits as _dd.p.tid tag and use hex to encode
-# [2:] to remove '0x' in the hex str
-# todo testme
-# returning 128 bits since 128bit traceId will be break up into
-# traditional traceId and _dd.p.tid tag
-# https://github.com/DataDog/dd-trace-py/blob/3e34d21cb9b5e1916e549047158cb119317b96ab/ddtrace/propagation/http.py#L232-L240
-def _generate_sfn_trace_id(pre_hash: str, part: str):
+def _generate_sfn_trace_id(execution_id: str, part: str):
+    """
+    Take the SHA-256 hash of the execution_id to calculate the trace ID. If the high 64 bits are specified, we take
+    those bits and use hex to encode it. We also remove the first two characters as they will be '0x in the hex string.
+
+    We care about full 128 bits because they will break up into traditional traceID and _dd.p.tid tag.
+    https://github.com/DataDog/dd-trace-py/blob/3e34d21cb9b5e1916e549047158cb119317b96ab/ddtrace/propagation/http.py#L232-L240
+    """
     if part == HIGHER_64_BITS:
-        return hex(_deterministic_sha256_hash(pre_hash, part))[2:]
-    return _deterministic_sha256_hash(pre_hash, part)
+        return hex(_deterministic_sha256_hash(execution_id, part))[2:]
+    return _deterministic_sha256_hash(execution_id, part)
 
 
 def extract_context_from_step_functions(event, lambda_context):
     """
     Only extract datadog trace context when Step Functions Context Object is injected
     into lambda's event dict.
+
+    If '_datadog' header is present, we have two cases:
+      1. Root is a Lambda and we use its traceID
+      2. Root is a SFN, and we use its executionARN to calculate the traceID
+    We calculate the parentID the same in both cases by using the parent SFN's context object.
+
+    Otherwise, we're dealing with the legacy case where we only have the parent SFN's context object.
     """
-    # todo: update docstring
     try:
         meta = {}
         dd_data = event.get("_datadog")

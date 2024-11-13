@@ -230,6 +230,20 @@ class TestGetEventSourceAndARN(unittest.TestCase):
             "arn:aws:sqs:eu-west-1:601427279990:InferredSpansQueueNode",
         )
 
+    def test_event_source_stepfunctions(self):
+        event_sample_source = "stepfunctions"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        event_source = parse_event_source(event)
+        event_source_arn = get_event_source_arn(event_source, event, ctx)
+        self.assertEqual(event_source.to_string(), event_sample_source)
+        self.assertEqual(
+            event_source_arn,
+            "arn:aws:states:ca-central-1:425362996713:stateMachine:MyStateMachine-wsx8chv4d",
+        )
+
     def test_event_source_unsupported(self):
         event_sample_source = "custom"
         test_file = event_samples + event_sample_source + ".json"
@@ -482,6 +496,21 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "sqs",
                 "function_trigger.event_source_arn": "arn:aws:sqs:eu-west-1:601427279990:InferredSpansQueueNode",
+            },
+        )
+
+    def test_extract_trigger_tags_stepfunctions(self):
+        event_sample_source = "stepfunctions"
+        test_file = event_samples + event_sample_source + ".json"
+        ctx = get_mock_context()
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        tags = extract_trigger_tags(event, ctx)
+        self.assertEqual(
+            tags,
+            {
+                "function_trigger.event_source": "stepfunctions",
+                "function_trigger.event_source_arn": "arn:aws:states:ca-central-1:425362996713:stateMachine:MyStateMachine-wsx8chv4d",
             },
         )
 
