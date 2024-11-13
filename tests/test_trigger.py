@@ -231,7 +231,7 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         )
 
     def test_event_source_stepfunctions(self):
-        event_sample_source = "stepfunctions"
+        event_sample_source = "states"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
             event = json.load(event)
@@ -500,7 +500,7 @@ class GetTriggerTags(unittest.TestCase):
         )
 
     def test_extract_trigger_tags_stepfunctions(self):
-        event_sample_source = "stepfunctions"
+        event_sample_source = "states"
         test_file = event_samples + event_sample_source + ".json"
         ctx = get_mock_context()
         with open(test_file, "r") as event:
@@ -509,7 +509,7 @@ class GetTriggerTags(unittest.TestCase):
         self.assertEqual(
             tags,
             {
-                "function_trigger.event_source": "stepfunctions",
+                "function_trigger.event_source": "states",
                 "function_trigger.event_source_arn": "arn:aws:states:ca-central-1:425362996713:stateMachine:MyStateMachine-wsx8chv4d",
             },
         )

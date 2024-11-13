@@ -399,7 +399,8 @@ def _generate_sfn_trace_id(execution_id: str, part: str):
     specified, we take those bits and use hex to encode it. We also remove the first two characters
     as they will be '0x in the hex string.
 
-    We care about full 128 bits because they will break up into traditional traceID and _dd.p.tid tag.
+    We care about full 128 bits because they will break up into traditional traceID and
+    _dd.p.tid tag.
     """
     if part == HIGHER_64_BITS:
         return hex(_deterministic_sha256_hash(execution_id, part))[2:]
