@@ -372,8 +372,8 @@ def _deterministic_sha256_hash(s: str, part: str) -> int:
 
 def _parse_high_64_bits(trace_tags: str) -> str:
     """
-    Parse a list of trace tags such as [_dd.p.tid=66bcb5eb00000000,_dd.p.dm=-0] and return the value of the _dd.p.tid
-    tag or an empty string if not found.
+    Parse a list of trace tags such as [_dd.p.tid=66bcb5eb00000000,_dd.p.dm=-0] and return the
+    value of the _dd.p.tid tag or an empty string if not found.
     """
     if trace_tags:
         for tag in trace_tags.split(","):
@@ -395,11 +395,11 @@ def _generate_sfn_parent_id(context: dict) -> int:
 
 def _generate_sfn_trace_id(execution_id: str, part: str):
     """
-    Take the SHA-256 hash of the execution_id to calculate the trace ID. If the high 64 bits are specified, we take
-    those bits and use hex to encode it. We also remove the first two characters as they will be '0x in the hex string.
+    Take the SHA-256 hash of the execution_id to calculate the trace ID. If the high 64 bits are
+    specified, we take those bits and use hex to encode it. We also remove the first two characters
+    as they will be '0x in the hex string.
 
     We care about full 128 bits because they will break up into traditional traceID and _dd.p.tid tag.
-    https://github.com/DataDog/dd-trace-py/blob/3e34d21cb9b5e1916e549047158cb119317b96ab/ddtrace/propagation/http.py#L232-L240
     """
     if part == HIGHER_64_BITS:
         return hex(_deterministic_sha256_hash(execution_id, part))[2:]
@@ -416,7 +416,8 @@ def extract_context_from_step_functions(event, lambda_context):
       2. Root is a SFN, and we use its executionARN to calculate the traceID
     We calculate the parentID the same in both cases by using the parent SFN's context object.
 
-    Otherwise, we're dealing with the legacy case where we only have the parent SFN's context object.
+    Otherwise, we're dealing with the legacy case where we only have the parent SFN's context
+    object.
     """
     try:
         meta = {}
