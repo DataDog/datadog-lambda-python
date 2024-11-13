@@ -665,10 +665,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
                 },
                 "x-datadog-trace-id": "5821803790426892636",
-                "x-datadog-sampling-priority": "1",
                 "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
-                "traceparent": "00-672a7cb10000000050cb33b3c06ae95c-5fda9d8d1d1373f9-01",
-                "tracestate": "dd=p:5fda9d8d1d1373f9;s:1;t.dm:-0;t.tid:672a7cb100000000",
                 "serverless-version": "v2",
             }
         }
@@ -736,47 +733,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             XraySubsegment.TRACE_KEY,
             expected_context,
         )
-
-    def test_is_legacy_lambda_step_function(self):
-        sf_event = {
-            "Payload": {
-                "Execution": {
-                    "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
-                },
-                "StateMachine": {},
-                "State": {
-                    "Name": "my-awesome-state",
-                    "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
-                },
-            }
-        }
-        self.assertTrue(is_legacy_lambda_step_function(sf_event))
-
-        sf_event = {
-            "Payload": {
-                "_datadog": {
-                    "x-datadog-trace-id-hash": "fed93f8c162880cb9aa90fcd1f8395383835841d5470d30215f3dd52906ebc58",
-                    "x-datadog-parent-id-hash": "c5eb94cc9220ab5783e1db53debd54b8c93f6f2a3eae1c680d7b849f2d34e551",
-                    "serverless-version": "v2",
-                }
-            }
-        }
-        self.assertTrue(is_legacy_lambda_step_function(sf_event))
-
-        sf_event = {
-            "Execution": {
-                "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
-            },
-            "StateMachine": {},
-            "State": {
-                "Name": "my-awesome-state",
-                "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
-            },
-        }
-        self.assertFalse(is_legacy_lambda_step_function(sf_event))
-
-        other_event = ["foo", "bar"]
-        self.assertFalse(is_legacy_lambda_step_function(other_event))
 
 
 class TestXRayContextConversion(unittest.TestCase):

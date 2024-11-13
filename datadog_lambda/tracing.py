@@ -380,8 +380,8 @@ def _parse_high_64_bits(trace_tags: str) -> str:
     return ""
 
 
-def _sfn_context_to_parent_id(context: dict) -> int:
-    # todo: testme
+# todo: testme
+def _generate_sfn_parent_id(context: dict) -> int:
     execution_id = context.get("Execution").get("Id")
     state_name = context.get("State").get("Name")
     state_entered_time = context.get("State").get("EnteredTime")
@@ -389,6 +389,18 @@ def _sfn_context_to_parent_id(context: dict) -> int:
     return _deterministic_sha256_hash(
         f"{execution_id}#{state_name}#{state_entered_time}", HIGHER_64_BITS
     )
+
+
+# take the higher 64 bits as _dd.p.tid tag and use hex to encode
+# [2:] to remove '0x' in the hex str
+# todo testme
+# returning 128 bits since 128bit traceId will be break up into
+# traditional traceId and _dd.p.tid tag
+# https://github.com/DataDog/dd-trace-py/blob/3e34d21cb9b5e1916e549047158cb119317b96ab/ddtrace/propagation/http.py#L232-L240
+def _generate_sfn_trace_id(pre_hash: str, part: str):
+    if part == HIGHER_64_BITS:
+        return hex(_deterministic_sha256_hash(pre_hash, part))[2:]
+    return _deterministic_sha256_hash(pre_hash, part)
 
 
 def extract_context_from_step_functions(event, lambda_context):
@@ -410,29 +422,18 @@ def extract_context_from_step_functions(event, lambda_context):
                 if high_64_bit_trace_id:
                     meta["_dd.p.tid"] = high_64_bit_trace_id
             else:  # sfn root
-                trace_id = _deterministic_sha256_hash(
-                    dd_data.get("RootExecutionId"), LOWER_64_BITS
+                root_execution_id = dd_data.get("RootExecutionId")
+                trace_id = _generate_sfn_trace_id(root_execution_id, LOWER_64_BITS)
+                meta["_dd.p.tid"] = _generate_sfn_trace_id(
+                    root_execution_id, HIGHER_64_BITS
                 )
-                meta["_dd.p.tid"] = hex(
-                    _deterministic_sha256_hash(
-                        dd_data.get("RootExecutionId"), HIGHER_64_BITS
-                    )
-                )[2:]
 
-            parent_id = _sfn_context_to_parent_id(dd_data)
+            parent_id = _generate_sfn_parent_id(dd_data)
         else:
             execution_id = event.get("Execution").get("Id")
-            # returning 128 bits since 128bit traceId will be break up into
-            # traditional traceId and _dd.p.tid tag
-            # https://github.com/DataDog/dd-trace-py/blob/3e34d21cb9b5e1916e549047158cb119317b96ab/ddtrace/propagation/http.py#L232-L240
-            trace_id = _deterministic_sha256_hash(execution_id, LOWER_64_BITS)
-            # take the higher 64 bits as _dd.p.tid tag and use hex to encode
-            # [2:] to remove '0x' in the hex str
-            meta["_dd.p.tid"] = hex(
-                _deterministic_sha256_hash(execution_id, HIGHER_64_BITS)
-            )[2:]
-
-            parent_id = _sfn_context_to_parent_id(event)
+            trace_id = _generate_sfn_trace_id(execution_id, LOWER_64_BITS)
+            meta["_dd.p.tid"] = _generate_sfn_trace_id(execution_id, HIGHER_64_BITS)
+            parent_id = _generate_sfn_parent_id(event)
 
         sampling_priority = SamplingPriority.AUTO_KEEP
         return Context(
@@ -454,8 +455,9 @@ def is_legacy_lambda_step_function(event):
         return False
 
     event = event.get("Payload")
-    return "_datadog" in event or (
-        "Execution" in event and "StateMachine" in event and "State" in event
+    return isinstance(event, dict) and (
+        "_datadog" in event
+        or ("Execution" in event and "StateMachine" in event and "State" in event)
     )
 
 
