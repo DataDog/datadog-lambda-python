@@ -87,12 +87,24 @@ def _calculate_s3_span_pointers_for_object_created_s3_information(
             _aws_s3_object_span_pointer_description,
         )
 
-        span_pointer_description = _aws_s3_object_span_pointer_description(
-            pointer_direction=_SpanPointerDirection.UPSTREAM,
-            bucket=bucket,
-            key=key,
-            etag=etag,
-        )
+        try:
+            span_pointer_description = _aws_s3_object_span_pointer_description(
+                operation="S3.LambdaEvent",
+                pointer_direction=_SpanPointerDirection.UPSTREAM,
+                bucket=bucket,
+                key=key,
+                etag=etag,
+            )
+        except TypeError:
+            # The older version of this function did not have an operation
+            # parameter.
+            span_pointer_description = _aws_s3_object_span_pointer_description(
+                pointer_direction=_SpanPointerDirection.UPSTREAM,
+                bucket=bucket,
+                key=key,
+                etag=etag,
+            )
+
         if span_pointer_description is None:
             return []
 
@@ -140,11 +152,22 @@ def _calculate_dynamodb_span_pointers_for_event_record(
             _aws_dynamodb_item_span_pointer_description,
         )
 
-        span_pointer_description = _aws_dynamodb_item_span_pointer_description(
-            pointer_direction=_SpanPointerDirection.UPSTREAM,
-            table_name=table_name,
-            primary_key=primary_key,
-        )
+        try:
+            span_pointer_description = _aws_dynamodb_item_span_pointer_description(
+                operation="DynamoDB.LambdaEvent",
+                pointer_direction=_SpanPointerDirection.UPSTREAM,
+                table_name=table_name,
+                primary_key=primary_key,
+            )
+        except TypeError:
+            # The older version of this function did not have an operation
+            # parameter.
+            span_pointer_description = _aws_dynamodb_item_span_pointer_description(
+                pointer_direction=_SpanPointerDirection.UPSTREAM,
+                table_name=table_name,
+                primary_key=primary_key,
+            )
+
         if span_pointer_description is None:
             return []
 
