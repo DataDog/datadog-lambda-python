@@ -424,7 +424,7 @@ def extract_context_from_step_functions(event, lambda_context):
         meta = {}
         dd_data = event.get("_datadog")
 
-        if dd_data and dd_data.get("serverless-version") == "v2":
+        if dd_data and dd_data.get("serverless-version") == "v1":
             if "x-datadog-trace-id" in dd_data:  # lambda root
                 trace_id = int(dd_data.get("x-datadog-trace-id"))
                 high_64_bit_trace_id = _parse_high_64_bits(

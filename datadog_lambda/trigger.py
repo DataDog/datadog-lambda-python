@@ -147,7 +147,7 @@ def parse_event_source(event: dict) -> _EventSource:
         event_source = _EventSource(EventTypes.CLOUDWATCH_EVENTS)
 
     if (
-        "_datadog" in event and event.get("_datadog").get("serverless-version") == "v2"
+        "_datadog" in event and event.get("_datadog").get("serverless-version") == "v1"
     ) or ("Execution" in event and "StateMachine" in event and "State" in event):
         event_source = _EventSource(EventTypes.STEPFUNCTIONS)
 

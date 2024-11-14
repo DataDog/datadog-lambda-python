@@ -666,7 +666,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 },
                 "x-datadog-trace-id": "5821803790426892636",
                 "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
-                "serverless-version": "v2",
+                "serverless-version": "v1",
             }
         }
         ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
@@ -707,7 +707,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
                 },
                 "RootExecutionId": "4875aba4-ae31-4a4c-bf8a-63e9eee31dad",
-                "serverless-version": "v2",
+                "serverless-version": "v1",
             }
         }
         ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
