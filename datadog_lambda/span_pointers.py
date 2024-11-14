@@ -2,6 +2,7 @@ from itertools import chain
 import logging
 import os
 from typing import List
+from typing import Optional
 
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
@@ -30,7 +31,7 @@ def calculate_span_pointers(
                 return _calculate_dynamodb_span_pointers_for_event(event)
 
     except Exception as e:
-        logger.warning(
+        logger.debug(
             "failed to calculate span pointers for event: %s",
             e,
         )
@@ -75,7 +76,7 @@ def _calculate_s3_span_pointers_for_object_created_s3_information(
         etag = s3_information["object"]["eTag"]
 
     except KeyError as e:
-        logger.warning(
+        logger.debug(
             "missing s3 information required to make a span pointer: %s",
             e,
         )
@@ -86,17 +87,31 @@ def _calculate_s3_span_pointers_for_object_created_s3_information(
             _aws_s3_object_span_pointer_description,
         )
 
-        return [
-            _aws_s3_object_span_pointer_description(
+        try:
+            span_pointer_description = _aws_s3_object_span_pointer_description(
+                operation="S3.LambdaEvent",
                 pointer_direction=_SpanPointerDirection.UPSTREAM,
                 bucket=bucket,
                 key=key,
                 etag=etag,
             )
-        ]
+        except TypeError:
+            # The older version of this function did not have an operation
+            # parameter.
+            span_pointer_description = _aws_s3_object_span_pointer_description(
+                pointer_direction=_SpanPointerDirection.UPSTREAM,
+                bucket=bucket,
+                key=key,
+                etag=etag,
+            )
+
+        if span_pointer_description is None:
+            return []
+
+        return [span_pointer_description]
 
     except Exception as e:
-        logger.warning(
+        logger.debug(
             "failed to generate S3 span pointer: %s",
             e,
         )
@@ -120,10 +135,13 @@ def _calculate_dynamodb_span_pointers_for_event_record(
 ) -> List[_SpanPointerDescription]:
     try:
         table_name = _extract_table_name_from_dynamodb_stream_record(record)
+        if table_name is None:
+            return []
+
         primary_key = record["dynamodb"]["Keys"]
 
     except Exception as e:
-        logger.warning(
+        logger.debug(
             "missing DynamoDB information required to make a span pointer: %s",
             e,
         )
@@ -134,23 +152,36 @@ def _calculate_dynamodb_span_pointers_for_event_record(
             _aws_dynamodb_item_span_pointer_description,
         )
 
-        return [
-            _aws_dynamodb_item_span_pointer_description(
+        try:
+            span_pointer_description = _aws_dynamodb_item_span_pointer_description(
+                operation="DynamoDB.LambdaEvent",
                 pointer_direction=_SpanPointerDirection.UPSTREAM,
                 table_name=table_name,
                 primary_key=primary_key,
             )
-        ]
+        except TypeError:
+            # The older version of this function did not have an operation
+            # parameter.
+            span_pointer_description = _aws_dynamodb_item_span_pointer_description(
+                pointer_direction=_SpanPointerDirection.UPSTREAM,
+                table_name=table_name,
+                primary_key=primary_key,
+            )
+
+        if span_pointer_description is None:
+            return []
+
+        return [span_pointer_description]
 
     except Exception as e:
-        logger.warning(
+        logger.debug(
             "failed to generate DynamoDB span pointer: %s",
             e,
         )
         return []
 
 
-def _extract_table_name_from_dynamodb_stream_record(record) -> str:
+def _extract_table_name_from_dynamodb_stream_record(record) -> Optional[str]:
     # Example eventSourceARN:
     # arn:aws:dynamodb:us-east-2:123456789012:table/my-table/stream/2024-06-10T19:26:16.525
     event_source_arn = record["eventSourceARN"]
@@ -159,10 +190,12 @@ def _extract_table_name_from_dynamodb_stream_record(record) -> str:
         ":", maxsplit=5
     )
     if _arn != "arn" or _aws != "aws" or _dynamodb != "dynamodb":
-        raise ValueError(f"unexpected eventSourceARN format: {event_source_arn}")
+        logger.debug("unexpected eventSourceARN format: %s", event_source_arn)
+        return None
 
     [_table, table_name, _stream, _timestamp] = dynamodb_info.split("/")
     if _table != "table" or _stream != "stream":
-        raise ValueError(f"unexpected eventSourceARN format: {event_source_arn}")
+        logger.debug("unexpected eventSourceARN format: %s", event_source_arn)
+        return None
 
     return table_name
