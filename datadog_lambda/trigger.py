@@ -146,7 +146,9 @@ def parse_event_source(event: dict) -> _EventSource:
     if event.get("source") == "aws.events" or has_event_categories:
         event_source = _EventSource(EventTypes.CLOUDWATCH_EVENTS)
 
-    if "Execution" in event and "StateMachine" in event and "State" in event:
+    if (
+        "_datadog" in event and event.get("_datadog").get("serverless-version") == "v1"
+    ) or ("Execution" in event and "StateMachine" in event and "State" in event):
         event_source = _EventSource(EventTypes.STEPFUNCTIONS)
 
     event_record = get_first_record(event)
@@ -253,6 +255,13 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
     # e.g. arn:aws:events:us-east-1:123456789012:rule/my-schedule
     if source.event_type == EventTypes.CLOUDWATCH_EVENTS and event.get("resources"):
         return event.get("resources")[0]
+
+    # Returning state machine arn as event source arn.
+    if source.event_type == EventTypes.STEPFUNCTIONS:
+        context = event
+        if "_datadog" in event:
+            context = event.get("_datadog")
+        return context.get("StateMachine").get("Id")
 
 
 def get_event_source_arn(source: _EventSource, event: dict, context: Any) -> str:

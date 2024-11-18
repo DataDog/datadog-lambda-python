@@ -617,7 +617,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     @with_trace_propagation_style("datadog")
     def test_step_function_trace_data(self):
         lambda_ctx = get_mock_context()
-        sqs_event = {
+        sfn_event = {
             "Execution": {
                 "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
             },
@@ -627,7 +627,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
             },
         }
-        ctx, source, event_source = extract_dd_trace_context(sqs_event, lambda_ctx)
+        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
         self.assertEqual(source, "event")
         expected_context = Context(
             trace_id=3675572987363469717,
@@ -642,7 +642,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.TRACE_ID: "3675572987363469717",
                 TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
-                "x-datadog-tags": "_dd.p.tid=e987c84b36b11ab",
+                TraceHeader.TAGS: "_dd.p.tid=e987c84b36b11ab",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
@@ -651,9 +651,11 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             expected_context,
         )
 
-    def test_is_legacy_lambda_step_function(self):
-        sf_event = {
-            "Payload": {
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_lambda_root(self):
+        lambda_ctx = get_mock_context()
+        sfn_event = {
+            "_datadog": {
                 "Execution": {
                     "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
                 },
@@ -662,24 +664,75 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     "Name": "my-awesome-state",
                     "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
                 },
+                "x-datadog-trace-id": "5821803790426892636",
+                "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
+                "serverless-version": "v1",
             }
         }
-        self.assertTrue(is_legacy_lambda_step_function(sf_event))
+        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
+        self.assertEqual(source, "event")
+        expected_context = Context(
+            trace_id=5821803790426892636,
+            span_id=6880978411788117524,
+            sampling_priority=1,
+            meta={"_dd.p.tid": "672a7cb100000000"},
+        )
+        self.assertEqual(ctx, expected_context)
+        self.assertEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "5821803790426892636",
+                TraceHeader.PARENT_ID: "10713633173203262661",
+                TraceHeader.SAMPLING_PRIORITY: "1",
+                TraceHeader.TAGS: "_dd.p.tid=672a7cb100000000",
+            },
+        )
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_send_segment.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            expected_context,
+        )
 
-        sf_event = {
-            "Execution": {
-                "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
-            },
-            "StateMachine": {},
-            "State": {
-                "Name": "my-awesome-state",
-                "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
-            },
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_sfn_root(self):
+        lambda_ctx = get_mock_context()
+        sfn_event = {
+            "_datadog": {
+                "Execution": {
+                    "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                },
+                "StateMachine": {},
+                "State": {
+                    "Name": "my-awesome-state",
+                    "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+                },
+                "RootExecutionId": "4875aba4-ae31-4a4c-bf8a-63e9eee31dad",
+                "serverless-version": "v1",
+            }
         }
-        self.assertFalse(is_legacy_lambda_step_function(sf_event))
-
-        other_event = ["foo", "bar"]
-        self.assertFalse(is_legacy_lambda_step_function(other_event))
+        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
+        self.assertEqual(source, "event")
+        expected_context = Context(
+            trace_id=4521899030418994483,
+            span_id=6880978411788117524,
+            sampling_priority=1,
+            meta={"_dd.p.tid": "12d1270d99cc5e03"},
+        )
+        self.assertEqual(ctx, expected_context)
+        self.assertEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "4521899030418994483",
+                TraceHeader.PARENT_ID: "10713633173203262661",
+                TraceHeader.SAMPLING_PRIORITY: "1",
+                TraceHeader.TAGS: "_dd.p.tid=12d1270d99cc5e03",
+            },
+        )
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_send_segment.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            expected_context,
+        )
 
 
 class TestXRayContextConversion(unittest.TestCase):
