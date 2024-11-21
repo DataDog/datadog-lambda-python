@@ -699,6 +699,8 @@ def inject_correlation_ids():
 
 
 def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
+    if not _is_context_complete(dd_trace_context):
+        return
     if trace_context_source == TraceContextSource.EVENT or merge_xray_traces:
         context = Context(
             trace_id=dd_trace_context.trace_id,
