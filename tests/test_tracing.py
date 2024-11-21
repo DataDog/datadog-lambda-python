@@ -934,6 +934,9 @@ class TestSetTraceRootSpan(unittest.TestCase):
         self.mock_activate = patcher.start()
         self.mock_activate.return_value = True
         self.addCleanup(patcher.stop)
+        patcher = patch("datadog_lambda.tracing.dd_trace_context", None)
+        self.mock_dd_trace_context = patcher.start()
+        self.addCleanup(patcher.stop)
 
     def tearDown(self):
         global dd_tracing_enabled
@@ -990,6 +993,10 @@ class TestSetTraceRootSpan(unittest.TestCase):
         )
         self.mock_activate.assert_called()
         self.mock_activate.assert_has_calls([call(expected_context)])
+
+    def test_set_dd_trace_py_root_none_context(self):
+        set_dd_trace_py_root(TraceContextSource.EVENT, True)
+        self.mock_activate.assert_not_called()
 
 
 class TestServiceMapping(unittest.TestCase):
