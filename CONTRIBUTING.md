@@ -24,7 +24,7 @@ We love pull requests. For new features, consider opening an issue to discuss th
      ./scripts/build_layers.sh
 
      # Publish the a testing layer to your own AWS account, and the ARN will be returned
-     # Example: VERSION=1 REGIONS=us-east-1 LAYERS=Datadog-Python312 ./scripts/publish_layers.sh
+     # Example: VERSION=1 REGIONS=us-east-1 LAYERS=Datadog-Python313 ./scripts/publish_layers.sh
      VERSION=<VERSION> REGIONS=<REGION> LAYERS=<LAYER> ./scripts/publish_layers.sh
      ```
 
