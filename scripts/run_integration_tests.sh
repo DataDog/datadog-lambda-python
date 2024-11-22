@@ -32,8 +32,9 @@ python39=("python3.9" "3.9" $(xxd -l 4 -c 4 -p < /dev/random))
 python310=("python3.10" "3.10" $(xxd -l 4 -c 4 -p < /dev/random))
 python311=("python3.11" "3.11" $(xxd -l 4 -c 4 -p < /dev/random))
 python312=("python3.12" "3.12" $(xxd -l 4 -c 4 -p < /dev/random))
+python313=("python3.13" "3.13" $(xxd -l 4 -c 4 -p < /dev/random))
 
-PARAMETERS_SETS=("python38" "python39" "python310" "python311" "python312")
+PARAMETERS_SETS=("python38" "python39" "python310" "python311" "python312" "python313")
 
 if [ -z "$RUNTIME_PARAM" ]; then
     echo "Python version not specified, running for all python versions."
