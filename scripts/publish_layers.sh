@@ -24,6 +24,8 @@ PYTHON_VERSIONS_FOR_AWS_CLI=(
     "python3.11"
     "python3.12"
     "python3.12"
+    "python3.13"
+    "python3.13"
 )
 LAYER_PATHS=(
     ".layers/datadog_lambda_py-amd64-3.8.zip"
@@ -36,6 +38,8 @@ LAYER_PATHS=(
     ".layers/datadog_lambda_py-arm64-3.11.zip"
     ".layers/datadog_lambda_py-amd64-3.12.zip"
     ".layers/datadog_lambda_py-arm64-3.12.zip"
+    ".layers/datadog_lambda_py-amd64-3.13.zip"
+    ".layers/datadog_lambda_py-arm64-3.13.zip"
 )
 AVAILABLE_LAYERS=(
     "Datadog-Python38"
@@ -48,6 +52,8 @@ AVAILABLE_LAYERS=(
     "Datadog-Python311-ARM"
     "Datadog-Python312"
     "Datadog-Python312-ARM"
+    "Datadog-Python313"
+    "Datadog-Python313-ARM"
 )
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 
