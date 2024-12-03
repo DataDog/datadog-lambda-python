@@ -63,13 +63,16 @@ def get_proactive_init_tag():
 
 
 class ImportNode(object):
-    def __init__(self, module_name, full_file_path, start_time_ns, end_time_ns=None):
+    def __init__(self, module_name, full_file_path, start_time_ns,
+                 start_mem_kb, end_time_ns=None, end_mem_kb=None):
         self.module_name = module_name
         self.full_file_path = full_file_path
         self.start_time_ns = start_time_ns
         self.end_time_ns = end_time_ns
         self.children = []
         self.context = None
+        self.start_mem_kb = start_mem_kb
+        self.end_mem_kb = end_mem_kb
         if _lambda_container_initialized:
             self.context = _tracer.context_provider.active()
 
@@ -79,13 +82,24 @@ import_stack: List[ImportNode] = []
 already_wrapped_loaders = set()
 
 
+def get_current_memory_usage():
+    try:
+        with open("/proc/self/status") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1])
+    except Exception as e:
+        logger.debug("Failed to get memory usage: %s", e)
+        return 0
+
+
 def reset_node_stacks():
     root_nodes.clear()
     import_stack.clear()
 
 
 def push_node(module_name, file_path):
-    node = ImportNode(module_name, file_path, time.time_ns())
+    node = ImportNode(module_name, file_path, time.time_ns(), get_current_memory_usage())
     global import_stack
     if import_stack:
         import_stack[-1].children.append(node)
@@ -101,6 +115,7 @@ def pop_node(module_name):
         return
     end_time_ns = time.time_ns()
     node.end_time_ns = end_time_ns
+    node.end_mem_kb = get_current_memory_usage()
     if not import_stack:  # import_stack empty, a root node has been found
         global root_nodes
         root_nodes.append(node)
@@ -212,6 +227,7 @@ class ColdStartTracer(object):
             "resource.name": import_node.module_name,
             "filename": import_node.full_file_path,
             "operation_name": self.get_operation_name(import_node.full_file_path),
+            "memory.consumption": import_node.end_mem_kb - import_node.start_mem_kb,
         }
         span.set_tags(tags)
         if parent_span:
