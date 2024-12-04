@@ -384,12 +384,21 @@ def _parse_high_64_bits(trace_tags: str) -> str:
 
 
 def _generate_sfn_parent_id(context: dict) -> int:
+    """
+    The upstream Step Function can propagate its execution context to downstream Lambdas. The Lambda can use these
+    details to share the same traceID and infer its parent's spanID.
+
+    Excluding redriveCount when its 0 to account for cases where customers are using an old version of the Lambda layer
+    that doesn't use this value for its parentID generation.
+    """
     execution_id = context.get("Execution").get("Id")
+    redrive_count = context.get("Execution").get("RedriveCount")
     state_name = context.get("State").get("Name")
     state_entered_time = context.get("State").get("EnteredTime")
 
     return _deterministic_sha256_hash(
-        f"{execution_id}#{state_name}#{state_entered_time}", HIGHER_64_BITS
+        f"{execution_id}#{state_name}#{state_entered_time}#{redrive_count}",
+        HIGHER_64_BITS,
     )
 
 

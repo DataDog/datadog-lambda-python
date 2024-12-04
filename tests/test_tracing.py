@@ -631,7 +631,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertEqual(source, "event")
         expected_context = Context(
             trace_id=3675572987363469717,
-            span_id=6880978411788117524,
+            span_id=4929949072763648481,
             sampling_priority=1,
             meta={"_dd.p.tid": "e987c84b36b11ab"},
         )
@@ -673,7 +673,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertEqual(source, "event")
         expected_context = Context(
             trace_id=5821803790426892636,
-            span_id=6880978411788117524,
+            span_id=4929949072763648481,
             sampling_priority=1,
             meta={"_dd.p.tid": "672a7cb100000000"},
         )
@@ -714,7 +714,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertEqual(source, "event")
         expected_context = Context(
             trace_id=4521899030418994483,
-            span_id=6880978411788117524,
+            span_id=4929949072763648481,
             sampling_priority=1,
             meta={"_dd.p.tid": "12d1270d99cc5e03"},
         )
