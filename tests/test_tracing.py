@@ -620,7 +620,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         sfn_event = {
             "Execution": {
                 "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
-                "RedriveCount": "0",
+                "RedriveCount": 0,
             },
             "StateMachine": {},
             "State": {
@@ -658,7 +658,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         sfn_event = {
             "Execution": {
                 "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
-                "RedriveCount": "1",
+                "RedriveCount": 1,
             },
             "StateMachine": {},
             "State": {
@@ -697,7 +697,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             "_datadog": {
                 "Execution": {
                     "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
-                    "RedriveCount": "0",
+                    "RedriveCount": 0,
                 },
                 "StateMachine": {},
                 "State": {
@@ -740,7 +740,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             "_datadog": {
                 "Execution": {
                     "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
-                    "RedriveCount": "0",
+                    "RedriveCount": 0,
                 },
                 "StateMachine": {},
                 "State": {
