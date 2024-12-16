@@ -396,7 +396,7 @@ def _generate_sfn_parent_id(context: dict) -> int:
     state_name = context.get("State").get("Name")
     state_entered_time = context.get("State").get("EnteredTime")
 
-    redrive_postfix = "" if redrive_count == "0" else f"#{redrive_count}"
+    redrive_postfix = "" if redrive_count == 0 else f"#{redrive_count}"
 
     return _deterministic_sha256_hash(
         f"{execution_id}#{state_name}#{state_entered_time}{redrive_postfix}",
