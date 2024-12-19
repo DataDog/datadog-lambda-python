@@ -1,7 +1,8 @@
-import requests
-
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.wrapper import datadog_lambda_wrapper
+
+import requests
+import time
 
 
 @datadog_lambda_wrapper
@@ -20,7 +21,11 @@ def handle(event, context):
             record_ids.append(record["Sns"]["MessageId"])
 
     # Generate custom metrics
+    timestamp = time.time() - 60
     lambda_metric("hello.dog", 1, tags=["team:serverless", "role:hello"])
+    lambda_metric(
+        "hello.cat", 1, tags=["team:serverless", "role:hello"], timestamp=timestamp
+    )
     lambda_metric(
         "tests.integration.count", 21, tags=["test:integration", "role:hello"]
     )

@@ -1,3 +1,13 @@
+import sys
+
+
+# The requests package is no longer included in the lambda layer, instead use
+# the vendored version of requests included in the pip package.  Appending to
+# sys.path will make the vendered requests package discoverable.
+for i in range(len(sys.path)):
+    path = sys.path[i]
+    sys.path.append(f"{path}/pip/_vendor")
+
 from datadog_lambda.cold_start import initialize_cold_start_tracing
 import os
 
