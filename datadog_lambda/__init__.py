@@ -1,3 +1,4 @@
+import os
 import sys
 
 
@@ -8,8 +9,7 @@ for i in range(len(sys.path)):
     path = sys.path[i]
     sys.path.append(f"{path}/pip/_vendor")
 
-from datadog_lambda.cold_start import initialize_cold_start_tracing
-import os
+from datadog_lambda.cold_start import initialize_cold_start_tracing  # noqa: E402
 
 
 if os.environ.get("DD_INSTRUMENTATION_TELEMETRY_ENABLED") is None:
