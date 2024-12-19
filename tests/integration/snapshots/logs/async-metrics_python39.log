@@ -27,6 +27,16 @@ START
   ]
 }
 {
+  "m": "hello.cat",
+  "v": 1,
+  "e": XXXX,
+  "t": [
+    "team:serverless",
+    "role:hello",
+    "dd_lambda_layer:datadog-python39_X.X.X"
+  ]
+}
+{
   "m": "tests.integration.count",
   "v": 21,
   "e": XXXX,
@@ -190,6 +200,16 @@ START
 }
 {
   "m": "hello.dog",
+  "v": 1,
+  "e": XXXX,
+  "t": [
+    "team:serverless",
+    "role:hello",
+    "dd_lambda_layer:datadog-python39_X.X.X"
+  ]
+}
+{
+  "m": "hello.cat",
   "v": 1,
   "e": XXXX,
   "t": [
@@ -397,6 +417,16 @@ START
   ]
 }
 {
+  "m": "hello.cat",
+  "v": 1,
+  "e": XXXX,
+  "t": [
+    "team:serverless",
+    "role:hello",
+    "dd_lambda_layer:datadog-python39_X.X.X"
+  ]
+}
+{
   "m": "tests.integration.count",
   "v": 21,
   "e": XXXX,
@@ -547,6 +577,16 @@ START
 }
 {
   "m": "hello.dog",
+  "v": 1,
+  "e": XXXX,
+  "t": [
+    "team:serverless",
+    "role:hello",
+    "dd_lambda_layer:datadog-python39_X.X.X"
+  ]
+}
+{
+  "m": "hello.cat",
   "v": 1,
   "e": XXXX,
   "t": [
@@ -731,6 +771,16 @@ START
   ]
 }
 {
+  "m": "hello.cat",
+  "v": 1,
+  "e": XXXX,
+  "t": [
+    "team:serverless",
+    "role:hello",
+    "dd_lambda_layer:datadog-python39_X.X.X"
+  ]
+}
+{
   "m": "tests.integration.count",
   "v": 21,
   "e": XXXX,
@@ -888,6 +938,16 @@ START
 }
 {
   "m": "hello.dog",
+  "v": 1,
+  "e": XXXX,
+  "t": [
+    "team:serverless",
+    "role:hello",
+    "dd_lambda_layer:datadog-python39_X.X.X"
+  ]
+}
+{
+  "m": "hello.cat",
   "v": 1,
   "e": XXXX,
   "t": [
@@ -1072,6 +1132,16 @@ START
   ]
 }
 {
+  "m": "hello.cat",
+  "v": 1,
+  "e": XXXX,
+  "t": [
+    "team:serverless",
+    "role:hello",
+    "dd_lambda_layer:datadog-python39_X.X.X"
+  ]
+}
+{
   "m": "tests.integration.count",
   "v": 21,
   "e": XXXX,
@@ -1236,6 +1306,16 @@ START
   ]
 }
 {
+  "m": "hello.cat",
+  "v": 1,
+  "e": XXXX,
+  "t": [
+    "team:serverless",
+    "role:hello",
+    "dd_lambda_layer:datadog-python39_X.X.X"
+  ]
+}
+{
   "m": "tests.integration.count",
   "v": 21,
   "e": XXXX,
@@ -1390,6 +1470,16 @@ START
 }
 {
   "m": "hello.dog",
+  "v": 1,
+  "e": XXXX,
+  "t": [
+    "team:serverless",
+    "role:hello",
+    "dd_lambda_layer:datadog-python39_X.X.X"
+  ]
+}
+{
+  "m": "hello.cat",
   "v": 1,
   "e": XXXX,
   "t": [
