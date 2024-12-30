@@ -392,7 +392,7 @@ def _generate_sfn_parent_id(context: dict) -> int:
     version of the Lambda layer that doesn't use this value for its parentID generation.
     """
     execution_id = context.get("Execution").get("Id")
-    redrive_count = context.get("Execution").get("RedriveCount")
+    redrive_count = context.get("Execution").get("RedriveCount", 0)
     state_name = context.get("State").get("Name")
     state_entered_time = context.get("State").get("EnteredTime")
 

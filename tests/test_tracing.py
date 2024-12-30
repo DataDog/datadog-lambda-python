@@ -623,7 +623,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "Name": "72a7ca3e-901c-41bb-b5a3-5f279b92a316",
                 "RoleArn": "arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j",
                 "StartTime": "2024-12-04T19:38:04.069Z",
-                "RedriveCount": 0,
             },
             "State": {
                 "Name": "Lambda Invoke",
