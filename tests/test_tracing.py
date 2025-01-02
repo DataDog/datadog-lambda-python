@@ -619,30 +619,83 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         lambda_ctx = get_mock_context()
         sfn_event = {
             "Execution": {
-                "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                "Id": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-activity-state-machine:72a7ca3e-901c-41bb-b5a3-5f279b92a316",
+                "Name": "72a7ca3e-901c-41bb-b5a3-5f279b92a316",
+                "RoleArn": "arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j",
+                "StartTime": "2024-12-04T19:38:04.069Z",
             },
-            "StateMachine": {},
             "State": {
-                "Name": "my-awesome-state",
-                "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+                "Name": "Lambda Invoke",
+                "EnteredTime": "2024-12-04T19:38:04.118Z",
+                "RetryCount": 0,
+            },
+            "StateMachine": {
+                "Id": "arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-activity-state-machine",
+                "Name": "abhinav-activity-state-machine",
             },
         }
         ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
         self.assertEqual(source, "event")
         expected_context = Context(
-            trace_id=3675572987363469717,
-            span_id=6880978411788117524,
+            trace_id=435175499815315247,
+            span_id=3929055471293792800,
             sampling_priority=1,
-            meta={"_dd.p.tid": "e987c84b36b11ab"},
+            meta={"_dd.p.tid": "3e7a89d1b7310603"},
         )
         self.assertEqual(ctx, expected_context)
         self.assertEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "3675572987363469717",
+                TraceHeader.TRACE_ID: "435175499815315247",
                 TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.tid=e987c84b36b11ab",
+                TraceHeader.TAGS: "_dd.p.tid=3e7a89d1b7310603",
+            },
+        )
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_send_segment.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            expected_context,
+        )
+
+    # https://github.com/DataDog/logs-backend/blob/c17618cb552fc369ca40282bae0a65803f82f694/domains/serverless/apps/logs-to-traces-reducer/src/test/resources/test-json-files/stepfunctions/RedriveTest/snapshots/RedriveLambdaSuccessTraceMerging.json#L46
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_redrive(self):
+        lambda_ctx = get_mock_context()
+        sfn_event = {
+            "Execution": {
+                "Id": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-activity-state-machine:72a7ca3e-901c-41bb-b5a3-5f279b92a316",
+                "Name": "72a7ca3e-901c-41bb-b5a3-5f279b92a316",
+                "RoleArn": "arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j",
+                "StartTime": "2024-12-04T19:38:04.069Z",
+                "RedriveCount": 1,
+            },
+            "State": {
+                "Name": "Lambda Invoke",
+                "EnteredTime": "2024-12-04T19:38:04.118Z",
+                "RetryCount": 0,
+            },
+            "StateMachine": {
+                "Id": "arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-activity-state-machine",
+                "Name": "abhinav-activity-state-machine",
+            },
+        }
+        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
+        self.assertEqual(source, "event")
+        expected_context = Context(
+            trace_id=435175499815315247,
+            span_id=5063839446130725204,
+            sampling_priority=1,
+            meta={"_dd.p.tid": "3e7a89d1b7310603"},
+        )
+        self.assertEqual(ctx, expected_context)
+        self.assertEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "435175499815315247",
+                TraceHeader.PARENT_ID: "10713633173203262661",
+                TraceHeader.SAMPLING_PRIORITY: "1",
+                TraceHeader.TAGS: "_dd.p.tid=3e7a89d1b7310603",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
@@ -658,6 +711,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             "_datadog": {
                 "Execution": {
                     "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                    "RedriveCount": 0,
                 },
                 "StateMachine": {},
                 "State": {
@@ -700,6 +754,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             "_datadog": {
                 "Execution": {
                     "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                    "RedriveCount": 0,
                 },
                 "StateMachine": {},
                 "State": {
