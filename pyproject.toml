@@ -25,7 +25,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.8.0,<4"
-datadog = ">=0.41.0,<1.0.0"
+datadog = ">=0.51.0,<1.0.0"
 wrapt = "^1.11.2"
 ddtrace = ">=2.17.0"
 ujson = ">=5.9.0"
