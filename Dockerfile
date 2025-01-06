@@ -28,7 +28,9 @@ RUN rm ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_stacktrace*.so
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/libdd_wrapper*.so
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/ddup/_ddup.*.so
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/stack_v2/_stack_v2.*.so
-RUN find . -name "*.dist-info" -type d | xargs rm -rf
+# remove *.dist-info directories except any entry_points.txt files
+RUN find ./python/lib/$runtime/site-packages/*.dist-info -not -name "entry_points.txt" -type f -delete
+RUN find ./python/lib/$runtime/site-packages -type d -empty -delete
 
 # Precompile all .pyc files and remove .py files. This speeds up load time.
 # Compile with optimization level 2 (-OO) and PYTHONNODEBUGRANGES=1 to redtce
