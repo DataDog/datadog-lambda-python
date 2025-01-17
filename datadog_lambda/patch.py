@@ -11,7 +11,6 @@ import ujson as json
 
 from wrapt import wrap_function_wrapper as wrap
 from wrapt.importer import when_imported
-from ddtrace import patch_all as patch_all_dd
 
 from datadog_lambda.tracing import (
     get_dd_trace_context,
@@ -33,7 +32,7 @@ def patch_all():
     _patch_for_integration_tests()
 
     if dd_tracing_enabled:
-        patch_all_dd()
+        import ddtrace.auto  # noqa: F401
     else:
         _patch_http()
         _ensure_patch_requests()
