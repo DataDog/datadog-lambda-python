@@ -3,6 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
+import numbers
 import os
 import time
 import logging
@@ -55,6 +56,20 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     Note that if the extension is present, it will override the DD_FLUSH_TO_LOG value
     and always use the layer to send metrics to the extension
     """
+    if not metric_name or not isinstance(metric_name, str):
+        logger.warning(
+            "Ignoring metric submission. Invalid metric name: %s", metric_name
+        )
+        return
+
+    if not isinstance(value, numbers.Number):
+        logger.warning(
+            "Ignoring metric submission for metric '%s' because the value is not numeric: %r",
+            metric_name,
+            value,
+        )
+        return
+
     flush_to_logs = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
     tags = [] if tags is None else list(tags)
     tags.append(dd_lambda_layer_tag)
