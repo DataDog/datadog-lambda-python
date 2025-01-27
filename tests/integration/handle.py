@@ -1,4 +1,4 @@
-import urllib3
+import requests
 
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.wrapper import datadog_lambda_wrapper
@@ -26,7 +26,7 @@ def handle(event, context):
     )
 
     # Make HTTP calls to test ddtrace instrumentation
-    urllib3.PoolManager().request("GET", "https://datadoghq.com")
+    requests.get("https://datadoghq.com")
 
     return {
         "statusCode": 200,
