@@ -30,6 +30,8 @@ plugins:
 custom:
   pythonRequirements:
     pythonBin: python3
+    pipCmdExtraArgs:
+      - --no-deps  # install just requests
     layer:
       compatibleRuntimes:
         - ${env:SERVERLESS_RUNTIME}
