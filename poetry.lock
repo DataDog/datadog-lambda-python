@@ -34,8 +34,8 @@ files = [
 jmespath = ">=0.7.1,<2.0.0"
 python-dateutil = ">=2.1,<3.0.0"
 urllib3 = [
-    {version = ">=1.25.4,<1.27", markers = "python_version < \"3.10\""},
     {version = ">=1.25.4,<2.2.0 || >2.2.0,<3", markers = "python_version >= \"3.10\""},
+    {version = ">=1.25.4,<1.27", markers = "python_version < \"3.10\""},
 ]
 
 [package.extras]
@@ -271,10 +271,10 @@ files = [
 
 [package.dependencies]
 bytecode = [
-    {version = ">=0.13.0", markers = "python_version < \"3.11.0\""},
     {version = ">=0.16.0", markers = "python_version >= \"3.13.0\""},
     {version = ">=0.15.0", markers = "python_version ~= \"3.12.0\""},
     {version = ">=0.14.0", markers = "python_version ~= \"3.11.0\""},
+    {version = ">=0.13.0", markers = "python_version < \"3.11.0\""},
 ]
 envier = ">=0.5,<1.0"
 legacy-cgi = {version = ">=2.0.0", markers = "python_version >= \"3.13.0\""}
@@ -925,4 +925,4 @@ dev = ["boto3", "flake8", "pytest", "pytest-benchmark", "requests"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8.0,<4"
-content-hash = "52b8e12a811018803e970bb8b454f65b43fb56f66c5adec3c9b6f3d36412e1b0"
+content-hash = "9128af5437fd535ec458c64280d8390574c632e704cace5ea783de3c5d453c8c"
