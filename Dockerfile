@@ -22,8 +22,8 @@ RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
 RUN rm -rf ./python/lib/$runtime/site-packages/setuptools
 RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
 RUN find . -name 'libddwaf.so' -delete
-RUN rm -rf ./python/lib/$runtime/site-packages/urllib3*
-RUN rm ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_taint_tracking/*.so
+# Comment this line out for now since ddtrace now tries to import it
+#RUN rm ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_taint_tracking/*.so
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_stacktrace*.so
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/libdd_wrapper*.so
 RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/ddup/_ddup.*.so
@@ -31,6 +31,14 @@ RUN rm ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/st
 # remove *.dist-info directories except any entry_points.txt files
 RUN find ./python/lib/$runtime/site-packages/*.dist-info -not -name "entry_points.txt" -type f -delete
 RUN find ./python/lib/$runtime/site-packages -type d -empty -delete
+
+# Remove requests and dependencies
+RUN rm -rf \
+        ./python/lib/$runtime/site-packages/requests* \
+        ./python/lib/$runtime/site-packages/urllib3* \
+        ./python/lib/$runtime/site-packages/certifi* \
+        ./python/lib/$runtime/site-packages/idna* \
+        ./python/lib/$runtime/site-packages/charset_normalizer*
 
 # Precompile all .pyc files and remove .py files. This speeds up load time.
 # Compile with optimization level 2 (-OO) and PYTHONNODEBUGRANGES=1 to redtce
