@@ -1713,4 +1713,3 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
   ]
 }
 END Duration: XXXX ms Memory Used: XXXX MB
-INIT_START Runtime Version: python:3.9.vX	Runtime Version ARN: arn:aws:lambda:eu-west-1:XXXX:eu-west-1
