@@ -22,14 +22,9 @@ provider:
     role: "arn:aws:iam::425362996713:role/serverless-integration-test-lambda-role"
   layers:
     - { Ref: PythonLambdaLayer }
-    - { Ref: PythonRequirementsLambdaLayer }
 
 plugins:
   - serverless-python-requirements
-
-custom:
-  pythonRequirements:
-    layer: true
 
 layers:
   python:

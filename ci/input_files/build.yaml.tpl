@@ -100,7 +100,6 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
     - yarn global add serverless@^3.38.0 --prefix /usr/local
     - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
     - cd integration_tests && yarn install && cd ..
-    - alias python=python3
   script:
     - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
 
