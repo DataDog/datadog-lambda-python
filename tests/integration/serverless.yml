@@ -21,6 +21,17 @@ provider:
     # IAM permissions require that all functions are deployed with this role
     role: "arn:aws:iam::425362996713:role/serverless-integration-test-lambda-role"
 
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    dockerRunCmdExtraArgs: ["--platform", "linux/${env:ARCH}"]
+    layer:
+      compatibleRuntimes:
+        - ${env:SERVERLESS_RUNTIME}
+
 layers:
   python:
     package:
