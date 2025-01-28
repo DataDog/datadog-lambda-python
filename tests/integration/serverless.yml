@@ -29,12 +29,7 @@ plugins:
 
 custom:
   pythonRequirements:
-    dockerizePip: true
-    dockerRunCmdExtraArgs: ["--platform", "linux/${env:ARCH}"]
-    dockerImage: python:${env:PYTHON_VERSION}
-    layer:
-      compatibleRuntimes:
-        - ${env:SERVERLESS_RUNTIME}
+    layer: true
 
 layers:
   python:
