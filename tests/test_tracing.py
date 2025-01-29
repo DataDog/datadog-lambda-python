@@ -10,8 +10,7 @@ from unittest.mock import Mock, patch, call
 
 import ddtrace
 
-from ddtrace.trace import tracer
-from ddtrace.trace import Context
+from ddtrace.trace import Context, tracer
 from ddtrace._trace._span_pointer import _SpanPointer
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
