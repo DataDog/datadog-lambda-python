@@ -20,6 +20,21 @@ provider:
   iam:
     # IAM permissions require that all functions are deployed with this role
     role: "arn:aws:iam::425362996713:role/serverless-integration-test-lambda-role"
+  layers:
+    - { Ref: PythonLambdaLayer }
+    - { Ref: PythonRequirementsLambdaLayer }
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    pythonBin: python3
+    pipCmdExtraArgs:
+      - --no-deps  # install just requests
+    layer:
+      compatibleRuntimes:
+        - ${env:SERVERLESS_RUNTIME}
 
 layers:
   python:
@@ -32,8 +47,6 @@ functions:
     name: integration-tests-python-${sls:stage}-async-metrics_${env:RUNTIME}
     handler: handle.handle
     runtime: ${env:SERVERLESS_RUNTIME}
-    layers:
-      - { Ref: PythonLambdaLayer }
     environment:
       DD_FLUSH_TO_LOG: true
 
@@ -42,5 +55,3 @@ functions:
     name: integration-tests-python-${sls:stage}-sync-metrics_${env:RUNTIME}
     handler: handle.handle
     runtime: ${env:SERVERLESS_RUNTIME}
-    layers:
-      - { Ref: PythonLambdaLayer }
