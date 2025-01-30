@@ -31,7 +31,7 @@ def set_cold_start(init_timestamp_ns):
         _cold_start = False
         _proactive_initialization = False
     _lambda_container_initialized = True
-    from ddtrace import tracer as _tracer
+    from ddtrace.trace import tracer as _tracer
 
 
 def is_cold_start():

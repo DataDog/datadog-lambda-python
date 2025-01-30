@@ -14,7 +14,7 @@ set -e
 
 LAYER_DIR=".layers"
 LAYER_FILES_PREFIX="datadog_lambda_py"
-AVAILABLE_PYTHON_VERSIONS=("3.8" "3.9" "3.10" "3.11" "3.12")
+AVAILABLE_PYTHON_VERSIONS=("3.8" "3.9" "3.10" "3.11" "3.12" "3.13")
 AVAILABLE_ARCHS=("arm64" "amd64")
 
 if [ -z "$ARCH" ]; then
@@ -61,7 +61,7 @@ function docker_build_zip {
     # between different python runtimes.
     temp_dir=$(mktemp -d)
     docker buildx build -t datadog-lambda-python-${arch}:$1 . --no-cache \
-        --build-arg image=python:$1 \
+        --build-arg image=public.ecr.aws/docker/library/python:$1 \
         --build-arg runtime=python$1 \
         --platform linux/${arch} \
         --progress=plain \

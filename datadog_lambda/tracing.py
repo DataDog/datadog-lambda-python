@@ -30,10 +30,10 @@ from datadog_lambda.xray import (
     parse_xray_header,
 )
 
-from ddtrace import tracer, patch, Span
+from ddtrace import patch
 from ddtrace import __version__ as ddtrace_version
 from ddtrace.propagation.http import HTTPPropagator
-from ddtrace.context import Context
+from ddtrace.trace import Context, Span, tracer
 from datadog_lambda import __version__ as datadog_lambda_version
 from datadog_lambda.trigger import (
     _EventSource,
