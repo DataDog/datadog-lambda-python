@@ -248,37 +248,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
-        "type": "web"
-      },
-      {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "aws.lambda",
-        "resource": "integration-tests-python-XXXX-sync-metrics_python310",
-        "name": "aws.lambda",
-        "error": 0,
-        "start": "XXXX",
-        "duration": "XXXX",
-        "meta": {
-          "_dd.origin": "lambda",
-          "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python310",
-          "function_version": "$LATEST",
-          "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-sync-metrics_python310",
-          "functionname": "integration-tests-python-XXXX-sync-metrics_python310",
-          "datadog_lambda": "X.X.X",
-          "dd_trace": "X.X.X",
-          "span.name": "aws.lambda",
-          "function_trigger.event_source": "dynamodb",
-          "function_trigger.event_source_arn": "XXXX",
-          "_dd.base_service": "integration-tests-python"
-        },
-        "metrics": {
-          "_dd.top_level": 1
-        },
-        "type": "serverless",
+        "type": "web",
         "span_links": [
           {
             "trace_id": "XXXX",
@@ -311,6 +281,36 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
             }
           }
         ]
+      },
+      {
+        "trace_id": "XXXX",
+        "parent_id": "XXXX",
+        "span_id": "XXXX",
+        "service": "aws.lambda",
+        "resource": "integration-tests-python-XXXX-sync-metrics_python310",
+        "name": "aws.lambda",
+        "error": 0,
+        "start": "XXXX",
+        "duration": "XXXX",
+        "meta": {
+          "_dd.origin": "lambda",
+          "cold_start": "false",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python310",
+          "function_version": "$LATEST",
+          "request_id": "XXXX",
+          "resource_names": "integration-tests-python-XXXX-sync-metrics_python310",
+          "functionname": "integration-tests-python-XXXX-sync-metrics_python310",
+          "datadog_lambda": "X.X.X",
+          "dd_trace": "X.X.X",
+          "span.name": "aws.lambda",
+          "function_trigger.event_source": "dynamodb",
+          "function_trigger.event_source_arn": "XXXX",
+          "_dd.base_service": "integration-tests-python"
+        },
+        "metrics": {
+          "_dd.top_level": 1
+        },
+        "type": "serverless"
       },
       {
         "trace_id": "XXXX",
@@ -1019,7 +1019,19 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_dd.top_level": 1,
           "_sampling_priority_v1": 1
         },
-        "type": "web"
+        "type": "web",
+        "span_links": [
+          {
+            "trace_id": "XXXX",
+            "span_id": "XXXX",
+            "attributes": {
+              "ptr.kind": "aws.s3.object",
+              "ptr.dir": "u",
+              "ptr.hash": "1dc3e5d00dae48c1f07d95371a747788",
+              "link.kind": "span-pointer"
+            }
+          }
+        ]
       },
       {
         "trace_id": "XXXX",
@@ -1049,19 +1061,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "metrics": {
           "_dd.top_level": 1
         },
-        "type": "serverless",
-        "span_links": [
-          {
-            "trace_id": "XXXX",
-            "span_id": "XXXX",
-            "attributes": {
-              "ptr.kind": "aws.s3.object",
-              "ptr.dir": "u",
-              "ptr.hash": "1dc3e5d00dae48c1f07d95371a747788",
-              "link.kind": "span-pointer"
-            }
-          }
-        ]
+        "type": "serverless"
       },
       {
         "trace_id": "XXXX",
