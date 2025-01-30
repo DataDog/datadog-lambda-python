@@ -38,7 +38,7 @@ def test_metric_write_metric_point_to_stdout(benchmark, monkeypatch):
 def test_tag_object_tag_object(event, benchmark):
     with open(f"{event_samples_dir}/{event}.json") as f:
         event = json.load(f)
-    span = ddtrace.tracer.start_span("test")
+    span = ddtrace.trace.tracer.start_span("test")
     benchmark(tag_object.tag_object, span, "function.request", event)
 
 
