@@ -21,6 +21,8 @@ LAYER_NAMES=(
     "Datadog-Python311-ARM"
     "Datadog-Python312"
     "Datadog-Python312-ARM"
+    "Datadog-Python313"
+    "Datadog-Python313-ARM"
 )
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 LAYERS_MISSING_REGIONS=()

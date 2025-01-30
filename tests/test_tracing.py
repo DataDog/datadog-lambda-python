@@ -10,8 +10,7 @@ from unittest.mock import Mock, patch, call
 
 import ddtrace
 
-from ddtrace import tracer
-from ddtrace.context import Context
+from ddtrace.trace import Context, tracer
 from ddtrace._trace._span_pointer import _SpanPointer
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
@@ -2158,7 +2157,7 @@ _test_create_inferred_span = (
 
 
 @pytest.mark.parametrize("source,expect", _test_create_inferred_span)
-@patch("ddtrace.Span.finish", autospec=True)
+@patch("ddtrace.trace.Span.finish", autospec=True)
 def test_create_inferred_span(mock_span_finish, source, expect):
     with open(f"{event_samples}{source}.json") as f:
         event = json.load(f)
@@ -2197,7 +2196,7 @@ class TestInferredSpans(unittest.TestCase):
     def test_mark_trace_as_error_for_5xx_responses_sends_error_metric_and_set_error_tags(
         self, mock_submit_errors_metric
     ):
-        mock_span = Mock(ddtrace.Span)
+        mock_span = Mock(ddtrace.trace.Span)
         status_code = "500"
         mark_trace_as_error_for_5xx_responses(
             context="fake_context", status_code=status_code, span=mock_span
