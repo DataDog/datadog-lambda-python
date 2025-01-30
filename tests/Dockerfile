@@ -1,5 +1,5 @@
 ARG python_version
-FROM python:$python_version
+FROM public.ecr.aws/docker/library/python:$python_version
 
 ENV PYTHONDONTWRITEBYTECODE True
 
