@@ -3,7 +3,6 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
-import numbers
 import os
 import time
 import logging
@@ -66,7 +65,7 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
         float(value)
     except (ValueError, TypeError):
         logger.warning(
-            "Ignoring metric submission for metric '%s' because the value cannot be converted to a number: %r",
+            "Ignoring metric submission for metric '%s' because the value is not numeric: %r",
             metric_name,
             value,
         )
