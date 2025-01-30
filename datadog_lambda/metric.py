@@ -62,9 +62,11 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
         )
         return
 
-    if not isinstance(value, numbers.Number):
+    try:
+        float(value)
+    except (ValueError, TypeError):
         logger.warning(
-            "Ignoring metric submission for metric '%s' because the value is not numeric: %r",
+            "Ignoring metric submission for metric '%s' because the value cannot be converted to a number: %r",
             metric_name,
             value,
         )
