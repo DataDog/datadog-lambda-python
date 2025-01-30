@@ -21,8 +21,10 @@ AWS_CLI_PYTHON_VERSIONS=(
     "python3.11"
     "python3.12"
     "python3.12"
+    "python3.13"
+    "python3.13"
 )
-PYTHON_VERSIONS=("3.8-amd64" "3.8-arm64" "3.9-amd64" "3.9-arm64" "3.10-amd64" "3.10-arm64" "3.11-amd64" "3.11-arm64" "3.12-amd64" "3.12-arm64")
+PYTHON_VERSIONS=("3.8-amd64" "3.8-arm64" "3.9-amd64" "3.9-arm64" "3.10-amd64" "3.10-arm64" "3.11-amd64" "3.11-arm64" "3.12-amd64" "3.12-arm64" "3.13-amd64" "3.13-arm64")
 LAYER_PATHS=(
     ".layers/datadog_lambda_py-amd64-3.8.zip"
     ".layers/datadog_lambda_py-arm64-3.8.zip"
@@ -34,6 +36,8 @@ LAYER_PATHS=(
     ".layers/datadog_lambda_py-arm64-3.11.zip"
     ".layers/datadog_lambda_py-amd64-3.12.zip"
     ".layers/datadog_lambda_py-arm64-3.12.zip"
+    ".layers/datadog_lambda_py-amd64-3.13.zip"
+    ".layers/datadog_lambda_py-arm64-3.13.zip"
 )
 LAYERS=(
     "Datadog-Python38"
@@ -46,6 +50,8 @@ LAYERS=(
     "Datadog-Python311-ARM"
     "Datadog-Python312"
     "Datadog-Python312-ARM"
+    "Datadog-Python313"
+    "Datadog-Python313-ARM"
 )
 STAGES=('prod', 'sandbox', 'staging')
 
