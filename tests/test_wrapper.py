@@ -10,7 +10,7 @@ import datadog_lambda.wrapper as wrapper
 import datadog_lambda.xray as xray
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
-from ddtrace import Span, tracer
+from ddtrace.trace import Span, tracer
 from ddtrace.internal.constants import MAX_UINT_64BITS
 
 from tests.utils import get_mock_context, reset_xray_connection
