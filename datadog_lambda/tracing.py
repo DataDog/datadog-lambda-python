@@ -1368,8 +1368,9 @@ def create_function_execution_span(
     if parent_span:
         span.parent_id = parent_span.span_id
     if span_pointers:
+        root_span = parent_span if parent_span else span
         for span_pointer_description in span_pointers:
-            span._add_span_pointer(
+            root_span._add_span_pointer(
                 pointer_kind=span_pointer_description.pointer_kind,
                 pointer_direction=span_pointer_description.pointer_direction,
                 pointer_hash=span_pointer_description.pointer_hash,
