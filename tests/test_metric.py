@@ -92,6 +92,32 @@ class TestLambdaMetric(unittest.TestCase):
 
         del os.environ["DD_FLUSH_TO_LOG"]
 
+    @patch("datadog_lambda.metric.logger.warning")
+    def test_lambda_metric_invalid_metric_name_none(self, mock_logger_warning):
+        lambda_metric(None, 1)
+        self.mock_metric_lambda_stats.distribution.assert_not_called()
+        mock_logger_warning.assert_called_once_with(
+            "Ignoring metric submission. Invalid metric name: %s", None
+        )
+
+    @patch("datadog_lambda.metric.logger.warning")
+    def test_lambda_metric_invalid_metric_name_not_string(self, mock_logger_warning):
+        lambda_metric(123, 1)
+        self.mock_metric_lambda_stats.distribution.assert_not_called()
+        mock_logger_warning.assert_called_once_with(
+            "Ignoring metric submission. Invalid metric name: %s", 123
+        )
+
+    @patch("datadog_lambda.metric.logger.warning")
+    def test_lambda_metric_non_numeric_value(self, mock_logger_warning):
+        lambda_metric("test.non_numeric", "oops")
+        self.mock_metric_lambda_stats.distribution.assert_not_called()
+        mock_logger_warning.assert_called_once_with(
+            "Ignoring metric submission for metric '%s' because the value is not numeric: %r",
+            "test.non_numeric",
+            "oops",
+        )
+
 
 class TestFlushThreadStats(unittest.TestCase):
     def setUp(self):
