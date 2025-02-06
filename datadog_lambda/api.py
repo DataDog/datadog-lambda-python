@@ -54,8 +54,6 @@ def init_api():
         from datadog import api
 
         if not api._api_key:
-            import boto3
-
             DD_API_KEY_SECRET_ARN = os.environ.get("DD_API_KEY_SECRET_ARN", "")
             DD_API_KEY_SSM_NAME = os.environ.get("DD_API_KEY_SSM_NAME", "")
             DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY", "")
@@ -64,15 +62,15 @@ def init_api():
             )
 
             if DD_API_KEY_SECRET_ARN:
-                api._api_key = boto3.client("secretsmanager").get_secret_value(
+                api._api_key = _boto3_client("secretsmanager").get_secret_value(
                     SecretId=DD_API_KEY_SECRET_ARN
                 )["SecretString"]
             elif DD_API_KEY_SSM_NAME:
-                api._api_key = boto3.client("ssm").get_parameter(
+                api._api_key = _boto3_client("ssm").get_parameter(
                     Name=DD_API_KEY_SSM_NAME, WithDecryption=True
                 )["Parameter"]["Value"]
             elif DD_KMS_API_KEY:
-                kms_client = boto3.client("kms")
+                kms_client = _boto3_client("kms")
                 api._api_key = decrypt_kms_api_key(kms_client, DD_KMS_API_KEY)
             else:
                 api._api_key = DD_API_KEY
@@ -87,3 +85,7 @@ def init_api():
 
         # Unmute exceptions from datadog api client, so we can catch and handle them
         api._mute = False
+
+def _boto3_client(*args, **kwargs):
+    import botocore
+    return botocore.session.get_session().create_client(*args, **kwargs)
