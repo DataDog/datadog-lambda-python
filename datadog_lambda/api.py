@@ -57,8 +57,6 @@ def get_api_key() -> str:
     if api_key:
         return api_key
 
-    import boto3
-
     DD_API_KEY_SECRET_ARN = os.environ.get("DD_API_KEY_SECRET_ARN", "")
     DD_API_KEY_SSM_NAME = os.environ.get("DD_API_KEY_SSM_NAME", "")
     DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY", "")
@@ -85,7 +83,7 @@ def get_api_key() -> str:
             if is_gov_region
             else None
         )
-        secrets_manager_client = boto3.client(
+        secrets_manager_client = _boto3_client(
             "secretsmanager", endpoint_url=endpoint_url, region_name=secrets_region
         )
         api_key = secrets_manager_client.get_secret_value(
@@ -96,7 +94,7 @@ def get_api_key() -> str:
         fips_endpoint = (
             f"https://ssm-fips.{LAMBDA_REGION}.amazonaws.com" if is_gov_region else None
         )
-        ssm_client = boto3.client("ssm", endpoint_url=fips_endpoint)
+        ssm_client = _boto3_client("ssm", endpoint_url=fips_endpoint)
         api_key = ssm_client.get_parameter(
             Name=DD_API_KEY_SSM_NAME, WithDecryption=True
         )["Parameter"]["Value"]
@@ -105,7 +103,7 @@ def get_api_key() -> str:
         fips_endpoint = (
             f"https://kms-fips.{LAMBDA_REGION}.amazonaws.com" if is_gov_region else None
         )
-        kms_client = boto3.client("kms", endpoint_url=fips_endpoint)
+        kms_client = _boto3_client("kms", endpoint_url=fips_endpoint)
         api_key = decrypt_kms_api_key(kms_client, DD_KMS_API_KEY)
     else:
         api_key = DD_API_KEY
@@ -133,3 +131,9 @@ def init_api():
 
         # Unmute exceptions from datadog api client, so we can catch and handle them
         api._mute = False
+
+
+def _boto3_client(*args, **kwargs):
+    import botocore.session
+
+    return botocore.session.get_session().create_client(*args, **kwargs)
