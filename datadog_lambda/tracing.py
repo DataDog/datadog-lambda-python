@@ -385,11 +385,12 @@ def _parse_high_64_bits(trace_tags: str) -> str:
 
 def _generate_sfn_parent_id(context: dict) -> int:
     """
-    Generates a stable parent span ID for a downstream Lambda invoked by a Step Function. The upstream Step Function
-    execution context is used to infer the parent's span ID, ensuring trace continuity.
+    Generates a stable parent span ID for a downstream Lambda invoked by a Step Function. The
+    upstream Step Function execution context is used to infer the parent's span ID, ensuring trace
+    continuity.
 
-    `RetryCount` and `RedriveCount` are appended only when nonzero to maintain compatibility with older Lambda
-    layers that did not include these fields
+    `RetryCount` and `RedriveCount` are appended only when nonzero to maintain compatibility with
+    older Lambda layers that did not include these fields
     """
     execution_id = context.get("Execution").get("Id")
     retry_count = context.get("Execution").get("RetryCount", 0)
