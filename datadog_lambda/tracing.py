@@ -389,20 +389,20 @@ def _generate_sfn_parent_id(context: dict) -> int:
     upstream Step Function execution context is used to infer the parent's span ID, ensuring trace
     continuity.
 
-    `RetryCount` and `RedriveCount` are appended only when nonzero to maintain compatibility with
-    older Lambda layers that did not include these fields
+    `RetryCount` and `RedriveCount` are appended only when both are nonzero to maintain
+    compatibility with older Lambda layers that did not include these fields.
     """
     execution_id = context.get("Execution").get("Id")
-    retry_count = context.get("Execution").get("RetryCount", 0)
     redrive_count = context.get("Execution").get("RedriveCount", 0)
     state_name = context.get("State").get("Name")
     state_entered_time = context.get("State").get("EnteredTime")
+    retry_count = context.get("State").get("RetryCount", 0)
 
-    retry_postfix = "" if retry_count == 0 else f"#{retry_count}"
-    redrive_postfix = "" if redrive_count == 0 else f"#{redrive_count}"
+    include_counts = not (retry_count == 0 and redrive_count == 0)
+    counts_suffix = f"#{retry_count}#{redrive_count}" if include_counts else ""
 
     return _deterministic_sha256_hash(
-        f"{execution_id}#{state_name}#{state_entered_time}{retry_postfix}{redrive_postfix}",
+        f"{execution_id}#{state_name}#{state_entered_time}{counts_suffix}",
         HIGHER_64_BITS,
     )
 
