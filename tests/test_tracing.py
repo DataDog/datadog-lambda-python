@@ -729,7 +729,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertEqual(source, "event")
         expected_context = Context(
             trace_id=435175499815315247,
-            span_id=5063839446130725204,
+            span_id=8782364156266188026,
             sampling_priority=1,
             meta={"_dd.p.tid": "3e7a89d1b7310603"},
         )
