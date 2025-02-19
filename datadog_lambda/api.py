@@ -86,6 +86,8 @@ def init_api():
         # Unmute exceptions from datadog api client, so we can catch and handle them
         api._mute = False
 
+
 def _boto3_client(*args, **kwargs):
     import botocore
+
     return botocore.session.get_session().create_client(*args, **kwargs)
