@@ -698,7 +698,7 @@ def inject_correlation_ids():
             handler.setFormatter(
                 logging.Formatter(
                     "[%(levelname)s]\t%(asctime)s.%(msecs)dZ\t%(aws_request_id)s\t"
-                    "[dd.trace_id=%(dd.trace_id)s dd.span_id=%(dd.span_id)s]\t%(message)s\n",
+                    "\t%(message)s\n",
                     "%Y-%m-%dT%H:%M:%S",
                 )
             )
