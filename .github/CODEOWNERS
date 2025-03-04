@@ -1,1 +1,6 @@
-* @DataDog/serverless-aws
+*                               @DataDog/serverless-aws
+datadog_lambda/tracing.py       @DataDog/apm-serverless
+datadog_lambda/patch.py         @DataDog/apm-serverless
+datadog_lambda/span_points.py   @DataDog/apm-serverless
+datadog_lambda/cold_start.py    @DataDog/apm-serverless
+datadog_lambda/wrapper.py       @DataDog/apm-serverless
