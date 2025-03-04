@@ -186,3 +186,49 @@ publish-pypi-package:
   {{- end }}
   script:
     - ./ci/publish_pypi.sh
+
+layer bundle:
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    {{ range (ds "runtimes").runtimes }}
+    - build-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
+  dependencies:
+    {{ range (ds "runtimes").runtimes }}
+    - build-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
+  artifacts:
+    expire_in: 1 hr
+    paths:
+      - datadog_lambda_py-bundle-${CI_JOB_ID}/
+    name: datadog_lambda_py-bundle-${CI_JOB_ID}
+  script:
+    - rm -rf datadog_lambda_py-bundle-${CI_JOB_ID}
+    - mkdir -p datadog_lambda_py-bundle-${CI_JOB_ID}
+    - cp .layers/datadog_lambda_py-*.zip datadog_lambda_py-bundle-${CI_JOB_ID}
+
+signed layer bundle:
+  stage: sign
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  tags: ["arch:amd64"]
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  needs:
+    {{ range (ds "runtimes").runtimes }}
+    - sign-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
+  dependencies:
+    {{ range (ds "runtimes").runtimes }}
+    - sign-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - datadog_lambda_py-signed-bundle-${CI_JOB_ID}/
+    name: datadog_lambda_py-signed-bundle-${CI_JOB_ID}
+  script:
+    - rm -rf datadog_lambda_py-signed-bundle-${CI_JOB_ID}
+    - mkdir -p datadog_lambda_py-signed-bundle-${CI_JOB_ID}
+    - cp .layers/datadog_lambda_py-*.zip datadog_lambda_py-signed-bundle-${CI_JOB_ID}
