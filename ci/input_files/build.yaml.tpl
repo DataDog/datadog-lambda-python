@@ -103,9 +103,6 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   script:
     - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
 
-{{ range $environment := (ds "environments").environments }}
-
-{{ if or (eq $environment.name "prod") }}
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
   tags: ["arch:amd64"]
@@ -128,22 +125,25 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   before_script:
     - apt-get update
     - apt-get install -y uuid-runtime
+    {{ with $environment := (ds "environments").environments.prod }}
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
+    {{ end }}
   script:
-    - LAYER_FILE=datadog_lambda_py-{{ $runtime.arch}}-{{ $runtime.python_version }}.zip ./scripts/sign_layers.sh {{ $environment.name }}
-{{ end }}
+    - LAYER_FILE=datadog_lambda_py-{{ $runtime.arch}}-{{ $runtime.python_version }}.zip ./scripts/sign_layers.sh prod
 
-publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
+{{ range $environment_name, $environment := (ds "environments").environments }}
+
+publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: publish
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
-    - if: '"{{ $environment.name }}" =~ /^(sandbox|staging)/'
+    - if: '"{{ $environment_name }}" == "sandbox"'
       when: manual
       allow_failure: true
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   needs:
-{{ if or (eq $environment.name "prod") }}
+{{ if or (eq $environment_name "prod") }}
       - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
 {{ else }}
       - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
@@ -153,7 +153,7 @@ publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
       - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
 {{ end }}
   dependencies:
-{{ if or (eq $environment.name "prod") }}
+{{ if or (eq $environment_name "prod") }}
       - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
 {{ else }}
       - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
@@ -166,7 +166,7 @@ publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   before_script:
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
   script:
-    - STAGE={{ $environment.name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh
+    - STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh
 
 {{- end }}
 
@@ -186,3 +186,49 @@ publish-pypi-package:
   {{- end }}
   script:
     - ./ci/publish_pypi.sh
+
+layer bundle:
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    {{ range (ds "runtimes").runtimes }}
+    - build-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
+  dependencies:
+    {{ range (ds "runtimes").runtimes }}
+    - build-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
+  artifacts:
+    expire_in: 1 hr
+    paths:
+      - datadog_lambda_py-bundle-${CI_JOB_ID}/
+    name: datadog_lambda_py-bundle-${CI_JOB_ID}
+  script:
+    - rm -rf datadog_lambda_py-bundle-${CI_JOB_ID}
+    - mkdir -p datadog_lambda_py-bundle-${CI_JOB_ID}
+    - cp .layers/datadog_lambda_py-*.zip datadog_lambda_py-bundle-${CI_JOB_ID}
+
+signed layer bundle:
+  stage: sign
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  tags: ["arch:amd64"]
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  needs:
+    {{ range (ds "runtimes").runtimes }}
+    - sign-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
+  dependencies:
+    {{ range (ds "runtimes").runtimes }}
+    - sign-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - datadog_lambda_py-signed-bundle-${CI_JOB_ID}/
+    name: datadog_lambda_py-signed-bundle-${CI_JOB_ID}
+  script:
+    - rm -rf datadog_lambda_py-signed-bundle-${CI_JOB_ID}
+    - mkdir -p datadog_lambda_py-signed-bundle-${CI_JOB_ID}
+    - cp .layers/datadog_lambda_py-*.zip datadog_lambda_py-signed-bundle-${CI_JOB_ID}
