@@ -103,9 +103,6 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   script:
     - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
 
-{{ range $environment_name, $environment := (ds "environments").environments }}
-
-{{ if or (eq $environment_name "prod") }}
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
   tags: ["arch:amd64"]
@@ -128,10 +125,13 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   before_script:
     - apt-get update
     - apt-get install -y uuid-runtime
+    {{ with $environment := (ds "environments").environments.prod }}
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
+    {{ end }}
   script:
-    - LAYER_FILE=datadog_lambda_py-{{ $runtime.arch}}-{{ $runtime.python_version }}.zip ./scripts/sign_layers.sh {{ $environment_name }}
-{{ end }}
+    - LAYER_FILE=datadog_lambda_py-{{ $runtime.arch}}-{{ $runtime.python_version }}.zip ./scripts/sign_layers.sh prod
+
+{{ range $environment_name, $environment := (ds "environments").environments }}
 
 publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: publish
