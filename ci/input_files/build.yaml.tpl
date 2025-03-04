@@ -103,9 +103,9 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   script:
     - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
 
-{{ range $environment := (ds "environments").environments }}
+{{ range $environment_name, $environment := (ds "environments").environments }}
 
-{{ if or (eq $environment.name "prod") }}
+{{ if or (eq $environment_name "prod") }}
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
   tags: ["arch:amd64"]
@@ -130,20 +130,20 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
     - apt-get install -y uuid-runtime
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
   script:
-    - LAYER_FILE=datadog_lambda_py-{{ $runtime.arch}}-{{ $runtime.python_version }}.zip ./scripts/sign_layers.sh {{ $environment.name }}
+    - LAYER_FILE=datadog_lambda_py-{{ $runtime.arch}}-{{ $runtime.python_version }}.zip ./scripts/sign_layers.sh {{ $environment_name }}
 {{ end }}
 
-publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
+publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: publish
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
-    - if: '"{{ $environment.name }}" == "sandbox"'
+    - if: '"{{ $environment_name }}" == "sandbox"'
       when: manual
       allow_failure: true
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   needs:
-{{ if or (eq $environment.name "prod") }}
+{{ if or (eq $environment_name "prod") }}
       - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
 {{ else }}
       - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
@@ -153,7 +153,7 @@ publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
       - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
 {{ end }}
   dependencies:
-{{ if or (eq $environment.name "prod") }}
+{{ if or (eq $environment_name "prod") }}
       - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
 {{ else }}
       - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
@@ -166,7 +166,7 @@ publish-layer-{{ $environment.name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   before_script:
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
   script:
-    - STAGE={{ $environment.name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh
+    - STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh
 
 {{- end }}
 
