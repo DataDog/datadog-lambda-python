@@ -14,7 +14,7 @@ ENV PATH=/root/.cargo/bin:$PATH
 
 # Install datadog_lambda and dependencies from local
 COPY . .
-RUN pip install . -t ./python/lib/$runtime/site-packages
+RUN pip install . ddtrace==2.21.3 -t ./python/lib/$runtime/site-packages
 
 # Remove botocore (40MB) to reduce package size. aws-xray-sdk
 # installs it, while it's already provided by the Lambda Runtime.
