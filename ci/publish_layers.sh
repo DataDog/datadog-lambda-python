@@ -24,7 +24,20 @@ AWS_CLI_PYTHON_VERSIONS=(
     "python3.13"
     "python3.13"
 )
-PYTHON_VERSIONS=("3.8-amd64" "3.8-arm64" "3.9-amd64" "3.9-arm64" "3.10-amd64" "3.10-arm64" "3.11-amd64" "3.11-arm64" "3.12-amd64" "3.12-arm64" "3.13-amd64" "3.13-arm64")
+PYTHON_VERSIONS=(
+    "3.8-amd64"
+    "3.8-arm64"
+    "3.9-amd64"
+    "3.9-arm64"
+    "3.10-amd64"
+    "3.10-arm64"
+    "3.11-amd64"
+    "3.11-arm64"
+    "3.12-amd64"
+    "3.12-arm64"
+    "3.13-amd64"
+    "3.13-arm64"
+)
 LAYER_PATHS=(
     ".layers/datadog_lambda_py-amd64-3.8.zip"
     ".layers/datadog_lambda_py-arm64-3.8.zip"
@@ -53,11 +66,16 @@ LAYERS=(
     "Datadog-Python313"
     "Datadog-Python313-ARM"
 )
-STAGES=('prod', 'sandbox', 'staging')
+STAGES=('prod', 'sandbox', 'staging', 'gov-staging', 'gov-prod')
 
 printf "Starting script...\n\n"
-printf "Installing dependencies\n"
-pip install awscli
+
+if [ -z "$SKIP_PIP_INSTALL" ]; then
+    echo "Installing dependencies"
+    pip install awscli
+else
+    echo "Skipping pip install"
+fi
 
 publish_layer() {
     region=$1
@@ -89,7 +107,7 @@ fi
 
 printf "Python version specified: $PYTHON_VERSION\n"
 if [[ ! ${PYTHON_VERSIONS[@]} =~ $PYTHON_VERSION ]]; then
-    printf "[Error] Unsupported PYTHON_VERSION found.\n"
+    printf "[Error] Unsupported PYTHON_VERSION found: $PYTHON_VERSION.\n"
     exit 1
 fi
 
@@ -133,8 +151,14 @@ if [[ ! ${STAGES[@]} =~ $STAGE ]]; then
 fi
 
 layer="${LAYERS[$index]}"
+if [ -z "$LAYER_NAME_SUFFIX" ]; then
+    echo "No layer name suffix"
+else
+    layer="${layer}-${LAYER_NAME_SUFFIX}"
+fi
+echo "layer name: $layer"
 
-if [[ "$STAGE" =~ ^(staging|sandbox)$ ]]; then
+if [[ "$STAGE" =~ ^(staging|sandbox|gov-staging)$ ]]; then
     # Deploy latest version
     latest_version=$(aws lambda list-layer-versions --region $REGION --layer-name $layer --query 'LayerVersions[0].Version || `0`')
     VERSION=$(($latest_version + 1))
