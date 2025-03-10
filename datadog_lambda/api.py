@@ -50,7 +50,8 @@ def decrypt_kms_api_key(kms_client, ciphertext):
 def get_api_key() -> str:
     """
     Gets the Datadog API key from the environment variables or secrets manager.
-    Extracts the result to a global value to avoid repeated calls to the secrets manager from different products.
+    Extracts the result to a global value to avoid repeated calls to the
+    secrets manager from different products.
     """
     global api_key
     if api_key:
@@ -61,9 +62,7 @@ def get_api_key() -> str:
     DD_API_KEY_SECRET_ARN = os.environ.get("DD_API_KEY_SECRET_ARN", "")
     DD_API_KEY_SSM_NAME = os.environ.get("DD_API_KEY_SSM_NAME", "")
     DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY", "")
-    DD_API_KEY = os.environ.get(
-        "DD_API_KEY", os.environ.get("DATADOG_API_KEY", "")
-    )
+    DD_API_KEY = os.environ.get("DD_API_KEY", os.environ.get("DATADOG_API_KEY", ""))
 
     if DD_API_KEY_SECRET_ARN:
         api_key = boto3.client("secretsmanager").get_secret_value(
