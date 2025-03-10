@@ -59,12 +59,10 @@ if profiling_env_var:
 llmobs_api_key = None
 llmobs_env_var = os.environ.get("DD_LLMOBS_ENABLED", "false").lower() in ("true", "1")
 if llmobs_env_var:
-    from datadog_lambda.api import init_api
-    from datadog import api
+    from datadog_lambda.api import get_api_key
     from ddtrace.llmobs import LLMObs
 
-    init_api()
-    llmobs_api_key = api._api_key
+    llmobs_api_key = get_api_key()
 
 logger = logging.getLogger(__name__)
 
