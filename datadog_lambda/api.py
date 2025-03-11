@@ -98,7 +98,7 @@ def get_api_key() -> str:
         fips_endpoint = (
             f"https://kms-fips.{REGION}.amazonaws.com" if is_gov_region else None
         )
-        kms_client = boto3.client("kms",endpoint_url=fips_endpoint)
+        kms_client = boto3.client("kms", endpoint_url=fips_endpoint)
         api_key = decrypt_kms_api_key(kms_client, DD_KMS_API_KEY)
     else:
         api_key = DD_API_KEY
