@@ -863,19 +863,19 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
         self.assertEqual(source, "event")
         expected_context = Context(
-            trace_id=4521899030418994483,
-            span_id=6880978411788117524,
+            trace_id=4728686021345621131,
+            span_id=2685222157636933868,
             sampling_priority=1,
-            meta={"_dd.p.tid": "12d1270d99cc5e03"},
+            meta={"_dd.p.tid": "7683d2257c051fce"},
         )
         self.assertEqual(ctx, expected_context)
         self.assertEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "4521899030418994483",
+                TraceHeader.TRACE_ID: "4728686021345621131",
                 TraceHeader.PARENT_ID: "2685222157636933868",
                 TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.tid=12d1270d99cc5e03",
+                TraceHeader.TAGS: "_dd.p.tid=7683d2257c051fce",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)

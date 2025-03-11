@@ -368,6 +368,7 @@ def extract_http_status_code_tag(trigger_tags, response):
 
     return str(status_code)
 
+
 def is_step_function_event(event):
     """
     Check if the event is a step function that invoked the current lambda.

@@ -545,6 +545,7 @@ class ExtractHTTPStatusCodeTag(unittest.TestCase):
         status_code = extract_http_status_code_tag(trigger_tags, response)
         self.assertEqual(status_code, "403")
 
+
 class IsStepFunctionEvent(unittest.TestCase):
     def test_is_step_function_event_jsonata(self):
         event = {
