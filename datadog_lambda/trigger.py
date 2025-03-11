@@ -10,6 +10,8 @@ from io import BytesIO, BufferedReader
 from enum import Enum
 from typing import Any
 
+from datadog_lambda.tracing import is_step_function_event
+
 
 class _stringTypedEnum(Enum):
     """
@@ -146,9 +148,7 @@ def parse_event_source(event: dict) -> _EventSource:
     if event.get("source") == "aws.events" or has_event_categories:
         event_source = _EventSource(EventTypes.CLOUDWATCH_EVENTS)
 
-    if (
-        "_datadog" in event and event.get("_datadog").get("serverless-version") == "v1"
-    ) or ("Execution" in event and "StateMachine" in event and "State" in event):
+    if is_step_function_event(event):
         event_source = _EventSource(EventTypes.STEPFUNCTIONS)
 
     event_record = get_first_record(event)

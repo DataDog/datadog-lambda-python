@@ -320,12 +320,17 @@ def extract_context_from_eventbridge_event(event, lambda_context):
     """
     Extract datadog trace context from an EventBridge message's Details.
     This is only possible if Details is a JSON string.
+
+    If we find a Step Function context, try to extract the trace context from
+    that header.
     """
     try:
         detail = event.get("detail")
         dd_context = detail.get("_datadog")
         if not dd_context:
             return extract_context_from_lambda_context(lambda_context)
+        if is_step_function_event(dd_context):
+            return extract_context_from_step_functions(detail, lambda_context)
         return propagator.extract(dd_context)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
@@ -424,7 +429,7 @@ def _generate_sfn_trace_id(execution_id: str, part: str):
 def extract_context_from_step_functions(event, lambda_context):
     """
     Only extract datadog trace context when Step Functions Context Object is injected
-    into lambda's event dict.
+    into lambda's event dict. Unwrap "Payload" if it exists to handle Legacy Lambda cases.
 
     If '_datadog' header is present, we have two cases:
       1. Root is a Lambda and we use its traceID
@@ -435,6 +440,8 @@ def extract_context_from_step_functions(event, lambda_context):
     object.
     """
     try:
+        event = event.get("Payload", event)
+
         meta = {}
         dd_data = event.get("_datadog")
 
@@ -472,18 +479,30 @@ def extract_context_from_step_functions(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
-def is_legacy_lambda_step_function(event):
+def is_step_function_event(event):
     """
-    Check if the event is a step function that called a legacy lambda
-    """
-    if not isinstance(event, dict) or "Payload" not in event:
-        return False
+    Check if the event is a step function that invoked the current lambda.
 
-    event = event.get("Payload")
-    return isinstance(event, dict) and (
-        "_datadog" in event
-        or ("Execution" in event and "StateMachine" in event and "State" in event)
-    )
+    The whole event can be wrapped in "Payload" in Legacy Lambda cases. There may also be a
+    "_datadog" for JSONata style context propagation.
+
+    The actual event must contain "Execution", "StateMachine", and "State" fields.
+    """
+    event = event.get("Payload", event)
+
+    # JSONPath style
+    if all(field in event for field in ("Execution", "StateMachine", "State")):
+        return True
+
+    # JSONata style
+    if "_datadog" in event:
+        event = event["_datadog"]
+        return all(
+            field in event
+            for field in ("Execution", "StateMachine", "State", "serverless-version")
+        )
+
+    return False
 
 
 def extract_context_custom_extractor(extractor, event, lambda_context):
@@ -1320,6 +1339,10 @@ def create_inferred_span_from_eventbridge_event(event, context):
     if span:
         span.set_tags(tags)
     span.start = dt.replace(tzinfo=timezone.utc).timestamp()
+
+    # Since inferred span will later parent Lambda, preserve Lambda's current parent
+    span.parent_id = dd_trace_context.span_id
+
     return span
 
 

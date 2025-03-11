@@ -42,7 +42,7 @@ from datadog_lambda.tracing import (
     service_mapping as global_service_mapping,
     propagator,
     emit_telemetry_on_exception_outside_of_handler,
-    is_legacy_lambda_step_function,
+    is_step_function_event,
 )
 from datadog_lambda.trigger import EventTypes
 
@@ -826,6 +826,55 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             {
                 TraceHeader.TRACE_ID: "4521899030418994483",
                 TraceHeader.PARENT_ID: "10713633173203262661",
+                TraceHeader.SAMPLING_PRIORITY: "1",
+                TraceHeader.TAGS: "_dd.p.tid=12d1270d99cc5e03",
+            },
+        )
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_send_segment.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            expected_context,
+        )
+
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_event_bridge(self):
+        lambda_ctx = get_mock_context()
+        sfn_event = {
+            "_datadog": {
+                "Execution": {
+                    "StartTime": "2025-03-11T01:16:31.408Z",
+                    "Id": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:eb6298d0-93b5-4fe0-8af9-fefe2933b0ed",
+                    "RedriveCount": 0,
+                    "RoleArn": "arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j",
+                    "Name": "eb6298d0-93b5-4fe0-8af9-fefe2933b0ed",
+                },
+                "StateMachine": {
+                    "Id": "arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine",
+                    "Name": "abhinav-inner-state-machine",
+                },
+                "State": {
+                    "EnteredTime": "2025-03-11T01:16:31.448Z",
+                    "RetryCount": 0,
+                    "Name": "EventBridge PutEvents",
+                },
+                "serverless-version": "v1",
+                "RootExecutionId": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:eb6298d0-93b5-4fe0-8af9-fefe2933b0ed",
+            }
+        }
+        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
+        self.assertEqual(source, "event")
+        expected_context = Context(
+            trace_id=4521899030418994483,
+            span_id=6880978411788117524,
+            sampling_priority=1,
+            meta={"_dd.p.tid": "12d1270d99cc5e03"},
+        )
+        self.assertEqual(ctx, expected_context)
+        self.assertEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "4521899030418994483",
+                TraceHeader.PARENT_ID: "2685222157636933868",
                 TraceHeader.SAMPLING_PRIORITY: "1",
                 TraceHeader.TAGS: "_dd.p.tid=12d1270d99cc5e03",
             },
@@ -2281,6 +2330,69 @@ class TestStepFunctionsTraceContext(unittest.TestCase):
             # Leading zeros will be omitted, so only test for full 64 bits present
             if len(result_in_binary) == 66:  # "0b" + 64 bits.
                 self.assertTrue(result_in_binary.startswith("0b0"))
+
+    def test_is_step_function_event_jsonata(self):
+        event = {
+            "_datadog": {
+                "Execution": {
+                    "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                    "RedriveCount": 0,
+                },
+                "StateMachine": {},
+                "State": {
+                    "Name": "my-awesome-state",
+                    "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+                    "RetryCount": 0,
+                },
+                "x-datadog-trace-id": "5821803790426892636",
+                "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
+                "serverless-version": "v1",
+            }
+        }
+        self.assertTrue(is_step_function_event(event))
+
+    def test_is_step_function_event_jsonpath(self):
+        event = {
+            "Execution": {
+                "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                "RedriveCount": 0,
+            },
+            "StateMachine": {},
+            "State": {
+                "Name": "my-awesome-state",
+                "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+                "RetryCount": 0,
+            },
+        }
+        self.assertTrue(is_step_function_event(event))
+
+    def test_is_step_function_event_legacy_lambda(self):
+        event = {
+            "Payload": {
+                "Execution": {
+                    "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                    "RedriveCount": 0,
+                },
+                "StateMachine": {},
+                "State": {
+                    "Name": "my-awesome-state",
+                    "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+                    "RetryCount": 0,
+                },
+            }
+        }
+        self.assertTrue(is_step_function_event(event))
+
+    def test_is_step_function_event_dd_header(self):
+        event = {
+            "_datadog": {
+                "x-datadog-trace-id": "5821803790426892636",
+                "x-datadog-parent-id": "5821803790426892636",
+                "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
+                "x-datadog-sampling-priority": "1",
+            }
+        }
+        self.assertFalse(is_step_function_event(event))
 
 
 class TestExceptionOutsideHandler(unittest.TestCase):

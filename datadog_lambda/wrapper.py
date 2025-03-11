@@ -45,7 +45,6 @@ from datadog_lambda.tracing import (
     is_authorizer_response,
     tracer,
     propagator,
-    is_legacy_lambda_step_function,
 )
 from datadog_lambda.trigger import (
     extract_trigger_tags,
@@ -279,8 +278,6 @@ class _LambdaDecorator(object):
             self.response = None
             set_cold_start(init_timestamp_ns)
             submit_invocations_metric(context)
-            if is_legacy_lambda_step_function(event):
-                event = event["Payload"]
             self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source, event_source = extract_dd_trace_context(
