@@ -1303,8 +1303,15 @@ def create_inferred_span_from_eventbridge_event(event, context):
         synchronicity="async",
         tag_source="self",
     )
-    dt_format = "%Y-%m-%dT%H:%M:%SZ"
-    timestamp = event.get("time")
+
+    # Use more granular timestamp from upstream Step Function if possible
+    if is_step_function_event(event.get("detail")):
+        timestamp = event.get("detail").get("_datadog").get("State").get("EnteredTime")
+        dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
+    else:
+        timestamp = event.get("time")
+        dt_format = "%Y-%m-%dT%H:%M:%SZ"
+
     dt = datetime.strptime(timestamp, dt_format)
 
     tracer.set_tags(_dd_origin)
