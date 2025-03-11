@@ -10,8 +10,6 @@ from io import BytesIO, BufferedReader
 from enum import Enum
 from typing import Any
 
-from datadog_lambda.tracing import is_step_function_event
-
 
 class _stringTypedEnum(Enum):
     """
@@ -369,3 +367,28 @@ def extract_http_status_code_tag(trigger_tags, response):
         status_code = response.status_code
 
     return str(status_code)
+
+def is_step_function_event(event):
+    """
+    Check if the event is a step function that invoked the current lambda.
+
+    The whole event can be wrapped in "Payload" in Legacy Lambda cases. There may also be a
+    "_datadog" for JSONata style context propagation.
+
+    The actual event must contain "Execution", "StateMachine", and "State" fields.
+    """
+    event = event.get("Payload", event)
+
+    # JSONPath style
+    if all(field in event for field in ("Execution", "StateMachine", "State")):
+        return True
+
+    # JSONata style
+    if "_datadog" in event:
+        event = event["_datadog"]
+        return all(
+            field in event
+            for field in ("Execution", "StateMachine", "State", "serverless-version")
+        )
+
+    return False

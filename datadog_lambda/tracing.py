@@ -39,6 +39,7 @@ from datadog_lambda.trigger import (
     _EventSource,
     parse_event_source,
     get_first_record,
+    is_step_function_event,
     EventTypes,
     EventSubtypes,
 )
@@ -477,32 +478,6 @@ def extract_context_from_step_functions(event, lambda_context):
     except Exception as e:
         logger.debug("The Step Functions trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)
-
-
-def is_step_function_event(event):
-    """
-    Check if the event is a step function that invoked the current lambda.
-
-    The whole event can be wrapped in "Payload" in Legacy Lambda cases. There may also be a
-    "_datadog" for JSONata style context propagation.
-
-    The actual event must contain "Execution", "StateMachine", and "State" fields.
-    """
-    event = event.get("Payload", event)
-
-    # JSONPath style
-    if all(field in event for field in ("Execution", "StateMachine", "State")):
-        return True
-
-    # JSONata style
-    if "_datadog" in event:
-        event = event["_datadog"]
-        return all(
-            field in event
-            for field in ("Execution", "StateMachine", "State", "serverless-version")
-        )
-
-    return False
 
 
 def extract_context_custom_extractor(extractor, event, lambda_context):

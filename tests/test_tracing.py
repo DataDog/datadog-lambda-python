@@ -42,7 +42,6 @@ from datadog_lambda.tracing import (
     service_mapping as global_service_mapping,
     propagator,
     emit_telemetry_on_exception_outside_of_handler,
-    is_step_function_event,
 )
 from datadog_lambda.trigger import EventTypes
 
@@ -2330,69 +2329,6 @@ class TestStepFunctionsTraceContext(unittest.TestCase):
             # Leading zeros will be omitted, so only test for full 64 bits present
             if len(result_in_binary) == 66:  # "0b" + 64 bits.
                 self.assertTrue(result_in_binary.startswith("0b0"))
-
-    def test_is_step_function_event_jsonata(self):
-        event = {
-            "_datadog": {
-                "Execution": {
-                    "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
-                    "RedriveCount": 0,
-                },
-                "StateMachine": {},
-                "State": {
-                    "Name": "my-awesome-state",
-                    "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
-                    "RetryCount": 0,
-                },
-                "x-datadog-trace-id": "5821803790426892636",
-                "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
-                "serverless-version": "v1",
-            }
-        }
-        self.assertTrue(is_step_function_event(event))
-
-    def test_is_step_function_event_jsonpath(self):
-        event = {
-            "Execution": {
-                "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
-                "RedriveCount": 0,
-            },
-            "StateMachine": {},
-            "State": {
-                "Name": "my-awesome-state",
-                "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
-                "RetryCount": 0,
-            },
-        }
-        self.assertTrue(is_step_function_event(event))
-
-    def test_is_step_function_event_legacy_lambda(self):
-        event = {
-            "Payload": {
-                "Execution": {
-                    "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
-                    "RedriveCount": 0,
-                },
-                "StateMachine": {},
-                "State": {
-                    "Name": "my-awesome-state",
-                    "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
-                    "RetryCount": 0,
-                },
-            }
-        }
-        self.assertTrue(is_step_function_event(event))
-
-    def test_is_step_function_event_dd_header(self):
-        event = {
-            "_datadog": {
-                "x-datadog-trace-id": "5821803790426892636",
-                "x-datadog-parent-id": "5821803790426892636",
-                "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
-                "x-datadog-sampling-priority": "1",
-            }
-        }
-        self.assertFalse(is_step_function_event(event))
 
 
 class TestExceptionOutsideHandler(unittest.TestCase):
