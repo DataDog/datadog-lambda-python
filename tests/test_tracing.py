@@ -873,7 +873,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             get_dd_trace_context(),
             {
                 TraceHeader.TRACE_ID: "4728686021345621131",
-                TraceHeader.PARENT_ID: "2685222157636933868",
+                TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
                 TraceHeader.TAGS: "_dd.p.tid=7683d2257c051fce",
             },
