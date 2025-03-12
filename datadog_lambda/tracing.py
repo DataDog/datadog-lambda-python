@@ -314,6 +314,14 @@ def _extract_context_from_eventbridge_sqs_event(event):
     body = json.loads(body_str)
     detail = body.get("detail")
     dd_context = detail.get("_datadog")
+    if is_step_function_event(dd_context):
+        try:
+            return extract_context_from_step_functions(detail, None)
+        except Exception:
+            logger.debug(
+                "Failed to extract Step Functions context from EventBridge to SQS event."
+            )
+
     return propagator.extract(dd_context)
 
 
