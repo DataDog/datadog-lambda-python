@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 
 import datadog_lambda.api as api
 
+
 class TestDatadogLambdaAPI(unittest.TestCase):
     def setUp(self):
         api.api_key = None
