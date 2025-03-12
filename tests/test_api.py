@@ -78,3 +78,11 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         mock_client = MagicMock()
         mock_client.get_secret_value.return_value = {"SecretString": "test-api-key"}
         mock_boto3_client.return_value = mock_client
+
+        os.environ.clear()
+        os.environ["AWS_REGION"] = "us-west-2"
+        os.environ["DD_API_KEY_SECRET_ARN"] = "test-arn"
+
+        api.get_api_key()
+
+        mock_boto3_client.assert_called_with("secretsmanager", endpoint_url=None)
