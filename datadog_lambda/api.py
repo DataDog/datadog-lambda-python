@@ -67,7 +67,7 @@ def get_api_key() -> str:
     REGION = os.environ.get("AWS_REGION", "")
     is_gov_region = REGION.startswith("us-gov-")
     if is_gov_region:
-        logger.info(
+        logger.debug(
             "Govcloud region detected. Using FIPs endpoints for secrets management."
         )
 
