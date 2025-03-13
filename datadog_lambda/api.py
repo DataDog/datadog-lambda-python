@@ -83,10 +83,10 @@ def get_api_key() -> str:
         endpoint_url = (
             f"https://secretsmanager-fips.{secrets_region}.amazonaws.com"
             if is_gov_region
-            else f"https://secretsmanager.{secrets_region}.amazonaws.com"
+            else None
         )
         secrets_manager_client = boto3.client(
-            "secretsmanager", endpoint_url=endpoint_url
+            "secretsmanager", endpoint_url=endpoint_url, region_name=secrets_region
         )
         api_key = secrets_manager_client.get_secret_value(
             SecretId=DD_API_KEY_SECRET_ARN
