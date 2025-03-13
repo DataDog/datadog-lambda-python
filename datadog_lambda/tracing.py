@@ -272,6 +272,15 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 
             if dd_json_data:
                 dd_data = json.loads(dd_json_data)
+
+                if is_step_function_event(dd_data):
+                    try:
+                        return extract_context_from_step_functions(dd_data, None)
+                    except Exception:
+                        logger.debug(
+                            "Failed to extract Step Functions context from SQS/SNS event."
+                        )
+
                 return propagator.extract(dd_data)
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
@@ -314,9 +323,10 @@ def _extract_context_from_eventbridge_sqs_event(event):
     body = json.loads(body_str)
     detail = body.get("detail")
     dd_context = detail.get("_datadog")
+
     if is_step_function_event(dd_context):
         try:
-            return extract_context_from_step_functions(detail, None)
+            return extract_context_from_step_functions(dd_context, None)
         except Exception:
             logger.debug(
                 "Failed to extract Step Functions context from EventBridge to SQS event."
@@ -338,8 +348,10 @@ def extract_context_from_eventbridge_event(event, lambda_context):
         dd_context = detail.get("_datadog")
         if not dd_context:
             return extract_context_from_lambda_context(lambda_context)
+
         if is_step_function_event(dd_context):
-            return extract_context_from_step_functions(detail, lambda_context)
+            return extract_context_from_step_functions(dd_context, lambda_context)
+
         return propagator.extract(dd_context)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
@@ -450,26 +462,24 @@ def extract_context_from_step_functions(event, lambda_context):
     """
     try:
         event = event.get("Payload", event)
+        event = event.get("_datadog", event)
 
         meta = {}
-        dd_data = event.get("_datadog")
 
-        if dd_data and dd_data.get("serverless-version") == "v1":
-            if "x-datadog-trace-id" in dd_data:  # lambda root
-                trace_id = int(dd_data.get("x-datadog-trace-id"))
-                high_64_bit_trace_id = _parse_high_64_bits(
-                    dd_data.get("x-datadog-tags")
-                )
+        if event.get("serverless-version") == "v1":
+            if "x-datadog-trace-id" in event:  # lambda root
+                trace_id = int(event.get("x-datadog-trace-id"))
+                high_64_bit_trace_id = _parse_high_64_bits(event.get("x-datadog-tags"))
                 if high_64_bit_trace_id:
                     meta["_dd.p.tid"] = high_64_bit_trace_id
             else:  # sfn root
-                root_execution_id = dd_data.get("RootExecutionId")
+                root_execution_id = event.get("RootExecutionId")
                 trace_id = _generate_sfn_trace_id(root_execution_id, LOWER_64_BITS)
                 meta["_dd.p.tid"] = _generate_sfn_trace_id(
                     root_execution_id, HIGHER_64_BITS
                 )
 
-            parent_id = _generate_sfn_parent_id(dd_data)
+            parent_id = _generate_sfn_parent_id(event)
         else:
             execution_id = event.get("Execution").get("Id")
             trace_id = _generate_sfn_trace_id(execution_id, LOWER_64_BITS)
@@ -1331,7 +1341,8 @@ def create_inferred_span_from_eventbridge_event(event, context):
     span.start = dt.replace(tzinfo=timezone.utc).timestamp()
 
     # Since inferred span will later parent Lambda, preserve Lambda's current parent
-    span.parent_id = dd_trace_context.span_id
+    if dd_trace_context.span_id:
+        span.parent_id = dd_trace_context.span_id
 
     return span
 
