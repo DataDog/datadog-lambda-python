@@ -5,6 +5,8 @@
 
 import base64
 import gzip
+from functools import lru_cache
+
 import ujson as json
 from io import BytesIO, BufferedReader
 from enum import Enum
@@ -369,6 +371,7 @@ def extract_http_status_code_tag(trigger_tags, response):
     return str(status_code)
 
 
+@lru_cache(maxsize=8)
 def is_step_function_event(event):
     """
     Check if the event is a step function that invoked the current lambda.
@@ -381,14 +384,15 @@ def is_step_function_event(event):
     event = event.get("Payload", event)
 
     # JSONPath style
-    if all(field in event for field in ("Execution", "StateMachine", "State")):
+    if "Execution" in event and "StateMachine" in event and "State" in event:
         return True
 
     # JSONata style
-    if "_datadog" in event:
-        return all(
-            field in event["_datadog"]
-            for field in ("Execution", "StateMachine", "State", "serverless-version")
-        )
-
-    return False
+    dd_context = event.get("_datadog")
+    return (
+        dd_context
+        and "Execution" in dd_context
+        and "StateMachine" in dd_context
+        and "State" in dd_context
+        and "serverless-version" in dd_context
+    )
