@@ -836,35 +836,55 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     @with_trace_propagation_style("datadog")
-    def test_step_function_trace_data_event_bridge(self):
+    def test_step_function_trace_data_eventbridge(self):
         lambda_ctx = get_mock_context()
-        sfn_event = {
-            "_datadog": {
-                "Execution": {
-                    "StartTime": "2025-03-11T01:16:31.408Z",
-                    "Id": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:eb6298d0-93b5-4fe0-8af9-fefe2933b0ed",
-                    "RedriveCount": 0,
-                    "RoleArn": "arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j",
-                    "Name": "eb6298d0-93b5-4fe0-8af9-fefe2933b0ed",
+        eventbridge_event = {
+            "version": "0",
+            "id": "eaacd8db-02de-ab13-ed5a-8ffb84048294",
+            "detail-type": "StepFunctionTask",
+            "source": "my.eventbridge",
+            "account": "425362996713",
+            "time": "2025-03-13T15:17:34Z",
+            "region": "sa-east-1",
+            "resources": [
+                "arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine",
+                "arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:912eaa4c-291a-488a-bda3-d06bcc21203d",
+            ],
+            "detail": {
+                "Message": "Hello from Step Functions!",
+                "TaskToken": "AQCEAAAAKgAAAAMAAAAAAAAAAeMHr6sb8Ll5IKntjIiLGaBkaNeweo84kKYKDTvDaSAP1vjuYRJEGqFdHsKMyZL8ZcgAdanKpkbhPEN5hpoCe+BH9KblWeDsJxkDCk/meN5SaPlC1qS7Q/7/KqBq+tmAOCSy+MjdqFsnihy5Yo6g6C9uuPn7ccSB/609d8pznFm9nigEos/82emwi18lm67/+/bn4RTX4S7qV4RoGWUWUPeHfr34xWOipCt4SVDkoQPZdRVpq3wyRJP2zcK0zup24/opJqKKSCI5Q9orALNB2jEjDyQ9LE4mSrafoe0tcm/bOAGfrcpR3AwtArUiF6JPYd7Nw0XWWyPXFBjiQTJDhZFlGfllJ1N91eiN8wlzUX1+I0vw/t2PoEmuQ2VCJYCbl1ybjX/tQ97GZ9ogjY9N7VYy5uD5xfZ6VAyetUR06HUtbUIXTVxULm7wmsHb979W/fIQXsrxbFzc0+ypKaqGXJBoq7xX//irjpuNhWg1Wgfn0hxuXl5oN/LkqI83T8f9SdnJMxRDpaHDpttqbjVESB/Pf9o7gakjJj12+r2uiJNc81k50uhuHdFOGsImFHKV8hb1LGcq0ZzUKT5SbEDV2k+ezOP+O9Sk4c0unbpNLM3PKLKxVLhu2gtiIIVCHUHGmumW",
+                "_datadog": {
+                    "Execution": {
+                        "Id": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:912eaa4c-291a-488a-bda3-d06bcc21203d",
+                        "StartTime": "2025-03-13T15:17:33.972Z",
+                        "Name": "912eaa4c-291a-488a-bda3-d06bcc21203d",
+                        "RoleArn": "arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j",
+                        "RedriveCount": 0,
+                    },
+                    "StateMachine": {
+                        "Id": "arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine",
+                        "Name": "abhinav-inner-state-machine",
+                    },
+                    "State": {
+                        "Name": "EventBridge PutEvents",
+                        "EnteredTime": "2025-03-13T15:17:34.008Z",
+                        "RetryCount": 0,
+                    },
+                    "Task": {
+                        "Token": "AQCEAAAAKgAAAAMAAAAAAAAAAeMHr6sb8Ll5IKntjIiLGaBkaNeweo84kKYKDTvDaSAP1vjuYRJEGqFdHsKMyZL8ZcgAdanKpkbhPEN5hpoCe+BH9KblWeDsJxkDCk/meN5SaPlC1qS7Q/7/KqBq+tmAOCSy+MjdqFsnihy5Yo6g6C9uuPn7ccSB/609d8pznFm9nigEos/82emwi18lm67/+/bn4RTX4S7qV4RoGWUWUPeHfr34xWOipCt4SVDkoQPZdRVpq3wyRJP2zcK0zup24/opJqKKSCI5Q9orALNB2jEjDyQ9LE4mSrafoe0tcm/bOAGfrcpR3AwtArUiF6JPYd7Nw0XWWyPXFBjiQTJDhZFlGfllJ1N91eiN8wlzUX1+I0vw/t2PoEmuQ2VCJYCbl1ybjX/tQ97GZ9ogjY9N7VYy5uD5xfZ6VAyetUR06HUtbUIXTVxULm7wmsHb979W/fIQXsrxbFzc0+ypKaqGXJBoq7xX//irjpuNhWg1Wgfn0hxuXl5oN/LkqI83T8f9SdnJMxRDpaHDpttqbjVESB/Pf9o7gakjJj12+r2uiJNc81k50uhuHdFOGsImFHKV8hb1LGcq0ZzUKT5SbEDV2k+ezOP+O9Sk4c0unbpNLM3PKLKxVLhu2gtiIIVCHUHGmumW"
+                    },
+                    "RootExecutionId": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:912eaa4c-291a-488a-bda3-d06bcc21203d",
+                    "serverless-version": "v1",
                 },
-                "StateMachine": {
-                    "Id": "arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine",
-                    "Name": "abhinav-inner-state-machine",
-                },
-                "State": {
-                    "EnteredTime": "2025-03-11T01:16:31.448Z",
-                    "RetryCount": 0,
-                    "Name": "EventBridge PutEvents",
-                },
-                "serverless-version": "v1",
-                "RootExecutionId": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:eb6298d0-93b5-4fe0-8af9-fefe2933b0ed",
-            }
+            },
         }
-        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
+        ctx, source, event_source = extract_dd_trace_context(
+            eventbridge_event, lambda_ctx
+        )
         self.assertEqual(source, "event")
         expected_context = Context(
-            trace_id=4728686021345621131,
-            span_id=2685222157636933868,
+            trace_id=3401561763239692811,
+            span_id=10430178702434539423,
             sampling_priority=1,
             meta={"_dd.p.tid": "7683d2257c051fce"},
         )
@@ -872,7 +892,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertEqual(
             get_dd_trace_context(),
             {
-                TraceHeader.TRACE_ID: "4728686021345621131",
+                TraceHeader.TRACE_ID: "3401561763239692811",
                 TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
                 TraceHeader.TAGS: "_dd.p.tid=7683d2257c051fce",
@@ -883,6 +903,212 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             XraySubsegment.TRACE_KEY,
             expected_context,
         )
+
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_sqs(self):
+        lambda_ctx = get_mock_context()
+        sqs_event = {
+            "Records": [
+                {
+                    "EventSource": "aws:sns",
+                    "EventVersion": "1.0",
+                    "EventSubscriptionArn": "arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic:f1653ba3-2ff7-4c8e-9381-45a7a62f9708",
+                    "Sns": {
+                        "Type": "Notification",
+                        "MessageId": "e39184ea-bfd8-5efa-96fe-e4a64a457ff7",
+                        "TopicArn": "arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic",
+                        "Subject": None,
+                        "Message": "{}",
+                        "Timestamp": "2025-03-13T15:01:49.942Z",
+                        "SignatureVersion": "1",
+                        "Signature": "WJHKq+pNOLgxa7+dB1dud02RM/30Jvz+KiMZzjRl38/Pphz90H24eGyIbnq3BJXYEyawFCHC6sq/5HcwXouGc5gbah6he+JpqXahMEs6cyMs2tg9SXxooRHEGv5iiZXKhnDcJYOrQ+iFExO9w+WFWfJjO2m/EDVVSYvuDjDV7mmTwAgEOD0zUvWpT7wOeKGG5Uk916Ppy3iMV7sCoHV/RwVikdhCWDDmxbdqteGduAXPdGESE/aj6kUx9ibEOKXyhC+7H1/j0tlhUchl6LZsTf1Gaiq2yEqKXKvsupcG3hRZ6FtIWP0jGlFhpW5EHc2oiHIVOsQceCYPqXYMCZvFuA==",
+                        "SigningCertUrl": "https://sns.sa-east-1.amazonaws.com/SimpleNotificationService-9c6465fa7f48f5cacd23014631ec1136.pem",
+                        "UnsubscribeUrl": "https://sns.sa-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic:f1653ba3-2ff7-4c8e-9381-45a7a62f9708",
+                        "MessageAttributes": {
+                            "_datadog": {
+                                "Type": "String",
+                                "Value": '{"Execution":{"Id":"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:79478846-0cff-44de-91f5-02c96ff65762","StartTime":"2025-03-13T15:01:49.738Z","Name":"79478846-0cff-44de-91f5-02c96ff65762","RoleArn":"arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j","RedriveCount":0},"StateMachine":{"Id":"arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine","Name":"abhinav-inner-state-machine"},"State":{"Name":"SNS Publish","EnteredTime":"2025-03-13T15:01:49.768Z","RetryCount":0},"RootExecutionId":"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:79478846-0cff-44de-91f5-02c96ff65762","serverless-version":"v1"}',
+                            }
+                        },
+                    },
+                }
+            ]
+        }
+        ctx, source, event_source = extract_dd_trace_context(sqs_event, lambda_ctx)
+        self.assertEqual(source, "event")
+        expected_context = Context(
+            trace_id=3818106616964044169,
+            span_id=15912108710769293902,
+            sampling_priority=1,
+            meta={"_dd.p.tid": "7683d2257c051fce"},
+        )
+        self.assertEqual(ctx, expected_context)
+        self.assertEqual(
+            get_dd_trace_context(),
+            {
+                TraceHeader.TRACE_ID: "3818106616964044169",
+                TraceHeader.PARENT_ID: "10713633173203262661",
+                TraceHeader.SAMPLING_PRIORITY: "1",
+                TraceHeader.TAGS: "_dd.p.tid=7683d2257c051fce",
+            },
+        )
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_send_segment.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            expected_context,
+        )
+
+        @with_trace_propagation_style("datadog")
+        def test_step_function_trace_data_eventbridge_sqs(self):
+            lambda_ctx = get_mock_context()
+            eventbridge_sqs_event = {
+                "Records": [
+                    {
+                        "messageId": "9ed082ad-2f4d-4309-ab99-9553d2be5613",
+                        "receiptHandle": "AQEB6z7FatNIXbWOTC4Bx+udD0flrnT7XMehruTohl8O2KI2t9hvo5oxGIOhwcb+QtS5aRXsFE35TgGE8kZHlHK7Sa8jQUen6XmsPG7qB6BPdXjr0eunM2SDAtLj0mDSKx907VIKRYQG+qpI9ZyNK7Bi786oQIz2UkZGZru9zlXxJtAQiXBqfJ+OfTzhIwkPu04czU6lYfAbxdyNaBNdBEsTNJKPjquvcq1ZBVCHkn9L6wo8jha6XreoeS2WJ5N26ZLKtAl3wlSUByB92OKZU2mEuNboyY7bgK+nkx4N8fVVrafVXnY9YHuq60eQcZ/nusWFeJlVyN7NFypYP2IOn25xylltEACKbgUdEsFU2h5k7yI2DVk5eAt9vB6qmAJlgfkGsXG0SZrCADoIKXl9jpwajw==",
+                        "body": '{"version":"0","id":"ff6d828b-b35e-abdf-64b6-6ea2cf698c0b","detail-type":"StepFunctionTask","source":"my.eventbridge","account":"425362996713","time":"2025-03-13T15:14:21Z","region":"sa-east-1","resources":["arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine","arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:fe087266-fe48-4a31-a21b-691f4e7ea985"],"detail":{"Message":"Hello from Step Functions!","TaskToken":"AQCEAAAAKgAAAAMAAAAAAAAAAfi3HMLTw3u9h0vSmkjyHlK1tv5bQUyA7i+6LIvrBWu+3S+DMuQ79JpMtAuCaMN/AGSuGPO7OPeTNA/9v7/kzAsLoPzwPhbrDPXP4SVF1YIO663PvtX/tEWxnAfwLqwDyx8G8VEsVLcmiiOafFCKJwn0OP/DoAWc0sjhWwRxIoQ0ipBGhOqU8rO8SFZVvxUbkosNejnhT7B6314pC89JZLpXU7SxFe+XrgN+uRAvFxsH/+RwDf94xk5hhtukH7HzhJKWN2WCtUISd84pM/1V7ppDuJ3FHgJT22xQIbEGA9Q4o+pLLehzE2SHCdo7eWYQqN+7BanxBNMI6kBMaf5nuh9izAp38lsrmHJyO8NvXgWg+F9hoTZX4RpV9CCwvRFrCRcCeDq4/uJzbvB4AwwA2q2Llm0X8yH0pKvPZ2v7pl4nCWdnEgj920I8AmBCuozbKP7gJRnAqfx3MnOSkpZTeGnHkp0ly8EevwCT2zX/1GQnCAx02kBaDJgUMputFeruMBzwVtlEVBFUUgaWbJwHzz2htuAw282pdATrKfv4VV1N962uLBJ32wd9a92rX7VXXToitvZGIvf/Z7cu4xfAzxQH1rIQ3M4ojkR9r48qoYtnYDlEf+BkIL8L4+xpbRFSBk3p","_datadog":{"Execution":{"Id":"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:fe087266-fe48-4a31-a21b-691f4e7ea985","StartTime":"2025-03-13T15:14:21.730Z","Name":"fe087266-fe48-4a31-a21b-691f4e7ea985","RoleArn":"arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j","RedriveCount":0},"StateMachine":{"Id":"arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine","Name":"abhinav-inner-state-machine"},"State":{"Name":"EventBridge PutEvents","EnteredTime":"2025-03-13T15:14:21.765Z","RetryCount":0},"Task":{"Token":"AQCEAAAAKgAAAAMAAAAAAAAAAfi3HMLTw3u9h0vSmkjyHlK1tv5bQUyA7i+6LIvrBWu+3S+DMuQ79JpMtAuCaMN/AGSuGPO7OPeTNA/9v7/kzAsLoPzwPhbrDPXP4SVF1YIO663PvtX/tEWxnAfwLqwDyx8G8VEsVLcmiiOafFCKJwn0OP/DoAWc0sjhWwRxIoQ0ipBGhOqU8rO8SFZVvxUbkosNejnhT7B6314pC89JZLpXU7SxFe+XrgN+uRAvFxsH/+RwDf94xk5hhtukH7HzhJKWN2WCtUISd84pM/1V7ppDuJ3FHgJT22xQIbEGA9Q4o+pLLehzE2SHCdo7eWYQqN+7BanxBNMI6kBMaf5nuh9izAp38lsrmHJyO8NvXgWg+F9hoTZX4RpV9CCwvRFrCRcCeDq4/uJzbvB4AwwA2q2Llm0X8yH0pKvPZ2v7pl4nCWdnEgj920I8AmBCuozbKP7gJRnAqfx3MnOSkpZTeGnHkp0ly8EevwCT2zX/1GQnCAx02kBaDJgUMputFeruMBzwVtlEVBFUUgaWbJwHzz2htuAw282pdATrKfv4VV1N962uLBJ32wd9a92rX7VXXToitvZGIvf/Z7cu4xfAzxQH1rIQ3M4ojkR9r48qoYtnYDlEf+BkIL8L4+xpbRFSBk3p"},"RootExecutionId":"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:fe087266-fe48-4a31-a21b-691f4e7ea985","serverless-version":"v1"}}}',
+                        "attributes": {
+                            "ApproximateReceiveCount": "1",
+                            "SentTimestamp": "1741878862068",
+                            "SenderId": "AROAWGCM4HXUUNHLDXVER:6145b5ba998f311c8ac27f5cade2b915",
+                            "ApproximateFirstReceiveTimestamp": "1741878862075",
+                        },
+                        "messageAttributes": {},
+                        "md5OfBody": "e5cf8197b304a4dd4fd5db8e4842484b",
+                        "eventSource": "aws:sqs",
+                        "eventSourceARN": "arn:aws:sqs:sa-east-1:425362996713:abhinav-q",
+                        "awsRegion": "sa-east-1",
+                    }
+                ]
+            }
+            ctx, source, event_source = extract_dd_trace_context(
+                eventbridge_sqs_event, lambda_ctx
+            )
+            self.assertEqual(source, "event")
+            expected_context = Context(
+                trace_id=6527209323865742984,
+                span_id=14276854885394865473,
+                sampling_priority=1,
+                meta={"_dd.p.tid": "7683d2257c051fce"},
+            )
+            self.assertEqual(ctx, expected_context)
+            self.assertEqual(
+                get_dd_trace_context(),
+                {
+                    TraceHeader.TRACE_ID: "6527209323865742984",
+                    TraceHeader.PARENT_ID: "10713633173203262661",
+                    TraceHeader.SAMPLING_PRIORITY: "1",
+                    TraceHeader.TAGS: "_dd.p.tid=7683d2257c051fce",
+                },
+            )
+            create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+            self.mock_send_segment.assert_called_with(
+                XraySubsegment.TRACE_KEY,
+                expected_context,
+            )
+
+        @with_trace_propagation_style("datadog")
+        def test_step_function_trace_data_sns(self):
+            lambda_ctx = get_mock_context()
+            sns_event = {
+                "Records": [
+                    {
+                        "EventSource": "aws:sns",
+                        "EventVersion": "1.0",
+                        "EventSubscriptionArn": "arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic:f1653ba3-2ff7-4c8e-9381-45a7a62f9708",
+                        "Sns": {
+                            "Type": "Notification",
+                            "MessageId": "7bc0c17d-bf88-5ff4-af7f-a131463a0d90",
+                            "TopicArn": "arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic",
+                            "Subject": None,
+                            "Message": "{}",
+                            "Timestamp": "2025-03-13T15:19:14.245Z",
+                            "SignatureVersion": "1",
+                            "Signature": "r8RoYzq4uNcq0yj7sxcp8sTbFiDk8zqtocG7mJuE2MPVuR8O5eNg2ohofokUnC84xADlCq5k6ElP55lbbY36tQO+qDGdV6+TGN4bAL9FiQrDE6tQYYJdlv/sYE7iOOgnRBC9ljEdCIDNtQNGCfND/8JzatPg8KAy7xMRcLrGWu4xIMEysqNTz7rETfhdZjLQPssAht44KcoUJCH4/VuB+B9W1RhwA+M8Q3tqxzahIXzcgDM8OlmfkBlXo4FDVF3WUzjXLf9AMOg+66GupjQFtUpmRMkA8KXSV1HCso7e6nIIWtOnUoWeDDUfQPFFq4TNSlb6h2NuebaHdnW5nhxnJQ==",
+                            "SigningCertUrl": "https://sns.sa-east-1.amazonaws.com/SimpleNotificationService-9c6465fa7f48f5cacd23014631ec1136.pem",
+                            "UnsubscribeUrl": "https://sns.sa-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic:f1653ba3-2ff7-4c8e-9381-45a7a62f9708",
+                            "MessageAttributes": {
+                                "_datadog": {
+                                    "Type": "String",
+                                    "Value": '{"Execution":{"Id":"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:11623e4f-70ee-4330-8fbe-955152dea54c","StartTime":"2025-03-13T15:19:14.019Z","Name":"11623e4f-70ee-4330-8fbe-955152dea54c","RoleArn":"arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j","RedriveCount":0},"StateMachine":{"Id":"arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine","Name":"abhinav-inner-state-machine"},"State":{"Name":"SNS Publish","EnteredTime":"2025-03-13T15:19:14.061Z","RetryCount":0},"RootExecutionId":"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:11623e4f-70ee-4330-8fbe-955152dea54c","serverless-version":"v1"}',
+                                }
+                            },
+                        },
+                    }
+                ]
+            }
+            ctx, source, event_source = extract_dd_trace_context(sns_event, lambda_ctx)
+            self.assertEqual(source, "event")
+            expected_context = Context(
+                trace_id=1459500239678510857,
+                span_id=13193042003602978730,
+                sampling_priority=1,
+                meta={"_dd.p.tid": "7683d2257c051fce"},
+            )
+            self.assertEqual(ctx, expected_context)
+            self.assertEqual(
+                get_dd_trace_context(),
+                {
+                    TraceHeader.TRACE_ID: "1459500239678510857",
+                    TraceHeader.PARENT_ID: "10713633173203262661",
+                    TraceHeader.SAMPLING_PRIORITY: "1",
+                    TraceHeader.TAGS: "_dd.p.tid=7683d2257c051fce",
+                },
+            )
+            create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+            self.mock_send_segment.assert_called_with(
+                XraySubsegment.TRACE_KEY,
+                expected_context,
+            )
+
+        @with_trace_propagation_style("datadog")
+        def test_step_function_trace_data_sns_sqs(self):
+            lambda_ctx = get_mock_context()
+            sns_sqs_event = {
+                "Records": [
+                    {
+                        "messageId": "9ec3339f-cd1a-43ba-9681-3e9113b430d3",
+                        "receiptHandle": "AQEBJ5gIvqEWQt39NHPMAoK57cGgKtrgTtckWeWdDRi2FeucYr6pBhNjzXuUrmoHZMozX1WaoABtfQ5+kX5ucDBpA2Ci3Q07Z4MYvA6X0Sw13HCkiBnLrHPmH/F3rUBjvdRkIIKqA2ACX58MdkaYGNpqsHTJHB613wa8z4zurK0u7eUIXrr+e+gtsuPD39hiWlJo7cpBVv7y178rzMX8gPQTnRJv1cjhCHENtjWTSmfFC5N+BIQNIcjFsTTDRSovZlNIfAEuS+uowgzk0DUyoTJD5nFTL8lQHeXGRCUQe58/UY9OwRXEFVPGZOQR4OI9Wa4Kf/keFypTk9YwC9DhSeKvzZ0wBvejyl1n0ztT45+XYoWfi0mxGWM5b7r9wT36RDmjnM6vszH/d3fhZSRPASxWBQ==",
+                        "body": '{\n  "Type" : "Notification",\n  "MessageId" : "1f3078d0-c792-5cf3-a130-189c3b846a3f",\n  "TopicArn" : "arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic",\n  "Message" : "{}",\n  "Timestamp" : "2025-03-13T15:29:26.348Z",\n  "SignatureVersion" : "1",\n  "Signature" : "mxOqAQ5o/isJrMS0PezHKRaA3g8Z/8YDbkToqhJub6I66LGtl+NYhyfTyllbgxvRP2XD2meKPRSgPI3nLyq8UHsWgyYwe3Tsv8QpRunCVE9Pebh+V1LGPWfjOiL0e+bnaj956QJD99560LJ6bzWP9QO584/zfOdcw6E5XQZfAI+pvEsf28Dy0WJO/lWTATRZDf8wGhmc7uKI1ZMsrOaNoUD8PXVqsI4yrJHxhzMb3SrC7YjI/PnNIbcn6ezwprbUdbZvyNAfJiE0k5IlppA089tMXC/ItgC7AgQhG9huPdKi5KdWGACK7gEwqmFwL+5T33sUXDaH2g58WhCs76pKEw==",\n  "SigningCertURL" : "https://sns.sa-east-1.amazonaws.com/SimpleNotificationService-9c6465fa7f48f5cacd23014631ec1136.pem",\n  "UnsubscribeURL" : "https://sns.sa-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic:5f64545d-ae9a-4a5f-a7ee-798a0bd8519e",\n  "MessageAttributes" : {\n    "_datadog" : {"Type":"String","Value":"{\\"Execution\\":{\\"Id\\":\\"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:37ff72b8-0ee0-49e2-93c0-8a1764206a03\\",\\"StartTime\\":\\"2025-03-13T15:29:26.144Z\\",\\"Name\\":\\"37ff72b8-0ee0-49e2-93c0-8a1764206a03\\",\\"RoleArn\\":\\"arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j\\",\\"RedriveCount\\":0},\\"StateMachine\\":{\\"Id\\":\\"arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine\\",\\"Name\\":\\"abhinav-inner-state-machine\\"},\\"State\\":{\\"Name\\":\\"SNS Publish\\",\\"EnteredTime\\":\\"2025-03-13T15:29:26.182Z\\",\\"RetryCount\\":0},\\"RootExecutionId\\":\\"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:37ff72b8-0ee0-49e2-93c0-8a1764206a03\\",\\"serverless-version\\":\\"v1\\"}"}\n  }\n}',
+                        "attributes": {
+                            "ApproximateReceiveCount": "1",
+                            "SentTimestamp": "1741879766424",
+                            "SenderId": "AIDAIOA2GYWSHW4E2VXIO",
+                            "ApproximateFirstReceiveTimestamp": "1741879766432",
+                        },
+                        "messageAttributes": {},
+                        "md5OfBody": "52af59de28507d7e67324b46c95337d8",
+                        "eventSource": "aws:sqs",
+                        "eventSourceARN": "arn:aws:sqs:sa-east-1:425362996713:abhinav-q",
+                        "awsRegion": "sa-east-1",
+                    }
+                ]
+            }
+            ctx, source, event_source = extract_dd_trace_context(
+                sns_sqs_event, lambda_ctx
+            )
+            self.assertEqual(source, "event")
+            expected_context = Context(
+                trace_id=5708348677301000120,
+                span_id=18223515719478572006,
+                sampling_priority=1,
+                meta={"_dd.p.tid": "7683d2257c051fce"},
+            )
+            self.assertEqual(ctx, expected_context)
+            self.assertEqual(
+                get_dd_trace_context(),
+                {
+                    TraceHeader.TRACE_ID: "5708348677301000120",
+                    TraceHeader.PARENT_ID: "10713633173203262661",
+                    TraceHeader.SAMPLING_PRIORITY: "1",
+                    TraceHeader.TAGS: "_dd.p.tid=7683d2257c051fce",
+                },
+            )
+            create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+            self.mock_send_segment.assert_called_with(
+                XraySubsegment.TRACE_KEY,
+                expected_context,
+            )
 
 
 class TestXRayContextConversion(unittest.TestCase):
