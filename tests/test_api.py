@@ -29,13 +29,30 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         mock_boto3_client.return_value = mock_client
 
         os.environ["AWS_REGION"] = "us-gov-east-1"
-        os.environ["DD_API_KEY_SECRET_ARN"] = "test-secrets-arn"
+        os.environ["DD_API_KEY_SECRET_ARN"] = "arn:aws:secretsmanager:us-gov-east-1:1234567890:secret:key-name-123ABC"
 
         api_key = api.get_api_key()
 
         mock_boto3_client.assert_called_with(
             "secretsmanager",
             endpoint_url="https://secretsmanager-fips.us-gov-east-1.amazonaws.com",
+        )
+        self.assertEqual(api_key, "test-api-key")
+
+    @patch("boto3.client")
+    def test_secrets_manager_different_region(self, mock_boto3_client):
+        mock_client = MagicMock()
+        mock_client.get_secret_value.return_value = {"SecretString": "test-api-key"}
+        mock_boto3_client.return_value = mock_client
+
+        os.environ["AWS_REGION"] = "us-east-1"
+        os.environ["DD_API_KEY_SECRET_ARN"] = "arn:aws:secretsmanager:us-west-1:1234567890:secret:key-name-123ABC"
+
+        api_key = api.get_api_key()
+
+        mock_boto3_client.assert_called_with(
+            "secretsmanager",
+            endpoint_url="https://secretsmanager.us-west-1.amazonaws.com",
         )
         self.assertEqual(api_key, "test-api-key")
 
