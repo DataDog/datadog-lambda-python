@@ -886,7 +886,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             trace_id=3401561763239692811,
             span_id=10430178702434539423,
             sampling_priority=1,
-            meta={"_dd.p.tid": "7683d2257c051fce"},
+            meta={"_dd.p.tid": "a49ff3b7fb47b0b"},
         )
         self.assertEqual(ctx, expected_context)
         self.assertEqual(
@@ -895,7 +895,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.TRACE_ID: "3401561763239692811",
                 TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.tid=7683d2257c051fce",
+                TraceHeader.TAGS: "_dd.p.tid=a49ff3b7fb47b0b",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
@@ -940,7 +940,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             trace_id=3818106616964044169,
             span_id=15912108710769293902,
             sampling_priority=1,
-            meta={"_dd.p.tid": "7683d2257c051fce"},
+            meta={"_dd.p.tid": "3a4fd1a254eb514a"},
         )
         self.assertEqual(ctx, expected_context)
         self.assertEqual(
@@ -949,7 +949,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 TraceHeader.TRACE_ID: "3818106616964044169",
                 TraceHeader.PARENT_ID: "10713633173203262661",
                 TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.tid=7683d2257c051fce",
+                TraceHeader.TAGS: "_dd.p.tid=3a4fd1a254eb514a",
             },
         )
         create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
@@ -989,7 +989,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 trace_id=6527209323865742984,
                 span_id=14276854885394865473,
                 sampling_priority=1,
-                meta={"_dd.p.tid": "7683d2257c051fce"},
+                meta={"_dd.p.tid": "2ee7d9862d048173"},
             )
             self.assertEqual(ctx, expected_context)
             self.assertEqual(
@@ -998,7 +998,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     TraceHeader.TRACE_ID: "6527209323865742984",
                     TraceHeader.PARENT_ID: "10713633173203262661",
                     TraceHeader.SAMPLING_PRIORITY: "1",
-                    TraceHeader.TAGS: "_dd.p.tid=7683d2257c051fce",
+                    TraceHeader.TAGS: "_dd.p.tid=2ee7d9862d048173",
                 },
             )
             create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
@@ -1043,7 +1043,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 trace_id=1459500239678510857,
                 span_id=13193042003602978730,
                 sampling_priority=1,
-                meta={"_dd.p.tid": "7683d2257c051fce"},
+                meta={"_dd.p.tid": "fafc98885fd4647"},
             )
             self.assertEqual(ctx, expected_context)
             self.assertEqual(
@@ -1052,7 +1052,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     TraceHeader.TRACE_ID: "1459500239678510857",
                     TraceHeader.PARENT_ID: "10713633173203262661",
                     TraceHeader.SAMPLING_PRIORITY: "1",
-                    TraceHeader.TAGS: "_dd.p.tid=7683d2257c051fce",
+                    TraceHeader.TAGS: "_dd.p.tid=fafc98885fd4647",
                 },
             )
             create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
@@ -1092,7 +1092,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 trace_id=5708348677301000120,
                 span_id=18223515719478572006,
                 sampling_priority=1,
-                meta={"_dd.p.tid": "7683d2257c051fce"},
+                meta={"_dd.p.tid": "45457f5f3fde3fa1"},
             )
             self.assertEqual(ctx, expected_context)
             self.assertEqual(
@@ -1101,7 +1101,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                     TraceHeader.TRACE_ID: "5708348677301000120",
                     TraceHeader.PARENT_ID: "10713633173203262661",
                     TraceHeader.SAMPLING_PRIORITY: "1",
-                    TraceHeader.TAGS: "_dd.p.tid=7683d2257c051fce",
+                    TraceHeader.TAGS: "_dd.p.tid=45457f5f3fde3fa1",
                 },
             )
             create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
