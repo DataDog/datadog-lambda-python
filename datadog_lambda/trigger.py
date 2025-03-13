@@ -386,7 +386,7 @@ def is_step_function_event(event):
 
     # JSONata style
     if "_datadog" in event:
-        event = event["_datadog"]
+        datadog_context = event["_datadog"]
         return all(
             field in event
             for field in ("Execution", "StateMachine", "State", "serverless-version")
