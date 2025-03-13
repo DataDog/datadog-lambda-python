@@ -349,8 +349,12 @@ def extract_context_from_eventbridge_event(event, lambda_context):
         if not dd_context:
             return extract_context_from_lambda_context(lambda_context)
 
-        if is_step_function_event(dd_context):
-            return extract_context_from_step_functions(dd_context, lambda_context)
+        try:
+            return extract_context_from_step_functions(dd_context, None)
+        except Exception:
+            logger.debug(
+                "Failed to extract Step Functions context from EventBridge event."
+            )
 
         return propagator.extract(dd_context)
     except Exception as e:
@@ -1322,13 +1326,16 @@ def create_inferred_span_from_eventbridge_event(event, context):
         tag_source="self",
     )
 
+    timestamp = event.get("time")
+    dt_format = "%Y-%m-%dT%H:%M:%SZ"
+
     # Use more granular timestamp from upstream Step Function if possible
-    if is_step_function_event(event.get("detail")):
-        timestamp = event.get("detail").get("_datadog").get("State").get("EnteredTime")
-        dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
-    else:
-        timestamp = event.get("time")
-        dt_format = "%Y-%m-%dT%H:%M:%SZ"
+    try:
+        if is_step_function_event(event.get("detail")):
+            timestamp = event["detail"]["_datadog"]["State"]["EnteredTime"]
+            dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
+    except (TypeError, KeyError, AttributeError):
+        logger.debug("Error parsing timestamp from Step Functions event")
 
     dt = datetime.strptime(timestamp, dt_format)
 
