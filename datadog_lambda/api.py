@@ -75,7 +75,7 @@ def get_api_key() -> str:
         # Secrets manager endpoints: https://docs.aws.amazon.com/general/latest/gr/asm.html
         try:
             secrets_region = DD_API_KEY_SECRET_ARN.split(":")[3]
-        except Exception as e:
+        except Exception:
             logger.debug(
                 "Invalid secret arn in DD_API_KEY_SECRET_ARN. Unable to get API key."
             )
