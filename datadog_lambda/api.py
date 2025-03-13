@@ -76,7 +76,9 @@ def get_api_key() -> str:
         try:
             secrets_region = DD_API_KEY_SECRET_ARN.split(":")[3]
         except Exception as e:
-            logger.debug("Invalid secret arn in DD_API_KEY_SECRET_ARN. Unable to get API key.")
+            logger.debug(
+                "Invalid secret arn in DD_API_KEY_SECRET_ARN. Unable to get API key."
+            )
             return ""
         endpoint_url = (
             f"https://secretsmanager-fips.{secrets_region}.amazonaws.com"
