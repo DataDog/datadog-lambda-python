@@ -64,8 +64,8 @@ def get_api_key() -> str:
     DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY", "")
     DD_API_KEY = os.environ.get("DD_API_KEY", os.environ.get("DATADOG_API_KEY", ""))
 
-    REGION = os.environ.get("AWS_REGION", "")
-    is_gov_region = REGION.startswith("us-gov-")
+    LAMBDA_REGION = os.environ.get("AWS_REGION", "")
+    is_gov_region = LAMBDA_REGION.startswith("us-gov-")
     if is_gov_region:
         logger.debug(
             "Govcloud region detected. Using FIPs endpoints for secrets management."
@@ -73,13 +73,18 @@ def get_api_key() -> str:
 
     if DD_API_KEY_SECRET_ARN:
         # Secrets manager endpoints: https://docs.aws.amazon.com/general/latest/gr/asm.html
-        fips_endpoint = (
-            f"https://secretsmanager-fips.{REGION}.amazonaws.com"
+        try:
+            secrets_region = DD_API_KEY_SECRET_ARN.split(":")[3]
+        except Exception as e:
+            logger.debug("Invalid secret arn in DD_API_KEY_SECRET_ARN. Unable to get API key.")
+            return ""
+        endpoint_url = (
+            f"https://secretsmanager-fips.{secrets_region}.amazonaws.com"
             if is_gov_region
-            else None
+            else f"https://secretsmanager.{secrets_region}.amazonaws.com"
         )
         secrets_manager_client = boto3.client(
-            "secretsmanager", endpoint_url=fips_endpoint
+            "secretsmanager", endpoint_url=endpoint_url
         )
         api_key = secrets_manager_client.get_secret_value(
             SecretId=DD_API_KEY_SECRET_ARN
@@ -87,7 +92,7 @@ def get_api_key() -> str:
     elif DD_API_KEY_SSM_NAME:
         # SSM endpoints: https://docs.aws.amazon.com/general/latest/gr/ssm.html
         fips_endpoint = (
-            f"https://ssm-fips.{REGION}.amazonaws.com" if is_gov_region else None
+            f"https://ssm-fips.{LAMBDA_REGION}.amazonaws.com" if is_gov_region else None
         )
         ssm_client = boto3.client("ssm", endpoint_url=fips_endpoint)
         api_key = ssm_client.get_parameter(
@@ -96,7 +101,7 @@ def get_api_key() -> str:
     elif DD_KMS_API_KEY:
         # KMS endpoints: https://docs.aws.amazon.com/general/latest/gr/kms.html
         fips_endpoint = (
-            f"https://kms-fips.{REGION}.amazonaws.com" if is_gov_region else None
+            f"https://kms-fips.{LAMBDA_REGION}.amazonaws.com" if is_gov_region else None
         )
         kms_client = boto3.client("kms", endpoint_url=fips_endpoint)
         api_key = decrypt_kms_api_key(kms_client, DD_KMS_API_KEY)
