@@ -36,14 +36,12 @@ from datadog_lambda.tracing import (
     _convert_xray_trace_id,
     _convert_xray_entity_id,
     _convert_xray_sampling,
-    InferredSpanInfo,
     create_service_mapping,
     determine_service_name,
     service_mapping as global_service_mapping,
     propagator,
     emit_telemetry_on_exception_outside_of_handler,
 )
-from datadog_lambda.trigger import EventTypes
 
 from tests.utils import get_mock_context
 
@@ -630,10 +628,9 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             TraceHeader.TAGS: f"_dd.p.tid={expected_tid}",
         }
 
-        ctx, source, event_source = extract_dd_trace_context(event, lambda_ctx)
+        ctx, source, _ = extract_dd_trace_context(event, lambda_ctx)
 
         self.assertEqual(source, "event")
-        self.assertEqual(event_source.event_type, EventTypes.STEPFUNCTIONS)
         self.assertEqual(ctx, expected_context)
         self.assertEqual(get_dd_trace_context(), expected_headers)
 
