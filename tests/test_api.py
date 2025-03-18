@@ -22,7 +22,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.env_patcher.start()
 
-    @patch("boto3.client")
+    @patch("botocore.session.Session.create_client")
     def test_secrets_manager_fips_endpoint(self, mock_boto3_client):
         mock_client = MagicMock()
         mock_client.get_secret_value.return_value = {"SecretString": "test-api-key"}
@@ -42,7 +42,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.assertEqual(api_key, "test-api-key")
 
-    @patch("boto3.client")
+    @patch("botocore.session.Session.create_client")
     def test_secrets_manager_different_region(self, mock_boto3_client):
         mock_client = MagicMock()
         mock_client.get_secret_value.return_value = {"SecretString": "test-api-key"}
@@ -62,7 +62,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.assertEqual(api_key, "test-api-key")
 
-    @patch("boto3.client")
+    @patch("botocore.session.Session.create_client")
     def test_ssm_fips_endpoint(self, mock_boto3_client):
         mock_client = MagicMock()
         mock_client.get_parameter.return_value = {
@@ -80,7 +80,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.assertEqual(api_key, "test-api-key")
 
-    @patch("boto3.client")
+    @patch("botocore.session.Session.create_client")
     @patch("datadog_lambda.api.decrypt_kms_api_key")
     def test_kms_fips_endpoint(self, mock_decrypt_kms, mock_boto3_client):
         mock_client = MagicMock()
@@ -97,7 +97,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.assertEqual(api_key, "test-api-key")
 
-    @patch("boto3.client")
+    @patch("botocore.session.Session.create_client")
     def test_no_fips_for_standard_regions(self, mock_boto3_client):
         mock_client = MagicMock()
         mock_client.get_secret_value.return_value = {"SecretString": "test-api-key"}
