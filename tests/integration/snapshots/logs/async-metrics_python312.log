@@ -189,6 +189,15 @@ START
   ]
 }
 {
+  "m": "datadog.serverless.dynamodb.stream.type",
+  "v": 1,
+  "e": XXXX,
+  "t": [
+    "streamtype:NEW_AND_OLD_IMAGES",
+    "dd_lambda_layer:datadog-python312_X.X.X"
+  ]
+}
+{
   "m": "hello.dog",
   "v": 1,
   "e": XXXX,
