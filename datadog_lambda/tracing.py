@@ -39,6 +39,7 @@ from datadog_lambda.trigger import (
     _EventSource,
     parse_event_source,
     get_first_record,
+    is_step_function_event,
     EventTypes,
     EventSubtypes,
 )
@@ -271,6 +272,15 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 
             if dd_json_data:
                 dd_data = json.loads(dd_json_data)
+
+                if is_step_function_event(dd_data):
+                    try:
+                        return extract_context_from_step_functions(dd_data, None)
+                    except Exception:
+                        logger.debug(
+                            "Failed to extract Step Functions context from SQS/SNS event."
+                        )
+
                 return propagator.extract(dd_data)
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
@@ -313,6 +323,15 @@ def _extract_context_from_eventbridge_sqs_event(event):
     body = json.loads(body_str)
     detail = body.get("detail")
     dd_context = detail.get("_datadog")
+
+    if is_step_function_event(dd_context):
+        try:
+            return extract_context_from_step_functions(dd_context, None)
+        except Exception:
+            logger.debug(
+                "Failed to extract Step Functions context from EventBridge to SQS event."
+            )
+
     return propagator.extract(dd_context)
 
 
@@ -320,12 +339,23 @@ def extract_context_from_eventbridge_event(event, lambda_context):
     """
     Extract datadog trace context from an EventBridge message's Details.
     This is only possible if Details is a JSON string.
+
+    If we find a Step Function context, try to extract the trace context from
+    that header.
     """
     try:
         detail = event.get("detail")
         dd_context = detail.get("_datadog")
         if not dd_context:
             return extract_context_from_lambda_context(lambda_context)
+
+        try:
+            return extract_context_from_step_functions(dd_context, None)
+        except Exception:
+            logger.debug(
+                "Failed to extract Step Functions context from EventBridge event."
+            )
+
         return propagator.extract(dd_context)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
@@ -424,7 +454,7 @@ def _generate_sfn_trace_id(execution_id: str, part: str):
 def extract_context_from_step_functions(event, lambda_context):
     """
     Only extract datadog trace context when Step Functions Context Object is injected
-    into lambda's event dict.
+    into lambda's event dict. Unwrap "Payload" if it exists to handle Legacy Lambda cases.
 
     If '_datadog' header is present, we have two cases:
       1. Root is a Lambda and we use its traceID
@@ -435,25 +465,25 @@ def extract_context_from_step_functions(event, lambda_context):
     object.
     """
     try:
-        meta = {}
-        dd_data = event.get("_datadog")
+        event = event.get("Payload", event)
+        event = event.get("_datadog", event)
 
-        if dd_data and dd_data.get("serverless-version") == "v1":
-            if "x-datadog-trace-id" in dd_data:  # lambda root
-                trace_id = int(dd_data.get("x-datadog-trace-id"))
-                high_64_bit_trace_id = _parse_high_64_bits(
-                    dd_data.get("x-datadog-tags")
-                )
+        meta = {}
+
+        if event.get("serverless-version") == "v1":
+            if "x-datadog-trace-id" in event:  # lambda root
+                trace_id = int(event.get("x-datadog-trace-id"))
+                high_64_bit_trace_id = _parse_high_64_bits(event.get("x-datadog-tags"))
                 if high_64_bit_trace_id:
                     meta["_dd.p.tid"] = high_64_bit_trace_id
             else:  # sfn root
-                root_execution_id = dd_data.get("RootExecutionId")
+                root_execution_id = event.get("RootExecutionId")
                 trace_id = _generate_sfn_trace_id(root_execution_id, LOWER_64_BITS)
                 meta["_dd.p.tid"] = _generate_sfn_trace_id(
                     root_execution_id, HIGHER_64_BITS
                 )
 
-            parent_id = _generate_sfn_parent_id(dd_data)
+            parent_id = _generate_sfn_parent_id(event)
         else:
             execution_id = event.get("Execution").get("Id")
             trace_id = _generate_sfn_trace_id(execution_id, LOWER_64_BITS)
@@ -470,20 +500,6 @@ def extract_context_from_step_functions(event, lambda_context):
     except Exception as e:
         logger.debug("The Step Functions trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)
-
-
-def is_legacy_lambda_step_function(event):
-    """
-    Check if the event is a step function that called a legacy lambda
-    """
-    if not isinstance(event, dict) or "Payload" not in event:
-        return False
-
-    event = event.get("Payload")
-    return isinstance(event, dict) and (
-        "_datadog" in event
-        or ("Execution" in event and "StateMachine" in event and "State" in event)
-    )
 
 
 def extract_context_custom_extractor(extractor, event, lambda_context):
@@ -1309,8 +1325,18 @@ def create_inferred_span_from_eventbridge_event(event, context):
         synchronicity="async",
         tag_source="self",
     )
-    dt_format = "%Y-%m-%dT%H:%M:%SZ"
+
     timestamp = event.get("time")
+    dt_format = "%Y-%m-%dT%H:%M:%SZ"
+
+    # Use more granular timestamp from upstream Step Function if possible
+    try:
+        if is_step_function_event(event.get("detail")):
+            timestamp = event["detail"]["_datadog"]["State"]["EnteredTime"]
+            dt_format = "%Y-%m-%dT%H:%M:%S.%fZ"
+    except (TypeError, KeyError, AttributeError):
+        logger.debug("Error parsing timestamp from Step Functions event")
+
     dt = datetime.strptime(timestamp, dt_format)
 
     tracer.set_tags(_dd_origin)
@@ -1320,6 +1346,11 @@ def create_inferred_span_from_eventbridge_event(event, context):
     if span:
         span.set_tags(tags)
     span.start = dt.replace(tzinfo=timezone.utc).timestamp()
+
+    # Since inferred span will later parent Lambda, preserve Lambda's current parent
+    if dd_trace_context.span_id:
+        span.parent_id = dd_trace_context.span_id
+
     return span
 
 

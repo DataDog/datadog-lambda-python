@@ -36,15 +36,12 @@ from datadog_lambda.tracing import (
     _convert_xray_trace_id,
     _convert_xray_entity_id,
     _convert_xray_sampling,
-    InferredSpanInfo,
     create_service_mapping,
     determine_service_name,
     service_mapping as global_service_mapping,
     propagator,
     emit_telemetry_on_exception_outside_of_handler,
-    is_legacy_lambda_step_function,
 )
-from datadog_lambda.trigger import EventTypes
 
 from tests.utils import get_mock_context
 
@@ -613,9 +610,39 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             ]
         )
 
+    def _test_step_function_trace_data_common(
+        self, event, expected_trace_id, expected_span_id, expected_tid
+    ):
+        """Common test logic for step function trace data tests"""
+        lambda_ctx = get_mock_context()
+        expected_context = Context(
+            trace_id=expected_trace_id,
+            span_id=expected_span_id,
+            sampling_priority=1,
+            meta={"_dd.p.tid": expected_tid},
+        )
+        expected_headers = {
+            TraceHeader.TRACE_ID: str(expected_trace_id),
+            TraceHeader.PARENT_ID: "10713633173203262661",
+            TraceHeader.SAMPLING_PRIORITY: "1",
+            TraceHeader.TAGS: f"_dd.p.tid={expected_tid}",
+        }
+
+        ctx, source, _ = extract_dd_trace_context(event, lambda_ctx)
+
+        self.assertEqual(source, "event")
+        self.assertEqual(ctx, expected_context)
+        self.assertEqual(get_dd_trace_context(), expected_headers)
+
+        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
+        self.mock_send_segment.assert_called_with(
+            XraySubsegment.TRACE_KEY,
+            expected_context,
+        )
+
     @with_trace_propagation_style("datadog")
     def test_step_function_trace_data(self):
-        lambda_ctx = get_mock_context()
+        """Test basic step function trace data extraction"""
         sfn_event = {
             "Execution": {
                 "Id": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-activity-state-machine:72a7ca3e-901c-41bb-b5a3-5f279b92a316",
@@ -634,79 +661,39 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "Name": "abhinav-activity-state-machine",
             },
         }
-        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
-        self.assertEqual(source, "event")
-        expected_context = Context(
-            trace_id=435175499815315247,
-            span_id=3929055471293792800,
-            sampling_priority=1,
-            meta={"_dd.p.tid": "3e7a89d1b7310603"},
+        self._test_step_function_trace_data_common(
+            sfn_event, 435175499815315247, 3929055471293792800, "3e7a89d1b7310603"
         )
-        self.assertEqual(ctx, expected_context)
-        self.assertEqual(
-            get_dd_trace_context(),
-            {
-                TraceHeader.TRACE_ID: "435175499815315247",
-                TraceHeader.PARENT_ID: "10713633173203262661",
-                TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.tid=3e7a89d1b7310603",
+
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_retry(self):
+        """Test step function trace data extraction with non-zero retry count"""
+        sfn_event = {
+            "Execution": {
+                "Id": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-activity-state-machine:72a7ca3e-901c-41bb-b5a3-5f279b92a316",
+                "Name": "72a7ca3e-901c-41bb-b5a3-5f279b92a316",
+                "RoleArn": "arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j",
+                "StartTime": "2024-12-04T19:38:04.069Z",
+                "RedriveCount": 0,
             },
-        )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_send_segment.assert_called_with(
-            XraySubsegment.TRACE_KEY,
-            expected_context,
+            "State": {
+                "Name": "Lambda Invoke",
+                "EnteredTime": "2024-12-04T19:38:04.118Z",
+                "RetryCount": 1,
+            },
+            "StateMachine": {
+                "Id": "arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-activity-state-machine",
+                "Name": "abhinav-activity-state-machine",
+            },
+        }
+        self._test_step_function_trace_data_common(
+            sfn_event, 435175499815315247, 5063839446130725204, "3e7a89d1b7310603"
         )
 
-        @with_trace_propagation_style("datadog")
-        def test_step_function_trace_data_retry(self):
-            lambda_ctx = get_mock_context()
-            sfn_event = {
-                "Execution": {
-                    "Id": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-activity-state-machine:72a7ca3e-901c-41bb-b5a3-5f279b92a316",
-                    "Name": "72a7ca3e-901c-41bb-b5a3-5f279b92a316",
-                    "RoleArn": "arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j",
-                    "StartTime": "2024-12-04T19:38:04.069Z",
-                    "RedriveCount": 0,
-                },
-                "State": {
-                    "Name": "Lambda Invoke",
-                    "EnteredTime": "2024-12-04T19:38:04.118Z",
-                    "RetryCount": 1,
-                },
-                "StateMachine": {
-                    "Id": "arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-activity-state-machine",
-                    "Name": "abhinav-activity-state-machine",
-                },
-            }
-            ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
-            self.assertEqual(source, "event")
-            expected_context = Context(
-                trace_id=435175499815315247,
-                span_id=5063839446130725204,
-                sampling_priority=1,
-                meta={"_dd.p.tid": "3e7a89d1b7310603"},
-            )
-            self.assertEqual(ctx, expected_context)
-            self.assertEqual(
-                get_dd_trace_context(),
-                {
-                    TraceHeader.TRACE_ID: "435175499815315247",
-                    TraceHeader.PARENT_ID: "10713633173203262661",
-                    TraceHeader.SAMPLING_PRIORITY: "1",
-                    TraceHeader.TAGS: "_dd.p.tid=3e7a89d1b7310603",
-                },
-            )
-            create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-            self.mock_send_segment.assert_called_with(
-                XraySubsegment.TRACE_KEY,
-                expected_context,
-            )
-
-    # https://github.com/DataDog/logs-backend/blob/c17618cb552fc369ca40282bae0a65803f82f694/domains/serverless/apps/logs-to-traces-reducer/src/test/resources/test-json-files/stepfunctions/RedriveTest/snapshots/RedriveLambdaSuccessTraceMerging.json#L46
+    # https://github.com/DataDog/logs-backend/blob/65ea567150f24e5498008f3cf8cabef9ea995f5d/domains/serverless/apps/logs-to-traces-reducer/src/test/resources/test-json-files/stepfunctions/RedriveTest/snapshots/RedriveLambdaSuccessTraceMerging.json#L45-L46
     @with_trace_propagation_style("datadog")
     def test_step_function_trace_data_redrive(self):
-        lambda_ctx = get_mock_context()
+        """Test step function trace data extraction with non-zero redrive count"""
         sfn_event = {
             "Execution": {
                 "Id": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-activity-state-machine:72a7ca3e-901c-41bb-b5a3-5f279b92a316",
@@ -725,33 +712,13 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "Name": "abhinav-activity-state-machine",
             },
         }
-        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
-        self.assertEqual(source, "event")
-        expected_context = Context(
-            trace_id=435175499815315247,
-            span_id=8782364156266188026,
-            sampling_priority=1,
-            meta={"_dd.p.tid": "3e7a89d1b7310603"},
-        )
-        self.assertEqual(ctx, expected_context)
-        self.assertEqual(
-            get_dd_trace_context(),
-            {
-                TraceHeader.TRACE_ID: "435175499815315247",
-                TraceHeader.PARENT_ID: "10713633173203262661",
-                TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.tid=3e7a89d1b7310603",
-            },
-        )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_send_segment.assert_called_with(
-            XraySubsegment.TRACE_KEY,
-            expected_context,
+        self._test_step_function_trace_data_common(
+            sfn_event, 435175499815315247, 8782364156266188026, "3e7a89d1b7310603"
         )
 
     @with_trace_propagation_style("datadog")
     def test_step_function_trace_data_lambda_root(self):
-        lambda_ctx = get_mock_context()
+        """Test JSONata style step function trace data extraction where there's an upstream Lambda"""
         sfn_event = {
             "_datadog": {
                 "Execution": {
@@ -769,33 +736,13 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "serverless-version": "v1",
             }
         }
-        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
-        self.assertEqual(source, "event")
-        expected_context = Context(
-            trace_id=5821803790426892636,
-            span_id=6880978411788117524,
-            sampling_priority=1,
-            meta={"_dd.p.tid": "672a7cb100000000"},
-        )
-        self.assertEqual(ctx, expected_context)
-        self.assertEqual(
-            get_dd_trace_context(),
-            {
-                TraceHeader.TRACE_ID: "5821803790426892636",
-                TraceHeader.PARENT_ID: "10713633173203262661",
-                TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.tid=672a7cb100000000",
-            },
-        )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_send_segment.assert_called_with(
-            XraySubsegment.TRACE_KEY,
-            expected_context,
+        self._test_step_function_trace_data_common(
+            sfn_event, 5821803790426892636, 6880978411788117524, "672a7cb100000000"
         )
 
     @with_trace_propagation_style("datadog")
     def test_step_function_trace_data_sfn_root(self):
-        lambda_ctx = get_mock_context()
+        """Test JSONata style step function trace data extraction where there's an upstream step function"""
         sfn_event = {
             "_datadog": {
                 "Execution": {
@@ -812,28 +759,183 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 "serverless-version": "v1",
             }
         }
-        ctx, source, event_source = extract_dd_trace_context(sfn_event, lambda_ctx)
-        self.assertEqual(source, "event")
-        expected_context = Context(
-            trace_id=4521899030418994483,
-            span_id=6880978411788117524,
-            sampling_priority=1,
-            meta={"_dd.p.tid": "12d1270d99cc5e03"},
+        self._test_step_function_trace_data_common(
+            sfn_event, 4521899030418994483, 6880978411788117524, "12d1270d99cc5e03"
         )
-        self.assertEqual(ctx, expected_context)
-        self.assertEqual(
-            get_dd_trace_context(),
-            {
-                TraceHeader.TRACE_ID: "4521899030418994483",
-                TraceHeader.PARENT_ID: "10713633173203262661",
-                TraceHeader.SAMPLING_PRIORITY: "1",
-                TraceHeader.TAGS: "_dd.p.tid=12d1270d99cc5e03",
+
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_eventbridge(self):
+        """Test step function trace data extraction through EventBridge"""
+        eventbridge_event = {
+            "version": "0",
+            "id": "eaacd8db-02de-ab13-ed5a-8ffb84048294",
+            "detail-type": "StepFunctionTask",
+            "source": "my.eventbridge",
+            "account": "425362996713",
+            "time": "2025-03-13T15:17:34Z",
+            "region": "sa-east-1",
+            "resources": [
+                "arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine",
+                "arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:912eaa4c-291a-488a-bda3-d06bcc21203d",
+            ],
+            "detail": {
+                "Message": "Hello from Step Functions!",
+                "TaskToken": "AQCEAAAAKgAAAAMAAAAAAAAAAeMHr6sb8Ll5IKntjIiLGaBkaNeweo84kKYKDTvDaSAP1vjuYRJEGqFdHsKMyZL8ZcgAdanKpkbhPEN5hpoCe+BH9KblWeDsJxkDCk/meN5SaPlC1qS7Q/7/KqBq+tmAOCSy+MjdqFsnihy5Yo6g6C9uuPn7ccSB/609d8pznFm9nigEos/82emwi18lm67/+/bn4RTX4S7qV4RoGWUWUPeHfr34xWOipCt4SVDkoQPZdRVpq3wyRJP2zcK0zup24/opJqKKSCI5Q9orALNB2jEjDyQ9LE4mSrafoe0tcm/bOAGfrcpR3AwtArUiF6JPYd7Nw0XWWyPXFBjiQTJDhZFlGfllJ1N91eiN8wlzUX1+I0vw/t2PoEmuQ2VCJYCbl1ybjX/tQ97GZ9ogjY9N7VYy5uD5xfZ6VAyetUR06HUtbUIXTVxULm7wmsHb979W/fIQXsrxbFzc0+ypKaqGXJBoq7xX//irjpuNhWg1Wgfn0hxuXl5oN/LkqI83T8f9SdnJMxRDpaHDpttqbjVESB/Pf9o7gakjJj12+r2uiJNc81k50uhuHdFOGsImFHKV8hb1LGcq0ZzUKT5SbEDV2k+ezOP+O9Sk4c0unbpNLM3PKLKxVLhu2gtiIIVCHUHGmumW",
+                "_datadog": {
+                    "Execution": {
+                        "Id": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:912eaa4c-291a-488a-bda3-d06bcc21203d",
+                        "StartTime": "2025-03-13T15:17:33.972Z",
+                        "Name": "912eaa4c-291a-488a-bda3-d06bcc21203d",
+                        "RoleArn": "arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j",
+                        "RedriveCount": 0,
+                    },
+                    "StateMachine": {
+                        "Id": "arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine",
+                        "Name": "abhinav-inner-state-machine",
+                    },
+                    "State": {
+                        "Name": "EventBridge PutEvents",
+                        "EnteredTime": "2025-03-13T15:17:34.008Z",
+                        "RetryCount": 0,
+                    },
+                    "Task": {
+                        "Token": "AQCEAAAAKgAAAAMAAAAAAAAAAeMHr6sb8Ll5IKntjIiLGaBkaNeweo84kKYKDTvDaSAP1vjuYRJEGqFdHsKMyZL8ZcgAdanKpkbhPEN5hpoCe+BH9KblWeDsJxkDCk/meN5SaPlC1qS7Q/7/KqBq+tmAOCSy+MjdqFsnihy5Yo6g6C9uuPn7ccSB/609d8pznFm9nigEos/82emwi18lm67/+/bn4RTX4S7qV4RoGWUWUPeHfr34xWOipCt4SVDkoQPZdRVpq3wyRJP2zcK0zup24/opJqKKSCI5Q9orALNB2jEjDyQ9LE4mSrafoe0tcm/bOAGfrcpR3AwtArUiF6JPYd7Nw0XWWyPXFBjiQTJDhZFlGfllJ1N91eiN8wlzUX1+I0vw/t2PoEmuQ2VCJYCbl1ybjX/tQ97GZ9ogjY9N7VYy5uD5xfZ6VAyetUR06HUtbUIXTVxULm7wmsHb979W/fIQXsrxbFzc0+ypKaqGXJBoq7xX//irjpuNhWg1Wgfn0hxuXl5oN/LkqI83T8f9SdnJMxRDpaHDpttqbjVESB/Pf9o7gakjJj12+r2uiJNc81k50uhuHdFOGsImFHKV8hb1LGcq0ZzUKT5SbEDV2k+ezOP+O9Sk4c0unbpNLM3PKLKxVLhu2gtiIIVCHUHGmumW"
+                    },
+                    "RootExecutionId": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:912eaa4c-291a-488a-bda3-d06bcc21203d",
+                    "serverless-version": "v1",
+                },
             },
+        }
+        self._test_step_function_trace_data_common(
+            eventbridge_event,
+            3401561763239692811,
+            10430178702434539423,
+            "a49ff3b7fb47b0b",
         )
-        create_dd_dummy_metadata_subsegment(ctx, XraySubsegment.TRACE_KEY)
-        self.mock_send_segment.assert_called_with(
-            XraySubsegment.TRACE_KEY,
-            expected_context,
+
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_sqs(self):
+        """Test step function trace data extraction through SQS"""
+        sqs_event = {
+            "Records": [
+                {
+                    "EventSource": "aws:sns",
+                    "EventVersion": "1.0",
+                    "EventSubscriptionArn": "arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic:f1653ba3-2ff7-4c8e-9381-45a7a62f9708",
+                    "Sns": {
+                        "Type": "Notification",
+                        "MessageId": "e39184ea-bfd8-5efa-96fe-e4a64a457ff7",
+                        "TopicArn": "arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic",
+                        "Subject": None,
+                        "Message": "{}",
+                        "Timestamp": "2025-03-13T15:01:49.942Z",
+                        "SignatureVersion": "1",
+                        "Signature": "WJHKq+pNOLgxa7+dB1dud02RM/30Jvz+KiMZzjRl38/Pphz90H24eGyIbnq3BJXYEyawFCHC6sq/5HcwXouGc5gbah6he+JpqXahMEs6cyMs2tg9SXxooRHEGv5iiZXKhnDcJYOrQ+iFExO9w+WFWfJjO2m/EDVVSYvuDjDV7mmTwAgEOD0zUvWpT7wOeKGG5Uk916Ppy3iMV7sCoHV/RwVikdhCWDDmxbdqteGduAXPdGESE/aj6kUx9ibEOKXyhC+7H1/j0tlhUchl6LZsTf1Gaiq2yEqKXKvsupcG3hRZ6FtIWP0jGlFhpW5EHc2oiHIVOsQceCYPqXYMCZvFuA==",
+                        "SigningCertUrl": "https://sns.sa-east-1.amazonaws.com/SimpleNotificationService-9c6465fa7f48f5cacd23014631ec1136.pem",
+                        "UnsubscribeUrl": "https://sns.sa-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic:f1653ba3-2ff7-4c8e-9381-45a7a62f9708",
+                        "MessageAttributes": {
+                            "_datadog": {
+                                "Type": "String",
+                                "Value": '{"Execution":{"Id":"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:79478846-0cff-44de-91f5-02c96ff65762","StartTime":"2025-03-13T15:01:49.738Z","Name":"79478846-0cff-44de-91f5-02c96ff65762","RoleArn":"arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j","RedriveCount":0},"StateMachine":{"Id":"arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine","Name":"abhinav-inner-state-machine"},"State":{"Name":"SNS Publish","EnteredTime":"2025-03-13T15:01:49.768Z","RetryCount":0},"RootExecutionId":"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:79478846-0cff-44de-91f5-02c96ff65762","serverless-version":"v1"}',
+                            }
+                        },
+                    },
+                }
+            ]
+        }
+        self._test_step_function_trace_data_common(
+            sqs_event, 3818106616964044169, 15912108710769293902, "3a4fd1a254eb514a"
+        )
+
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_eventbridge_sqs(self):
+        """Test step function trace data extraction through EventBridge and SQS"""
+        eventbridge_sqs_event = {
+            "Records": [
+                {
+                    "messageId": "9ed082ad-2f4d-4309-ab99-9553d2be5613",
+                    "receiptHandle": "AQEB6z7FatNIXbWOTC4Bx+udD0flrnT7XMehruTohl8O2KI2t9hvo5oxGIOhwcb+QtS5aRXsFE35TgGE8kZHlHK7Sa8jQUen6XmsPG7qB6BPdXjr0eunM2SDAtLj0mDSKx907VIKRYQG+qpI9ZyNK7Bi786oQIz2UkZGZru9zlXxJtAQiXBqfJ+OfTzhIwkPu04czU6lYfAbxdyNaBNdBEsTNJKPjquvcq1ZBVCHkn9L6wo8jha6XreoeS2WJ5N26ZLKtAl3wlSUByB92OKZU2mEuNboyY7bgK+nkx4N8fVVrafVXnY9YHuq60eQcZ/nusWFeJlVyN7NFypYP2IOn25xylltEACKbgUdEsFU2h5k7yI2DVk5eAt9vB6qmAJlgfkGsXG0SZrCADoIKXl9jpwajw==",
+                    "body": '{"version":"0","id":"ff6d828b-b35e-abdf-64b6-6ea2cf698c0b","detail-type":"StepFunctionTask","source":"my.eventbridge","account":"425362996713","time":"2025-03-13T15:14:21Z","region":"sa-east-1","resources":["arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine","arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:fe087266-fe48-4a31-a21b-691f4e7ea985"],"detail":{"Message":"Hello from Step Functions!","TaskToken":"AQCEAAAAKgAAAAMAAAAAAAAAAfi3HMLTw3u9h0vSmkjyHlK1tv5bQUyA7i+6LIvrBWu+3S+DMuQ79JpMtAuCaMN/AGSuGPO7OPeTNA/9v7/kzAsLoPzwPhbrDPXP4SVF1YIO663PvtX/tEWxnAfwLqwDyx8G8VEsVLcmiiOafFCKJwn0OP/DoAWc0sjhWwRxIoQ0ipBGhOqU8rO8SFZVvxUbkosNejnhT7B6314pC89JZLpXU7SxFe+XrgN+uRAvFxsH/+RwDf94xk5hhtukH7HzhJKWN2WCtUISd84pM/1V7ppDuJ3FHgJT22xQIbEGA9Q4o+pLLehzE2SHCdo7eWYQqN+7BanxBNMI6kBMaf5nuh9izAp38lsrmHJyO8NvXgWg+F9hoTZX4RpV9CCwvRFrCRcCeDq4/uJzbvB4AwwA2q2Llm0X8yH0pKvPZ2v7pl4nCWdnEgj920I8AmBCuozbKP7gJRnAqfx3MnOSkpZTeGnHkp0ly8EevwCT2zX/1GQnCAx02kBaDJgUMputFeruMBzwVtlEVBFUUgaWbJwHzz2htuAw282pdATrKfv4VV1N962uLBJ32wd9a92rX7VXXToitvZGIvf/Z7cu4xfAzxQH1rIQ3M4ojkR9r48qoYtnYDlEf+BkIL8L4+xpbRFSBk3p","_datadog":{"Execution":{"Id":"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:fe087266-fe48-4a31-a21b-691f4e7ea985","StartTime":"2025-03-13T15:14:21.730Z","Name":"fe087266-fe48-4a31-a21b-691f4e7ea985","RoleArn":"arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j","RedriveCount":0},"StateMachine":{"Id":"arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine","Name":"abhinav-inner-state-machine"},"State":{"Name":"EventBridge PutEvents","EnteredTime":"2025-03-13T15:14:21.765Z","RetryCount":0},"Task":{"Token":"AQCEAAAAKgAAAAMAAAAAAAAAAfi3HMLTw3u9h0vSmkjyHlK1tv5bQUyA7i+6LIvrBWu+3S+DMuQ79JpMtAuCaMN/AGSuGPO7OPeTNA/9v7/kzAsLoPzwPhbrDPXP4SVF1YIO663PvtX/tEWxnAfwLqwDyx8G8VEsVLcmiiOafFCKJwn0OP/DoAWc0sjhWwRxIoQ0ipBGhOqU8rO8SFZVvxUbkosNejnhT7B6314pC89JZLpXU7SxFe+XrgN+uRAvFxsH/+RwDf94xk5hhtukH7HzhJKWN2WCtUISd84pM/1V7ppDuJ3FHgJT22xQIbEGA9Q4o+pLLehzE2SHCdo7eWYQqN+7BanxBNMI6kBMaf5nuh9izAp38lsrmHJyO8NvXgWg+F9hoTZX4RpV9CCwvRFrCRcCeDq4/uJzbvB4AwwA2q2Llm0X8yH0pKvPZ2v7pl4nCWdnEgj920I8AmBCuozbKP7gJRnAqfx3MnOSkpZTeGnHkp0ly8EevwCT2zX/1GQnCAx02kBaDJgUMputFeruMBzwVtlEVBFUUgaWbJwHzz2htuAw282pdATrKfv4VV1N962uLBJ32wd9a92rX7VXXToitvZGIvf/Z7cu4xfAzxQH1rIQ3M4ojkR9r48qoYtnYDlEf+BkIL8L4+xpbRFSBk3p"},"RootExecutionId":"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:fe087266-fe48-4a31-a21b-691f4e7ea985","serverless-version":"v1"}}}',
+                    "attributes": {
+                        "ApproximateReceiveCount": "1",
+                        "SentTimestamp": "1741878862068",
+                        "SenderId": "AROAWGCM4HXUUNHLDXVER:6145b5ba998f311c8ac27f5cade2b915",
+                        "ApproximateFirstReceiveTimestamp": "1741878862075",
+                    },
+                    "messageAttributes": {},
+                    "md5OfBody": "e5cf8197b304a4dd4fd5db8e4842484b",
+                    "eventSource": "aws:sqs",
+                    "eventSourceARN": "arn:aws:sqs:sa-east-1:425362996713:abhinav-q",
+                    "awsRegion": "sa-east-1",
+                }
+            ]
+        }
+        self._test_step_function_trace_data_common(
+            eventbridge_sqs_event,
+            6527209323865742984,
+            14276854885394865473,
+            "2ee7d9862d048173",
+        )
+
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_sns(self):
+        """Test step function trace data extraction through SNS"""
+        sns_event = {
+            "Records": [
+                {
+                    "EventSource": "aws:sns",
+                    "EventVersion": "1.0",
+                    "EventSubscriptionArn": "arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic:f1653ba3-2ff7-4c8e-9381-45a7a62f9708",
+                    "Sns": {
+                        "Type": "Notification",
+                        "MessageId": "7bc0c17d-bf88-5ff4-af7f-a131463a0d90",
+                        "TopicArn": "arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic",
+                        "Subject": None,
+                        "Message": "{}",
+                        "Timestamp": "2025-03-13T15:19:14.245Z",
+                        "SignatureVersion": "1",
+                        "Signature": "r8RoYzq4uNcq0yj7sxcp8sTbFiDk8zqtocG7mJuE2MPVuR8O5eNg2ohofokUnC84xADlCq5k6ElP55lbbY36tQO+qDGdV6+TGN4bAL9FiQrDE6tQYYJdlv/sYE7iOOgnRBC9ljEdCIDNtQNGCfND/8JzatPg8KAy7xMRcLrGWu4xIMEysqNTz7rETfhdZjLQPssAht44KcoUJCH4/VuB+B9W1RhwA+M8Q3tqxzahIXzcgDM8OlmfkBlXo4FDVF3WUzjXLf9AMOg+66GupjQFtUpmRMkA8KXSV1HCso7e6nIIWtOnUoWeDDUfQPFFq4TNSlb6h2NuebaHdnW5nhxnJQ==",
+                        "SigningCertUrl": "https://sns.sa-east-1.amazonaws.com/SimpleNotificationService-9c6465fa7f48f5cacd23014631ec1136.pem",
+                        "UnsubscribeUrl": "https://sns.sa-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic:f1653ba3-2ff7-4c8e-9381-45a7a62f9708",
+                        "MessageAttributes": {
+                            "_datadog": {
+                                "Type": "String",
+                                "Value": '{"Execution":{"Id":"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:11623e4f-70ee-4330-8fbe-955152dea54c","StartTime":"2025-03-13T15:19:14.019Z","Name":"11623e4f-70ee-4330-8fbe-955152dea54c","RoleArn":"arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j","RedriveCount":0},"StateMachine":{"Id":"arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine","Name":"abhinav-inner-state-machine"},"State":{"Name":"SNS Publish","EnteredTime":"2025-03-13T15:19:14.061Z","RetryCount":0},"RootExecutionId":"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:11623e4f-70ee-4330-8fbe-955152dea54c","serverless-version":"v1"}',
+                            }
+                        },
+                    },
+                }
+            ]
+        }
+        self._test_step_function_trace_data_common(
+            sns_event, 1459500239678510857, 13193042003602978730, "fafc98885fd4647"
+        )
+
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_sns_sqs(self):
+        """Test step function trace data extraction through SNS and SQS"""
+        sns_sqs_event = {
+            "Records": [
+                {
+                    "messageId": "9ec3339f-cd1a-43ba-9681-3e9113b430d3",
+                    "receiptHandle": "AQEBJ5gIvqEWQt39NHPMAoK57cGgKtrgTtckWeWdDRi2FeucYr6pBhNjzXuUrmoHZMozX1WaoABtfQ5+kX5ucDBpA2Ci3Q07Z4MYvA6X0Sw13HCkiBnLrHPmH/F3rUBjvdRkIIKqA2ACX58MdkaYGNpqsHTJHB613wa8z4zurK0u7eUIXrr+e+gtsuPD39hiWlJo7cpBVv7y178rzMX8gPQTnRJv1cjhCHENtjWTSmfFC5N+BIQNIcjFsTTDRSovZlNIfAEuS+uowgzk0DUyoTJD5nFTL8lQHeXGRCUQe58/UY9OwRXEFVPGZOQR4OI9Wa4Kf/keFypTk9YwC9DhSeKvzZ0wBvejyl1n0ztT45+XYoWfi0mxGWM5b7r9wT36RDmjnM6vszH/d3fhZSRPASxWBQ==",
+                    "body": '{\n  "Type" : "Notification",\n  "MessageId" : "1f3078d0-c792-5cf3-a130-189c3b846a3f",\n  "TopicArn" : "arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic",\n  "Message" : "{}",\n  "Timestamp" : "2025-03-13T15:29:26.348Z",\n  "SignatureVersion" : "1",\n  "Signature" : "mxOqAQ5o/isJrMS0PezHKRaA3g8Z/8YDbkToqhJub6I66LGtl+NYhyfTyllbgxvRP2XD2meKPRSgPI3nLyq8UHsWgyYwe3Tsv8QpRunCVE9Pebh+V1LGPWfjOiL0e+bnaj956QJD99560LJ6bzWP9QO584/zfOdcw6E5XQZfAI+pvEsf28Dy0WJO/lWTATRZDf8wGhmc7uKI1ZMsrOaNoUD8PXVqsI4yrJHxhzMb3SrC7YjI/PnNIbcn6ezwprbUdbZvyNAfJiE0k5IlppA089tMXC/ItgC7AgQhG9huPdKi5KdWGACK7gEwqmFwL+5T33sUXDaH2g58WhCs76pKEw==",\n  "SigningCertURL" : "https://sns.sa-east-1.amazonaws.com/SimpleNotificationService-9c6465fa7f48f5cacd23014631ec1136.pem",\n  "UnsubscribeURL" : "https://sns.sa-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:sa-east-1:425362996713:logs-to-traces-dev-topic:5f64545d-ae9a-4a5f-a7ee-798a0bd8519e",\n  "MessageAttributes" : {\n    "_datadog" : {"Type":"String","Value":"{\\"Execution\\":{\\"Id\\":\\"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:37ff72b8-0ee0-49e2-93c0-8a1764206a03\\",\\"StartTime\\":\\"2025-03-13T15:29:26.144Z\\",\\"Name\\":\\"37ff72b8-0ee0-49e2-93c0-8a1764206a03\\",\\"RoleArn\\":\\"arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j\\",\\"RedriveCount\\":0},\\"StateMachine\\":{\\"Id\\":\\"arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-inner-state-machine\\",\\"Name\\":\\"abhinav-inner-state-machine\\"},\\"State\\":{\\"Name\\":\\"SNS Publish\\",\\"EnteredTime\\":\\"2025-03-13T15:29:26.182Z\\",\\"RetryCount\\":0},\\"RootExecutionId\\":\\"arn:aws:states:sa-east-1:425362996713:execution:abhinav-inner-state-machine:37ff72b8-0ee0-49e2-93c0-8a1764206a03\\",\\"serverless-version\\":\\"v1\\"}"}\n  }\n}',
+                    "attributes": {
+                        "ApproximateReceiveCount": "1",
+                        "SentTimestamp": "1741879766424",
+                        "SenderId": "AIDAIOA2GYWSHW4E2VXIO",
+                        "ApproximateFirstReceiveTimestamp": "1741879766432",
+                    },
+                    "messageAttributes": {},
+                    "md5OfBody": "52af59de28507d7e67324b46c95337d8",
+                    "eventSource": "aws:sqs",
+                    "eventSourceARN": "arn:aws:sqs:sa-east-1:425362996713:abhinav-q",
+                    "awsRegion": "sa-east-1",
+                }
+            ]
+        }
+        self._test_step_function_trace_data_common(
+            sns_sqs_event, 5708348677301000120, 18223515719478572006, "45457f5f3fde3fa1"
         )
 
 

@@ -9,6 +9,7 @@ from datadog_lambda.trigger import (
     get_event_source_arn,
     extract_trigger_tags,
     extract_http_status_code_tag,
+    is_step_function_event,
 )
 
 from tests.utils import get_mock_context
@@ -543,3 +544,68 @@ class ExtractHTTPStatusCodeTag(unittest.TestCase):
         response.status_code = 403
         status_code = extract_http_status_code_tag(trigger_tags, response)
         self.assertEqual(status_code, "403")
+
+
+class IsStepFunctionEvent(unittest.TestCase):
+    def test_is_step_function_event_jsonata(self):
+        event = {
+            "_datadog": {
+                "Execution": {
+                    "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                    "RedriveCount": 0,
+                },
+                "StateMachine": {},
+                "State": {
+                    "Name": "my-awesome-state",
+                    "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+                    "RetryCount": 0,
+                },
+                "x-datadog-trace-id": "5821803790426892636",
+                "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
+                "serverless-version": "v1",
+            }
+        }
+        self.assertTrue(is_step_function_event(event))
+
+    def test_is_step_function_event_jsonpath(self):
+        event = {
+            "Execution": {
+                "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                "RedriveCount": 0,
+            },
+            "StateMachine": {},
+            "State": {
+                "Name": "my-awesome-state",
+                "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+                "RetryCount": 0,
+            },
+        }
+        self.assertTrue(is_step_function_event(event))
+
+    def test_is_step_function_event_legacy_lambda(self):
+        event = {
+            "Payload": {
+                "Execution": {
+                    "Id": "665c417c-1237-4742-aaca-8b3becbb9e75",
+                    "RedriveCount": 0,
+                },
+                "StateMachine": {},
+                "State": {
+                    "Name": "my-awesome-state",
+                    "EnteredTime": "Mon Nov 13 12:43:33 PST 2023",
+                    "RetryCount": 0,
+                },
+            }
+        }
+        self.assertTrue(is_step_function_event(event))
+
+    def test_is_step_function_event_dd_header(self):
+        event = {
+            "_datadog": {
+                "x-datadog-trace-id": "5821803790426892636",
+                "x-datadog-parent-id": "5821803790426892636",
+                "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=672a7cb100000000",
+                "x-datadog-sampling-priority": "1",
+            }
+        }
+        self.assertFalse(is_step_function_event(event))

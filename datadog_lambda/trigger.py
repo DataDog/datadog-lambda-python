@@ -146,9 +146,7 @@ def parse_event_source(event: dict) -> _EventSource:
     if event.get("source") == "aws.events" or has_event_categories:
         event_source = _EventSource(EventTypes.CLOUDWATCH_EVENTS)
 
-    if (
-        "_datadog" in event and event.get("_datadog").get("serverless-version") == "v1"
-    ) or ("Execution" in event and "StateMachine" in event and "State" in event):
+    if is_step_function_event(event):
         event_source = _EventSource(EventTypes.STEPFUNCTIONS)
 
     event_record = get_first_record(event)
@@ -369,3 +367,29 @@ def extract_http_status_code_tag(trigger_tags, response):
         status_code = response.status_code
 
     return str(status_code)
+
+
+def is_step_function_event(event):
+    """
+    Check if the event is a step function that invoked the current lambda.
+
+    The whole event can be wrapped in "Payload" in Legacy Lambda cases. There may also be a
+    "_datadog" for JSONata style context propagation.
+
+    The actual event must contain "Execution", "StateMachine", and "State" fields.
+    """
+    event = event.get("Payload", event)
+
+    # JSONPath style
+    if "Execution" in event and "StateMachine" in event and "State" in event:
+        return True
+
+    # JSONata style
+    dd_context = event.get("_datadog")
+    return (
+        dd_context
+        and "Execution" in dd_context
+        and "StateMachine" in dd_context
+        and "State" in dd_context
+        and "serverless-version" in dd_context
+    )
