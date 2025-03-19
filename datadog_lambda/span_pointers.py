@@ -6,6 +6,8 @@ from typing import Optional
 
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
+
+from datadog_lambda.metric import submit_dynamodb_stream_type_metric
 from datadog_lambda.trigger import EventTypes
 
 
@@ -28,6 +30,7 @@ def calculate_span_pointers(
                 return _calculate_s3_span_pointers_for_event(event)
 
             elif event_source.equals(EventTypes.DYNAMODB):
+                submit_dynamodb_stream_type_metric(event) # Temporary metric. TODO eventually remove(@nhulston)
                 return _calculate_dynamodb_span_pointers_for_event(event)
 
     except Exception as e:
