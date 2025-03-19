@@ -188,3 +188,17 @@ def submit_errors_metric(lambda_context):
         lambda_context (object): Lambda context dict passed to the function by AWS
     """
     submit_enhanced_metric("errors", lambda_context)
+
+
+def submit_dynamodb_stream_type_metric(event):
+    stream_view_type = (
+        event.get("Records", [{}])[0].get("dynamodb", {}).get("StreamViewType")
+    )
+    if stream_view_type:
+        lambda_metric(
+            "datadog.serverless.dynamodb.stream.type",
+            1,
+            timestamp=None,
+            tags=[f"streamtype:{stream_view_type}"],
+            force_async=True,
+        )

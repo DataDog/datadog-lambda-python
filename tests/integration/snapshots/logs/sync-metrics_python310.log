@@ -207,6 +207,15 @@ START
     "dd_lambda_layer:datadog-python310_X.X.X"
   ]
 }
+{
+  "m": "datadog.serverless.dynamodb.stream.type",
+  "v": 1,
+  "e": XXXX,
+  "t": [
+    "streamtype:NEW_AND_OLD_IMAGES",
+    "dd_lambda_layer:datadog-python310_X.X.X"
+  ]
+}
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {

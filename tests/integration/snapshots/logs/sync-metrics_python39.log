@@ -207,6 +207,15 @@ START
     "dd_lambda_layer:datadog-python39_X.X.X"
   ]
 }
+{
+  "m": "datadog.serverless.dynamodb.stream.type",
+  "v": 1,
+  "e": XXXX,
+  "t": [
+    "streamtype:NEW_AND_OLD_IMAGES",
+    "dd_lambda_layer:datadog-python39_X.X.X"
+  ]
+}
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
@@ -368,6 +377,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
   ]
 }
 HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
+END Duration: XXXX ms Memory Used: XXXX MB
 {
   "traces": [
     [
@@ -406,7 +416,6 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
     ]
   ]
 }
-END Duration: XXXX ms Memory Used: XXXX MB
 START
 {
   "m": "aws.lambda.enhanced.invocations",
