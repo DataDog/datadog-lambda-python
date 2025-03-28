@@ -245,6 +245,7 @@ class _LambdaDecorator(object):
         except Exception:
             if not should_use_extension:
                 from datadog_lambda.metric import submit_invocations_metric
+
                 submit_invocations_metric(context)
 
             if self.span:
@@ -282,9 +283,10 @@ class _LambdaDecorator(object):
         try:
             self.response = None
             set_cold_start(init_timestamp_ns)
-            
+
             if not should_use_extension:
                 from datadog_lambda.metric import submit_invocations_metric
+
                 submit_invocations_metric(context)
 
             self.trigger_tags = extract_trigger_tags(event, context)
@@ -386,6 +388,7 @@ class _LambdaDecorator(object):
 
             if not self.flush_to_log or should_use_extension:
                 from datadog_lambda.metric import flush_stats
+
                 flush_stats(context)
             if should_use_extension and self.local_testing_mode:
                 # when testing locally, the extension does not know when an

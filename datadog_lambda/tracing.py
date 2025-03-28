@@ -387,6 +387,7 @@ def extract_context_from_kinesis_event(event, lambda_context):
 
 def _deterministic_sha256_hash(s: str, part: str) -> int:
     import hashlib
+
     sha256_hash = hashlib.sha256(s.encode()).hexdigest()
     # First two chars is '0b'. zfill to ensure 256 bits, but we only care about the first 128 bits
     binary_hash = bin(int(sha256_hash, 16))[2:].zfill(256)
