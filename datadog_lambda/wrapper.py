@@ -2,7 +2,6 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
-import base64
 import os
 import logging
 import traceback
@@ -273,6 +272,9 @@ class _LambdaDecorator(object):
         injected_headers[Headers.Parent_Span_Finish_Time] = finish_time_ns
         if request_id is not None:
             injected_headers[Headers.Authorizing_Request_Id] = request_id
+
+        import base64
+
         datadog_data = base64.b64encode(
             json.dumps(injected_headers, escape_forward_slashes=False).encode()
         ).decode()
