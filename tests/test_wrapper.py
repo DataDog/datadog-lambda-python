@@ -470,7 +470,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_write_metric_point_to_stdout.assert_not_called()
 
     def test_only_one_wrapper_in_use(self):
-        patcher = patch("datadog_lambda.wrapper.submit_invocations_metric")
+        patcher = patch("datadog_lambda.metric.submit_invocations_metric")
         self.mock_submit_invocations_metric = patcher.start()
         self.addCleanup(patcher.stop)
 
