@@ -2,7 +2,6 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
-import base64
 import os
 import logging
 import traceback
@@ -22,11 +21,6 @@ from datadog_lambda.constants import (
     TraceContextSource,
     XraySubsegment,
     Headers,
-)
-from datadog_lambda.metric import (
-    flush_stats,
-    submit_invocations_metric,
-    submit_errors_metric,
 )
 from datadog_lambda.module_name import modify_module_name
 from datadog_lambda.patch import patch_all
@@ -248,7 +242,11 @@ class _LambdaDecorator(object):
             self.response = self.func(event, context, **kwargs)
             return self.response
         except Exception:
-            submit_errors_metric(context)
+            if not should_use_extension:
+                from datadog_lambda.metric import submit_errors_metric
+
+                submit_errors_metric(context)
+
             if self.span:
                 self.span.set_traceback()
             raise
@@ -274,6 +272,9 @@ class _LambdaDecorator(object):
         injected_headers[Headers.Parent_Span_Finish_Time] = finish_time_ns
         if request_id is not None:
             injected_headers[Headers.Authorizing_Request_Id] = request_id
+
+        import base64
+
         datadog_data = base64.b64encode(
             json.dumps(injected_headers, escape_forward_slashes=False).encode()
         ).decode()
@@ -284,7 +285,12 @@ class _LambdaDecorator(object):
         try:
             self.response = None
             set_cold_start(init_timestamp_ns)
-            submit_invocations_metric(context)
+
+            if not should_use_extension:
+                from datadog_lambda.metric import submit_invocations_metric
+
+                submit_invocations_metric(context)
+
             self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source, event_source = extract_dd_trace_context(
@@ -383,6 +389,8 @@ class _LambdaDecorator(object):
                     logger.debug("Failed to create cold start spans. %s", e)
 
             if not self.flush_to_log or should_use_extension:
+                from datadog_lambda.metric import flush_stats
+
                 flush_stats(context)
             if should_use_extension and self.local_testing_mode:
                 # when testing locally, the extension does not know when an

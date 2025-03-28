@@ -2,10 +2,8 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
-import hashlib
 import logging
 import os
-import base64
 import traceback
 import ujson as json
 from datetime import datetime, timezone
@@ -259,6 +257,8 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
             dd_json_data = None
             dd_json_data_type = dd_payload.get("Type") or dd_payload.get("dataType")
             if dd_json_data_type == "Binary":
+                import base64
+
                 dd_json_data = dd_payload.get("binaryValue") or dd_payload.get("Value")
                 if dd_json_data:
                     dd_json_data = base64.b64decode(dd_json_data)
@@ -373,6 +373,8 @@ def extract_context_from_kinesis_event(event, lambda_context):
             return extract_context_from_lambda_context(lambda_context)
         data = kinesis.get("data")
         if data:
+            import base64
+
             b64_bytes = data.encode("ascii")
             str_bytes = base64.b64decode(b64_bytes)
             data_str = str_bytes.decode("ascii")
@@ -387,6 +389,8 @@ def extract_context_from_kinesis_event(event, lambda_context):
 
 
 def _deterministic_sha256_hash(s: str, part: str) -> int:
+    import hashlib
+
     sha256_hash = hashlib.sha256(s.encode()).hexdigest()
     # First two chars is '0b'. zfill to ensure 256 bits, but we only care about the first 128 bits
     binary_hash = bin(int(sha256_hash, 16))[2:].zfill(256)
@@ -550,6 +554,8 @@ def get_injected_authorizer_data(event, is_http_api) -> dict:
 
         if not dd_data_raw:
             return None
+
+        import base64
 
         injected_data = json.loads(base64.b64decode(dd_data_raw))
 

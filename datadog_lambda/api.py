@@ -1,6 +1,5 @@
 import os
 import logging
-import base64
 
 logger = logging.getLogger(__name__)
 KMS_ENCRYPTION_CONTEXT_KEY = "LambdaFunctionName"
@@ -9,6 +8,7 @@ api_key = None
 
 def decrypt_kms_api_key(kms_client, ciphertext):
     from botocore.exceptions import ClientError
+    import base64
 
     """
     Decodes and deciphers the base64-encoded ciphertext given as a parameter using KMS.

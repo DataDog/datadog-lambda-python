@@ -3,7 +3,6 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
-import base64
 import gzip
 import ujson as json
 from io import BytesIO, BufferedReader
@@ -242,6 +241,8 @@ def parse_event_source_arn(source: _EventSource, event: dict, context: Any) -> s
 
     # e.g. arn:aws:logs:us-west-1:123456789012:log-group:/my-log-group-xyz
     if source.event_type == EventTypes.CLOUDWATCH_LOGS:
+        import base64
+
         with gzip.GzipFile(
             fileobj=BytesIO(base64.b64decode(event.get("awslogs", {}).get("data")))
         ) as decompress_stream:
