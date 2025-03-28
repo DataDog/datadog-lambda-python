@@ -23,11 +23,6 @@ from datadog_lambda.constants import (
     XraySubsegment,
     Headers,
 )
-from datadog_lambda.metric import (
-    flush_stats,
-    submit_invocations_metric,
-    submit_errors_metric,
-)
 from datadog_lambda.module_name import modify_module_name
 from datadog_lambda.patch import patch_all
 from datadog_lambda.span_pointers import calculate_span_pointers
@@ -248,7 +243,10 @@ class _LambdaDecorator(object):
             self.response = self.func(event, context, **kwargs)
             return self.response
         except Exception:
-            submit_errors_metric(context)
+            if not should_use_extension:
+                from datadog_lambda.metric import submit_invocations_metric
+                submit_invocations_metric(context)
+
             if self.span:
                 self.span.set_traceback()
             raise
@@ -284,7 +282,11 @@ class _LambdaDecorator(object):
         try:
             self.response = None
             set_cold_start(init_timestamp_ns)
-            submit_invocations_metric(context)
+            
+            if not should_use_extension:
+                from datadog_lambda.metric import submit_invocations_metric
+                submit_invocations_metric(context)
+
             self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source, event_source = extract_dd_trace_context(
@@ -383,6 +385,7 @@ class _LambdaDecorator(object):
                     logger.debug("Failed to create cold start spans. %s", e)
 
             if not self.flush_to_log or should_use_extension:
+                from datadog_lambda.metric import flush_stats
                 flush_stats(context)
             if should_use_extension and self.local_testing_mode:
                 # when testing locally, the extension does not know when an
