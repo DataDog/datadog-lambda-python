@@ -1,6 +1,8 @@
 import os
 import logging
 
+from datadog_lambda.aws import current_region, running_in_gov_region
+
 logger = logging.getLogger(__name__)
 KMS_ENCRYPTION_CONTEXT_KEY = "LambdaFunctionName"
 api_key = None
@@ -62,8 +64,8 @@ def get_api_key() -> str:
     DD_KMS_API_KEY = os.environ.get("DD_KMS_API_KEY", "")
     DD_API_KEY = os.environ.get("DD_API_KEY", os.environ.get("DATADOG_API_KEY", ""))
 
-    LAMBDA_REGION = os.environ.get("AWS_REGION", "")
-    is_gov_region = LAMBDA_REGION.startswith("us-gov-")
+    LAMBDA_REGION = current_region()
+    is_gov_region = running_in_gov_region()
     if is_gov_region:
         logger.debug(
             "Govcloud region detected. Using FIPs endpoints for secrets management."

@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 
 from datadog_lambda.extension import should_use_extension
 from datadog_lambda.tags import get_enhanced_metrics_tags, dd_lambda_layer_tag
+from datadog_lambda.aws import running_in_gov_region
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,18 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     tags.append(dd_lambda_layer_tag)
 
     if should_use_extension and timestamp is not None:
+        if running_in_gov_region():
+            # Metrics with timestamps get shipped directly to datadog instead
+            # of going to the agent. We cannot guarantee from our side that
+            # this will be done in a FIPS-compliant way, so we disable this
+            # feature for now. We may revisit it in the future.
+            logger.warning(
+                "Ignoring metric submission for metric '%s' because we cannot guarantee "
+                "FIPS-compliance for metrics submitted directly to Datadog.",
+                metric_name,
+            )
+            return
+
         # The extension does not support timestamps for distributions so we create a
         # a thread stats writer to submit metrics with timestamps to the API
         timestamp_ceiling = int(
