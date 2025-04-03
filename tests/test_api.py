@@ -22,6 +22,9 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.env_patcher.start()
 
+    def tearDown(self):
+        self.env_patcher.stop()
+
     @patch("botocore.session.Session.create_client")
     def test_secrets_manager_fips_endpoint(self, mock_boto3_client):
         mock_client = MagicMock()

@@ -58,6 +58,20 @@ class TestLambdaMetric(unittest.TestCase):
             "test_timestamp", 1, timestamp=timestamp, tags=[dd_lambda_layer_tag]
         )
 
+    @patch("os.environ", {"AWS_REGION": "us-gov-west-1"})
+    @patch("datadog_lambda.metric.should_use_extension", True)
+    def test_lambda_metric_timestamp_with_extension_in_govcloud(self):
+        patcher = patch("datadog_lambda.metric.extension_thread_stats")
+        self.mock_metric_extension_thread_stats = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        delta = timedelta(minutes=1)
+        timestamp = int((datetime.now() - delta).timestamp())
+
+        lambda_metric("test_timestamp", 1, timestamp)
+        self.mock_metric_lambda_stats.distribution.assert_not_called()
+        self.mock_metric_extension_thread_stats.distribution.assert_not_called()
+
     @patch("datadog_lambda.metric.should_use_extension", True)
     def test_lambda_metric_datetime_with_extension(self):
         patcher = patch("datadog_lambda.metric.extension_thread_stats")
