@@ -138,6 +138,8 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
+    - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "us-east-1" && "{{ $runtime.arch }}" == "amd64"'
+      when: always
     - if: '"{{ $environment_name }}" == "sandbox"'
       when: manual
       allow_failure: true
