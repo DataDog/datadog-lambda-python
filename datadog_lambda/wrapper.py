@@ -49,13 +49,9 @@ profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "
 if profiling_env_var:
     from ddtrace.profiling import profiler
 
-llmobs_api_key = None
 llmobs_env_var = os.environ.get("DD_LLMOBS_ENABLED", "false").lower() in ("true", "1")
 if llmobs_env_var:
-    from datadog_lambda.api import get_api_key
     from ddtrace.llmobs import LLMObs
-
-    llmobs_api_key = get_api_key()
 
 logger = logging.getLogger(__name__)
 
@@ -226,10 +222,7 @@ class _LambdaDecorator(object):
 
             # Enable LLM Observability
             if llmobs_env_var:
-                LLMObs.enable(
-                    agentless_enabled=True,
-                    api_key=llmobs_api_key,
-                )
+                LLMObs.enable()
 
             logger.debug("datadog_lambda_wrapper initialized")
         except Exception as e:
