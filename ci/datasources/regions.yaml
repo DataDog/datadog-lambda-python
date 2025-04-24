@@ -12,6 +12,7 @@ regions:
   - code: "ap-southeast-3"
   - code: "ap-southeast-4"
   - code: "ap-southeast-5"
+  - code: "ap-southeast-7"
   - code: "ap-northeast-1"
   - code: "ap-northeast-2"
   - code: "ap-northeast-3"
