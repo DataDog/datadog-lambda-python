@@ -3,6 +3,7 @@ stages:
  - test
  - sign
  - publish
+ - e2e
 
 .python-before-script: &python-before-script
   - pip install virtualenv
@@ -138,7 +139,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
-    - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "us-east-1" && "{{ $runtime.arch }}" == "amd64"'
+    - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "ap-east-1" && "{{ $runtime.arch }}" == "amd64"'
       when: always
     - if: '"{{ $environment_name }}" == "sandbox"'
       when: manual
@@ -173,6 +174,26 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
 {{- end }}
 
 {{- end }}
+
+run-e2e:
+  stage: e2e
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  needs: {{ range $runtime := (ds "runtimes").runtimes }}
+    - publish-layer-sandbox ({{ $runtime.name }}-amd64): [ap-east-1]
+  {{- end }}
+  trigger:
+    project: "DataDog/serverless-e2e-tests"
+    strategy: depend
+  variables:
+    LANGUAGES_SUBSET: python
+    PYTHON_38_VERSION: latest
+    PYTHON_39_VERSION: latest
+    PYTHON_310_VERSION: latest
+    PYTHON_311_VERSION: latest
+    PYTHON_312_VERSION: latest
+    PYTHON_313_VERSION: latest
+
 
 publish-pypi-package:
   stage: publish
