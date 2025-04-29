@@ -29,4 +29,5 @@ regions:
   - code: "il-central-1"
   - code: "me-south-1"
   - code: "me-central-1"
+  - code: "mx-central-1"
   - code: "sa-east-1"
