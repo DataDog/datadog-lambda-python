@@ -3,14 +3,15 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
+import logging
 import os
 import time
-import logging
-import ujson as json
 from datetime import datetime, timedelta
 
+import ujson as json
+
 from datadog_lambda.extension import should_use_extension
-from datadog_lambda.tags import get_enhanced_metrics_tags, dd_lambda_layer_tag
+from datadog_lambda.tags import dd_lambda_layer_tag, get_enhanced_metrics_tags
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,8 @@ else:
     # and leads to data loss. When disabled, metrics are only flushed at the
     # end of invocation. To make metrics submitted from a long-running Lambda
     # function available sooner, consider using the Datadog Lambda extension.
-    from datadog_lambda.thread_stats_writer import ThreadStatsWriter
     from datadog_lambda.api import init_api
+    from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
     init_api()
     lambda_stats = ThreadStatsWriter(flush_in_thread)
@@ -92,8 +93,8 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
             return
         global extension_thread_stats
         if extension_thread_stats is None:
-            from datadog_lambda.thread_stats_writer import ThreadStatsWriter
             from datadog_lambda.api import init_api
+            from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
             init_api()
             extension_thread_stats = ThreadStatsWriter(flush_in_thread)
@@ -119,8 +120,10 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
             )
 
 
-def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
+def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=None):
     """Writes the specified metric point to standard output"""
+    tags = tags or []
+
     logger.debug(
         "Sending metric %s value %s to Datadog via log forwarder", metric_name, value
     )
