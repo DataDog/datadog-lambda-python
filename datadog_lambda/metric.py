@@ -133,7 +133,7 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
 
     elif metrics_handler == MetricsHandler.NO_METRICS:
         logger.debug(
-            "Metric %s cannot be submitted because the metrics handler is disabled: %s",
+            "Metric %s cannot be submitted because the metrics handler is disabled",
             metric_name,
         ),
 
