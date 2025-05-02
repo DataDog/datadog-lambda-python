@@ -41,8 +41,6 @@ def _select_metrics_handler():
 
 
 metrics_handler = _select_metrics_handler()
-# TODO: add a metric for this so that we can see how often the DATADOG_API
-# metrics handler is actually used.
 logger.debug("identified primary metrics handler as %s", metrics_handler)
 
 
