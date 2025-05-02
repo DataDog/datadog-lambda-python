@@ -16,7 +16,6 @@ from datadog_lambda.tags import dd_lambda_layer_tag, get_enhanced_metrics_tags
 logger = logging.getLogger(__name__)
 
 lambda_stats = None
-extension_thread_stats = None
 
 flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
 
@@ -128,18 +127,6 @@ def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=None):
 
 def flush_stats(lambda_context=None):
     lambda_stats.flush()
-
-    if extension_thread_stats is not None:
-        tags = None
-        if lambda_context is not None:
-            tags = get_enhanced_metrics_tags(lambda_context)
-            split_arn = lambda_context.invoked_function_arn.split(":")
-            if len(split_arn) > 7:
-                # Get rid of the alias
-                split_arn.pop()
-            arn = ":".join(split_arn)
-            tags.append("function_arn:" + arn)
-        extension_thread_stats.flush(tags)
 
 
 def submit_enhanced_metric(metric_name, lambda_context):

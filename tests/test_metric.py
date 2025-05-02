@@ -44,10 +44,6 @@ class TestLambdaMetric(unittest.TestCase):
 
     @patch("datadog_lambda.metric.should_use_extension", True)
     def test_lambda_metric_timestamp_with_extension(self):
-        patcher = patch("datadog_lambda.metric.extension_thread_stats")
-        self.mock_metric_extension_thread_stats = patcher.start()
-        self.addCleanup(patcher.stop)
-
         delta = timedelta(minutes=1)
         timestamp = int((datetime.now() - delta).timestamp())
 
@@ -55,14 +51,9 @@ class TestLambdaMetric(unittest.TestCase):
         self.mock_metric_lambda_stats.distribution.assert_has_calls(
             [call("test_timestamp", 1, timestamp=timestamp, tags=[dd_lambda_layer_tag])]
         )
-        self.mock_metric_extension_thread_stats.distribution.assert_not_called()
 
     @patch("datadog_lambda.metric.should_use_extension", True)
     def test_lambda_metric_datetime_with_extension(self):
-        patcher = patch("datadog_lambda.metric.extension_thread_stats")
-        self.mock_metric_extension_thread_stats = patcher.start()
-        self.addCleanup(patcher.stop)
-
         delta = timedelta(minutes=1)
         timestamp = datetime.now() - delta
 
@@ -77,20 +68,14 @@ class TestLambdaMetric(unittest.TestCase):
                 )
             ]
         )
-        self.mock_metric_extension_thread_stats.distribution.assert_not_called()
 
     @patch("datadog_lambda.metric.should_use_extension", True)
     def test_lambda_metric_invalid_timestamp_with_extension(self):
-        patcher = patch("datadog_lambda.metric.extension_thread_stats")
-        self.mock_metric_extension_thread_stats = patcher.start()
-        self.addCleanup(patcher.stop)
-
         delta = timedelta(hours=5)
         timestamp = int((datetime.now() - delta).timestamp())
 
         lambda_metric("test_timestamp", 1, timestamp)
         self.mock_metric_lambda_stats.distribution.assert_not_called()
-        self.mock_metric_extension_thread_stats.distribution.assert_not_called()
 
     def test_lambda_metric_flush_to_log(self):
         os.environ["DD_FLUSH_TO_LOG"] = "True"
@@ -133,10 +118,6 @@ class TestFlushThreadStats(unittest.TestCase):
             "datadog.threadstats.reporters.HttpReporter.flush_distributions"
         )
         self.mock_threadstats_flush_distributions = patcher.start()
-        self.addCleanup(patcher.stop)
-
-        patcher = patch("datadog_lambda.metric.extension_thread_stats")
-        self.mock_extension_thread_stats = patcher.start()
         self.addCleanup(patcher.stop)
 
     def test_retry_on_remote_disconnected(self):
@@ -216,10 +197,6 @@ class TestFlushThreadStats(unittest.TestCase):
             self.assertEqual(
                 lambda_stats.thread_stats.constant_tags, original_constant_tags
             )
-
-    def test_flush_stats_without_context(self):
-        flush_stats(lambda_context=None)
-        self.mock_extension_thread_stats.flush.assert_called_with(None)
 
 
 MOCK_FUNCTION_NAME = "myFunction"

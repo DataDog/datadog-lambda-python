@@ -62,7 +62,11 @@ class DogStatsd(object):
 
         >>> statsd.distribution("uploaded.file.size", 1445)
         >>> statsd.distribution("album.photo.count", 26, tags=["gender:female"])
-        >>> statsd.distribution("historic.file.count", 5, timestamp=int(datetime(2020, 2, 14, 12, 0, 0).timestamp()))
+        >>> statsd.distribution(
+        >>>     "historic.file.count",
+        >>>     5,
+        >>>     timestamp=int(datetime(2020, 2, 14, 12, 0, 0).timestamp()),
+        >>> )
         """
         self._report(metric, "d", value, tags, timestamp)
 
