@@ -168,7 +168,8 @@ def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=None):
 
 
 def flush_stats(lambda_context=None):
-    lambda_stats.flush()
+    if lambda_stats is not None:
+        lambda_stats.flush()
 
 
 def submit_enhanced_metric(metric_name, lambda_context):
