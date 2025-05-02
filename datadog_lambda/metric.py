@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 import ujson as json
 
 from datadog_lambda.extension import should_use_extension
+from datadog_lambda.fips import enable_fips_mode
 from datadog_lambda.tags import dd_lambda_layer_tag, get_enhanced_metrics_tags
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,7 @@ class MetricsHandler(enum.Enum):
     EXTENSION = "extension"
     FORWARDER = "forwarder"
     DATADOG_API = "datadog_api"
+    NO_METRICS = "no_metrics"
 
 
 def _select_metrics_handler():
@@ -28,10 +30,19 @@ def _select_metrics_handler():
         return MetricsHandler.EXTENSION
     if os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true":
         return MetricsHandler.FORWARDER
+
+    if enable_fips_mode:
+        logger.debug(
+            "With FIPS mode enabled, the Datadog API metrics handler is unavailable."
+        )
+        return MetricsHandler.NO_METRICS
+
     return MetricsHandler.DATADOG_API
 
 
 metrics_handler = _select_metrics_handler()
+# TODO: add a metric for this so that we can see how often the DATADOG_API
+# metrics handler is actually used.
 logger.debug("identified primary metrics handler as %s", metrics_handler)
 
 
@@ -121,6 +132,12 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
 
     elif metrics_handler == MetricsHandler.DATADOG_API:
         lambda_stats.distribution(metric_name, value, tags=tags, timestamp=timestamp)
+
+    elif metrics_handler == MetricsHandler.NO_METRICS:
+        logger.debug(
+            "Metric %s cannot be submitted because the metrics handler is disabled: %s",
+            metric_name,
+        ),
 
     else:
         # This should be qutie impossible, but let's at least log a message if

@@ -19,9 +19,15 @@ from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
 class TestLambdaMetric(unittest.TestCase):
     def setUp(self):
-        patcher = patch("datadog_lambda.metric.lambda_stats")
-        self.mock_metric_lambda_stats = patcher.start()
-        self.addCleanup(patcher.stop)
+        lambda_stats_patcher = patch("datadog_lambda.metric.lambda_stats")
+        self.mock_metric_lambda_stats = lambda_stats_patcher.start()
+        self.addCleanup(lambda_stats_patcher.stop)
+
+        stdout_metric_patcher = patch(
+            "datadog_lambda.metric.write_metric_point_to_stdout"
+        )
+        self.mock_write_metric_point_to_stdout = stdout_metric_patcher.start()
+        self.addCleanup(stdout_metric_patcher.stop)
 
     def test_lambda_metric_tagged_with_dd_lambda_layer(self):
         lambda_metric("test", 1)
@@ -56,12 +62,25 @@ class TestLambdaMetric(unittest.TestCase):
         self.assertEqual(MetricsHandler.DATADOG_API, _select_metrics_handler())
         del os.environ["DD_FLUSH_TO_LOG"]
 
+    @patch("datadog_lambda.metric.enable_fips_mode", True)
+    @patch("datadog_lambda.metric.should_use_extension", False)
+    def test_select_metrics_handler_has_no_fallback_in_fips_mode(self):
+        os.environ["DD_FLUSH_TO_LOG"] = "False"
+        self.assertEqual(MetricsHandler.NO_METRICS, _select_metrics_handler())
+        del os.environ["DD_FLUSH_TO_LOG"]
+
     @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.EXTENSION)
-    def test_lambda_metric_flush_to_log_with_extension(self):
+    def test_lambda_metric_goes_to_extension_with_extension_handler(self):
         lambda_metric("test", 1)
         self.mock_metric_lambda_stats.distribution.assert_has_calls(
             [call("test", 1, timestamp=None, tags=[dd_lambda_layer_tag])]
         )
+
+    @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.NO_METRICS)
+    def test_lambda_metric_has_nowhere_to_go_with_no_metrics_handler(self):
+        lambda_metric("test", 1)
+        self.mock_metric_lambda_stats.distribution.assert_not_called()
+        self.mock_write_metric_point_to_stdout.assert_not_called()
 
     @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.EXTENSION)
     def test_lambda_metric_timestamp_with_extension(self):
@@ -72,6 +91,7 @@ class TestLambdaMetric(unittest.TestCase):
         self.mock_metric_lambda_stats.distribution.assert_has_calls(
             [call("test_timestamp", 1, timestamp=timestamp, tags=[dd_lambda_layer_tag])]
         )
+        self.mock_write_metric_point_to_stdout.assert_not_called()
 
     @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.EXTENSION)
     def test_lambda_metric_datetime_with_extension(self):
@@ -89,6 +109,7 @@ class TestLambdaMetric(unittest.TestCase):
                 )
             ]
         )
+        self.mock_write_metric_point_to_stdout.assert_not_called()
 
     @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.EXTENSION)
     def test_lambda_metric_invalid_timestamp_with_extension(self):
@@ -97,16 +118,21 @@ class TestLambdaMetric(unittest.TestCase):
 
         lambda_metric("test_timestamp", 1, timestamp)
         self.mock_metric_lambda_stats.distribution.assert_not_called()
+        self.mock_write_metric_point_to_stdout.assert_not_called()
 
     @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.FORWARDER)
     def test_lambda_metric_flush_to_log(self):
         lambda_metric("test", 1)
         self.mock_metric_lambda_stats.distribution.assert_not_called()
+        self.mock_write_metric_point_to_stdout.assert_has_calls(
+            [call("test", 1, timestamp=None, tags=[dd_lambda_layer_tag])]
+        )
 
     @patch("datadog_lambda.metric.logger.warning")
     def test_lambda_metric_invalid_metric_name_none(self, mock_logger_warning):
         lambda_metric(None, 1)
         self.mock_metric_lambda_stats.distribution.assert_not_called()
+        self.mock_write_metric_point_to_stdout.assert_not_called()
         mock_logger_warning.assert_called_once_with(
             "Ignoring metric submission. Invalid metric name: %s", None
         )
@@ -115,6 +141,7 @@ class TestLambdaMetric(unittest.TestCase):
     def test_lambda_metric_invalid_metric_name_not_string(self, mock_logger_warning):
         lambda_metric(123, 1)
         self.mock_metric_lambda_stats.distribution.assert_not_called()
+        self.mock_write_metric_point_to_stdout.assert_not_called()
         mock_logger_warning.assert_called_once_with(
             "Ignoring metric submission. Invalid metric name: %s", 123
         )
@@ -123,6 +150,7 @@ class TestLambdaMetric(unittest.TestCase):
     def test_lambda_metric_non_numeric_value(self, mock_logger_warning):
         lambda_metric("test.non_numeric", "oops")
         self.mock_metric_lambda_stats.distribution.assert_not_called()
+        self.mock_write_metric_point_to_stdout.assert_not_called()
         mock_logger_warning.assert_called_once_with(
             "Ignoring metric submission for metric '%s' because the value is not numeric: %r",
             "test.non_numeric",

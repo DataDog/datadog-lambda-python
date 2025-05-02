@@ -1,5 +1,7 @@
-import os
 import logging
+import os
+
+from datadog_lambda.fips import enable_fips_mode
 
 logger = logging.getLogger(__name__)
 KMS_ENCRYPTION_CONTEXT_KEY = "LambdaFunctionName"
@@ -7,8 +9,9 @@ api_key = None
 
 
 def decrypt_kms_api_key(kms_client, ciphertext):
-    from botocore.exceptions import ClientError
     import base64
+
+    from botocore.exceptions import ClientError
 
     """
     Decodes and deciphers the base64-encoded ciphertext given as a parameter using KMS.
@@ -63,10 +66,9 @@ def get_api_key() -> str:
     DD_API_KEY = os.environ.get("DD_API_KEY", os.environ.get("DATADOG_API_KEY", ""))
 
     LAMBDA_REGION = os.environ.get("AWS_REGION", "")
-    is_gov_region = LAMBDA_REGION.startswith("us-gov-")
-    if is_gov_region:
+    if enable_fips_mode:
         logger.debug(
-            "Govcloud region detected. Using FIPs endpoints for secrets management."
+            "FIPS mode is enabled, using FIPS endpoints for secrets management."
         )
 
     if DD_API_KEY_SECRET_ARN:
@@ -80,7 +82,7 @@ def get_api_key() -> str:
             return ""
         endpoint_url = (
             f"https://secretsmanager-fips.{secrets_region}.amazonaws.com"
-            if is_gov_region
+            if enable_fips_mode
             else None
         )
         secrets_manager_client = _boto3_client(
@@ -92,7 +94,9 @@ def get_api_key() -> str:
     elif DD_API_KEY_SSM_NAME:
         # SSM endpoints: https://docs.aws.amazon.com/general/latest/gr/ssm.html
         fips_endpoint = (
-            f"https://ssm-fips.{LAMBDA_REGION}.amazonaws.com" if is_gov_region else None
+            f"https://ssm-fips.{LAMBDA_REGION}.amazonaws.com"
+            if enable_fips_mode
+            else None
         )
         ssm_client = _boto3_client("ssm", endpoint_url=fips_endpoint)
         api_key = ssm_client.get_parameter(
@@ -101,7 +105,9 @@ def get_api_key() -> str:
     elif DD_KMS_API_KEY:
         # KMS endpoints: https://docs.aws.amazon.com/general/latest/gr/kms.html
         fips_endpoint = (
-            f"https://kms-fips.{LAMBDA_REGION}.amazonaws.com" if is_gov_region else None
+            f"https://kms-fips.{LAMBDA_REGION}.amazonaws.com"
+            if enable_fips_mode
+            else None
         )
         kms_client = _boto3_client("kms", endpoint_url=fips_endpoint)
         api_key = decrypt_kms_api_key(kms_client, DD_KMS_API_KEY)
