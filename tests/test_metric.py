@@ -7,7 +7,12 @@ from botocore.exceptions import ClientError as BotocoreClientError
 from datadog.api.exceptions import ClientError
 
 from datadog_lambda.api import KMS_ENCRYPTION_CONTEXT_KEY, decrypt_kms_api_key
-from datadog_lambda.metric import flush_stats, lambda_metric
+from datadog_lambda.metric import (
+    MetricsHandler,
+    _select_metrics_handler,
+    flush_stats,
+    lambda_metric,
+)
 from datadog_lambda.tags import dd_lambda_layer_tag
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
@@ -34,15 +39,31 @@ class TestLambdaMetric(unittest.TestCase):
 
     # let's fake that the extension is present, this should override DD_FLUSH_TO_LOG
     @patch("datadog_lambda.metric.should_use_extension", True)
-    def test_lambda_metric_flush_to_log_with_extension(self):
+    def test_select_metrics_handler_extension_despite_flush_to_logs(self):
         os.environ["DD_FLUSH_TO_LOG"] = "True"
+        self.assertEqual(MetricsHandler.EXTENSION, _select_metrics_handler())
+        del os.environ["DD_FLUSH_TO_LOG"]
+
+    @patch("datadog_lambda.metric.should_use_extension", False)
+    def test_select_metrics_handler_forwarder_when_flush_to_logs(self):
+        os.environ["DD_FLUSH_TO_LOG"] = "True"
+        self.assertEqual(MetricsHandler.FORWARDER, _select_metrics_handler())
+        del os.environ["DD_FLUSH_TO_LOG"]
+
+    @patch("datadog_lambda.metric.should_use_extension", False)
+    def test_select_metrics_handler_dd_api_fallback(self):
+        os.environ["DD_FLUSH_TO_LOG"] = "False"
+        self.assertEqual(MetricsHandler.DATADOG_API, _select_metrics_handler())
+        del os.environ["DD_FLUSH_TO_LOG"]
+
+    @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.EXTENSION)
+    def test_lambda_metric_flush_to_log_with_extension(self):
         lambda_metric("test", 1)
         self.mock_metric_lambda_stats.distribution.assert_has_calls(
             [call("test", 1, timestamp=None, tags=[dd_lambda_layer_tag])]
         )
-        del os.environ["DD_FLUSH_TO_LOG"]
 
-    @patch("datadog_lambda.metric.should_use_extension", True)
+    @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.EXTENSION)
     def test_lambda_metric_timestamp_with_extension(self):
         delta = timedelta(minutes=1)
         timestamp = int((datetime.now() - delta).timestamp())
@@ -52,7 +73,7 @@ class TestLambdaMetric(unittest.TestCase):
             [call("test_timestamp", 1, timestamp=timestamp, tags=[dd_lambda_layer_tag])]
         )
 
-    @patch("datadog_lambda.metric.should_use_extension", True)
+    @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.EXTENSION)
     def test_lambda_metric_datetime_with_extension(self):
         delta = timedelta(minutes=1)
         timestamp = datetime.now() - delta
@@ -69,7 +90,7 @@ class TestLambdaMetric(unittest.TestCase):
             ]
         )
 
-    @patch("datadog_lambda.metric.should_use_extension", True)
+    @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.EXTENSION)
     def test_lambda_metric_invalid_timestamp_with_extension(self):
         delta = timedelta(hours=5)
         timestamp = int((datetime.now() - delta).timestamp())
@@ -77,13 +98,10 @@ class TestLambdaMetric(unittest.TestCase):
         lambda_metric("test_timestamp", 1, timestamp)
         self.mock_metric_lambda_stats.distribution.assert_not_called()
 
+    @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.FORWARDER)
     def test_lambda_metric_flush_to_log(self):
-        os.environ["DD_FLUSH_TO_LOG"] = "True"
-
         lambda_metric("test", 1)
         self.mock_metric_lambda_stats.distribution.assert_not_called()
-
-        del os.environ["DD_FLUSH_TO_LOG"]
 
     @patch("datadog_lambda.metric.logger.warning")
     def test_lambda_metric_invalid_metric_name_none(self, mock_logger_warning):

@@ -3,6 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
+import enum
 import logging
 import os
 import time
@@ -15,15 +16,32 @@ from datadog_lambda.tags import dd_lambda_layer_tag, get_enhanced_metrics_tags
 
 logger = logging.getLogger(__name__)
 
+
+class MetricsHandler(enum.Enum):
+    EXTENSION = "extension"
+    FORWARDER = "forwarder"
+    DATADOG_API = "datadog_api"
+
+
+def _select_metrics_handler():
+    if should_use_extension:
+        return MetricsHandler.EXTENSION
+    if os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true":
+        return MetricsHandler.FORWARDER
+    return MetricsHandler.DATADOG_API
+
+
+metrics_handler = _select_metrics_handler()
+logger.debug("identified primary metrics handler as %s", metrics_handler)
+
+
 lambda_stats = None
-
-flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
-
-if should_use_extension:
+if metrics_handler == MetricsHandler.EXTENSION:
     from datadog_lambda.statsd_writer import StatsDWriter
 
     lambda_stats = StatsDWriter()
-else:
+
+elif metrics_handler == MetricsHandler.DATADOG_API:
     # Periodical flushing in a background thread is NOT guaranteed to succeed
     # and leads to data loss. When disabled, metrics are only flushed at the
     # end of invocation. To make metrics submitted from a long-running Lambda
@@ -31,8 +49,10 @@ else:
     from datadog_lambda.api import init_api
     from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
+    flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
     init_api()
     lambda_stats = ThreadStatsWriter(flush_in_thread)
+
 
 enhanced_metrics_enabled = (
     os.environ.get("DD_ENHANCED_METRICS", "true").lower() == "true"
@@ -44,16 +64,19 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     Submit a data point to Datadog distribution metrics.
     https://docs.datadoghq.com/graphing/metrics/distributions/
 
-    When DD_FLUSH_TO_LOG is True, write metric to log, and
-    wait for the Datadog Log Forwarder Lambda function to submit
-    the metrics asynchronously.
+    If the Datadog Lambda Extension is present, metrics are submitted to its
+    dogstatsd endpoint.
+
+    When DD_FLUSH_TO_LOG is True or force_async is True, write metric to log,
+    and wait for the Datadog Log Forwarder Lambda function to submit the
+    metrics asynchronously.
 
     Otherwise, the metrics will be submitted to the Datadog API
     periodically and at the end of the function execution in a
     background thread.
 
-    Note that if the extension is present, it will override the DD_FLUSH_TO_LOG value
-    and always use the layer to send metrics to the extension
+    Note that if the extension is present, it will override the DD_FLUSH_TO_LOG
+    value and always use the layer to send metrics to the extension
     """
     if not metric_name or not isinstance(metric_name, str):
         logger.warning(
@@ -71,11 +94,10 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
         )
         return
 
-    flush_to_logs = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
     tags = [] if tags is None else list(tags)
     tags.append(dd_lambda_layer_tag)
 
-    if should_use_extension:
+    if metrics_handler == MetricsHandler.EXTENSION:
         if timestamp is not None:
             if isinstance(timestamp, datetime):
                 timestamp = int(timestamp.timestamp())
@@ -94,15 +116,20 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
         )
         lambda_stats.distribution(metric_name, value, tags=tags, timestamp=timestamp)
 
+    elif force_async or (metrics_handler == MetricsHandler.FORWARDER):
+        write_metric_point_to_stdout(metric_name, value, timestamp=timestamp, tags=tags)
+
+    elif metrics_handler == MetricsHandler.DATADOG_API:
+        lambda_stats.distribution(metric_name, value, tags=tags, timestamp=timestamp)
+
     else:
-        if flush_to_logs or force_async:
-            write_metric_point_to_stdout(
-                metric_name, value, timestamp=timestamp, tags=tags
-            )
-        else:
-            lambda_stats.distribution(
-                metric_name, value, tags=tags, timestamp=timestamp
-            )
+        # This should be qutie impossible, but let's at least log a message if
+        # it somehow happens.
+        logger.debug(
+            "Metric %s cannot be submitted because the metrics handler is not configured: %s",
+            metric_name,
+            metrics_handler,
+        )
 
 
 def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=None):
