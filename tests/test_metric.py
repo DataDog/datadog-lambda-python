@@ -1,16 +1,15 @@
 import os
 import unittest
-
-from unittest.mock import patch, call
+from datetime import datetime, timedelta
+from unittest.mock import call, patch
 
 from botocore.exceptions import ClientError as BotocoreClientError
 from datadog.api.exceptions import ClientError
-from datetime import datetime, timedelta
 
-from datadog_lambda.metric import lambda_metric, flush_stats
-from datadog_lambda.api import decrypt_kms_api_key, KMS_ENCRYPTION_CONTEXT_KEY
-from datadog_lambda.thread_stats_writer import ThreadStatsWriter
+from datadog_lambda.api import KMS_ENCRYPTION_CONTEXT_KEY, decrypt_kms_api_key
+from datadog_lambda.metric import flush_stats, lambda_metric
 from datadog_lambda.tags import dd_lambda_layer_tag
+from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
 
 class TestLambdaMetric(unittest.TestCase):
@@ -53,10 +52,10 @@ class TestLambdaMetric(unittest.TestCase):
         timestamp = int((datetime.now() - delta).timestamp())
 
         lambda_metric("test_timestamp", 1, timestamp)
-        self.mock_metric_lambda_stats.distribution.assert_not_called()
-        self.mock_metric_extension_thread_stats.distribution.assert_called_with(
-            "test_timestamp", 1, timestamp=timestamp, tags=[dd_lambda_layer_tag]
+        self.mock_metric_lambda_stats.distribution.assert_has_calls(
+            [call("test_timestamp", 1, timestamp=timestamp, tags=[dd_lambda_layer_tag])]
         )
+        self.mock_metric_extension_thread_stats.distribution.assert_not_called()
 
     @patch("datadog_lambda.metric.should_use_extension", True)
     def test_lambda_metric_datetime_with_extension(self):
@@ -64,11 +63,20 @@ class TestLambdaMetric(unittest.TestCase):
         self.mock_metric_extension_thread_stats = patcher.start()
         self.addCleanup(patcher.stop)
 
-        delta = timedelta(hours=5)
+        delta = timedelta(minutes=1)
         timestamp = datetime.now() - delta
 
-        lambda_metric("test_timestamp", 1, timestamp)
-        self.mock_metric_lambda_stats.distribution.assert_not_called()
+        lambda_metric("test_datetime_timestamp", 0, timestamp)
+        self.mock_metric_lambda_stats.distribution.assert_has_calls(
+            [
+                call(
+                    "test_datetime_timestamp",
+                    0,
+                    timestamp=int(timestamp.timestamp()),
+                    tags=[dd_lambda_layer_tag],
+                )
+            ]
+        )
         self.mock_metric_extension_thread_stats.distribution.assert_not_called()
 
     @patch("datadog_lambda.metric.should_use_extension", True)

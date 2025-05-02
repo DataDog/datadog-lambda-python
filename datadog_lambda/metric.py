@@ -76,39 +76,25 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     tags = [] if tags is None else list(tags)
     tags.append(dd_lambda_layer_tag)
 
-    if should_use_extension and timestamp is not None:
-        # The extension does not support timestamps for distributions so we create a
-        # a thread stats writer to submit metrics with timestamps to the API
-        timestamp_ceiling = int(
-            (datetime.now() - timedelta(hours=4)).timestamp()
-        )  # 4 hours ago
-        if isinstance(timestamp, datetime):
-            timestamp = int(timestamp.timestamp())
-        if timestamp_ceiling > timestamp:
-            logger.warning(
-                "Timestamp %s is older than 4 hours, not submitting metric %s",
-                timestamp,
-                metric_name,
-            )
-            return
-        global extension_thread_stats
-        if extension_thread_stats is None:
-            from datadog_lambda.api import init_api
-            from datadog_lambda.thread_stats_writer import ThreadStatsWriter
-
-            init_api()
-            extension_thread_stats = ThreadStatsWriter(flush_in_thread)
-
-        extension_thread_stats.distribution(
-            metric_name, value, tags=tags, timestamp=timestamp
-        )
-        return
-
     if should_use_extension:
+        if timestamp is not None:
+            if isinstance(timestamp, datetime):
+                timestamp = int(timestamp.timestamp())
+
+            timestamp_floor = int((datetime.now() - timedelta(hours=4)).timestamp())
+            if timestamp < timestamp_floor:
+                logger.warning(
+                    "Timestamp %s is older than 4 hours, not submitting metric %s",
+                    timestamp,
+                    metric_name,
+                )
+                return
+
         logger.debug(
             "Sending metric %s value %s to Datadog via extension", metric_name, value
         )
         lambda_stats.distribution(metric_name, value, tags=tags, timestamp=timestamp)
+
     else:
         if flush_to_logs or force_async:
             write_metric_point_to_stdout(
