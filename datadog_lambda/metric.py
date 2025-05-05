@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 import ujson as json
 
 from datadog_lambda.extension import should_use_extension
-from datadog_lambda.fips import enable_fips_mode
+from datadog_lambda.fips import fips_mode_enabled
 from datadog_lambda.tags import dd_lambda_layer_tag, get_enhanced_metrics_tags
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ def _select_metrics_handler():
     if os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true":
         return MetricsHandler.FORWARDER
 
-    if enable_fips_mode:
+    if fips_mode_enabled:
         logger.debug(
             "With FIPS mode enabled, the Datadog API metrics handler is unavailable."
         )

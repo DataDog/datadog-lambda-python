@@ -1,7 +1,7 @@
 import logging
 import os
 
-from datadog_lambda.fips import enable_fips_mode
+from datadog_lambda.fips import fips_mode_enabled
 
 logger = logging.getLogger(__name__)
 KMS_ENCRYPTION_CONTEXT_KEY = "LambdaFunctionName"
@@ -66,7 +66,7 @@ def get_api_key() -> str:
     DD_API_KEY = os.environ.get("DD_API_KEY", os.environ.get("DATADOG_API_KEY", ""))
 
     LAMBDA_REGION = os.environ.get("AWS_REGION", "")
-    if enable_fips_mode:
+    if fips_mode_enabled:
         logger.debug(
             "FIPS mode is enabled, using FIPS endpoints for secrets management."
         )
@@ -82,7 +82,7 @@ def get_api_key() -> str:
             return ""
         endpoint_url = (
             f"https://secretsmanager-fips.{secrets_region}.amazonaws.com"
-            if enable_fips_mode
+            if fips_mode_enabled
             else None
         )
         secrets_manager_client = _boto3_client(
@@ -95,7 +95,7 @@ def get_api_key() -> str:
         # SSM endpoints: https://docs.aws.amazon.com/general/latest/gr/ssm.html
         fips_endpoint = (
             f"https://ssm-fips.{LAMBDA_REGION}.amazonaws.com"
-            if enable_fips_mode
+            if fips_mode_enabled
             else None
         )
         ssm_client = _boto3_client("ssm", endpoint_url=fips_endpoint)
@@ -106,7 +106,7 @@ def get_api_key() -> str:
         # KMS endpoints: https://docs.aws.amazon.com/general/latest/gr/kms.html
         fips_endpoint = (
             f"https://kms-fips.{LAMBDA_REGION}.amazonaws.com"
-            if enable_fips_mode
+            if fips_mode_enabled
             else None
         )
         kms_client = _boto3_client("kms", endpoint_url=fips_endpoint)

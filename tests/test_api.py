@@ -22,7 +22,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.env_patcher.start()
 
-    @patch("datadog_lambda.api.enable_fips_mode", True)
+    @patch("datadog_lambda.api.fips_mode_enabled", True)
     @patch("botocore.session.Session.create_client")
     def test_secrets_manager_fips_endpoint(self, mock_boto3_client):
         mock_client = MagicMock()
@@ -63,7 +63,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.assertEqual(api_key, "test-api-key")
 
-    @patch("datadog_lambda.api.enable_fips_mode", True)
+    @patch("datadog_lambda.api.fips_mode_enabled", True)
     @patch("botocore.session.Session.create_client")
     def test_secrets_manager_different_region_but_still_fips(self, mock_boto3_client):
         mock_client = MagicMock()
@@ -84,7 +84,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.assertEqual(api_key, "test-api-key")
 
-    @patch("datadog_lambda.api.enable_fips_mode", True)
+    @patch("datadog_lambda.api.fips_mode_enabled", True)
     @patch("botocore.session.Session.create_client")
     def test_ssm_fips_endpoint(self, mock_boto3_client):
         mock_client = MagicMock()
@@ -103,7 +103,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.assertEqual(api_key, "test-api-key")
 
-    @patch("datadog_lambda.api.enable_fips_mode", True)
+    @patch("datadog_lambda.api.fips_mode_enabled", True)
     @patch("botocore.session.Session.create_client")
     @patch("datadog_lambda.api.decrypt_kms_api_key")
     def test_kms_fips_endpoint(self, mock_decrypt_kms, mock_boto3_client):
