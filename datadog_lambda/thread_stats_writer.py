@@ -3,6 +3,7 @@ import logging
 # Make sure that this package would always be lazy-loaded/outside from the critical path
 # since underlying packages are quite heavy to load and useless when the extension is present
 from datadog.threadstats import ThreadStats
+
 from datadog_lambda.stats_writer import StatsWriter
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ class ThreadStatsWriter(StatsWriter):
         self.thread_stats = ThreadStats(compress_payload=True)
         self.thread_stats.start(flush_in_thread=flush_in_thread)
 
-    def distribution(self, metric_name, value, tags=[], timestamp=None):
+    def distribution(self, metric_name, value, tags=None, timestamp=None):
         self.thread_stats.distribution(
             metric_name, value, tags=tags, timestamp=timestamp
         )

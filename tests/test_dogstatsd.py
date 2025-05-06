@@ -1,5 +1,5 @@
-from collections import deque
 import unittest
+from collections import deque
 
 from datadog_lambda.dogstatsd import statsd
 
@@ -36,16 +36,20 @@ class TestDogStatsd(unittest.TestCase):
         self.assertEqual(statsd.port, 8125)
         self.assertEqual(statsd.encoding, "utf-8")
 
-    def test_distribution_no_tags(self):
-        statsd.distribution("my.test.metric", 3)
+    def _checkOnlyOneMetric(self, value):
         payload = self.recv()
         metrics = payload.split("\n")
         self.assertEqual(len(metrics), 1)
-        self.assertEqual("my.test.metric:3|d", metrics[0])
+        self.assertEqual(value, metrics[0])
+
+    def test_distribution_no_tags(self):
+        statsd.distribution("my.test.metric", 3)
+        self._checkOnlyOneMetric("my.test.metric:3|d")
 
     def test_distribution_with_tags(self):
         statsd.distribution("my.test.tags.metric", 3, tags=["taga:valuea,tagb:valueb"])
-        payload = self.recv()
-        metrics = payload.split("\n")
-        self.assertEqual(len(metrics), 1)
-        self.assertEqual("my.test.tags.metric:3|d|#taga:valuea_tagb:valueb", metrics[0])
+        self._checkOnlyOneMetric("my.test.tags.metric:3|d|#taga:valuea_tagb:valueb")
+
+    def test_distribution_with_timestamp(self):
+        statsd.distribution("my.test.timestamp.metric", 9, timestamp=123456789)
+        self._checkOnlyOneMetric("my.test.timestamp.metric:9|d|T123456789")

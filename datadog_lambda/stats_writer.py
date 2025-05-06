@@ -1,5 +1,5 @@
 class StatsWriter:
-    def distribution(self, metric_name, value, tags=[], timestamp=None):
+    def distribution(self, metric_name, value, tags=None, timestamp=None):
         raise NotImplementedError()
 
     def flush(self):

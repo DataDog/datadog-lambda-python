@@ -1,6 +1,6 @@
 import os
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import datadog_lambda.api as api
 
@@ -22,6 +22,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.env_patcher.start()
 
+    @patch("datadog_lambda.api.fips_mode_enabled", True)
     @patch("botocore.session.Session.create_client")
     def test_secrets_manager_fips_endpoint(self, mock_boto3_client):
         mock_client = MagicMock()
@@ -62,6 +63,28 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.assertEqual(api_key, "test-api-key")
 
+    @patch("datadog_lambda.api.fips_mode_enabled", True)
+    @patch("botocore.session.Session.create_client")
+    def test_secrets_manager_different_region_but_still_fips(self, mock_boto3_client):
+        mock_client = MagicMock()
+        mock_client.get_secret_value.return_value = {"SecretString": "test-api-key"}
+        mock_boto3_client.return_value = mock_client
+
+        os.environ["AWS_REGION"] = "us-east-1"
+        os.environ[
+            "DD_API_KEY_SECRET_ARN"
+        ] = "arn:aws:secretsmanager:us-west-1:1234567890:secret:key-name-123ABC"
+
+        api_key = api.get_api_key()
+
+        mock_boto3_client.assert_called_with(
+            "secretsmanager",
+            endpoint_url="https://secretsmanager-fips.us-west-1.amazonaws.com",
+            region_name="us-west-1",
+        )
+        self.assertEqual(api_key, "test-api-key")
+
+    @patch("datadog_lambda.api.fips_mode_enabled", True)
     @patch("botocore.session.Session.create_client")
     def test_ssm_fips_endpoint(self, mock_boto3_client):
         mock_client = MagicMock()
@@ -80,6 +103,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         )
         self.assertEqual(api_key, "test-api-key")
 
+    @patch("datadog_lambda.api.fips_mode_enabled", True)
     @patch("botocore.session.Session.create_client")
     @patch("datadog_lambda.api.decrypt_kms_api_key")
     def test_kms_fips_endpoint(self, mock_decrypt_kms, mock_boto3_client):

@@ -1,10 +1,9 @@
+import errno
 import logging
 import os
-import socket
-import errno
 import re
+import socket
 from threading import Lock
-
 
 MIN_SEND_BUFFER_SIZE = 32 * 1024
 log = logging.getLogger("datadog_lambda.dogstatsd")
@@ -55,14 +54,21 @@ class DogStatsd(object):
 
         return sock
 
-    def distribution(self, metric, value, tags=None):
+    def distribution(self, metric, value, tags=None, timestamp=None):
         """
-        Send a global distribution value, optionally setting tags.
+        Send a global distribution value, optionally setting tags. The optional
+        timestamp should be an integer representing seconds since the epoch
+        (January 1, 1970, 00:00:00 UTC).
 
         >>> statsd.distribution("uploaded.file.size", 1445)
         >>> statsd.distribution("album.photo.count", 26, tags=["gender:female"])
+        >>> statsd.distribution(
+        >>>     "historic.file.count",
+        >>>     5,
+        >>>     timestamp=int(datetime(2020, 2, 14, 12, 0, 0).timestamp()),
+        >>> )
         """
-        self._report(metric, "d", value, tags)
+        self._report(metric, "d", value, tags, timestamp)
 
     def close_socket(self):
         """
@@ -84,20 +90,21 @@ class DogStatsd(object):
             for tag in tag_list
         ]
 
-    def _serialize_metric(self, metric, metric_type, value, tags):
+    def _serialize_metric(self, metric, metric_type, value, tags, timestamp):
         # Create/format the metric packet
-        return "%s:%s|%s%s" % (
+        return "%s:%s|%s%s%s" % (
             metric,
             value,
             metric_type,
             ("|#" + ",".join(self.normalize_tags(tags))) if tags else "",
+            ("|T" + str(timestamp)) if timestamp is not None else "",
         )
 
-    def _report(self, metric, metric_type, value, tags):
+    def _report(self, metric, metric_type, value, tags, timestamp):
         if value is None:
             return
 
-        payload = self._serialize_metric(metric, metric_type, value, tags)
+        payload = self._serialize_metric(metric, metric_type, value, tags, timestamp)
 
         # Send it
         self._send_to_server(payload)

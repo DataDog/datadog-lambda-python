@@ -3,36 +3,65 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
+import enum
+import logging
 import os
 import time
-import logging
-import ujson as json
 from datetime import datetime, timedelta
 
+import ujson as json
+
 from datadog_lambda.extension import should_use_extension
-from datadog_lambda.tags import get_enhanced_metrics_tags, dd_lambda_layer_tag
+from datadog_lambda.fips import fips_mode_enabled
+from datadog_lambda.tags import dd_lambda_layer_tag, get_enhanced_metrics_tags
 
 logger = logging.getLogger(__name__)
 
+
+class MetricsHandler(enum.Enum):
+    EXTENSION = "extension"
+    FORWARDER = "forwarder"
+    DATADOG_API = "datadog_api"
+    NO_METRICS = "no_metrics"
+
+
+def _select_metrics_handler():
+    if should_use_extension:
+        return MetricsHandler.EXTENSION
+    if os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true":
+        return MetricsHandler.FORWARDER
+
+    if fips_mode_enabled:
+        logger.debug(
+            "With FIPS mode enabled, the Datadog API metrics handler is unavailable."
+        )
+        return MetricsHandler.NO_METRICS
+
+    return MetricsHandler.DATADOG_API
+
+
+metrics_handler = _select_metrics_handler()
+logger.debug("identified primary metrics handler as %s", metrics_handler)
+
+
 lambda_stats = None
-extension_thread_stats = None
-
-flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
-
-if should_use_extension:
+if metrics_handler == MetricsHandler.EXTENSION:
     from datadog_lambda.statsd_writer import StatsDWriter
 
     lambda_stats = StatsDWriter()
-else:
+
+elif metrics_handler == MetricsHandler.DATADOG_API:
     # Periodical flushing in a background thread is NOT guaranteed to succeed
     # and leads to data loss. When disabled, metrics are only flushed at the
     # end of invocation. To make metrics submitted from a long-running Lambda
     # function available sooner, consider using the Datadog Lambda extension.
-    from datadog_lambda.thread_stats_writer import ThreadStatsWriter
     from datadog_lambda.api import init_api
+    from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
+    flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
     init_api()
     lambda_stats = ThreadStatsWriter(flush_in_thread)
+
 
 enhanced_metrics_enabled = (
     os.environ.get("DD_ENHANCED_METRICS", "true").lower() == "true"
@@ -44,16 +73,19 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
     Submit a data point to Datadog distribution metrics.
     https://docs.datadoghq.com/graphing/metrics/distributions/
 
-    When DD_FLUSH_TO_LOG is True, write metric to log, and
-    wait for the Datadog Log Forwarder Lambda function to submit
-    the metrics asynchronously.
+    If the Datadog Lambda Extension is present, metrics are submitted to its
+    dogstatsd endpoint.
+
+    When DD_FLUSH_TO_LOG is True or force_async is True, write metric to log,
+    and wait for the Datadog Log Forwarder Lambda function to submit the
+    metrics asynchronously.
 
     Otherwise, the metrics will be submitted to the Datadog API
     periodically and at the end of the function execution in a
     background thread.
 
-    Note that if the extension is present, it will override the DD_FLUSH_TO_LOG value
-    and always use the layer to send metrics to the extension
+    Note that if the extension is present, it will override the DD_FLUSH_TO_LOG
+    value and always use the layer to send metrics to the extension
     """
     if not metric_name or not isinstance(metric_name, str):
         logger.warning(
@@ -71,56 +103,54 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
         )
         return
 
-    flush_to_logs = os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true"
     tags = [] if tags is None else list(tags)
     tags.append(dd_lambda_layer_tag)
 
-    if should_use_extension and timestamp is not None:
-        # The extension does not support timestamps for distributions so we create a
-        # a thread stats writer to submit metrics with timestamps to the API
-        timestamp_ceiling = int(
-            (datetime.now() - timedelta(hours=4)).timestamp()
-        )  # 4 hours ago
-        if isinstance(timestamp, datetime):
-            timestamp = int(timestamp.timestamp())
-        if timestamp_ceiling > timestamp:
-            logger.warning(
-                "Timestamp %s is older than 4 hours, not submitting metric %s",
-                timestamp,
-                metric_name,
-            )
-            return
-        global extension_thread_stats
-        if extension_thread_stats is None:
-            from datadog_lambda.thread_stats_writer import ThreadStatsWriter
-            from datadog_lambda.api import init_api
+    if metrics_handler == MetricsHandler.EXTENSION:
+        if timestamp is not None:
+            if isinstance(timestamp, datetime):
+                timestamp = int(timestamp.timestamp())
 
-            init_api()
-            extension_thread_stats = ThreadStatsWriter(flush_in_thread)
+            timestamp_floor = int((datetime.now() - timedelta(hours=4)).timestamp())
+            if timestamp < timestamp_floor:
+                logger.warning(
+                    "Timestamp %s is older than 4 hours, not submitting metric %s",
+                    timestamp,
+                    metric_name,
+                )
+                return
 
-        extension_thread_stats.distribution(
-            metric_name, value, tags=tags, timestamp=timestamp
-        )
-        return
-
-    if should_use_extension:
         logger.debug(
             "Sending metric %s value %s to Datadog via extension", metric_name, value
         )
         lambda_stats.distribution(metric_name, value, tags=tags, timestamp=timestamp)
+
+    elif force_async or (metrics_handler == MetricsHandler.FORWARDER):
+        write_metric_point_to_stdout(metric_name, value, timestamp=timestamp, tags=tags)
+
+    elif metrics_handler == MetricsHandler.DATADOG_API:
+        lambda_stats.distribution(metric_name, value, tags=tags, timestamp=timestamp)
+
+    elif metrics_handler == MetricsHandler.NO_METRICS:
+        logger.debug(
+            "Metric %s cannot be submitted because the metrics handler is disabled",
+            metric_name,
+        ),
+
     else:
-        if flush_to_logs or force_async:
-            write_metric_point_to_stdout(
-                metric_name, value, timestamp=timestamp, tags=tags
-            )
-        else:
-            lambda_stats.distribution(
-                metric_name, value, tags=tags, timestamp=timestamp
-            )
+        # This should be qutie impossible, but let's at least log a message if
+        # it somehow happens.
+        logger.debug(
+            "Metric %s cannot be submitted because the metrics handler is not configured: %s",
+            metric_name,
+            metrics_handler,
+        )
 
 
-def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
+def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=None):
     """Writes the specified metric point to standard output"""
+    tags = tags or []
+
     logger.debug(
         "Sending metric %s value %s to Datadog via log forwarder", metric_name, value
     )
@@ -138,19 +168,8 @@ def write_metric_point_to_stdout(metric_name, value, timestamp=None, tags=[]):
 
 
 def flush_stats(lambda_context=None):
-    lambda_stats.flush()
-
-    if extension_thread_stats is not None:
-        tags = None
-        if lambda_context is not None:
-            tags = get_enhanced_metrics_tags(lambda_context)
-            split_arn = lambda_context.invoked_function_arn.split(":")
-            if len(split_arn) > 7:
-                # Get rid of the alias
-                split_arn.pop()
-            arn = ":".join(split_arn)
-            tags.append("function_arn:" + arn)
-        extension_thread_stats.flush(tags)
+    if lambda_stats is not None:
+        lambda_stats.flush()
 
 
 def submit_enhanced_metric(metric_name, lambda_context):
