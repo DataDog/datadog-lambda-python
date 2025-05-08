@@ -97,7 +97,7 @@ class DogStatsd(object):
             value,
             metric_type,
             ("|#" + ",".join(self.normalize_tags(tags))) if tags else "",
-            ("|T" + str(timestamp)) if timestamp is not None else "",
+            ("|T" + str(int(timestamp))) if timestamp is not None else "",
         )
 
     def _report(self, metric, metric_type, value, tags, timestamp):
