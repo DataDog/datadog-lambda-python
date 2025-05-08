@@ -53,3 +53,7 @@ class TestDogStatsd(unittest.TestCase):
     def test_distribution_with_timestamp(self):
         statsd.distribution("my.test.timestamp.metric", 9, timestamp=123456789)
         self._checkOnlyOneMetric("my.test.timestamp.metric:9|d|T123456789")
+
+    def test_distribution_with_float_timestamp(self):
+        statsd.distribution("my.test.timestamp.metric", 9, timestamp=123456789.123)
+        self._checkOnlyOneMetric("my.test.timestamp.metric:9|d|T123456789")
