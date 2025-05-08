@@ -111,6 +111,18 @@ def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=Fal
             if isinstance(timestamp, datetime):
                 timestamp = int(timestamp.timestamp())
 
+            else:
+                try:
+                    timestamp = int(timestamp)
+                except Exception:
+                    logger.debug(
+                        "Ignoring metric submission for metric '%s' because the timestamp cannot "
+                        "be turned into an integer: %r",
+                        metric_name,
+                        timestamp,
+                    )
+                    return
+
             timestamp_floor = int((datetime.now() - timedelta(hours=4)).timestamp())
             if timestamp < timestamp_floor:
                 logger.warning(

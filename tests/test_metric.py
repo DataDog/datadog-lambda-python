@@ -112,6 +112,34 @@ class TestLambdaMetric(unittest.TestCase):
         self.mock_write_metric_point_to_stdout.assert_not_called()
 
     @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.EXTENSION)
+    def test_lambda_metric_float_with_extension(self):
+        delta = timedelta(minutes=1)
+        timestamp_float = (datetime.now() - delta).timestamp()
+        timestamp_int = int(timestamp_float)
+
+        lambda_metric("test_timestamp", 1, timestamp_float)
+        self.mock_metric_lambda_stats.distribution.assert_has_calls(
+            [
+                call(
+                    "test_timestamp",
+                    1,
+                    timestamp=timestamp_int,
+                    tags=[dd_lambda_layer_tag],
+                )
+            ]
+        )
+        self.mock_write_metric_point_to_stdout.assert_not_called()
+
+    @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.EXTENSION)
+    def test_lambda_metric_timestamp_junk_with_extension(self):
+        delta = timedelta(minutes=1)
+        timestamp = (datetime.now() - delta).isoformat()
+
+        lambda_metric("test_timestamp", 1, timestamp)
+        self.mock_metric_lambda_stats.distribution.assert_not_called()
+        self.mock_write_metric_point_to_stdout.assert_not_called()
+
+    @patch("datadog_lambda.metric.metrics_handler", MetricsHandler.EXTENSION)
     def test_lambda_metric_invalid_timestamp_with_extension(self):
         delta = timedelta(hours=5)
         timestamp = int((datetime.now() - delta).timestamp())
