@@ -53,7 +53,9 @@ llmobs_env_var = os.environ.get("DD_LLMOBS_ENABLED", "false").lower() in ("true"
 if llmobs_env_var:
     from ddtrace.llmobs import LLMObs
 
-exception_replay_env_var = os.environ.get("DD_EXCEPTION_REPLAY_ENABLED", "false").lower() in ("true", "1")
+exception_replay_env_var = os.environ.get(
+    "DD_EXCEPTION_REPLAY_ENABLED", "false"
+).lower() in ("true", "1")
 if exception_replay_env_var:
     from ddtrace.debugging._exception.replay import SpanExceptionHandler
 
