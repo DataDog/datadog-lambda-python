@@ -53,6 +53,12 @@ llmobs_env_var = os.environ.get("DD_LLMOBS_ENABLED", "false").lower() in ("true"
 if llmobs_env_var:
     from ddtrace.llmobs import LLMObs
 
+exception_replay_env_var = os.environ.get(
+    "DD_EXCEPTION_REPLAY_ENABLED", "false"
+).lower() in ("true", "1")
+if exception_replay_env_var:
+    from ddtrace.debugging._exception.replay import SpanExceptionHandler
+
 logger = logging.getLogger(__name__)
 
 DD_FLUSH_TO_LOG = "DD_FLUSH_TO_LOG"
@@ -223,6 +229,11 @@ class _LambdaDecorator(object):
             # Enable LLM Observability
             if llmobs_env_var:
                 LLMObs.enable()
+
+            # Enable Exception Replay
+            if exception_replay_env_var:
+                logger.debug("Enabling exception replay")
+                SpanExceptionHandler.enable()
 
             logger.debug("datadog_lambda_wrapper initialized")
         except Exception as e:
