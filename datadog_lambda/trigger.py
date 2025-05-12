@@ -330,7 +330,10 @@ def extract_trigger_tags(event: dict, context: Any) -> dict:
     try:
         trigger_tags = {}
         event_source = parse_event_source(event)
-        if event_source.to_string() is not None and event_source.to_string() != "unknown":
+        if (
+            event_source.to_string() is not None
+            and event_source.to_string() != "unknown"
+        ):
             trigger_tags["function_trigger.event_source"] = event_source.to_string()
 
             event_source_arn = get_event_source_arn(event_source, event, context)
@@ -343,6 +346,7 @@ def extract_trigger_tags(event: dict, context: Any) -> dict:
         return trigger_tags
     except Exception as e:
         import logging
+
         logger = logging.getLogger(__name__)
         logger.info(f"Datadog failed to extract trigger tags: {e}")
         return {}
