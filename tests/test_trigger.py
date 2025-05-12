@@ -530,6 +530,13 @@ class GetTriggerTags(unittest.TestCase):
         tags = extract_trigger_tags(event, ctx)
         self.assertEqual(tags, {})
 
+    def test_extract_trigger_tags_error_handling(self):
+        event = {"requestContext": "not_a_dict"}  # This would cause an error as requestContext is not a dict
+        ctx = get_mock_context()
+
+        tags = extract_trigger_tags(event, ctx)
+        self.assertEqual(tags, {})
+
 
 class ExtractHTTPStatusCodeTag(unittest.TestCase):
     def test_extract_http_status_code_tag_from_response_dict(self):

@@ -327,19 +327,25 @@ def extract_trigger_tags(event: dict, context: Any) -> dict:
     """
     Parses the trigger event object to get tags to be added to the span metadata
     """
-    trigger_tags = {}
-    event_source = parse_event_source(event)
-    if event_source.to_string() is not None and event_source.to_string() != "unknown":
-        trigger_tags["function_trigger.event_source"] = event_source.to_string()
+    try:
+        trigger_tags = {}
+        event_source = parse_event_source(event)
+        if event_source.to_string() is not None and event_source.to_string() != "unknown":
+            trigger_tags["function_trigger.event_source"] = event_source.to_string()
 
-        event_source_arn = get_event_source_arn(event_source, event, context)
-        if event_source_arn:
-            trigger_tags["function_trigger.event_source_arn"] = event_source_arn
+            event_source_arn = get_event_source_arn(event_source, event, context)
+            if event_source_arn:
+                trigger_tags["function_trigger.event_source_arn"] = event_source_arn
 
-    if event_source.event_type in _http_event_types:
-        trigger_tags.update(extract_http_tags(event))
+        if event_source.event_type in _http_event_types:
+            trigger_tags.update(extract_http_tags(event))
 
-    return trigger_tags
+        return trigger_tags
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Datadog failed to extract trigger tags: {e}")
+        return {}
 
 
 _str_http_triggers = [et.value for et in _http_event_types]
