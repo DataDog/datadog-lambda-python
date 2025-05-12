@@ -114,10 +114,14 @@ def parse_event_source(event: dict) -> _EventSource:
 
     event_source = None
 
-    request_context = event.get("requestContext")
+    # Get requestContext safely and ensure it's a dictionary
+    request_context = event.get("requestContext", {})
+    if not isinstance(request_context, dict):
+        request_context = {}
+
     if request_context and request_context.get("stage"):
         if "domainName" in request_context and detect_lambda_function_url_domain(
-            request_context.get("domainName")
+            request_context.get("domainName", "")
         ):
             return _EventSource(EventTypes.LAMBDA_FUNCTION_URL)
         event_source = _EventSource(EventTypes.API_GATEWAY)
@@ -170,7 +174,8 @@ def parse_event_source(event: dict) -> _EventSource:
 
 
 def detect_lambda_function_url_domain(domain: str) -> bool:
-    #  e.g. "etsn5fibjr.lambda-url.eu-south-1.amazonaws.com"
+    if not isinstance(domain, str):
+        return False
     domain_parts = domain.split(".")
     if len(domain_parts) < 2:
         return False
@@ -283,17 +288,28 @@ def extract_http_tags(event):
     Extracts HTTP facet tags from the triggering event
     """
     http_tags = {}
-    request_context = event.get("requestContext")
+
+    # Safely get request_context and ensure it's a dictionary
+    request_context = event.get("requestContext", {})
+    if not isinstance(request_context, dict):
+        request_context = {}
+
     path = event.get("path")
     method = event.get("httpMethod")
+
     if request_context and request_context.get("stage"):
-        if request_context.get("domainName"):
-            http_tags["http.url"] = request_context.get("domainName")
+        domain_name = request_context.get("domainName")
+        if domain_name:
+            http_tags["http.url"] = domain_name
 
         path = request_context.get("path")
         method = request_context.get("httpMethod")
+
         # Version 2.0 HTTP API Gateway
-        apigateway_v2_http = request_context.get("http")
+        apigateway_v2_http = request_context.get("http", {})
+        if not isinstance(apigateway_v2_http, dict):
+            apigateway_v2_http = {}
+
         if event.get("version") == "2.0" and apigateway_v2_http:
             path = apigateway_v2_http.get("path")
             method = apigateway_v2_http.get("method")
@@ -303,15 +319,23 @@ def extract_http_tags(event):
     if method:
         http_tags["http.method"] = method
 
-    headers = event.get("headers")
+    # Safely get headers
+    headers = event.get("headers", {})
+    if not isinstance(headers, dict):
+        headers = {}
+
     if headers and headers.get("Referer"):
         http_tags["http.referer"] = headers.get("Referer")
 
     # Try to get `routeKey` from API GW v2; otherwise try to get `resource` from API GW v1
     route = event.get("routeKey") or event.get("resource")
-    if route:
-        # "GET /my/endpoint" = > "/my/endpoint"
-        http_tags["http.route"] = route.split(" ")[-1]
+    if route and isinstance(route, str):
+        try:
+            # "GET /my/endpoint" = > "/my/endpoint"
+            http_tags["http.route"] = route.split(" ")[-1]
+        except Exception:
+            # If splitting fails, use the route as is
+            http_tags["http.route"] = route
 
     return http_tags
 
