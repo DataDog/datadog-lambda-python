@@ -174,6 +174,7 @@ def parse_event_source(event: dict) -> _EventSource:
 
 
 def detect_lambda_function_url_domain(domain: str) -> bool:
+    #  e.g. "etsn5fibjr.lambda-url.eu-south-1.amazonaws.com"
     if not isinstance(domain, str):
         return False
     domain_parts = domain.split(".")
