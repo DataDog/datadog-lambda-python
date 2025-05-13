@@ -115,7 +115,7 @@ def parse_event_source(event: dict) -> _EventSource:
     event_source = None
 
     # Get requestContext safely and ensure it's a dictionary
-    request_context = event.get("requestContext") or {}
+    request_context = event.get("requestContext")
     if not isinstance(request_context, dict):
         request_context = None
 
