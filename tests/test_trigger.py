@@ -256,6 +256,30 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         self.assertEqual(event_source.to_string(), "unknown")
         self.assertEqual(event_source_arn, None)
 
+    def test_event_source_with_non_dict_request_context(self):
+        # Test with requestContext as a string instead of a dict
+        event = {"requestContext": "not_a_dict"}
+        event_source = parse_event_source(event)
+        # Should still return a valid event source (unknown in this case)
+        self.assertEqual(event_source.to_string(), "unknown")
+
+    def test_event_source_with_invalid_domain_name(self):
+        # Test with domainName that isn't a string
+        event = {"requestContext": {"stage": "prod", "domainName": 12345}}
+        event_source = parse_event_source(event)
+        # Should detect as API Gateway since stage is present
+        self.assertEqual(event_source.to_string(), "api-gateway")
+
+    def test_detect_lambda_function_url_domain_with_invalid_input(self):
+        from datadog_lambda.trigger import detect_lambda_function_url_domain
+
+        # Test with non-string input
+        self.assertFalse(detect_lambda_function_url_domain(None))
+        self.assertFalse(detect_lambda_function_url_domain(12345))
+        self.assertFalse(detect_lambda_function_url_domain({"not": "a-string"}))
+        # Test with string that would normally cause an exception when split
+        self.assertFalse(detect_lambda_function_url_domain(""))
+
 
 class GetTriggerTags(unittest.TestCase):
     def test_extract_trigger_tags_api_gateway(self):
@@ -529,6 +553,47 @@ class GetTriggerTags(unittest.TestCase):
         ctx = get_mock_context()
         tags = extract_trigger_tags(event, ctx)
         self.assertEqual(tags, {})
+
+    def test_extract_http_tags_with_invalid_request_context(self):
+        from datadog_lambda.trigger import extract_http_tags
+
+        # Test with requestContext as a string instead of a dict
+        event = {"requestContext": "not_a_dict", "path": "/test", "httpMethod": "GET"}
+        http_tags = extract_http_tags(event)
+        # Should still extract valid tags from the event
+        self.assertEqual(
+            http_tags, {"http.url_details.path": "/test", "http.method": "GET"}
+        )
+
+    def test_extract_http_tags_with_invalid_apigateway_http(self):
+        from datadog_lambda.trigger import extract_http_tags
+
+        # Test with http in requestContext that's not a dict
+        event = {
+            "requestContext": {"stage": "prod", "http": "not_a_dict"},
+            "version": "2.0",
+        }
+        http_tags = extract_http_tags(event)
+        # Should not raise an exception
+        self.assertEqual(http_tags, {})
+
+    def test_extract_http_tags_with_invalid_headers(self):
+        from datadog_lambda.trigger import extract_http_tags
+
+        # Test with headers that's not a dict
+        event = {"headers": "not_a_dict"}
+        http_tags = extract_http_tags(event)
+        # Should not raise an exception
+        self.assertEqual(http_tags, {})
+
+    def test_extract_http_tags_with_invalid_route(self):
+        from datadog_lambda.trigger import extract_http_tags
+
+        # Test with routeKey that would cause a split error
+        event = {"routeKey": 12345}  # Not a string
+        http_tags = extract_http_tags(event)
+        # Should not raise an exception
+        self.assertEqual(http_tags, {})
 
 
 class ExtractHTTPStatusCodeTag(unittest.TestCase):
