@@ -291,7 +291,7 @@ def extract_http_tags(event):
     http_tags = {}
 
     # Safely get request_context and ensure it's a dictionary
-    request_context = event.get("requestContext") or {}
+    request_context = event.get("requestContext")
     if not isinstance(request_context, dict):
         request_context = None
 
