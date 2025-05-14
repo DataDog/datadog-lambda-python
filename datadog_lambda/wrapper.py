@@ -45,6 +45,10 @@ from datadog_lambda.trigger import (
     extract_http_status_code_tag,
 )
 
+# Patch third-party libraries for tracing, must be done before importing any
+# handler code.
+patch_all()
+
 profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "true"
 if profiling_env_var:
     from ddtrace.profiling import profiler
@@ -223,8 +227,6 @@ class _LambdaDecorator(object):
             os.environ[DD_REQUESTS_SERVICE_NAME] = os.environ.get(
                 DD_SERVICE, "aws.lambda"
             )
-            # Patch third-party libraries for tracing
-            patch_all()
 
             # Enable LLM Observability
             if llmobs_env_var:
