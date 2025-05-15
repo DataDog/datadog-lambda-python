@@ -3,7 +3,6 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 
-import os
 import sys
 import logging
 import zlib
@@ -13,10 +12,8 @@ from wrapt import wrap_function_wrapper as wrap
 from wrapt.importer import when_imported
 from ddtrace import patch_all as patch_all_dd
 
-from datadog_lambda.tracing import (
-    get_dd_trace_context,
-    dd_tracing_enabled,
-)
+from datadog_lambda import config
+from datadog_lambda.tracing import get_dd_trace_context
 from collections.abc import MutableMapping
 
 logger = logging.getLogger(__name__)
@@ -44,8 +41,7 @@ def _patch_for_integration_tests():
     Patch `requests` to log the outgoing requests for integration tests.
     """
     global _integration_tests_patched
-    is_in_tests = os.environ.get("DD_INTEGRATION_TEST", "false").lower() == "true"
-    if not _integration_tests_patched and is_in_tests:
+    if not _integration_tests_patched and config.is_in_tests:
         wrap("requests", "Session.send", _log_request)
         _integration_tests_patched = True
 

@@ -5,14 +5,13 @@
 
 import enum
 import logging
-import os
 import time
 from datetime import datetime, timedelta
 
 import ujson as json
 
+from datadog_lambda.config import config
 from datadog_lambda.extension import should_use_extension
-from datadog_lambda.fips import fips_mode_enabled
 from datadog_lambda.tags import dd_lambda_layer_tag, get_enhanced_metrics_tags
 
 logger = logging.getLogger(__name__)
@@ -28,10 +27,10 @@ class MetricsHandler(enum.Enum):
 def _select_metrics_handler():
     if should_use_extension:
         return MetricsHandler.EXTENSION
-    if os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true":
+    if config.flush_to_log:
         return MetricsHandler.FORWARDER
 
-    if fips_mode_enabled:
+    if config.fips_mode_enabled:
         logger.debug(
             "With FIPS mode enabled, the Datadog API metrics handler is unavailable."
         )
@@ -58,14 +57,8 @@ elif metrics_handler == MetricsHandler.DATADOG_API:
     from datadog_lambda.api import init_api
     from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
-    flush_in_thread = os.environ.get("DD_FLUSH_IN_THREAD", "").lower() == "true"
     init_api()
-    lambda_stats = ThreadStatsWriter(flush_in_thread)
-
-
-enhanced_metrics_enabled = (
-    os.environ.get("DD_ENHANCED_METRICS", "true").lower() == "true"
-)
+    lambda_stats = ThreadStatsWriter(config.flush_in_thread)
 
 
 def lambda_metric(metric_name, value, timestamp=None, tags=None, force_async=False):
@@ -191,7 +184,7 @@ def submit_enhanced_metric(metric_name, lambda_context):
         metric_name (str): metric name w/o enhanced prefix i.e. "invocations" or "errors"
         lambda_context (object): Lambda context dict passed to the function by AWS
     """
-    if not enhanced_metrics_enabled:
+    if not config.enhanced_metrics_enabled:
         logger.debug(
             "Not submitting enhanced metric %s because enhanced metrics are disabled",
             metric_name,
