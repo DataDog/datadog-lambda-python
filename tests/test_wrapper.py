@@ -8,6 +8,8 @@ from datadog_lambda.constants import TraceHeader
 
 import datadog_lambda.wrapper as wrapper
 import datadog_lambda.xray as xray
+
+from datadog_lambda.config import config
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 from ddtrace.trace import Span, tracer
@@ -24,7 +26,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         patch("ddtrace.internal.writer.AgentWriter.flush_queue").start()
 
         wrapper.datadog_lambda_wrapper._force_wrap = True
-        wrapper.dd_tracing_enabled = True
         patcher = patch(
             "datadog.threadstats.reporters.HttpReporter.flush_distributions"
         )
@@ -76,9 +77,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_dd_lambda_layer_tag = patcher.start()
         self.addCleanup(patcher.stop)
 
+    @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_datadog_lambda_wrapper(self):
-        wrapper.dd_tracing_enabled = False
-
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
@@ -88,7 +88,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         lambda_context = get_mock_context()
 
         lambda_handler(lambda_event, lambda_context)
-        wrapper.dd_tracing_enabled = True
         self.mock_threadstats_flush_distributions.assert_has_calls(
             [
                 call(
@@ -185,9 +184,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         metric_module.lambda_stats.stop()
         metric_module.lambda_stats = ThreadStatsWriter(False)
 
+    @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_datadog_lambda_wrapper_inject_correlation_ids(self):
         os.environ["DD_LOGS_INJECTION"] = "True"
-        wrapper.dd_tracing_enabled = False
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -195,7 +194,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         lambda_event = {}
         lambda_handler(lambda_event, get_mock_context())
-        wrapper.dd_tracing_enabled = True
         self.mock_set_correlation_ids.assert_called()
         self.mock_inject_correlation_ids.assert_called()
 
@@ -453,11 +451,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             ]
         )
 
+    @patch("datadog_lambda.config.Config.enhanced_metrics_enabled", False)
     def test_no_enhanced_metrics_without_env_var(self):
-        patcher = patch("datadog_lambda.metric.enhanced_metrics_enabled", False)
-        patcher.start()
-        self.addCleanup(patcher.stop)
-
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             raise RuntimeError()
@@ -565,8 +560,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
 
 class TestLambdaDecoratorSettings(unittest.TestCase):
+
+    @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_some_envs_should_depend_on_dd_tracing_enabled(self):
-        wrapper.dd_tracing_enabled = False
         os.environ[wrapper.DD_TRACE_MANAGED_SERVICES] = "true"
         os.environ[wrapper.DD_ENCODE_AUTHORIZER_CONTEXT] = "true"
         os.environ[wrapper.DD_DECODE_AUTHORIZER_CONTEXT] = "true"
