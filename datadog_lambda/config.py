@@ -37,16 +37,21 @@ class Config:
     is_in_tests = _get_env("DD_INTEGRATION_TEST", "false", as_bool)
     is_lambda_context = _get_env("AWS_LAMBDA_FUNCTION_NAME", None, bool)
     otel_enabled = _get_env("DD_TRACE_OTEL_ENABLED", "false", as_bool)
-    telemetry_enabled = _get_env("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "false", as_bool)
+    telemetry_enabled = _get_env(
+        "DD_INSTRUMENTATION_TELEMETRY_ENABLED", "false", as_bool
+    )
     trace_enabled = _get_env("DD_TRACE_ENABLED", "true", as_bool)
 
     @property
     def fips_mode_enabled(self):
         if not hasattr(self, "_config_fips_mode_enabled"):
-            self._config_fips_mode_enabled = os.environ.get(
-                "DD_LAMBDA_FIPS_MODE",
-                "true" if self.is_gov_region else "false",
-            ).lower() == "true"
+            self._config_fips_mode_enabled = (
+                os.environ.get(
+                    "DD_LAMBDA_FIPS_MODE",
+                    "true" if self.is_gov_region else "false",
+                ).lower()
+                == "true"
+            )
         return self._config_fips_mode_enabled
 
     def reset(self):
