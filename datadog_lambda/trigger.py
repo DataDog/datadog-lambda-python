@@ -115,9 +115,9 @@ def parse_event_source(event: dict) -> _EventSource:
     event_source = None
 
     # Get requestContext safely and ensure it's a dictionary
-    request_context = event.get("requestContext", {})
+    request_context = event.get("requestContext")
     if not isinstance(request_context, dict):
-        request_context = {}
+        request_context = None
 
     if request_context and request_context.get("stage"):
         if "domainName" in request_context and detect_lambda_function_url_domain(
@@ -291,9 +291,9 @@ def extract_http_tags(event):
     http_tags = {}
 
     # Safely get request_context and ensure it's a dictionary
-    request_context = event.get("requestContext", {})
+    request_context = event.get("requestContext")
     if not isinstance(request_context, dict):
-        request_context = {}
+        request_context = None
 
     path = event.get("path")
     method = event.get("httpMethod")
