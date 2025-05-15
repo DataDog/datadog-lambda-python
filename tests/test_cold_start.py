@@ -247,7 +247,7 @@ def test_lazy_loaded_package_imports(monkeypatch):
 
     monkeypatch.setattr(wrapper.tracer, "_on_span_finish", finish)
     monkeypatch.setattr(wrapper, "is_new_sandbox", lambda: True)
-    monkeypatch.setattr("datadog_lambda.wrapper.dd_tracing_enabled", True)
+    monkeypatch.setattr("datadog_lambda.config.Config.trace_enabled", True)
     monkeypatch.setenv(
         "DD_COLD_START_TRACE_SKIP_LIB", "ddtrace.contrib.logging,datadog_lambda.wrapper"
     )

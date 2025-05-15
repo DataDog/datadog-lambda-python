@@ -17,7 +17,7 @@ def _get_env(key, default=None, cast=None):
             setattr(self, prop_key, val)
         return getattr(self, prop_key)
 
-    prop_key = f"_{key}"
+    prop_key = f"_config_{key}"
     return _getter
 
 
@@ -42,12 +42,17 @@ class Config:
 
     @property
     def fips_mode_enabled(self):
-        if not hasattr(self, "_fips_mode_enabled"):
-            self._fips_mode_enabled = os.environ.get(
+        if not hasattr(self, "_config_fips_mode_enabled"):
+            self._config_fips_mode_enabled = os.environ.get(
                 "DD_LAMBDA_FIPS_MODE",
                 "true" if self.is_gov_region else "false",
             ).lower() == "true"
-        return self._fips_mode_enabled
+        return self._config_fips_mode_enabled
+
+    def reset(self):
+        for attr in dir(self):
+            if attr.startswith("_config_"):
+                delattr(self, attr)
 
 
 config = Config()

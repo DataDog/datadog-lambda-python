@@ -1,6 +1,16 @@
 import pytest
 
-from datadog_lambda.config import Config
+from datadog_lambda.config import config
+
+
+@pytest.fixture
+def setenv(monkeypatch):
+    def set_env(key, value):
+        if value is None:
+            monkeypatch.delenv(key, raising=False)
+        else:
+            monkeypatch.setenv(key, value)
+    return set_env
 
 
 _test_config_from_environ = (
@@ -109,10 +119,8 @@ _test_config_from_environ = (
 )
 
 @pytest.mark.parametrize('env_key,conf_key,env_val,conf_val', _test_config_from_environ)
-def test_config_from_environ(env_key, conf_key, env_val, conf_val, monkeypatch):
-    if env_val is not None:
-        monkeypatch.setenv(env_key, env_val)
-    config = Config()
+def test_config_from_environ(env_key, conf_key, env_val, conf_val, setenv):
+    setenv(env_key, env_val)
     assert getattr(config, conf_key) == conf_val
 
 
@@ -160,9 +168,7 @@ _test_fips_mode_from_environ = (
 )
 
 @pytest.mark.parametrize('fips_mode,region,conf_val', _test_fips_mode_from_environ)
-def test_fips_mode_from_environ(fips_mode, region, conf_val, monkeypatch):
-    if fips_mode is not None:
-        monkeypatch.setenv("DD_LAMBDA_FIPS_MODE", fips_mode)
-    if region is not None:
-        monkeypatch.setenv("AWS_REGION", region)
-    assert Config().fips_mode_enabled == conf_val
+def test_fips_mode_from_environ(fips_mode, region, conf_val, setenv):
+    setenv("DD_LAMBDA_FIPS_MODE", fips_mode)
+    setenv("AWS_REGION", region)
+    assert config.fips_mode_enabled == conf_val

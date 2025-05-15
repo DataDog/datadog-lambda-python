@@ -7,6 +7,7 @@ from botocore.exceptions import ClientError as BotocoreClientError
 from datadog.api.exceptions import ClientError
 
 from datadog_lambda.api import KMS_ENCRYPTION_CONTEXT_KEY, decrypt_kms_api_key
+from datadog_lambda.config import config
 from datadog_lambda.metric import (
     MetricsHandler,
     _select_metrics_handler,
@@ -19,6 +20,7 @@ from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
 class TestLambdaMetric(unittest.TestCase):
     def setUp(self):
+        config.reset()
         lambda_stats_patcher = patch("datadog_lambda.metric.lambda_stats")
         self.mock_metric_lambda_stats = lambda_stats_patcher.start()
         self.addCleanup(lambda_stats_patcher.stop)
@@ -62,7 +64,7 @@ class TestLambdaMetric(unittest.TestCase):
         self.assertEqual(MetricsHandler.DATADOG_API, _select_metrics_handler())
         del os.environ["DD_FLUSH_TO_LOG"]
 
-    @patch("datadog_lambda.metric.fips_mode_enabled", True)
+    @patch("datadog_lambda.config.Config.fips_mode_enabled", True)
     @patch("datadog_lambda.metric.should_use_extension", False)
     def test_select_metrics_handler_has_no_fallback_in_fips_mode(self):
         os.environ["DD_FLUSH_TO_LOG"] = "False"

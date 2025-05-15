@@ -15,6 +15,7 @@ from ddtrace._trace._span_pointer import _SpanPointer
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
 
+from datadog_lambda.config import config
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
@@ -251,20 +252,16 @@ def test_extract_dd_trace_context(event, expect):
 
 class TestExtractAndGetDDTraceContext(unittest.TestCase):
     def setUp(self):
-        global dd_tracing_enabled
-        dd_tracing_enabled = False
         os.environ["_X_AMZN_TRACE_ID"] = fake_xray_header_value
         patcher = patch("datadog_lambda.tracing.send_segment")
         self.mock_send_segment = patcher.start()
         self.addCleanup(patcher.stop)
-        patcher = patch("datadog_lambda.tracing.is_lambda_context")
+        patcher = patch("datadog_lambda.config.Config.is_lambda_context")
         self.mock_is_lambda_context = patcher.start()
         self.mock_is_lambda_context.return_value = True
         self.addCleanup(patcher.stop)
 
     def tearDown(self):
-        global dd_tracing_enabled
-        dd_tracing_enabled = False
         del os.environ["_X_AMZN_TRACE_ID"]
 
     @with_trace_propagation_style("datadog")
@@ -975,6 +972,7 @@ class TestXRayContextConversion(unittest.TestCase):
 
 class TestLogsInjection(unittest.TestCase):
     def setUp(self):
+        config.reset()
         patcher = patch("datadog_lambda.tracing.get_dd_trace_context_obj")
         self.mock_get_dd_trace_context = patcher.start()
         self.mock_get_dd_trace_context.return_value = Context(
@@ -984,11 +982,12 @@ class TestLogsInjection(unittest.TestCase):
         )
         self.addCleanup(patcher.stop)
 
-        patcher = patch("datadog_lambda.tracing.is_lambda_context")
+        patcher = patch("datadog_lambda.config.Config.is_lambda_context")
         self.mock_is_lambda_context = patcher.start()
         self.mock_is_lambda_context.return_value = True
         self.addCleanup(patcher.stop)
 
+    @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_set_correlation_ids(self):
         set_correlation_ids()
         span = tracer.current_span()
@@ -1124,13 +1123,11 @@ class TestFunctionSpanTags(unittest.TestCase):
 
 class TestSetTraceRootSpan(unittest.TestCase):
     def setUp(self):
-        global dd_tracing_enabled
-        dd_tracing_enabled = False
         os.environ["_X_AMZN_TRACE_ID"] = fake_xray_header_value
         patcher = patch("datadog_lambda.tracing.send_segment")
         self.mock_send_segment = patcher.start()
         self.addCleanup(patcher.stop)
-        patcher = patch("datadog_lambda.tracing.is_lambda_context")
+        patcher = patch("datadog_lambda.config.Config.is_lambda_context")
         self.mock_is_lambda_context = patcher.start()
         self.mock_is_lambda_context.return_value = True
         self.addCleanup(patcher.stop)
@@ -1143,8 +1140,6 @@ class TestSetTraceRootSpan(unittest.TestCase):
         self.addCleanup(patcher.stop)
 
     def tearDown(self):
-        global dd_tracing_enabled
-        dd_tracing_enabled = False
         del os.environ["_X_AMZN_TRACE_ID"]
 
     def test_mixed_parent_context_when_merging(self):
@@ -1245,6 +1240,7 @@ class TestServiceMapping(unittest.TestCase):
             create_service_mapping(os.environ["DD_SERVICE_MAPPING"])
         )
         self.assertEqual(self.get_service_mapping(), expected_output)
+        del os.environ["DD_SERVICE_MAPPING"]
 
     def test_set_service_mapping(self):
         new_service_mapping = {"api3": "service3", "api4": "service4"}
@@ -1284,6 +1280,8 @@ class TestServiceMapping(unittest.TestCase):
             ),
             "default",
         )
+
+        del os.environ["DD_SERVICE_MAPPING"]
 
     def test_remaps_all_inferred_span_service_names_from_api_gateway_event(self):
         new_service_mapping = {"lambda_api_gateway": "new-name"}
@@ -2386,7 +2384,7 @@ class TestStepFunctionsTraceContext(unittest.TestCase):
 
 
 class TestExceptionOutsideHandler(unittest.TestCase):
-    @patch("datadog_lambda.tracing.dd_tracing_enabled", True)
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
     @patch("datadog_lambda.tracing.submit_errors_metric")
     @patch("time.time_ns", return_value=42)
     def test_exception_outside_handler_tracing_enabled(
@@ -2427,7 +2425,7 @@ class TestExceptionOutsideHandler(unittest.TestCase):
         assert mock_span.error == 1
         assert mock_span.start_ns == 42
 
-    @patch("datadog_lambda.tracing.dd_tracing_enabled", False)
+    @patch("datadog_lambda.config.Config.trace_enabled", False)
     @patch("datadog_lambda.tracing.submit_errors_metric")
     @patch("time.time_ns", return_value=42)
     def test_exception_outside_handler_tracing_disabled(
