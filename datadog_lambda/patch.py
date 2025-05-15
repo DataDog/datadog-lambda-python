@@ -29,7 +29,7 @@ def patch_all():
     """
     _patch_for_integration_tests()
 
-    if dd_tracing_enabled:
+    if config.trace_enabled:
         patch_all_dd()
     else:
         _patch_http()
