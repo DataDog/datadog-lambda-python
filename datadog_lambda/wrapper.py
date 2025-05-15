@@ -18,6 +18,7 @@ from datadog_lambda.cold_start import (
     is_new_sandbox,
     ColdStartTracer,
 )
+from datadog_lambda.config import config
 from datadog_lambda.constants import (
     TraceContextSource,
     XraySubsegment,
@@ -30,7 +31,6 @@ from datadog_lambda.tracing import (
     extract_dd_trace_context,
     create_dd_dummy_metadata_subsegment,
     inject_correlation_ids,
-    dd_tracing_enabled,
     mark_trace_as_error_for_5xx_responses,
     set_correlation_ids,
     set_dd_trace_py_root,
@@ -175,7 +175,7 @@ class _LambdaDecorator(object):
             self.span = None
             self.inferred_span = None
             depends_on_dd_tracing_enabled = (
-                lambda original_boolean: dd_tracing_enabled and original_boolean
+                lambda original_boolean: config.trace_enabled and original_boolean
             )
             self.make_inferred_span = depends_on_dd_tracing_enabled(
                 os.environ.get(DD_TRACE_MANAGED_SERVICES, "true").lower() == "true"
@@ -321,7 +321,7 @@ class _LambdaDecorator(object):
                     XraySubsegment.TRACE_KEY,
                 )
 
-            if dd_tracing_enabled:
+            if config.trace_enabled:
                 set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
                 if self.make_inferred_span:
                     self.inferred_span = create_inferred_span(

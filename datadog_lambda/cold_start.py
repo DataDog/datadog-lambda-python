@@ -1,7 +1,8 @@
 import time
-import os
 from typing import List, Hashable
 import logging
+
+from datadog_lambda.config import config
 
 logger = logging.getLogger(__name__)
 
@@ -86,14 +87,12 @@ def reset_node_stacks():
 
 def push_node(module_name, file_path):
     node = ImportNode(module_name, file_path, time.time_ns())
-    global import_stack
     if import_stack:
         import_stack[-1].children.append(node)
     import_stack.append(node)
 
 
 def pop_node(module_name):
-    global import_stack
     if not import_stack:
         return
     node = import_stack.pop()
@@ -102,7 +101,6 @@ def pop_node(module_name):
     end_time_ns = time.time_ns()
     node.end_time_ns = end_time_ns
     if not import_stack:  # import_stack empty, a root node has been found
-        global root_nodes
         root_nodes.append(node)
 
 
@@ -147,11 +145,7 @@ def wrap_find_spec(original_find_spec):
 
 
 def initialize_cold_start_tracing():
-    if (
-        is_new_sandbox()
-        and os.environ.get("DD_TRACE_ENABLED", "true").lower() == "true"
-        and os.environ.get("DD_COLD_START_TRACING", "true").lower() == "true"
-    ):
+    if is_new_sandbox() and config.trace_enabled and config.cold_start_tracing:
         from sys import meta_path
 
         for importer in meta_path:
