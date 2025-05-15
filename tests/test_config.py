@@ -14,7 +14,7 @@ _test_config_from_environ = (
         ("DD_FLUSH_TO_LOG", "flush_to_log", "TRUE", True),
         ("DD_FLUSH_TO_LOG", "flush_to_log", "false", False),
         ("DD_FLUSH_TO_LOG", "flush_to_log", "FALSE", False),
-        ("DD_FLUSH_TO_LOG", "flush_to_log", "1", False),
+        ("DD_FLUSH_TO_LOG", "flush_to_log", "1", True),      # CHANGED
         ("DD_FLUSH_TO_LOG", "flush_to_log", "0", False),
         ("DD_FLUSH_TO_LOG", "flush_to_log", "purple", False),
 
@@ -24,7 +24,7 @@ _test_config_from_environ = (
         ("DD_TRACE_ENABLED", "trace_enabled", "TRUE", True),
         ("DD_TRACE_ENABLED", "trace_enabled", "false", False),
         ("DD_TRACE_ENABLED", "trace_enabled", "FALSE", False),
-        ("DD_TRACE_ENABLED", "trace_enabled", "1", False),
+        ("DD_TRACE_ENABLED", "trace_enabled", "1", True),    # CHANGED
         ("DD_TRACE_ENABLED", "trace_enabled", "0", False),
         ("DD_TRACE_ENABLED", "trace_enabled", "purple", False),
 
@@ -34,7 +34,7 @@ _test_config_from_environ = (
         ("DD_COLD_START_TRACING", "cold_start_tracing", "TRUE", True),
         ("DD_COLD_START_TRACING", "cold_start_tracing", "false", False),
         ("DD_COLD_START_TRACING", "cold_start_tracing", "FALSE", False),
-        ("DD_COLD_START_TRACING", "cold_start_tracing", "1", False),
+        ("DD_COLD_START_TRACING", "cold_start_tracing", "1", True),  # CHANGED
         ("DD_COLD_START_TRACING", "cold_start_tracing", "0", False),
         ("DD_COLD_START_TRACING", "cold_start_tracing", "purple", False),
 
@@ -49,7 +49,7 @@ _test_config_from_environ = (
         ("DD_FLUSH_IN_THREAD", "flush_in_thread", "TRUE", True),
         ("DD_FLUSH_IN_THREAD", "flush_in_thread", "false", False),
         ("DD_FLUSH_IN_THREAD", "flush_in_thread", "FALSE", False),
-        ("DD_FLUSH_IN_THREAD", "flush_in_thread", "1", False),
+        ("DD_FLUSH_IN_THREAD", "flush_in_thread", "1", True),  # CHANGED
         ("DD_FLUSH_IN_THREAD", "flush_in_thread", "0", False),
         ("DD_FLUSH_IN_THREAD", "flush_in_thread", "purple", False),
 
@@ -59,7 +59,7 @@ _test_config_from_environ = (
         ("DD_ENHANCED_METRICS", "enhanced_metrics_enabled", "TRUE", True),
         ("DD_ENHANCED_METRICS", "enhanced_metrics_enabled", "false", False),
         ("DD_ENHANCED_METRICS", "enhanced_metrics_enabled", "FALSE", False),
-        ("DD_ENHANCED_METRICS", "enhanced_metrics_enabled", "1", False),
+        ("DD_ENHANCED_METRICS", "enhanced_metrics_enabled", "1", True), # CHANGED
         ("DD_ENHANCED_METRICS", "enhanced_metrics_enabled", "0", False),
         ("DD_ENHANCED_METRICS", "enhanced_metrics_enabled", "purple", False),
 
@@ -69,7 +69,7 @@ _test_config_from_environ = (
         ("DD_INTEGRATION_TEST", "is_in_tests", "TRUE", True),
         ("DD_INTEGRATION_TEST", "is_in_tests", "false", False),
         ("DD_INTEGRATION_TEST", "is_in_tests", "FALSE", False),
-        ("DD_INTEGRATION_TEST", "is_in_tests", "1", False),
+        ("DD_INTEGRATION_TEST", "is_in_tests", "1", True),  # CHANGED
         ("DD_INTEGRATION_TEST", "is_in_tests", "0", False),
         ("DD_INTEGRATION_TEST", "is_in_tests", "purple", False),
 
@@ -89,7 +89,7 @@ _test_config_from_environ = (
         ("DD_TRACE_OTEL_ENABLED", "otel_enabled", "TRUE", True),
         ("DD_TRACE_OTEL_ENABLED", "otel_enabled", "false", False),
         ("DD_TRACE_OTEL_ENABLED", "otel_enabled", "FALSE", False),
-        ("DD_TRACE_OTEL_ENABLED", "otel_enabled", "1", False),
+        ("DD_TRACE_OTEL_ENABLED", "otel_enabled", "1", True), # CHANGED
         ("DD_TRACE_OTEL_ENABLED", "otel_enabled", "0", False),
         ("DD_TRACE_OTEL_ENABLED", "otel_enabled", "purple", False),
 
@@ -103,7 +103,7 @@ _test_config_from_environ = (
         ("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", "TRUE", True),
         ("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", "false", False),
         ("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", "FALSE", False),
-        ("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", "1", False),
+        ("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", "1", True), # CHANGED
         ("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", "0", False),
         ("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", "purple", False),
 )
