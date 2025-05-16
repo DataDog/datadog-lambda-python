@@ -58,6 +58,7 @@ exception_replay_env_var = os.environ.get(
 ).lower() in ("true", "1")
 if exception_replay_env_var:
     from ddtrace.debugging._exception.replay import SpanExceptionHandler
+    from ddtrace.debugging._uploader import LogsIntakeUploaderV1
 
 logger = logging.getLogger(__name__)
 
@@ -404,6 +405,10 @@ class _LambdaDecorator(object):
 
             if llmobs_env_var:
                 LLMObs.flush()
+
+            # Flush exception replay
+            if exception_replay_env_var:
+                LogsIntakeUploaderV1._instance.periodic()
 
             if self.encode_authorizer_context and is_authorizer_response(self.response):
                 self._inject_authorizer_span_headers(
