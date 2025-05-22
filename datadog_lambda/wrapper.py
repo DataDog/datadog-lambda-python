@@ -306,6 +306,10 @@ class _LambdaDecorator(object):
             )
             self.event_source = event_source
             # Create a Datadog X-Ray subsegment with the trace context
+            other_contexts=None
+            if isinstance(dd_context,list):
+                other_contexts=dd_context[1:]
+                dd_context=dd_context[0]
             if dd_context and trace_context_source == TraceContextSource.EVENT:
                 create_dd_dummy_metadata_subsegment(
                     {
@@ -332,7 +336,9 @@ class _LambdaDecorator(object):
                     trigger_tags=self.trigger_tags,
                     parent_span=self.inferred_span,
                     span_pointers=calculate_span_pointers(event_source, event),
+                    other_contexts=other_contexts,
                 )
+
             else:
                 set_correlation_ids()
             if profiling_env_var and is_new_sandbox():

@@ -132,6 +132,15 @@ def _get_dd_trace_py_context():
 
 
 def _is_context_complete(context):
+    if isinstance(context, list):
+        first_context = context[0]
+        print(first_context)
+        return (
+            first_context
+            and first_context.trace_id
+            and first_context.span_id
+            and first_context.sampling_priority is not None
+        )
     return (
         context
         and context.trace_id
@@ -199,18 +208,14 @@ def extract_context_from_http_event_or_context(
 
 
 def create_sns_event(message):
-    return {
-        "Records": [
-            {
+    return  {
                 "EventSource": "aws:sns",
                 "EventVersion": "1.0",
                 "Sns": message,
             }
-        ]
-    }
 
 
-def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
+def extract_context_from_sqs_or_sns_event_or_context(record, lambda_context):
     """
     Extract Datadog trace context from an SQS event.
 
@@ -226,29 +231,28 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 
     # EventBridge => SQS
     try:
-        context = _extract_context_from_eventbridge_sqs_event(event)
+        context = _extract_context_from_eventbridge_sqs_event(record)
         if _is_context_complete(context):
             return context
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
     try:
-        first_record = event.get("Records")[0]
 
         # logic to deal with SNS => SQS event
-        if "body" in first_record:
-            body_str = first_record.get("body")
+        if "body" in record:
+            body_str = record.get("body")
             try:
                 body = json.loads(body_str)
                 if body.get("Type", "") == "Notification" and "TopicArn" in body:
                     logger.debug("Found SNS message inside SQS event")
-                    first_record = get_first_record(create_sns_event(body))
+                    record = create_sns_event(body)
             except Exception:
                 pass
 
-        msg_attributes = first_record.get("messageAttributes")
+        msg_attributes = record.get("messageAttributes")
         if msg_attributes is None:
-            sns_record = first_record.get("Sns") or {}
+            sns_record = record.get("Sns") or {}
             msg_attributes = sns_record.get("MessageAttributes") or {}
         dd_payload = msg_attributes.get("_datadog")
         if dd_payload:
@@ -285,7 +289,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
-            attrs = event.get("Records")[0].get("attributes")
+            attrs = record.get("Records")[0].get("attributes")
             if attrs:
                 x_ray_header = attrs.get("AWSTraceHeader")
                 if x_ray_header:
@@ -310,7 +314,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
-def _extract_context_from_eventbridge_sqs_event(event):
+def _extract_context_from_eventbridge_sqs_event(record):
     """
     Extracts Datadog trace context from an SQS event triggered by
     EventBridge.
@@ -318,8 +322,7 @@ def _extract_context_from_eventbridge_sqs_event(event):
     This is only possible if first record in `Records` contains a
     `body` field which contains the EventBridge `detail` as a JSON string.
     """
-    first_record = event.get("Records")[0]
-    body_str = first_record.get("body")
+    body_str = record.get("body")
     body = json.loads(body_str)
     detail = body.get("detail")
     dd_context = detail.get("_datadog")
@@ -593,7 +596,6 @@ def extract_dd_trace_context(
     global dd_trace_context
     trace_context_source = None
     event_source = parse_event_source(event)
-
     if extractor is not None:
         context = extract_context_custom_extractor(extractor, event, lambda_context)
     elif isinstance(event, (set, dict)) and "headers" in event:
@@ -601,9 +603,7 @@ def extract_dd_trace_context(
             event, lambda_context, event_source, decode_authorizer_context
         )
     elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
-        context = extract_context_from_sqs_or_sns_event_or_context(
-            event, lambda_context
-        )
+        context = [extract_context_from_sqs_or_sns_event_or_context(r, lambda_context) for r in event.get("Records", []) ]
     elif event_source.equals(EventTypes.EVENTBRIDGE):
         context = extract_context_from_eventbridge_event(event, lambda_context)
     elif event_source.equals(EventTypes.KINESIS):
@@ -735,8 +735,11 @@ def inject_correlation_ids():
 
 
 def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
+    global dd_trace_context
     if not _is_context_complete(dd_trace_context):
         return
+    if isinstance(dd_trace_context, list):
+        dd_trace_context = dd_trace_context[0]
     if trace_context_source == TraceContextSource.EVENT or merge_xray_traces:
         context = Context(
             trace_id=dd_trace_context.trace_id,
@@ -1370,6 +1373,7 @@ def create_function_execution_span(
     trigger_tags,
     parent_span=None,
     span_pointers=None,
+    other_contexts=None,
 ):
     tags = None
     if context:
@@ -1416,6 +1420,10 @@ def create_function_execution_span(
                 pointer_hash=span_pointer_description.pointer_hash,
                 extra_attributes=span_pointer_description.extra_attributes,
             )
+    if other_contexts:
+        root_span = parent_span if parent_span else span
+        for context in other_contexts:
+            root_span.link_span(context)
     return span
 
 
