@@ -850,13 +850,14 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
     http = request_context.get("http")
     method = http.get("method") if http else None
     path = http.get("path") if http else None
+    http_url = f"https://{domain}{path}"
     resource = f"{method} {path}"
     tags = {
         "operation_name": "aws.lambda.url",
-        "http.url": domain + path,
+        "http.url": http_url,
         "endpoint": path,
         "http.method": method,
-        "resource_names": domain + path,
+        "resource_names": resource,
         "request_id": context.aws_request_id,
     }
     request_time_epoch = request_context.get("timeEpoch")
@@ -948,6 +949,7 @@ def create_inferred_span_from_api_gateway_websocket_event(
     request_context = event.get("requestContext")
     domain = request_context.get("domainName")
     endpoint = request_context.get("routeKey")
+    http_url = f"https://{domain}{endpoint}"
     api_id = request_context.get("apiId")
 
     service_name = determine_service_name(
@@ -955,7 +957,7 @@ def create_inferred_span_from_api_gateway_websocket_event(
     )
     tags = {
         "operation_name": "aws.apigateway.websocket",
-        "http.url": domain + endpoint,
+        "http.url": http_url,
         "endpoint": endpoint,
         "resource_names": endpoint,
         "apiid": api_id,
@@ -1007,11 +1009,12 @@ def create_inferred_span_from_api_gateway_event(
     )
     method = event.get("httpMethod")
     path = event.get("path")
+    http_url = f"https://{domain}{path}"
     resource_path = _get_resource_path(event, request_context)
     resource = f"{method} {resource_path}"
     tags = {
         "operation_name": "aws.apigateway.rest",
-        "http.url": domain + path,
+        "http.url": http_url,
         "endpoint": path,
         "http.method": method,
         "resource_names": resource,
@@ -1073,12 +1076,13 @@ def create_inferred_span_from_http_api_event(
     http = request_context.get("http") or {}
     method = http.get("method")
     path = event.get("rawPath")
+    http_url = f"https://{domain}{path}"
     resource_path = _get_resource_path(event, request_context)
     resource = f"{method} {resource_path}"
     tags = {
         "operation_name": "aws.httpapi",
         "endpoint": path,
-        "http.url": domain + path,
+        "http.url": http_url,
         "http.method": http.get("method"),
         "http.protocol": http.get("protocol"),
         "http.source_ip": http.get("sourceIp"),

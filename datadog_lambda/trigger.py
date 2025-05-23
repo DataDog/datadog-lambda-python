@@ -301,7 +301,7 @@ def extract_http_tags(event):
     if request_context and request_context.get("stage"):
         domain_name = request_context.get("domainName")
         if domain_name:
-            http_tags["http.url"] = domain_name
+            http_tags["http.url"] = f"https://{domain_name}"
 
         path = request_context.get("path")
         method = request_context.get("httpMethod")
