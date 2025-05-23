@@ -857,7 +857,7 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
         "http.url": http_url,
         "endpoint": path,
         "http.method": method,
-        "resource_names": http_url,
+        "resource_names": resource,
         "request_id": context.aws_request_id,
     }
     request_time_epoch = request_context.get("timeEpoch")
@@ -959,7 +959,7 @@ def create_inferred_span_from_api_gateway_websocket_event(
         "operation_name": "aws.apigateway.websocket",
         "http.url": http_url,
         "endpoint": endpoint,
-        "resource_names": http_url,
+        "resource_names": endpoint,
         "apiid": api_id,
         "apiname": api_id,
         "stage": request_context.get("stage"),
@@ -1017,7 +1017,7 @@ def create_inferred_span_from_api_gateway_event(
         "http.url": http_url,
         "endpoint": path,
         "http.method": method,
-        "resource_names": http_url,
+        "resource_names": resource,
         "apiid": api_id,
         "apiname": api_id,
         "stage": request_context.get("stage"),
