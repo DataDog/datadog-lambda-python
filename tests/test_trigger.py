@@ -294,7 +294,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod",
-                "http.url": "70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
+                "http.url": "https://70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
                 "http.url_details.path": "/prod/path/to/resource",
                 "http.method": "POST",
                 "http.route": "/{proxy+}",
@@ -313,7 +313,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/lgxbo6a518/stages/dev",
-                "http.url": "lgxbo6a518.execute-api.eu-west-1.amazonaws.com",
+                "http.url": "https://lgxbo6a518.execute-api.eu-west-1.amazonaws.com",
                 "http.url_details.path": "/dev/http/get",
                 "http.method": "GET",
                 "http.route": "/http/get",
@@ -332,7 +332,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/p62c47itsb/stages/dev",
-                "http.url": "p62c47itsb.execute-api.eu-west-1.amazonaws.com",
+                "http.url": "https://p62c47itsb.execute-api.eu-west-1.amazonaws.com",
             },
         )
 
@@ -348,7 +348,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/p62c47itsb/stages/dev",
-                "http.url": "p62c47itsb.execute-api.eu-west-1.amazonaws.com",
+                "http.url": "https://p62c47itsb.execute-api.eu-west-1.amazonaws.com",
             },
         )
 
@@ -364,7 +364,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/p62c47itsb/stages/dev",
-                "http.url": "p62c47itsb.execute-api.eu-west-1.amazonaws.com",
+                "http.url": "https://p62c47itsb.execute-api.eu-west-1.amazonaws.com",
             },
         )
 
@@ -380,7 +380,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/x02yirxc7a/stages/$default",
-                "http.url": "x02yirxc7a.execute-api.eu-west-1.amazonaws.com",
+                "http.url": "https://x02yirxc7a.execute-api.eu-west-1.amazonaws.com",
                 "http.url_details.path": "/httpapi/get",
                 "http.method": "GET",
                 "http.route": "/httpapi/get",
