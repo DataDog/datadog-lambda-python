@@ -79,6 +79,7 @@ DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH = "DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH"
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
 DD_ENV = "DD_ENV"
+DD_DATA_STREAMS_ENABLED = "DD_DATA_STREAMS_ENABLED"
 
 
 def get_env_as_int(env_key, default_value: int) -> int:
@@ -190,6 +191,9 @@ class _LambdaDecorator(object):
             self.min_cold_start_trace_duration = get_env_as_int(
                 DD_MIN_COLD_START_DURATION, 3
             )
+            self.data_streams_enabled = (
+                os.environ.get(DD_DATA_STREAMS_ENABLED, "false").lower() == "true"
+            )
             self.local_testing_mode = os.environ.get(
                 DD_LOCAL_TEST, "false"
             ).lower() in ("true", "1")
@@ -287,6 +291,41 @@ class _LambdaDecorator(object):
         self.response["context"]["_datadog"] = datadog_data
 
     def _before(self, event, context):
+
+        from ddtrace.internal.datastreams.processor import (
+            DataStreamsProcessor as processor,
+            DsmPathwayCodec,
+        )
+        from ddtrace.internal.datastreams.botocore import (
+            get_datastreams_context,
+            calculate_sqs_payload_size,
+        )
+
+        def _dsm_set_sqs_context(record):
+            try:
+                queue_arn = record.get("eventSourceARN", "")
+
+                contextjson = get_datastreams_context(record)
+                payload_size = calculate_sqs_payload_size(record)
+
+                ctx = DsmPathwayCodec.decode(contextjson, processor())
+                ctx.set_checkpoint(
+                    ["direction:in", "queue:arn:" + queue_arn, "type:sqs"],
+                    payload_size=payload_size,
+                )
+
+            except Exception as e:
+                logger.error(format_err_with_traceback(e))
+
+        if self.data_streams_enabled:
+            if isinstance(event, dict) and "Records" in event and event["Records"]:
+                sqs_records = [
+                    r for r in event["Records"] if r.get("eventSource") == "aws:sqs"
+                ]
+                if sqs_records:
+                    for record in sqs_records:
+                        _dsm_set_sqs_context(record)
+
         try:
             self.response = None
             set_cold_start(init_timestamp_ns)
