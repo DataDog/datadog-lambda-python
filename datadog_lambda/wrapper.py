@@ -292,15 +292,6 @@ class _LambdaDecorator(object):
 
     def _before(self, event, context):
 
-        from ddtrace.internal.datastreams.processor import (
-            DataStreamsProcessor as processor,
-            DsmPathwayCodec,
-        )
-        from ddtrace.internal.datastreams.botocore import (
-            get_datastreams_context,
-            calculate_sqs_payload_size,
-        )
-
         def _dsm_set_sqs_context(record):
             try:
                 queue_arn = record.get("eventSourceARN", "")
@@ -319,6 +310,15 @@ class _LambdaDecorator(object):
                 logger.error(format_err_with_traceback(e))
 
         if self.data_streams_enabled:
+            from ddtrace.internal.datastreams.processor import (
+                DataStreamsProcessor as processor,
+                DsmPathwayCodec,
+            )
+            from ddtrace.internal.datastreams.botocore import (
+                get_datastreams_context,
+                calculate_sqs_payload_size,
+            )
+
             if isinstance(event, dict) and "Records" in event and event["Records"]:
                 sqs_records = [
                     r for r in event["Records"] if r.get("eventSource") == "aws:sqs"
