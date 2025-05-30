@@ -689,7 +689,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
                             if (
                                 "direction:in" in edge_tags
-                                and "topic:test" in edge_tags
+                                and "topic:arn:aws:sqs:us-east-1:123456789012:test"
+                                in edge_tags
                                 and "type:sqs" in edge_tags
                             ):
                                 found_sqs_checkpoint = True
