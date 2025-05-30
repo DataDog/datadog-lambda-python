@@ -563,6 +563,171 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             self.assertEqual(result, test_result)
             self.assertFalse(MockPrintExc.called)
 
+    @patch.dict(os.environ, {"DD_DATA_STREAMS_ENABLED": "true"})
+    def test_datadog_lambda_wrapper_dsm_sqs_context_pathway_verification(self):
+        with patch(
+            "ddtrace.internal.datastreams.processor.get_connection"
+        ) as mock_get_connection:
+
+            mock_conn = unittest.mock.MagicMock()
+            mock_response = unittest.mock.MagicMock()
+            mock_response.status = 200
+            mock_conn.getresponse.return_value = mock_response
+            mock_get_connection.return_value = mock_conn
+
+            def updated_get_datastreams_context(message):
+                """
+                Updated version that handles the correct message formats
+                """
+                import base64
+                import json
+
+                context_json = None
+                message_body = message
+                try:
+                    body = message.get("Body")
+                    if body:
+                        message_body = json.loads(body)
+                except (ValueError, TypeError):
+                    pass
+
+                message_attributes = message_body.get(
+                    "MessageAttributes"
+                ) or message_body.get("messageAttributes")
+                if not message_attributes:
+                    return None
+
+                if "_datadog" not in message_attributes:
+                    return None
+
+                datadog_attr = message_attributes["_datadog"]
+
+                if message_body.get("Type") == "Notification":
+                    if datadog_attr.get("Type") == "Binary":
+                        context_json = json.loads(
+                            base64.b64decode(datadog_attr["Value"]).decode()
+                        )
+                elif "StringValue" in datadog_attr:
+                    context_json = json.loads(datadog_attr["StringValue"])
+                elif "stringValue" in datadog_attr:
+                    context_json = json.loads(datadog_attr["stringValue"])
+                elif "BinaryValue" in datadog_attr:
+                    context_json = json.loads(datadog_attr["BinaryValue"].decode())
+                else:
+                    print(f"DEBUG: Unhandled datadog_attr format: {datadog_attr}")
+
+                return context_json
+
+            with patch(
+                "ddtrace.internal.datastreams.botocore.get_datastreams_context",
+                updated_get_datastreams_context,
+            ):
+
+                # Step 1: Create a message with some context in the message attributes
+
+                from ddtrace.internal.datastreams.processor import DataStreamsProcessor
+
+                processor_instance = DataStreamsProcessor()
+
+                with patch(
+                    "ddtrace.internal.datastreams.processor.DataStreamsProcessor",
+                    return_value=processor_instance,
+                ):
+
+                    parent_ctx = processor_instance.new_pathway()
+
+                    parent_ctx.set_checkpoint(
+                        ["direction:out", "topic:upstream-topic", "type:sqs"],
+                        now_sec=1640995200.0,
+                        payload_size=512,
+                    )
+                    parent_hash = parent_ctx.hash
+                    encoded_parent_context = parent_ctx.encode_b64()
+
+                    sqs_event = {
+                        "Records": [
+                            {
+                                "eventSource": "aws:sqs",
+                                "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test",
+                                "Body": "test message body",
+                                "messageAttributes": {
+                                    "_datadog": {
+                                        "stringValue": json.dumps(
+                                            {
+                                                "dd-pathway-ctx-base64": encoded_parent_context
+                                            }
+                                        )
+                                    }
+                                },
+                            }
+                        ]
+                    }
+
+                    # Step 2: Call the handler
+                    @wrapper.datadog_lambda_wrapper
+                    def lambda_handler(event, context):
+                        return {"statusCode": 200, "body": "processed"}
+
+                    result = lambda_handler(sqs_event, get_mock_context())
+                    self.assertEqual(result["statusCode"], 200)
+
+                    # New context set after handler call
+                    current_ctx = processor_instance._current_context.value
+                    self.assertIsNotNone(
+                        current_ctx,
+                        "Data streams context should be set after processing SQS message",
+                    )
+
+                    # Step 3: Check that hash in this context is the child of the hash you passed
+                    # Step 4: Check that the right checkpoint was produced during call to handler
+
+                    found_sqs_checkpoint = False
+                    for bucket_time, bucket in processor_instance._buckets.items():
+                        for aggr_key, stats in bucket.pathway_stats.items():
+                            edge_tags_str, hash_value, parent_hash_recorded = aggr_key
+                            edge_tags = edge_tags_str.split(",")
+
+                            if (
+                                "direction:in" in edge_tags
+                                and "topic:test" in edge_tags
+                                and "type:sqs" in edge_tags
+                            ):
+                                found_sqs_checkpoint = True
+
+                                # EXPLICIT PARENT-CHILD HASH RELATIONSHIP TEST
+                                self.assertEqual(
+                                    parent_hash_recorded,
+                                    parent_hash,
+                                    f"Parent hash must be preserved: "
+                                    f"expected {parent_hash}, got {parent_hash_recorded}",
+                                )
+                                self.assertEqual(
+                                    hash_value,
+                                    current_ctx.hash,
+                                    f"Child hash must match current context: "
+                                    f"expected {current_ctx.hash}, got {hash_value}",
+                                )
+                                self.assertNotEqual(
+                                    hash_value,
+                                    parent_hash_recorded,
+                                    f"Child hash ({hash_value}) must be different from "
+                                    f"parent hash ({parent_hash_recorded}) - proves parent-child",
+                                )
+                                self.assertGreaterEqual(
+                                    stats.payload_size.count,
+                                    1,
+                                    "Should have one payload size measurement",
+                                )
+
+                                break
+
+                    self.assertTrue(
+                        found_sqs_checkpoint,
+                        "Should have found SQS consumption checkpoint in processor stats",
+                    )
+
+                processor_instance.shutdown(timeout=0.1)
+
 
 class TestLambdaDecoratorSettings(unittest.TestCase):
     def test_some_envs_should_depend_on_dd_tracing_enabled(self):
