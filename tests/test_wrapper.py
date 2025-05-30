@@ -680,7 +680,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
                     # Step 3: Check that hash in this context is the child of the hash you passed
                     # Step 4: Check that the right checkpoint was produced during call to handler
-
+                    # The buckets hold the aggregated stats for all checkpoints
                     found_sqs_checkpoint = False
                     for bucket_time, bucket in processor_instance._buckets.items():
                         for aggr_key, stats in bucket.pathway_stats.items():
