@@ -291,7 +291,6 @@ class _LambdaDecorator(object):
         self.response["context"]["_datadog"] = datadog_data
 
     def _before(self, event, context):
-
         def _dsm_set_sqs_context(record):
             try:
                 queue_arn = record.get("eventSourceARN", "")
