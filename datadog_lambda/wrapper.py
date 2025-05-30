@@ -304,13 +304,14 @@ class _LambdaDecorator(object):
         def _dsm_set_sqs_context(record):
             try:
                 queue_arn = record.get("eventSourceARN", "")
+                queue_name = queue_arn.split(":")[-1]
 
                 contextjson = get_datastreams_context(record)
                 payload_size = calculate_sqs_payload_size(record)
 
                 ctx = DsmPathwayCodec.decode(contextjson, processor())
                 ctx.set_checkpoint(
-                    ["direction:in", "queue:arn:" + queue_arn, "type:sqs"],
+                    ["direction:in", "topic:" + queue_name, "type:sqs"],
                     payload_size=payload_size,
                 )
 
