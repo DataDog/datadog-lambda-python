@@ -292,7 +292,6 @@ class _LambdaDecorator(object):
         self.response["context"]["_datadog"] = datadog_data
 
     def _before(self, event, context):
-
         try:
             self.response = None
             set_cold_start(init_timestamp_ns)
