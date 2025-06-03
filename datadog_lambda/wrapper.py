@@ -9,6 +9,7 @@ import ujson as json
 from importlib import import_module
 from time import time_ns
 
+from datadog_lambda.dsm import set_dsm_context
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import (
     set_cold_start,
@@ -291,39 +292,6 @@ class _LambdaDecorator(object):
         self.response["context"]["_datadog"] = datadog_data
 
     def _before(self, event, context):
-        def _dsm_set_sqs_context(record):
-            try:
-                queue_arn = record.get("eventSourceARN", "")
-
-                contextjson = get_datastreams_context(record)
-                payload_size = calculate_sqs_payload_size(record)
-
-                ctx = DsmPathwayCodec.decode(contextjson, processor())
-                ctx.set_checkpoint(
-                    ["direction:in", "topic:" + queue_arn, "type:sqs"],
-                    payload_size=payload_size,
-                )
-
-            except Exception as e:
-                logger.error(format_err_with_traceback(e))
-
-        if self.data_streams_enabled:
-            from ddtrace.internal.datastreams.processor import (
-                DataStreamsProcessor as processor,
-                DsmPathwayCodec,
-            )
-            from ddtrace.internal.datastreams.botocore import (
-                get_datastreams_context,
-                calculate_sqs_payload_size,
-            )
-
-            if isinstance(event, dict) and "Records" in event and event["Records"]:
-                sqs_records = [
-                    r for r in event["Records"] if r.get("eventSource") == "aws:sqs"
-                ]
-                if sqs_records:
-                    for record in sqs_records:
-                        _dsm_set_sqs_context(record)
 
         try:
             self.response = None
@@ -360,6 +328,8 @@ class _LambdaDecorator(object):
                     self.inferred_span = create_inferred_span(
                         event, context, event_source, self.decode_authorizer_context
                     )
+                if self.data_streams_enabled:
+                    set_dsm_context(event, event_source)
                 self.span = create_function_execution_span(
                     context=context,
                     function_name=self.function_name,

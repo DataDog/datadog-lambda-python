@@ -565,6 +565,11 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     @patch.dict(os.environ, {"DD_DATA_STREAMS_ENABLED": "true"})
     def test_datadog_lambda_wrapper_dsm_sqs_context_pathway_verification(self):
+        from datadog_lambda.trigger import _EventSource, EventTypes
+
+        sqs_event_source = _EventSource(EventTypes.SQS)
+        self.mock_extract_dd_trace_context.return_value = ({}, None, sqs_event_source)
+
         with patch(
             "ddtrace.internal.datastreams.processor.get_connection"
         ) as mock_get_connection:
@@ -728,6 +733,33 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
                     )
 
                 processor_instance.shutdown(timeout=0.1)
+
+    @patch.dict(os.environ, {"DD_DATA_STREAMS_ENABLED": "true"})
+    @patch("datadog_lambda.wrapper.set_dsm_context")
+    def test_set_dsm_context_called_when_enabled(self, mock_set_dsm_context):
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return {"statusCode": 200, "body": "processed"}
+
+        lambda_event = {}
+        lambda_handler(lambda_event, get_mock_context())
+
+        mock_set_dsm_context.assert_called_once()
+
+    @patch("datadog_lambda.wrapper.set_dsm_context")
+    def test_set_dsm_context_not_called_when_disabled(self, mock_set_dsm_context):
+        # Ensure DD_DATA_STREAMS_ENABLED is not in environment
+        if "DD_DATA_STREAMS_ENABLED" in os.environ:
+            del os.environ["DD_DATA_STREAMS_ENABLED"]
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return {"statusCode": 200, "body": "processed"}
+
+        lambda_event = {}
+        lambda_handler(lambda_event, get_mock_context())
+
+        mock_set_dsm_context.assert_not_called()
 
 
 class TestLambdaDecoratorSettings(unittest.TestCase):
