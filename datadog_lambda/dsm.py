@@ -10,11 +10,8 @@ def set_dsm_context(event, event_source):
 
 def _dsm_set_sqs_context(event):
     from datadog_lambda.wrapper import format_err_with_traceback
-
-    from ddtrace.internal.datastreams.processor import (
-        DataStreamsProcessor,
-        DsmPathwayCodec,
-    )
+    from ddtrace.internal.datastreams import data_streams_processor
+    from ddtrace.internal.datastreams.processor import DsmPathwayCodec
     from ddtrace.internal.datastreams.botocore import (
         get_datastreams_context,
         calculate_sqs_payload_size,
@@ -23,7 +20,7 @@ def _dsm_set_sqs_context(event):
     records = event.get("Records")
     if records is None:
         return
-    processor = DataStreamsProcessor()
+    processor = data_streams_processor()
 
     for record in records:
         try:

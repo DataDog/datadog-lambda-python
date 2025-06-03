@@ -623,116 +623,113 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
                 return context_json
 
+            # Step 1: Create a message with some context in the message attributes
+            from ddtrace.internal.datastreams.processor import DataStreamsProcessor
+
+            processor_instance = DataStreamsProcessor()
+
             with patch(
                 "ddtrace.internal.datastreams.botocore.get_datastreams_context",
                 updated_get_datastreams_context,
+            ), patch(
+                "ddtrace.internal.datastreams.data_streams_processor",
+                return_value=processor_instance,
             ):
 
-                # Step 1: Create a message with some context in the message attributes
+                parent_ctx = processor_instance.new_pathway()
 
-                from ddtrace.internal.datastreams.processor import DataStreamsProcessor
+                parent_ctx.set_checkpoint(
+                    ["direction:out", "topic:upstream-topic", "type:sqs"],
+                    now_sec=1640995200.0,
+                    payload_size=512,
+                )
+                parent_hash = parent_ctx.hash
+                encoded_parent_context = parent_ctx.encode_b64()
 
-                processor_instance = DataStreamsProcessor()
+                sqs_event = {
+                    "Records": [
+                        {
+                            "eventSource": "aws:sqs",
+                            "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test",
+                            "Body": "test message body",
+                            "messageAttributes": {
+                                "_datadog": {
+                                    "stringValue": json.dumps(
+                                        {
+                                            "dd-pathway-ctx-base64": encoded_parent_context
+                                        }
+                                    )
+                                }
+                            },
+                        }
+                    ]
+                }
 
-                with patch(
-                    "ddtrace.internal.datastreams.processor.DataStreamsProcessor",
-                    return_value=processor_instance,
-                ):
+                # Step 2: Call the handler
+                @wrapper.datadog_lambda_wrapper
+                def lambda_handler(event, context):
+                    return {"statusCode": 200, "body": "processed"}
 
-                    parent_ctx = processor_instance.new_pathway()
+                result = lambda_handler(sqs_event, get_mock_context())
+                self.assertEqual(result["statusCode"], 200)
 
-                    parent_ctx.set_checkpoint(
-                        ["direction:out", "topic:upstream-topic", "type:sqs"],
-                        now_sec=1640995200.0,
-                        payload_size=512,
-                    )
-                    parent_hash = parent_ctx.hash
-                    encoded_parent_context = parent_ctx.encode_b64()
+                # New context set after handler call
+                current_ctx = processor_instance._current_context.value
+                self.assertIsNotNone(
+                    current_ctx,
+                    "Data streams context should be set after processing SQS message",
+                )
 
-                    sqs_event = {
-                        "Records": [
-                            {
-                                "eventSource": "aws:sqs",
-                                "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test",
-                                "Body": "test message body",
-                                "messageAttributes": {
-                                    "_datadog": {
-                                        "stringValue": json.dumps(
-                                            {
-                                                "dd-pathway-ctx-base64": encoded_parent_context
-                                            }
-                                        )
-                                    }
-                                },
-                            }
-                        ]
-                    }
+                # Step 3: Check that hash in this context is the child of the hash you passed
+                # Step 4: Check that the right checkpoint was produced during call to handler
+                # The buckets hold the aggregated stats for all checkpoints
+                found_sqs_checkpoint = False
+                for bucket_time, bucket in processor_instance._buckets.items():
+                    for aggr_key, stats in bucket.pathway_stats.items():
+                        edge_tags_str, hash_value, parent_hash_recorded = aggr_key
+                        edge_tags = edge_tags_str.split(",")
 
-                    # Step 2: Call the handler
-                    @wrapper.datadog_lambda_wrapper
-                    def lambda_handler(event, context):
-                        return {"statusCode": 200, "body": "processed"}
+                        if (
+                            "direction:in" in edge_tags
+                            and "topic:arn:aws:sqs:us-east-1:123456789012:test"
+                            in edge_tags
+                            and "type:sqs" in edge_tags
+                        ):
+                            found_sqs_checkpoint = True
 
-                    result = lambda_handler(sqs_event, get_mock_context())
-                    self.assertEqual(result["statusCode"], 200)
+                            # EXPLICIT PARENT-CHILD HASH RELATIONSHIP TEST
+                            self.assertEqual(
+                                parent_hash_recorded,
+                                parent_hash,
+                                f"Parent hash must be preserved: "
+                                f"expected {parent_hash}, got {parent_hash_recorded}",
+                            )
+                            self.assertEqual(
+                                hash_value,
+                                current_ctx.hash,
+                                f"Child hash must match current context: "
+                                f"expected {current_ctx.hash}, got {hash_value}",
+                            )
+                            self.assertNotEqual(
+                                hash_value,
+                                parent_hash_recorded,
+                                f"Child hash ({hash_value}) must be different from "
+                                f"parent hash ({parent_hash_recorded}) - proves parent-child",
+                            )
+                            self.assertGreaterEqual(
+                                stats.payload_size.count,
+                                1,
+                                "Should have one payload size measurement",
+                            )
 
-                    # New context set after handler call
-                    current_ctx = processor_instance._current_context.value
-                    self.assertIsNotNone(
-                        current_ctx,
-                        "Data streams context should be set after processing SQS message",
-                    )
+                            break
 
-                    # Step 3: Check that hash in this context is the child of the hash you passed
-                    # Step 4: Check that the right checkpoint was produced during call to handler
-                    # The buckets hold the aggregated stats for all checkpoints
-                    found_sqs_checkpoint = False
-                    for bucket_time, bucket in processor_instance._buckets.items():
-                        for aggr_key, stats in bucket.pathway_stats.items():
-                            edge_tags_str, hash_value, parent_hash_recorded = aggr_key
-                            edge_tags = edge_tags_str.split(",")
+                self.assertTrue(
+                    found_sqs_checkpoint,
+                    "Should have found SQS consumption checkpoint in processor stats",
+                )
 
-                            if (
-                                "direction:in" in edge_tags
-                                and "topic:arn:aws:sqs:us-east-1:123456789012:test"
-                                in edge_tags
-                                and "type:sqs" in edge_tags
-                            ):
-                                found_sqs_checkpoint = True
-
-                                # EXPLICIT PARENT-CHILD HASH RELATIONSHIP TEST
-                                self.assertEqual(
-                                    parent_hash_recorded,
-                                    parent_hash,
-                                    f"Parent hash must be preserved: "
-                                    f"expected {parent_hash}, got {parent_hash_recorded}",
-                                )
-                                self.assertEqual(
-                                    hash_value,
-                                    current_ctx.hash,
-                                    f"Child hash must match current context: "
-                                    f"expected {current_ctx.hash}, got {hash_value}",
-                                )
-                                self.assertNotEqual(
-                                    hash_value,
-                                    parent_hash_recorded,
-                                    f"Child hash ({hash_value}) must be different from "
-                                    f"parent hash ({parent_hash_recorded}) - proves parent-child",
-                                )
-                                self.assertGreaterEqual(
-                                    stats.payload_size.count,
-                                    1,
-                                    "Should have one payload size measurement",
-                                )
-
-                                break
-
-                    self.assertTrue(
-                        found_sqs_checkpoint,
-                        "Should have found SQS consumption checkpoint in processor stats",
-                    )
-
-                processor_instance.shutdown(timeout=0.1)
+            processor_instance.shutdown(timeout=0.1)
 
     @patch.dict(os.environ, {"DD_DATA_STREAMS_ENABLED": "true"})
     @patch("datadog_lambda.wrapper.set_dsm_context")
