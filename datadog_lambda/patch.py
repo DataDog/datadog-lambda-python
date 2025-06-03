@@ -12,7 +12,7 @@ from wrapt import wrap_function_wrapper as wrap
 from wrapt.importer import when_imported
 from ddtrace import patch_all as patch_all_dd
 
-from datadog_lambda import config
+from datadog_lambda.config import config
 from datadog_lambda.tracing import get_dd_trace_context
 from collections.abc import MutableMapping
 
