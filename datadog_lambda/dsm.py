@@ -12,7 +12,7 @@ def _dsm_set_sqs_context(event):
     from datadog_lambda.wrapper import format_err_with_traceback
 
     from ddtrace.internal.datastreams.processor import (
-        DataStreamsProcessor as processor,
+        DataStreamsProcessor,
         DsmPathwayCodec,
     )
     from ddtrace.internal.datastreams.botocore import (
@@ -20,7 +20,11 @@ def _dsm_set_sqs_context(event):
         calculate_sqs_payload_size,
     )
 
-    records = event.get("Records", [])
+    records = event.get("Records")
+    if records is None:
+        return
+    processor = DataStreamsProcessor()
+
     for record in records:
         try:
             queue_arn = record.get("eventSourceARN", "")
@@ -28,7 +32,7 @@ def _dsm_set_sqs_context(event):
             contextjson = get_datastreams_context(record)
             payload_size = calculate_sqs_payload_size(record)
 
-            ctx = DsmPathwayCodec.decode(contextjson, processor())
+            ctx = DsmPathwayCodec.decode(contextjson, processor)
             ctx.set_checkpoint(
                 ["direction:in", f"topic:{queue_arn}", "type:sqs"],
                 payload_size=payload_size,
