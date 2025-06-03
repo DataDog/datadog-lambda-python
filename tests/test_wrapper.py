@@ -614,7 +614,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
     def test_set_dsm_context_not_called_when_tracing_and_DSM_disabled(self):
         env_vars = {"DD_DATA_STREAMS_ENABLED": "false"}
         with patch.dict(os.environ, env_vars):
-            with patch("datadog_lambda.wrapper.dd_tracing_enabled", True):
+            with patch("datadog_lambda.wrapper.dd_tracing_enabled", False):
                 with patch(
                     "datadog_lambda.wrapper.set_dsm_context"
                 ) as set_dsm_context_patch:
