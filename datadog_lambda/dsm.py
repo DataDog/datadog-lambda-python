@@ -30,7 +30,7 @@ def _dsm_set_sqs_context(event):
 
             ctx = DsmPathwayCodec.decode(contextjson, processor())
             ctx.set_checkpoint(
-                ["direction:in", "topic:" + queue_arn, "type:sqs"],
+                ["direction:in", f"topic:{queue_arn}, "type:sqs"],
                 payload_size=payload_size,
             )
         except Exception as e:
