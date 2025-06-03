@@ -577,7 +577,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
                     result = lambda_handler({}, get_mock_context())
                     assert result == "ok"
-                    assert set_dsm_context_patch.called_once()
+                    assert set_dsm_context_patch.call_count == 1
 
     def test_set_dsm_context_not_called_when_only_DSM_enabled(self):
         env_vars = {"DD_DATA_STREAMS_ENABLED": "true"}
