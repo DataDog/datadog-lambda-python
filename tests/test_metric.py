@@ -7,7 +7,6 @@ from botocore.exceptions import ClientError as BotocoreClientError
 from datadog.api.exceptions import ClientError
 
 from datadog_lambda.api import KMS_ENCRYPTION_CONTEXT_KEY, decrypt_kms_api_key
-from datadog_lambda.config import config
 from datadog_lambda.metric import (
     MetricsHandler,
     _select_metrics_handler,
@@ -20,7 +19,6 @@ from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 
 class TestLambdaMetric(unittest.TestCase):
     def setUp(self):
-        config.reset()
         lambda_stats_patcher = patch("datadog_lambda.metric.lambda_stats")
         self.mock_metric_lambda_stats = lambda_stats_patcher.start()
         self.addCleanup(lambda_stats_patcher.stop)

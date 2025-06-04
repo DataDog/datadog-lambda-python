@@ -15,7 +15,6 @@ from ddtrace._trace._span_pointer import _SpanPointer
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
 
-from datadog_lambda.config import config
 from datadog_lambda.constants import (
     SamplingPriority,
     TraceHeader,
@@ -972,7 +971,6 @@ class TestXRayContextConversion(unittest.TestCase):
 
 class TestLogsInjection(unittest.TestCase):
     def setUp(self):
-        config.reset()
         patcher = patch("datadog_lambda.tracing.get_dd_trace_context_obj")
         self.mock_get_dd_trace_context = patcher.start()
         self.mock_get_dd_trace_context.return_value = Context(
