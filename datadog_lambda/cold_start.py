@@ -145,7 +145,7 @@ def wrap_find_spec(original_find_spec):
 
 
 def initialize_cold_start_tracing():
-    if is_new_sandbox() and config.trace_enabled and config.cold_start_tracing:
+    if is_new_sandbox() and config.cold_start_tracing:
         from sys import meta_path
 
         for importer in meta_path:
