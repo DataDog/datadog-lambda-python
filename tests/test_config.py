@@ -15,6 +15,9 @@ def setenv(monkeypatch):
 
 
 _test_config_from_environ = (
+    ("DD_SERVICE", "service", None, None),
+    ("DD_SERVICE", "service", "", ""),
+    ("DD_SERVICE", "service", "my_service", "my_service"),
     ("AWS_LAMBDA_FUNCTION_NAME", "function_name", None, "function"),
     ("AWS_LAMBDA_FUNCTION_NAME", "function_name", "", ""),
     ("AWS_LAMBDA_FUNCTION_NAME", "function_name", "my_function", "my_function"),

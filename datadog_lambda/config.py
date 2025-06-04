@@ -27,6 +27,7 @@ def as_bool(val):
 
 class Config:
 
+    service = _get_env("DD_SERVICE")
     add_span_pointers = _get_env("DD_BOTOCORE_ADD_SPAN_POINTERS", "true", as_bool)
     cold_start_tracing = _get_env("DD_COLD_START_TRACING", "true", as_bool)
     enhanced_metrics_enabled = _get_env("DD_ENHANCED_METRICS", "true", as_bool)

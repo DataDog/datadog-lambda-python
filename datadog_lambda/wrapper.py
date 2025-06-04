@@ -158,7 +158,6 @@ class _LambdaDecorator(object):
         """Executes when the wrapped function gets wrapped"""
         try:
             self.func = func
-            self.service = os.environ.get(DD_SERVICE, None)
             self.extractor_env = os.environ.get(DD_TRACE_EXTRACTOR, None)
             self.trace_extractor = None
             self.span = None
@@ -200,7 +199,7 @@ class _LambdaDecorator(object):
                     logger.debug(f"Malformatted for env {DD_COLD_START_TRACE_SKIP_LIB}")
             self.response = None
             if profiling_env_var:
-                self.prof = profiler.Profiler(env=env_env_var, service=self.service)
+                self.prof = profiler.Profiler(env=env_env_var, service=config.service)
             if self.extractor_env:
                 extractor_parts = self.extractor_env.rsplit(".", 1)
                 if len(extractor_parts) == 2:
@@ -367,8 +366,8 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.inferred_span.set_tag("http.status_code", status_code)
 
-                if self.service:
-                    self.inferred_span.set_tag("peer.service", self.service)
+                if config.service:
+                    self.inferred_span.set_tag("peer.service", config.service)
 
                 if InferredSpanInfo.is_async(self.inferred_span) and self.span:
                     self.inferred_span.finish(finish_time=self.span.start)
