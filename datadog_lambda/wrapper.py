@@ -56,7 +56,6 @@ if config.exception_replay_enabled:
 
 logger = logging.getLogger(__name__)
 
-DD_LOCAL_TEST = "DD_LOCAL_TEST"
 DD_TRACE_MANAGED_SERVICES = "DD_TRACE_MANAGED_SERVICES"
 DD_ENCODE_AUTHORIZER_CONTEXT = "DD_ENCODE_AUTHORIZER_CONTEXT"
 DD_DECODE_AUTHORIZER_CONTEXT = "DD_DECODE_AUTHORIZER_CONTEXT"
@@ -65,16 +64,6 @@ DD_COLD_START_TRACE_SKIP_LIB = "DD_COLD_START_TRACE_SKIP_LIB"
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
 DD_ENV = "DD_ENV"
-
-
-def get_env_as_int(env_key, default_value: int) -> int:
-    try:
-        return int(os.environ.get(env_key, default_value))
-    except Exception as e:
-        logger.warn(
-            f"Failed to parse {env_key} as int. Using default value: {default_value}. Error: {e}"
-        )
-        return default_value
 
 
 init_timestamp_ns = time_ns()
@@ -150,9 +139,6 @@ class _LambdaDecorator(object):
             self.cold_start_tracing = depends_on_dd_tracing_enabled(
                 os.environ.get(DD_COLD_START_TRACING, "true").lower() == "true"
             )
-            self.local_testing_mode = os.environ.get(
-                DD_LOCAL_TEST, "false"
-            ).lower() in ("true", "1")
             self.cold_start_trace_skip_lib = [
                 "ddtrace.internal.compat",
                 "ddtrace.filters",
@@ -357,7 +343,7 @@ class _LambdaDecorator(object):
                 from datadog_lambda.metric import flush_stats
 
                 flush_stats(context)
-            if should_use_extension and self.local_testing_mode:
+            if should_use_extension and config.local_test:
                 # when testing locally, the extension does not know when an
                 # invocation completes because it does not have access to the
                 # logs api

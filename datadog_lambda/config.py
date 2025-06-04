@@ -68,6 +68,8 @@ class Config:
     llmobs_enabled = _get_env("DD_LLMOBS_ENABLED", "false", as_bool)
     exception_replay_enabled = _get_env("DD_EXCEPTION_REPLAY_ENABLED", "false", as_bool)
 
+    local_test = _get_env("DD_LOCAL_TEST", "false", as_bool)
+
     @property
     def fips_mode_enabled(self):
         if not hasattr(self, "_config_fips_mode_enabled"):
