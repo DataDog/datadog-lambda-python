@@ -27,6 +27,15 @@ _test_config_from_environ = (
     ("DD_FLUSH_TO_LOG", "flush_to_log", "1", True),  # CHANGED
     ("DD_FLUSH_TO_LOG", "flush_to_log", "0", False),
     ("DD_FLUSH_TO_LOG", "flush_to_log", "purple", False),
+    ("DD_LOGS_INJECTION", "logs_injection", None, True),
+    ("DD_LOGS_INJECTION", "logs_injection", "", False),
+    ("DD_LOGS_INJECTION", "logs_injection", "true", True),
+    ("DD_LOGS_INJECTION", "logs_injection", "TRUE", True),
+    ("DD_LOGS_INJECTION", "logs_injection", "false", False),
+    ("DD_LOGS_INJECTION", "logs_injection", "FALSE", False),
+    ("DD_LOGS_INJECTION", "logs_injection", "1", True),  # CHANGED
+    ("DD_LOGS_INJECTION", "logs_injection", "0", False),
+    ("DD_LOGS_INJECTION", "logs_injection", "purple", False),
     ("DD_TRACE_ENABLED", "trace_enabled", None, True),
     ("DD_TRACE_ENABLED", "trace_enabled", "", False),
     ("DD_TRACE_ENABLED", "trace_enabled", "true", True),

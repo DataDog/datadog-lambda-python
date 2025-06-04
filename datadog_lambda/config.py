@@ -32,6 +32,7 @@ class Config:
     enhanced_metrics_enabled = _get_env("DD_ENHANCED_METRICS", "true", as_bool)
     flush_in_thread = _get_env("DD_FLUSH_IN_THREAD", "false", as_bool)
     flush_to_log = _get_env("DD_FLUSH_TO_LOG", "false", as_bool)
+    logs_injection = _get_env("DD_LOGS_INJECTION", "true", as_bool)
     function_name = _get_env("AWS_LAMBDA_FUNCTION_NAME")
     is_gov_region = _get_env("AWS_REGION", "", lambda x: x.startswith("us-gov-"))
     is_in_tests = _get_env("DD_INTEGRATION_TEST", "false", as_bool)
