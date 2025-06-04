@@ -56,11 +56,8 @@ if config.exception_replay_enabled:
 
 logger = logging.getLogger(__name__)
 
-DD_TRACE_MANAGED_SERVICES = "DD_TRACE_MANAGED_SERVICES"
-DD_COLD_START_TRACING = "DD_COLD_START_TRACING"
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
-DD_ENV = "DD_ENV"
 
 
 init_timestamp_ns = time_ns()
