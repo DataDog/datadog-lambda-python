@@ -64,7 +64,6 @@ if exception_replay_env_var:
 logger = logging.getLogger(__name__)
 
 DD_LOGS_INJECTION = "DD_LOGS_INJECTION"
-AWS_LAMBDA_FUNCTION_NAME = "AWS_LAMBDA_FUNCTION_NAME"
 DD_LOCAL_TEST = "DD_LOCAL_TEST"
 DD_TRACE_EXTRACTOR = "DD_TRACE_EXTRACTOR"
 DD_TRACE_MANAGED_SERVICES = "DD_TRACE_MANAGED_SERVICES"
@@ -159,7 +158,6 @@ class _LambdaDecorator(object):
         """Executes when the wrapped function gets wrapped"""
         try:
             self.func = func
-            self.function_name = os.environ.get(AWS_LAMBDA_FUNCTION_NAME, "function")
             self.service = os.environ.get(DD_SERVICE, None)
             self.extractor_env = os.environ.get(DD_TRACE_EXTRACTOR, None)
             self.trace_extractor = None
@@ -322,7 +320,7 @@ class _LambdaDecorator(object):
                     set_dsm_context(event, event_source)
                 self.span = create_function_execution_span(
                     context=context,
-                    function_name=self.function_name,
+                    function_name=config.function_name,
                     is_cold_start=is_cold_start(),
                     is_proactive_init=is_proactive_init(),
                     trace_context_source=trace_context_source,
@@ -382,7 +380,7 @@ class _LambdaDecorator(object):
                     following_span = self.span or self.inferred_span
                     ColdStartTracer(
                         tracer,
-                        self.function_name,
+                        config.function_name,
                         following_span.start_ns,
                         trace_ctx,
                         self.min_cold_start_trace_duration,
