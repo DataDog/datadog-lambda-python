@@ -42,6 +42,7 @@ class Config:
         "DD_INSTRUMENTATION_TELEMETRY_ENABLED", "false", as_bool
     )
     trace_enabled = _get_env("DD_TRACE_ENABLED", "true", as_bool)
+    merge_xray_traces = _get_env("DD_MERGE_XRAY_TRACES", "false", as_bool)
 
     @property
     def fips_mode_enabled(self):

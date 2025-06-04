@@ -115,6 +115,15 @@ _test_config_from_environ = (
     ("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", "1", True),  # CHANGED
     ("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", "0", False),
     ("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", "purple", False),
+    ("DD_MERGE_XRAY_TRACES", "merge_xray_traces", None, False),
+    ("DD_MERGE_XRAY_TRACES", "merge_xray_traces", "", False),
+    ("DD_MERGE_XRAY_TRACES", "merge_xray_traces", "true", True),
+    ("DD_MERGE_XRAY_TRACES", "merge_xray_traces", "TRUE", True),
+    ("DD_MERGE_XRAY_TRACES", "merge_xray_traces", "false", False),
+    ("DD_MERGE_XRAY_TRACES", "merge_xray_traces", "FALSE", False),
+    ("DD_MERGE_XRAY_TRACES", "merge_xray_traces", "1", True),  # CHANGED
+    ("DD_MERGE_XRAY_TRACES", "merge_xray_traces", "0", False),
+    ("DD_MERGE_XRAY_TRACES", "merge_xray_traces", "purple", False),
 )
 
 

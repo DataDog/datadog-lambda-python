@@ -64,7 +64,6 @@ if exception_replay_env_var:
 logger = logging.getLogger(__name__)
 
 DD_LOGS_INJECTION = "DD_LOGS_INJECTION"
-DD_MERGE_XRAY_TRACES = "DD_MERGE_XRAY_TRACES"
 AWS_LAMBDA_FUNCTION_NAME = "AWS_LAMBDA_FUNCTION_NAME"
 DD_LOCAL_TEST = "DD_LOCAL_TEST"
 DD_TRACE_EXTRACTOR = "DD_TRACE_EXTRACTOR"
@@ -160,9 +159,6 @@ class _LambdaDecorator(object):
         """Executes when the wrapped function gets wrapped"""
         try:
             self.func = func
-            self.merge_xray_traces = (
-                os.environ.get(DD_MERGE_XRAY_TRACES, "false").lower() == "true"
-            )
             self.function_name = os.environ.get(AWS_LAMBDA_FUNCTION_NAME, "function")
             self.service = os.environ.get(DD_SERVICE, None)
             self.extractor_env = os.environ.get(DD_TRACE_EXTRACTOR, None)
@@ -317,7 +313,7 @@ class _LambdaDecorator(object):
                 )
 
             if config.trace_enabled:
-                set_dd_trace_py_root(trace_context_source, self.merge_xray_traces)
+                set_dd_trace_py_root(trace_context_source, config.merge_xray_traces)
                 if self.make_inferred_span:
                     self.inferred_span = create_inferred_span(
                         event, context, event_source, self.decode_authorizer_context
@@ -330,7 +326,7 @@ class _LambdaDecorator(object):
                     is_cold_start=is_cold_start(),
                     is_proactive_init=is_proactive_init(),
                     trace_context_source=trace_context_source,
-                    merge_xray_traces=self.merge_xray_traces,
+                    merge_xray_traces=config.merge_xray_traces,
                     trigger_tags=self.trigger_tags,
                     parent_span=self.inferred_span,
                     span_pointers=calculate_span_pointers(event_source, event),
