@@ -49,11 +49,15 @@ class Config:
     service = _get_env("DD_SERVICE")
     env = _get_env("DD_ENV")
 
-    cold_start_tracing = _get_env("DD_COLD_START_TRACING", "true", as_bool, depends_on_tracing=True)
+    cold_start_tracing = _get_env(
+        "DD_COLD_START_TRACING", "true", as_bool, depends_on_tracing=True
+    )
     min_cold_start_trace_duration = _get_env("DD_MIN_COLD_START_DURATION", 3, int)
     cold_start_trace_skip_lib = _get_env(
-            "DD_COLD_START_TRACE_SKIP_LIB", "ddtrace.internal.compat,ddtrace.filters",
-            as_list)
+        "DD_COLD_START_TRACE_SKIP_LIB",
+        "ddtrace.internal.compat,ddtrace.filters",
+        as_list,
+    )
 
     capture_payload_max_depth = _get_env("DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH", 10, int)
     capture_payload_enabled = _get_env("DD_CAPTURE_LAMBDA_PAYLOAD", "false", as_bool)
@@ -78,12 +82,15 @@ class Config:
     llmobs_enabled = _get_env("DD_LLMOBS_ENABLED", "false", as_bool)
     exception_replay_enabled = _get_env("DD_EXCEPTION_REPLAY_ENABLED", "false", as_bool)
 
-    make_inferred_span = _get_env("DD_TRACE_MANAGED_SERVICES", "true", as_bool,
-                                   depends_on_tracing=True)
-    encode_authorizer_context = _get_env("DD_ENCODE_AUTHORIZER_CONTEXT", "true", as_bool,
-                                         depends_on_tracing=True)
-    decode_authorizer_context = _get_env("DD_DECODE_AUTHORIZER_CONTEXT", "true", as_bool,
-                                         depends_on_tracing=True)
+    make_inferred_span = _get_env(
+        "DD_TRACE_MANAGED_SERVICES", "true", as_bool, depends_on_tracing=True
+    )
+    encode_authorizer_context = _get_env(
+        "DD_ENCODE_AUTHORIZER_CONTEXT", "true", as_bool, depends_on_tracing=True
+    )
+    decode_authorizer_context = _get_env(
+        "DD_DECODE_AUTHORIZER_CONTEXT", "true", as_bool, depends_on_tracing=True
+    )
 
     local_test = _get_env("DD_LOCAL_TEST", "false", as_bool)
 
