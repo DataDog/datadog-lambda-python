@@ -54,7 +54,7 @@ class Config:
             )
         return self._config_fips_mode_enabled
 
-    def reset(self):
+    def _reset(self):
         for attr in dir(self):
             if attr.startswith("_config_"):
                 delattr(self, attr)
