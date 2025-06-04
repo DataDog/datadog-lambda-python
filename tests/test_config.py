@@ -1,6 +1,6 @@
 import pytest
 
-from datadog_lambda.config import config
+from datadog_lambda.config import config, _get_env
 
 
 @pytest.fixture
@@ -178,3 +178,30 @@ def test_fips_mode_from_environ(fips_mode, region, conf_val, setenv):
     setenv("DD_LAMBDA_FIPS_MODE", fips_mode)
     setenv("AWS_REGION", region)
     assert config.fips_mode_enabled == conf_val
+
+
+def test__get_env_does_not_log_when_env_not_set(setenv, monkeypatch):
+    setenv("TEST_1", None)
+    setenv("TEST_2", None)
+    setenv("TEST_3", None)
+    setenv("TEST_4", None)
+
+    class Testing:
+        test_1 = _get_env("TEST_1")
+        test_2 = _get_env("TEST_2", "purple")
+        test_3 = _get_env("TEST_3", "true", bool)
+        test_4 = _get_env("TEST_4", "true", bool, depends_on_tracing=True)
+
+    logs = []
+    def cap_warn(*args, **kwargs):
+        logs.append(args)
+
+    monkeypatch.setattr("datadog_lambda.config.logger.warning", cap_warn)
+
+    testing = Testing()
+    testing.test_1
+    testing.test_2
+    testing.test_3
+    testing.test_4
+
+    assert not logs
