@@ -46,8 +46,7 @@ from datadog_lambda.trigger import (
     extract_http_status_code_tag,
 )
 
-profiling_env_var = os.environ.get("DD_PROFILING_ENABLED", "false").lower() == "true"
-if profiling_env_var:
+if config.profiling_enabled:
     from ddtrace.profiling import profiler
 
 llmobs_env_var = os.environ.get("DD_LLMOBS_ENABLED", "false").lower() in ("true", "1")
@@ -187,7 +186,7 @@ class _LambdaDecorator(object):
                 except Exception:
                     logger.debug(f"Malformatted for env {DD_COLD_START_TRACE_SKIP_LIB}")
             self.response = None
-            if profiling_env_var:
+            if config.profiling_enabled:
                 self.prof = profiler.Profiler(env=env_env_var, service=config.service)
             if config.trace_extractor:
                 extractor_parts = config.trace_extractor.rsplit(".", 1)
@@ -319,7 +318,7 @@ class _LambdaDecorator(object):
                 )
             else:
                 set_correlation_ids()
-            if profiling_env_var and is_new_sandbox():
+            if config.profiling_enabled and is_new_sandbox():
                 self.prof.start(stop_on_exit=False, profile_children=True)
             logger.debug("datadog_lambda_wrapper _before() done")
         except Exception as e:

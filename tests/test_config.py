@@ -137,6 +137,15 @@ _test_config_from_environ = (
     ("DD_CAPTURE_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", "2.5", 10),
     ("DD_CAPTURE_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", "-1", -1),
     ("DD_CAPTURE_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", "purple", 10),
+    ("DD_PROFILING_ENABLED", "profiling_enabled", None, False),
+    ("DD_PROFILING_ENABLED", "profiling_enabled", "", False),
+    ("DD_PROFILING_ENABLED", "profiling_enabled", "true", True),
+    ("DD_PROFILING_ENABLED", "profiling_enabled", "TRUE", True),
+    ("DD_PROFILING_ENABLED", "profiling_enabled", "false", False),
+    ("DD_PROFILING_ENABLED", "profiling_enabled", "FALSE", False),
+    ("DD_PROFILING_ENABLED", "profiling_enabled", "1", True),  # CHANGED
+    ("DD_PROFILING_ENABLED", "profiling_enabled", "0", False),
+    ("DD_PROFILING_ENABLED", "profiling_enabled", "purple", False),
 )
 
 
