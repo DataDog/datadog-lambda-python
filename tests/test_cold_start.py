@@ -8,6 +8,8 @@ from unittest.mock import MagicMock
 import datadog_lambda.cold_start as cold_start
 import datadog_lambda.wrapper as wrapper
 
+from tests.utils import get_mock_context
+
 
 class TestColdStartTracingSetup(unittest.TestCase):
     def test_proactive_init(self):
@@ -257,11 +259,7 @@ def test_lazy_loaded_package_imports(monkeypatch):
     def handler(event, context):
         import tabnanny
 
-    lambda_context = MagicMock()
-    lambda_context.invoked_function_arn = (
-        "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test:1"
-    )
-    lambda_context.get_remaining_time_in_millis = lambda: 100
+    lambda_context = get_mock_context()
 
     handler.cold_start_tracing = True
     handler({}, lambda_context)

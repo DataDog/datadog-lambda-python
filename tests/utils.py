@@ -22,6 +22,7 @@ def get_mock_context(
     lambda_context.invoked_function_arn = invoked_function_arn
     lambda_context.function_version = function_version
     lambda_context.function_name = function_name
+    lambda_context.get_remaining_time_in_millis = lambda: 100
     lambda_context.client_context = ClientContext(custom)
     return lambda_context
 

@@ -30,7 +30,6 @@ def patch_all():
     _patch_for_integration_tests()
 
     if config.trace_enabled:
-        # XXX this call is making the tests fail
         patch_all_dd()
     else:
         _patch_http()
