@@ -619,14 +619,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         del os.environ["DD_DATA_STREAMS_ENABLED"]
 
 
-class TestLambdaDecoratorSettings(unittest.TestCase):
-    @patch("datadog_lambda.config.Config.trace_enabled", False)
-    def test_some_envs_should_depend_on_dd_tracing_enabled(self):
-        os.environ[wrapper.DD_DECODE_AUTHORIZER_CONTEXT] = "true"
-        decorator = wrapper._LambdaDecorator(func=None)
-        self.assertFalse(decorator.decode_authorizer_context)
-
-
 class TestLambdaWrapperWithTraceContext(unittest.TestCase):
     xray_root = "1-5e272390-8c398be037738dc042009320"
     xray_parent = "94ae789b969f1cc5"

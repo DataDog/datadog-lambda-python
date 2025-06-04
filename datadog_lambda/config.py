@@ -82,6 +82,8 @@ class Config:
                                    depends_on_tracing=True)
     encode_authorizer_context = _get_env("DD_ENCODE_AUTHORIZER_CONTEXT", "true", as_bool,
                                          depends_on_tracing=True)
+    decode_authorizer_context = _get_env("DD_DECODE_AUTHORIZER_CONTEXT", "true", as_bool,
+                                         depends_on_tracing=True)
 
     local_test = _get_env("DD_LOCAL_TEST", "false", as_bool)
 

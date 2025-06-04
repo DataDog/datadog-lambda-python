@@ -59,7 +59,6 @@ if config.exception_replay_enabled:
 logger = logging.getLogger(__name__)
 
 DD_TRACE_MANAGED_SERVICES = "DD_TRACE_MANAGED_SERVICES"
-DD_DECODE_AUTHORIZER_CONTEXT = "DD_DECODE_AUTHORIZER_CONTEXT"
 DD_COLD_START_TRACING = "DD_COLD_START_TRACING"
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
@@ -127,9 +126,6 @@ class _LambdaDecorator(object):
             self.inferred_span = None
             depends_on_dd_tracing_enabled = (
                 lambda original_boolean: config.trace_enabled and original_boolean
-            )
-            self.decode_authorizer_context = depends_on_dd_tracing_enabled(
-                os.environ.get(DD_DECODE_AUTHORIZER_CONTEXT, "true").lower() == "true"
             )
             self.cold_start_tracing = depends_on_dd_tracing_enabled(
                 os.environ.get(DD_COLD_START_TRACING, "true").lower() == "true"
@@ -246,7 +242,7 @@ class _LambdaDecorator(object):
                 event,
                 context,
                 extractor=self.trace_extractor,
-                decode_authorizer_context=self.decode_authorizer_context,
+                decode_authorizer_context=config.decode_authorizer_context,
             )
             self.event_source = event_source
             # Create a Datadog X-Ray subsegment with the trace context
@@ -264,7 +260,7 @@ class _LambdaDecorator(object):
                 set_dd_trace_py_root(trace_context_source, config.merge_xray_traces)
                 if config.make_inferred_span:
                     self.inferred_span = create_inferred_span(
-                        event, context, event_source, self.decode_authorizer_context
+                        event, context, event_source, config.decode_authorizer_context
                     )
                 if self.data_streams_enabled:
                     set_dsm_context(event, event_source)
