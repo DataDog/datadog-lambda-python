@@ -9,23 +9,26 @@ import os
 logger = logging.getLogger(__name__)
 
 
-def _get_env(key, default=None, cast=None):
+def _get_env(key, default=None, cast=None, depends_on_tracing=False):
     @property
     def _getter(self):
         if not hasattr(self, prop_key):
-            val = os.environ.get(key, default)
-            if cast is not None:
-                try:
-                    val = cast(val)
-                except (ValueError, TypeError):
-                    logger.warning(
-                        "Failed to cast environment variable '%s' with value '%s' to type %s. Using default value '%s'.",
-                        key,
-                        val,
-                        cast.__name__,
-                        default,
-                    )
-                    val = default
+            if depends_on_tracing and not config.trace_enabled:
+                val = False
+            else:
+                val = os.environ.get(key, default)
+                if cast is not None:
+                    try:
+                        val = cast(val)
+                    except (ValueError, TypeError):
+                        logger.warning(
+                            "Failed to cast environment variable '%s' with value '%s' to type %s. Using default value '%s'.",
+                            key,
+                            val,
+                            cast.__name__,
+                            default,
+                        )
+                        val = default
             setattr(self, prop_key, val)
         return getattr(self, prop_key)
 
@@ -74,6 +77,9 @@ class Config:
     profiling_enabled = _get_env("DD_PROFILING_ENABLED", "false", as_bool)
     llmobs_enabled = _get_env("DD_LLMOBS_ENABLED", "false", as_bool)
     exception_replay_enabled = _get_env("DD_EXCEPTION_REPLAY_ENABLED", "false", as_bool)
+
+    make_inferred_span = _get_env("DD_TRACE_MANAGED_SERVICES", "true", as_bool,
+                                   depends_on_tracing=True)
 
     local_test = _get_env("DD_LOCAL_TEST", "false", as_bool)
 

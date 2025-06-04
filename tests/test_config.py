@@ -109,6 +109,21 @@ def test_config_from_environ(env_key, conf_key, env_val, conf_val, setenv):
     assert getattr(config, conf_key) == conf_val
 
 
+_test_config_from_environ_depends_on_tracing = (
+    *_test_as_bool("DD_TRACE_MANAGED_SERVICES", "make_inferred_span", default=True),
+)
+
+@pytest.mark.parametrize('env_key,conf_key,env_val,conf_val', _test_config_from_environ_depends_on_tracing)
+@pytest.mark.parametrize('trace_enabled', [True, False])
+def test_config_from_environ_depends_on_tracing(env_key, conf_key, env_val, conf_val, setenv, trace_enabled):
+    setenv(env_key, env_val)
+    setenv("DD_TRACE_ENABLED", "true" if trace_enabled else "false")
+    if trace_enabled:
+        assert getattr(config, conf_key) is conf_val
+    else:
+        assert getattr(config, conf_key) is False
+
+
 _test_fips_mode_from_environ = (
     (None, None, False),
     (None, "", False),
