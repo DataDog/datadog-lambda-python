@@ -60,6 +60,9 @@ _test_config_from_environ = (
     *_test_as_bool("DD_LOGS_INJECTION", "logs_injection", default=True),
     *_test_as_bool("DD_TRACE_ENABLED", "trace_enabled", default=True),
     *_test_as_bool("DD_COLD_START_TRACING", "cold_start_tracing", default=True),
+    *_test_as_bool("DD_TRACE_MANAGED_SERVICES", "make_inferred_span", default=True),
+    *_test_as_bool("DD_ENCODE_AUTHORIZER_CONTEXT", "encode_authorizer_context", default=True),
+    *_test_as_bool("DD_DECODE_AUTHORIZER_CONTEXT", "decode_authorizer_context", default=True),
     *_test_as_bool("DD_FLUSH_IN_THREAD", "flush_in_thread", default=False),
     *_test_as_bool("DD_ENHANCED_METRICS", "enhanced_metrics_enabled", default=True),
     *_test_as_bool("DD_INTEGRATION_TEST", "integration_test", default=False),
@@ -118,23 +121,20 @@ def test_config_from_environ(env_key, conf_key, env_val, conf_val, setenv):
 
 
 _test_config_from_environ_depends_on_tracing = (
+    *_test_as_bool("DD_COLD_START_TRACING", "cold_start_tracing", default=True),
     *_test_as_bool("DD_TRACE_MANAGED_SERVICES", "make_inferred_span", default=True),
+    *_test_as_bool("DD_ENCODE_AUTHORIZER_CONTEXT", "encode_authorizer_context", default=True),
+    *_test_as_bool("DD_DECODE_AUTHORIZER_CONTEXT", "decode_authorizer_context", default=True),
 )
 
 
 @pytest.mark.parametrize(
     "env_key,conf_key,env_val,conf_val", _test_config_from_environ_depends_on_tracing
 )
-@pytest.mark.parametrize("trace_enabled", [True, False])
-def test_config_from_environ_depends_on_tracing(
-    env_key, conf_key, env_val, conf_val, setenv, trace_enabled
-):
+def test_config_from_environ_depends_on_tracing(env_key, conf_key, env_val, conf_val, setenv):
     setenv(env_key, env_val)
-    setenv("DD_TRACE_ENABLED", "true" if trace_enabled else "false")
-    if trace_enabled:
-        assert getattr(config, conf_key) is conf_val
-    else:
-        assert getattr(config, conf_key) is False
+    setenv("DD_TRACE_ENABLED", "false")
+    assert getattr(config, conf_key) is False
 
 
 _test_fips_mode_from_environ = (
