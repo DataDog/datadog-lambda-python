@@ -61,8 +61,12 @@ _test_config_from_environ = (
     *_test_as_bool("DD_TRACE_ENABLED", "trace_enabled", default=True),
     *_test_as_bool("DD_COLD_START_TRACING", "cold_start_tracing", default=True),
     *_test_as_bool("DD_TRACE_MANAGED_SERVICES", "make_inferred_span", default=True),
-    *_test_as_bool("DD_ENCODE_AUTHORIZER_CONTEXT", "encode_authorizer_context", default=True),
-    *_test_as_bool("DD_DECODE_AUTHORIZER_CONTEXT", "decode_authorizer_context", default=True),
+    *_test_as_bool(
+        "DD_ENCODE_AUTHORIZER_CONTEXT", "encode_authorizer_context", default=True
+    ),
+    *_test_as_bool(
+        "DD_DECODE_AUTHORIZER_CONTEXT", "decode_authorizer_context", default=True
+    ),
     *_test_as_bool("DD_FLUSH_IN_THREAD", "flush_in_thread", default=False),
     *_test_as_bool("DD_ENHANCED_METRICS", "enhanced_metrics_enabled", default=True),
     *_test_as_bool("DD_INTEGRATION_TEST", "integration_test", default=False),
@@ -123,15 +127,21 @@ def test_config_from_environ(env_key, conf_key, env_val, conf_val, setenv):
 _test_config_from_environ_depends_on_tracing = (
     *_test_as_bool("DD_COLD_START_TRACING", "cold_start_tracing", default=True),
     *_test_as_bool("DD_TRACE_MANAGED_SERVICES", "make_inferred_span", default=True),
-    *_test_as_bool("DD_ENCODE_AUTHORIZER_CONTEXT", "encode_authorizer_context", default=True),
-    *_test_as_bool("DD_DECODE_AUTHORIZER_CONTEXT", "decode_authorizer_context", default=True),
+    *_test_as_bool(
+        "DD_ENCODE_AUTHORIZER_CONTEXT", "encode_authorizer_context", default=True
+    ),
+    *_test_as_bool(
+        "DD_DECODE_AUTHORIZER_CONTEXT", "decode_authorizer_context", default=True
+    ),
 )
 
 
 @pytest.mark.parametrize(
     "env_key,conf_key,env_val,conf_val", _test_config_from_environ_depends_on_tracing
 )
-def test_config_from_environ_depends_on_tracing(env_key, conf_key, env_val, conf_val, setenv):
+def test_config_from_environ_depends_on_tracing(
+    env_key, conf_key, env_val, conf_val, setenv
+):
     setenv(env_key, env_val)
     setenv("DD_TRACE_ENABLED", "false")
     assert getattr(config, conf_key) is False
@@ -193,6 +203,7 @@ def test__get_env_does_not_log_when_env_not_set(setenv, monkeypatch):
         test_4 = _get_env("TEST_4", "true", bool, depends_on_tracing=True)
 
     logs = []
+
     def cap_warn(*args, **kwargs):
         logs.append(args)
 
