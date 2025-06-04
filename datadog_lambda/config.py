@@ -60,6 +60,7 @@ class Config:
     capture_payload_max_depth = _get_env("DD_CAPTURE_PAYLOAD_MAX_DEPTH", 10, int)
     profiling_enabled = _get_env("DD_PROFILING_ENABLED", "false", as_bool)
     llmobs_enabled = _get_env("DD_LLMOBS_ENABLED", "false", as_bool)
+    exception_replay_enabled = _get_env("DD_EXCEPTION_REPLAY_ENABLED", "false", as_bool)
 
     @property
     def fips_mode_enabled(self):

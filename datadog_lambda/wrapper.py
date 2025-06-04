@@ -51,10 +51,7 @@ if config.profiling_enabled:
 if config.llmobs_enabled:
     from ddtrace.llmobs import LLMObs
 
-exception_replay_env_var = os.environ.get(
-    "DD_EXCEPTION_REPLAY_ENABLED", "false"
-).lower() in ("true", "1")
-if exception_replay_env_var:
+if config.exception_replay_enabled:
     from ddtrace.debugging._exception.replay import SpanExceptionHandler
 
 logger = logging.getLogger(__name__)
@@ -206,7 +203,7 @@ class _LambdaDecorator(object):
                 LLMObs.enable()
 
             # Enable Exception Replay
-            if exception_replay_env_var:
+            if config.exception_replay_enabled:
                 logger.debug("Enabling exception replay")
                 SpanExceptionHandler.enable()
 
