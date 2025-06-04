@@ -61,7 +61,6 @@ DD_TRACE_MANAGED_SERVICES = "DD_TRACE_MANAGED_SERVICES"
 DD_ENCODE_AUTHORIZER_CONTEXT = "DD_ENCODE_AUTHORIZER_CONTEXT"
 DD_DECODE_AUTHORIZER_CONTEXT = "DD_DECODE_AUTHORIZER_CONTEXT"
 DD_COLD_START_TRACING = "DD_COLD_START_TRACING"
-DD_MIN_COLD_START_DURATION = "DD_MIN_COLD_START_DURATION"
 DD_COLD_START_TRACE_SKIP_LIB = "DD_COLD_START_TRACE_SKIP_LIB"
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
@@ -150,9 +149,6 @@ class _LambdaDecorator(object):
             )
             self.cold_start_tracing = depends_on_dd_tracing_enabled(
                 os.environ.get(DD_COLD_START_TRACING, "true").lower() == "true"
-            )
-            self.min_cold_start_trace_duration = get_env_as_int(
-                DD_MIN_COLD_START_DURATION, 3
             )
             self.local_testing_mode = os.environ.get(
                 DD_LOCAL_TEST, "false"
@@ -351,7 +347,7 @@ class _LambdaDecorator(object):
                         config.function_name,
                         following_span.start_ns,
                         trace_ctx,
-                        self.min_cold_start_trace_duration,
+                        config.min_cold_start_trace_duration,
                         self.cold_start_trace_skip_lib,
                     ).trace()
                 except Exception as e:

@@ -42,8 +42,13 @@ class Config:
     service = _get_env("DD_SERVICE")
     env = _get_env("DD_ENV")
 
-    add_span_pointers = _get_env("DD_BOTOCORE_ADD_SPAN_POINTERS", "true", as_bool)
     cold_start_tracing = _get_env("DD_COLD_START_TRACING", "true", as_bool)
+    min_cold_start_trace_duration = _get_env("DD_MIN_COLD_START_DURATION", 3, int)
+
+    capture_payload_max_depth = _get_env("DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH", 10, int)
+    capture_payload_enabled = _get_env("DD_CAPTURE_LAMBDA_PAYLOAD", "false", as_bool)
+
+    add_span_pointers = _get_env("DD_BOTOCORE_ADD_SPAN_POINTERS", "true", as_bool)
     enhanced_metrics_enabled = _get_env("DD_ENHANCED_METRICS", "true", as_bool)
     flush_in_thread = _get_env("DD_FLUSH_IN_THREAD", "false", as_bool)
     flush_to_log = _get_env("DD_FLUSH_TO_LOG", "false", as_bool)
@@ -59,8 +64,6 @@ class Config:
     trace_enabled = _get_env("DD_TRACE_ENABLED", "true", as_bool)
     merge_xray_traces = _get_env("DD_MERGE_XRAY_TRACES", "false", as_bool)
     trace_extractor = _get_env("DD_TRACE_EXTRACTOR")
-    capture_payload_max_depth = _get_env("DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH", 10, int)
-    capture_payload_enabled = _get_env("DD_CAPTURE_LAMBDA_PAYLOAD", "false", as_bool)
     profiling_enabled = _get_env("DD_PROFILING_ENABLED", "false", as_bool)
     llmobs_enabled = _get_env("DD_LLMOBS_ENABLED", "false", as_bool)
     exception_replay_enabled = _get_env("DD_EXCEPTION_REPLAY_ENABLED", "false", as_bool)
