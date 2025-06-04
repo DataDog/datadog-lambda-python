@@ -15,7 +15,7 @@ def setenv(monkeypatch):
 
 
 _test_config_from_environ = (
-    ("AWS_LAMBDA_FUNCTION_NAME", "function_name", None, None),
+    ("AWS_LAMBDA_FUNCTION_NAME", "function_name", None, "function"),
     ("AWS_LAMBDA_FUNCTION_NAME", "function_name", "", ""),
     ("AWS_LAMBDA_FUNCTION_NAME", "function_name", "my_function", "my_function"),
     ("DD_FLUSH_TO_LOG", "flush_to_log", None, False),
