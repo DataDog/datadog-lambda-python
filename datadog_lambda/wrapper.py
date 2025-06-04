@@ -160,9 +160,6 @@ class _LambdaDecorator(object):
         """Executes when the wrapped function gets wrapped"""
         try:
             self.func = func
-            self.logs_injection = (
-                os.environ.get(DD_LOGS_INJECTION, "true").lower() == "true"
-            )
             self.merge_xray_traces = (
                 os.environ.get(DD_MERGE_XRAY_TRACES, "false").lower() == "true"
             )
@@ -219,7 +216,7 @@ class _LambdaDecorator(object):
                     self.trace_extractor = getattr(extractor_module, extractor_name)
 
             # Inject trace correlation ids to logs
-            if self.logs_injection:
+            if config.logs_injection:
                 inject_correlation_ids()
 
             # This prevents a breaking change in ddtrace v0.49 regarding the service name
