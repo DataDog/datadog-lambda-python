@@ -129,9 +129,6 @@ class _LambdaDecorator(object):
             depends_on_dd_tracing_enabled = (
                 lambda original_boolean: config.trace_enabled and original_boolean
             )
-            self.make_inferred_span = depends_on_dd_tracing_enabled(
-                os.environ.get(DD_TRACE_MANAGED_SERVICES, "true").lower() == "true"
-            )
             self.encode_authorizer_context = depends_on_dd_tracing_enabled(
                 os.environ.get(DD_ENCODE_AUTHORIZER_CONTEXT, "true").lower() == "true"
             )
@@ -269,7 +266,7 @@ class _LambdaDecorator(object):
 
             if config.trace_enabled:
                 set_dd_trace_py_root(trace_context_source, config.merge_xray_traces)
-                if self.make_inferred_span:
+                if config.make_inferred_span:
                     self.inferred_span = create_inferred_span(
                         event, context, event_source, self.decode_authorizer_context
                     )

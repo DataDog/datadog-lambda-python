@@ -510,6 +510,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.assertEqual(os.environ.get("DD_REQUESTS_SERVICE_NAME"), "myAwesomeService")
         del os.environ["DD_SERVICE"]
 
+    @patch("datadog_lambda.config.Config.make_inferred_span", False)
     def test_encode_authorizer_span(self):
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -536,7 +537,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         trace_ctx.sampling_priority = 1
         test_span.finish()
         lambda_handler.inferred_span = test_span
-        lambda_handler.make_inferred_span = False
         result = lambda_handler(lambda_event, lambda_context)
         raw_inject_data = result["context"]["_datadog"]
         self.assertIsInstance(raw_inject_data, str)
@@ -622,11 +622,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 class TestLambdaDecoratorSettings(unittest.TestCase):
     @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_some_envs_should_depend_on_dd_tracing_enabled(self):
-        os.environ[wrapper.DD_TRACE_MANAGED_SERVICES] = "true"
         os.environ[wrapper.DD_ENCODE_AUTHORIZER_CONTEXT] = "true"
         os.environ[wrapper.DD_DECODE_AUTHORIZER_CONTEXT] = "true"
         decorator = wrapper._LambdaDecorator(func=None)
-        self.assertFalse(decorator.make_inferred_span)
         self.assertFalse(decorator.encode_authorizer_context)
         self.assertFalse(decorator.decode_authorizer_context)
 
