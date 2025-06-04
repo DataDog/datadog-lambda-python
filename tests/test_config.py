@@ -192,6 +192,16 @@ _test_config_from_environ = (
     ("DD_LOCAL_TEST", "local_test", "1", True),  # CHANGED
     ("DD_LOCAL_TEST", "local_test", "0", False),
     ("DD_LOCAL_TEST", "local_test", "purple", False),
+    ("DD_COLD_START_TRACE_SKIP_LIB", "cold_start_trace_skip_lib", None, ["ddtrace.internal.compat", "ddtrace.filters"]),
+    ("DD_COLD_START_TRACE_SKIP_LIB", "cold_start_trace_skip_lib", "", []),
+    ("DD_COLD_START_TRACE_SKIP_LIB", "cold_start_trace_skip_lib", " ", []),
+    ("DD_COLD_START_TRACE_SKIP_LIB", "cold_start_trace_skip_lib", ",", []),
+    ("DD_COLD_START_TRACE_SKIP_LIB", "cold_start_trace_skip_lib", " , ", []),
+    ("DD_COLD_START_TRACE_SKIP_LIB", "cold_start_trace_skip_lib", "a", ["a"]),
+    ("DD_COLD_START_TRACE_SKIP_LIB", "cold_start_trace_skip_lib", "a,", ["a"]),
+    ("DD_COLD_START_TRACE_SKIP_LIB", "cold_start_trace_skip_lib", "a, ", ["a"]),
+    ("DD_COLD_START_TRACE_SKIP_LIB", "cold_start_trace_skip_lib", "a,b", ["a", "b"]),
+    ("DD_COLD_START_TRACE_SKIP_LIB", "cold_start_trace_skip_lib", "a, b", ["a", "b"]),
 )
 
 

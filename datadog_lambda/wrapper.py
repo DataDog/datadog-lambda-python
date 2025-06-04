@@ -60,7 +60,6 @@ DD_TRACE_MANAGED_SERVICES = "DD_TRACE_MANAGED_SERVICES"
 DD_ENCODE_AUTHORIZER_CONTEXT = "DD_ENCODE_AUTHORIZER_CONTEXT"
 DD_DECODE_AUTHORIZER_CONTEXT = "DD_DECODE_AUTHORIZER_CONTEXT"
 DD_COLD_START_TRACING = "DD_COLD_START_TRACING"
-DD_COLD_START_TRACE_SKIP_LIB = "DD_COLD_START_TRACE_SKIP_LIB"
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
 DD_ENV = "DD_ENV"
@@ -139,17 +138,6 @@ class _LambdaDecorator(object):
             self.cold_start_tracing = depends_on_dd_tracing_enabled(
                 os.environ.get(DD_COLD_START_TRACING, "true").lower() == "true"
             )
-            self.cold_start_trace_skip_lib = [
-                "ddtrace.internal.compat",
-                "ddtrace.filters",
-            ]
-            if DD_COLD_START_TRACE_SKIP_LIB in os.environ:
-                try:
-                    self.cold_start_trace_skip_lib = os.environ[
-                        DD_COLD_START_TRACE_SKIP_LIB
-                    ].split(",")
-                except Exception:
-                    logger.debug(f"Malformatted for env {DD_COLD_START_TRACE_SKIP_LIB}")
             self.response = None
             if config.profiling_enabled:
                 self.prof = profiler.Profiler(env=config.env, service=config.service)
@@ -334,7 +322,7 @@ class _LambdaDecorator(object):
                         following_span.start_ns,
                         trace_ctx,
                         config.min_cold_start_trace_duration,
-                        self.cold_start_trace_skip_lib,
+                        config.cold_start_trace_skip_lib,
                     ).trace()
                 except Exception as e:
                     logger.debug("Failed to create cold start spans. %s", e)
