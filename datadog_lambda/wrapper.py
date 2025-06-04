@@ -62,7 +62,6 @@ DD_TRACE_MANAGED_SERVICES = "DD_TRACE_MANAGED_SERVICES"
 DD_ENCODE_AUTHORIZER_CONTEXT = "DD_ENCODE_AUTHORIZER_CONTEXT"
 DD_DECODE_AUTHORIZER_CONTEXT = "DD_DECODE_AUTHORIZER_CONTEXT"
 DD_COLD_START_TRACING = "DD_COLD_START_TRACING"
-DD_COLD_START_TRACE_SKIP_LIB = "DD_COLD_START_TRACE_SKIP_LIB"
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
 DD_ENV = "DD_ENV"
@@ -145,9 +144,6 @@ class _LambdaDecorator(object):
             self.data_streams_enabled = (
                 os.environ.get(DD_DATA_STREAMS_ENABLED, "false").lower() == "true"
             )
-            self.local_testing_mode = os.environ.get(
-                DD_LOCAL_TEST, "false"
-            ).lower() in ("true", "1")
             self.cold_start_trace_skip_lib = [
                 "ddtrace.internal.compat",
                 "ddtrace.filters",
@@ -345,7 +341,7 @@ class _LambdaDecorator(object):
                         following_span.start_ns,
                         trace_ctx,
                         config.min_cold_start_trace_duration,
-                        self.cold_start_trace_skip_lib,
+                        config.cold_start_trace_skip_lib,
                     ).trace()
                 except Exception as e:
                     logger.debug("Failed to create cold start spans. %s", e)

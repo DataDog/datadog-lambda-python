@@ -37,6 +37,14 @@ def as_bool(val):
     return val.lower() == "true" or val == "1"
 
 
+def as_list(val):
+    if isinstance(val, str):
+        if not val:
+            return []
+        return [val.strip() for val in val.split(",") if val.strip()]
+    return val
+
+
 class Config:
 
     service = _get_env("DD_SERVICE")
@@ -44,6 +52,11 @@ class Config:
 
     cold_start_tracing = _get_env("DD_COLD_START_TRACING", "true", as_bool)
     min_cold_start_trace_duration = _get_env("DD_MIN_COLD_START_DURATION", 3, int)
+    cold_start_trace_skip_lib = _get_env(
+            "DD_COLD_START_TRACE_SKIP_LIB", [
+                "ddtrace.internal.compat",
+                "ddtrace.filters",
+            ], as_list)
 
     capture_payload_max_depth = _get_env("DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH", 10, int)
     capture_payload_enabled = _get_env("DD_CAPTURE_LAMBDA_PAYLOAD", "false", as_bool)

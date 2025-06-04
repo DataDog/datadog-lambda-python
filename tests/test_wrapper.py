@@ -701,14 +701,9 @@ class TestLambdaWrapperWithTraceContext(unittest.TestCase):
 
 
 class TestLambdaWrapperFlushExtension(unittest.TestCase):
-    def setUp(self):
-        self.orig_environ = os.environ
-
-    def tearDown(self):
-        os.environ = self.orig_environ
-
+    @patch("datadog_lambda.config.Config.local_test", True)
     @patch("datadog_lambda.wrapper.should_use_extension", True)
-    def test_local_test_envvar_flushing(self):
+    def test_local_test_true_flushing(self):
         flushes = []
         lambda_event = {}
         lambda_context = get_mock_context()
@@ -716,24 +711,30 @@ class TestLambdaWrapperFlushExtension(unittest.TestCase):
         def flush():
             flushes.append(1)
 
-        for environ, flush_called in (
-            ({"DD_LOCAL_TEST": "True"}, True),
-            ({"DD_LOCAL_TEST": "true"}, True),
-            ({"DD_LOCAL_TEST": "1"}, True),
-            ({"DD_LOCAL_TEST": "False"}, False),
-            ({"DD_LOCAL_TEST": "false"}, False),
-            ({"DD_LOCAL_TEST": "0"}, False),
-            ({"DD_LOCAL_TEST": ""}, False),
-            ({}, False),
-        ):
-            os.environ = environ
-            flushes.clear()
+        @patch("datadog_lambda.wrapper.flush_extension", flush)
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            pass
 
-            @patch("datadog_lambda.wrapper.flush_extension", flush)
-            @wrapper.datadog_lambda_wrapper
-            def lambda_handler(event, context):
-                pass
+        lambda_handler(lambda_event, lambda_context)
 
-            lambda_handler(lambda_event, lambda_context)
+        self.assertEqual(len(flushes), 1)
 
-            self.assertEqual(flush_called, len(flushes) == 1)
+    @patch("datadog_lambda.config.Config.local_test", False)
+    @patch("datadog_lambda.wrapper.should_use_extension", True)
+    def test_local_test_false_flushing(self):
+        flushes = []
+        lambda_event = {}
+        lambda_context = get_mock_context()
+
+        def flush():
+            flushes.append(1)
+
+        @patch("datadog_lambda.wrapper.flush_extension", flush)
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            pass
+
+        lambda_handler(lambda_event, lambda_context)
+
+        self.assertEqual(len(flushes), 0)
