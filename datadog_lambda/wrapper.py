@@ -322,7 +322,9 @@ class _LambdaDecorator(object):
             if config.llmobs_enabled:
                 LLMObs.flush()
 
-            if config.encode_authorizer_context and is_authorizer_response(self.response):
+            if config.encode_authorizer_context and is_authorizer_response(
+                self.response
+            ):
                 self._inject_authorizer_span_headers(
                     event.get("requestContext", {}).get("requestId")
                 )

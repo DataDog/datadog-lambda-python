@@ -27,6 +27,7 @@ def _test_as_bool(env_key, conf_key, default):
         (env_key, conf_key, "purple", False),
     )
 
+
 def _test_int(env_key, conf_key, default):
     return (
         (env_key, conf_key, None, default),
@@ -37,6 +38,7 @@ def _test_int(env_key, conf_key, default):
         (env_key, conf_key, "-1", -1),
         (env_key, conf_key, "purple", default),
     )
+
 
 def _test_as_list(env_key, conf_key, default):
     return (
@@ -63,40 +65,46 @@ _test_config_from_environ = (
     *_test_as_bool("DD_INTEGRATION_TEST", "is_in_tests", default=False),
     *_test_as_bool("DD_BOTOCORE_ADD_SPAN_POINTERS", "add_span_pointers", default=True),
     *_test_as_bool("DD_TRACE_OTEL_ENABLED", "otel_enabled", default=False),
-    *_test_as_bool("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", default=False),
+    *_test_as_bool(
+        "DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", default=False
+    ),
     *_test_as_bool("DD_MERGE_XRAY_TRACES", "merge_xray_traces", default=False),
     *_test_as_bool("DD_PROFILING_ENABLED", "profiling_enabled", default=False),
     *_test_as_bool("DD_LLMOBS_ENABLED", "llmobs_enabled", default=False),
-    *_test_as_bool("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", default=False),
-    *_test_as_bool("DD_CAPTURE_LAMBDA_PAYLOAD", "capture_payload_enabled", default=False),
+    *_test_as_bool(
+        "DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", default=False
+    ),
+    *_test_as_bool(
+        "DD_CAPTURE_LAMBDA_PAYLOAD", "capture_payload_enabled", default=False
+    ),
     *_test_as_bool("DD_LOCAL_TEST", "local_test", default=False),
-
-    *_test_int("DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", default=10),
-    *_test_int("DD_MIN_COLD_START_DURATION", "min_cold_start_trace_duration", default=3),
-
-    *_test_as_list("DD_COLD_START_TRACE_SKIP_LIB", "cold_start_trace_skip_lib", default="ddtrace.internal.compat,ddtrace.filters"),
-
+    *_test_int(
+        "DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", default=10
+    ),
+    *_test_int(
+        "DD_MIN_COLD_START_DURATION", "min_cold_start_trace_duration", default=3
+    ),
+    *_test_as_list(
+        "DD_COLD_START_TRACE_SKIP_LIB",
+        "cold_start_trace_skip_lib",
+        default="ddtrace.internal.compat,ddtrace.filters",
+    ),
     ("DD_SERVICE", "service", None, None),
     ("DD_SERVICE", "service", "", ""),
     ("DD_SERVICE", "service", "my_service", "my_service"),
-
     ("AWS_LAMBDA_FUNCTION_NAME", "function_name", None, "function"),
     ("AWS_LAMBDA_FUNCTION_NAME", "function_name", "", ""),
     ("AWS_LAMBDA_FUNCTION_NAME", "function_name", "my_function", "my_function"),
-
     ("AWS_REGION", "is_gov_region", None, False),
     ("AWS_REGION", "is_gov_region", "", False),
     ("AWS_REGION", "is_gov_region", "us-gov-1", True),
     ("AWS_REGION", "is_gov_region", "us-est-1", False),
-
     ("AWS_LAMBDA_FUNCTION_NAME", "is_lambda_context", None, False),
     ("AWS_LAMBDA_FUNCTION_NAME", "is_lambda_context", "", False),
     ("AWS_LAMBDA_FUNCTION_NAME", "is_lambda_context", "my_function", True),
-
     ("DD_TRACE_EXTRACTOR", "trace_extractor", None, None),
     ("DD_TRACE_EXTRACTOR", "trace_extractor", "", ""),
     ("DD_TRACE_EXTRACTOR", "trace_extractor", "my_extractor", "my_extractor"),
-
     ("DD_ENV", "env", None, None),
     ("DD_ENV", "env", "", ""),
     ("DD_ENV", "env", "my_env", "my_env"),
@@ -113,9 +121,14 @@ _test_config_from_environ_depends_on_tracing = (
     *_test_as_bool("DD_TRACE_MANAGED_SERVICES", "make_inferred_span", default=True),
 )
 
-@pytest.mark.parametrize('env_key,conf_key,env_val,conf_val', _test_config_from_environ_depends_on_tracing)
-@pytest.mark.parametrize('trace_enabled', [True, False])
-def test_config_from_environ_depends_on_tracing(env_key, conf_key, env_val, conf_val, setenv, trace_enabled):
+
+@pytest.mark.parametrize(
+    "env_key,conf_key,env_val,conf_val", _test_config_from_environ_depends_on_tracing
+)
+@pytest.mark.parametrize("trace_enabled", [True, False])
+def test_config_from_environ_depends_on_tracing(
+    env_key, conf_key, env_val, conf_val, setenv, trace_enabled
+):
     setenv(env_key, env_val)
     setenv("DD_TRACE_ENABLED", "true" if trace_enabled else "false")
     if trace_enabled:
