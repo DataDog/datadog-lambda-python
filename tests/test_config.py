@@ -164,6 +164,9 @@ _test_config_from_environ = (
     ("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", "1", True),  # CHANGED
     ("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", "0", False),
     ("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", "purple", False),
+    ("DD_ENV", "env", None, None),
+    ("DD_ENV", "env", "", ""),
+    ("DD_ENV", "env", "my_env", "my_env"),
 )
 
 

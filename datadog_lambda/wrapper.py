@@ -86,8 +86,6 @@ dd_capture_lambda_payload_enabled = (
     os.environ.get(DD_CAPTURE_LAMBDA_PAYLOAD, "false").lower() == "true"
 )
 
-env_env_var = os.environ.get(DD_ENV, None)
-
 init_timestamp_ns = time_ns()
 
 """
@@ -183,7 +181,7 @@ class _LambdaDecorator(object):
                     logger.debug(f"Malformatted for env {DD_COLD_START_TRACE_SKIP_LIB}")
             self.response = None
             if config.profiling_enabled:
-                self.prof = profiler.Profiler(env=env_env_var, service=config.service)
+                self.prof = profiler.Profiler(env=config.env, service=config.service)
             if config.trace_extractor:
                 extractor_parts = config.trace_extractor.rsplit(".", 1)
                 if len(extractor_parts) == 2:
