@@ -69,7 +69,7 @@ class Config:
     logs_injection = _get_env("DD_LOGS_INJECTION", "true", as_bool)
     function_name = _get_env("AWS_LAMBDA_FUNCTION_NAME", "function")
     is_gov_region = _get_env("AWS_REGION", "", lambda x: x.startswith("us-gov-"))
-    is_in_tests = _get_env("DD_INTEGRATION_TEST", "false", as_bool)
+    integration_test = _get_env("DD_INTEGRATION_TEST", "false", as_bool)
     is_lambda_context = _get_env("AWS_LAMBDA_FUNCTION_NAME", None, bool)
     otel_enabled = _get_env("DD_TRACE_OTEL_ENABLED", "false", as_bool)
     telemetry_enabled = _get_env(

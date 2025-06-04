@@ -41,7 +41,7 @@ def _patch_for_integration_tests():
     Patch `requests` to log the outgoing requests for integration tests.
     """
     global _integration_tests_patched
-    if not _integration_tests_patched and config.is_in_tests:
+    if not _integration_tests_patched and config.integration_test:
         wrap("requests", "Session.send", _log_request)
         _integration_tests_patched = True
 
