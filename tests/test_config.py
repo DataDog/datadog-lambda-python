@@ -62,7 +62,7 @@ _test_config_from_environ = (
     *_test_as_bool("DD_COLD_START_TRACING", "cold_start_tracing", default=True),
     *_test_as_bool("DD_FLUSH_IN_THREAD", "flush_in_thread", default=False),
     *_test_as_bool("DD_ENHANCED_METRICS", "enhanced_metrics_enabled", default=True),
-    *_test_as_bool("DD_INTEGRATION_TEST", "is_in_tests", default=False),
+    *_test_as_bool("DD_INTEGRATION_TEST", "integration_test", default=False),
     *_test_as_bool("DD_BOTOCORE_ADD_SPAN_POINTERS", "add_span_pointers", default=True),
     *_test_as_bool("DD_TRACE_OTEL_ENABLED", "otel_enabled", default=False),
     *_test_as_bool(
