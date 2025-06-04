@@ -57,9 +57,7 @@ class Config:
     trace_enabled = _get_env("DD_TRACE_ENABLED", "true", as_bool)
     merge_xray_traces = _get_env("DD_MERGE_XRAY_TRACES", "false", as_bool)
     trace_extractor = _get_env("DD_TRACE_EXTRACTOR")
-    capture_payload_max_depth = _get_env(
-        "DD_CAPTURE_PAYLOAD_MAX_DEPTH", 10, int
-    )
+    capture_payload_max_depth = _get_env("DD_CAPTURE_PAYLOAD_MAX_DEPTH", 10, int)
 
     @property
     def fips_mode_enabled(self):
