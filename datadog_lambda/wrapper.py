@@ -63,7 +63,6 @@ if exception_replay_env_var:
 
 logger = logging.getLogger(__name__)
 
-DD_FLUSH_TO_LOG = "DD_FLUSH_TO_LOG"
 DD_LOGS_INJECTION = "DD_LOGS_INJECTION"
 DD_MERGE_XRAY_TRACES = "DD_MERGE_XRAY_TRACES"
 AWS_LAMBDA_FUNCTION_NAME = "AWS_LAMBDA_FUNCTION_NAME"
@@ -161,7 +160,6 @@ class _LambdaDecorator(object):
         """Executes when the wrapped function gets wrapped"""
         try:
             self.func = func
-            self.flush_to_log = os.environ.get(DD_FLUSH_TO_LOG, "").lower() == "true"
             self.logs_injection = (
                 os.environ.get(DD_LOGS_INJECTION, "true").lower() == "true"
             )
@@ -400,7 +398,7 @@ class _LambdaDecorator(object):
                 except Exception as e:
                     logger.debug("Failed to create cold start spans. %s", e)
 
-            if not self.flush_to_log or should_use_extension:
+            if not config.flush_to_log or should_use_extension:
                 from datadog_lambda.metric import flush_stats
 
                 flush_stats(context)
