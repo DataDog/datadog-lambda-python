@@ -176,6 +176,13 @@ _test_config_from_environ = (
     ("DD_CAPTURE_LAMBDA_PAYLOAD", "capture_payload_enabled", "1", True),  # CHANGED
     ("DD_CAPTURE_LAMBDA_PAYLOAD", "capture_payload_enabled", "0", False),
     ("DD_CAPTURE_LAMBDA_PAYLOAD", "capture_payload_enabled", "purple", False),
+    ("DD_MIN_COLD_START_DURATION", "min_cold_start_trace_duration", None, 3),
+    ("DD_MIN_COLD_START_DURATION", "min_cold_start_trace_duration", "", 3),
+    ("DD_MIN_COLD_START_DURATION", "min_cold_start_trace_duration", "5", 5),
+    ("DD_MIN_COLD_START_DURATION", "min_cold_start_trace_duration", "0", 0),
+    ("DD_MIN_COLD_START_DURATION", "min_cold_start_trace_duration", "2.5", 3),
+    ("DD_MIN_COLD_START_DURATION", "min_cold_start_trace_duration", "-1", -1),
+    ("DD_MIN_COLD_START_DURATION", "min_cold_start_trace_duration", "purple", 3),
 )
 
 
