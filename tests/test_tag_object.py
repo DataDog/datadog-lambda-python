@@ -29,6 +29,7 @@ class TestTagObject(unittest.TestCase):
             True,
         )
 
+    @patch("datadog_lambda.config.Config.capture_payload_max_depth", 2)
     def test_tag_object_max_depth(self):
         payload = {
             "hello": "world",
@@ -41,11 +42,8 @@ class TestTagObject(unittest.TestCase):
             "vals": [{"thingOne": 1}, {"thingTwo": 2}],
         }
         spanMock = MagicMock()
-        import datadog_lambda.tag_object as lib_ref
 
-        lib_ref.max_depth = 2  # setting up the test
         tag_object(spanMock, "function.request", payload)
-        lib_ref.max_depth = 10  # revert the setup
         spanMock.set_tag.assert_has_calls(
             [
                 call("function.request.vals.0", "{'thingOne': 1}"),
@@ -62,6 +60,7 @@ class TestTagObject(unittest.TestCase):
             True,
         )
 
+    @patch("datadog_lambda.config.Config.capture_payload_max_depth", 0)
     def test_tag_object_max_depth_0(self):
         payload = {
             "hello": "world",
@@ -74,11 +73,8 @@ class TestTagObject(unittest.TestCase):
             "vals": [{"thingOne": 1}, {"thingTwo": 2}],
         }
         spanMock = MagicMock()
-        import datadog_lambda.tag_object as lib_ref
 
-        lib_ref.max_depth = 0  # setting up the test
         tag_object(spanMock, "function.request", payload)
-        lib_ref.max_depth = 10  # revert the setup
         spanMock.set_tag.assert_has_calls(
             [
                 call(

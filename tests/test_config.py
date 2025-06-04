@@ -130,6 +130,13 @@ _test_config_from_environ = (
     ("DD_TRACE_EXTRACTOR", "trace_extractor", None, None),
     ("DD_TRACE_EXTRACTOR", "trace_extractor", "", ""),
     ("DD_TRACE_EXTRACTOR", "trace_extractor", "my_extractor", "my_extractor"),
+    ("DD_CAPTURE_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", None, 10),
+    ("DD_CAPTURE_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", "", 10),
+    ("DD_CAPTURE_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", "5", 5),
+    ("DD_CAPTURE_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", "0", 0),
+    ("DD_CAPTURE_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", "2.5", 10),
+    ("DD_CAPTURE_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", "-1", -1),
+    ("DD_CAPTURE_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", "purple", 10),
 )
 
 

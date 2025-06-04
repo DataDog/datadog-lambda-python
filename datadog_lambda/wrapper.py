@@ -71,7 +71,6 @@ DD_COLD_START_TRACING = "DD_COLD_START_TRACING"
 DD_MIN_COLD_START_DURATION = "DD_MIN_COLD_START_DURATION"
 DD_COLD_START_TRACE_SKIP_LIB = "DD_COLD_START_TRACE_SKIP_LIB"
 DD_CAPTURE_LAMBDA_PAYLOAD = "DD_CAPTURE_LAMBDA_PAYLOAD"
-DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH = "DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH"
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
 DD_ENV = "DD_ENV"
@@ -91,13 +90,6 @@ def get_env_as_int(env_key, default_value: int) -> int:
 dd_capture_lambda_payload_enabled = (
     os.environ.get(DD_CAPTURE_LAMBDA_PAYLOAD, "false").lower() == "true"
 )
-
-if dd_capture_lambda_payload_enabled:
-    import datadog_lambda.tag_object as tag_object
-
-    tag_object.max_depth = get_env_as_int(
-        DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH, tag_object.max_depth
-    )
 
 env_env_var = os.environ.get(DD_ENV, None)
 
