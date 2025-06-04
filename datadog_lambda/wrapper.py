@@ -121,15 +121,11 @@ class _LambdaDecorator(object):
             self.trace_extractor = None
             self.span = None
             self.inferred_span = None
-            depends_on_dd_tracing_enabled = (
-                lambda original_boolean: config.trace_enabled and original_boolean
-            )
-            self.cold_start_tracing = depends_on_dd_tracing_enabled(
-                os.environ.get(DD_COLD_START_TRACING, "true").lower() == "true"
-            )
             self.response = None
+
             if config.profiling_enabled:
                 self.prof = profiler.Profiler(env=config.env, service=config.service)
+
             if config.trace_extractor:
                 extractor_parts = config.trace_extractor.rsplit(".", 1)
                 if len(extractor_parts) == 2:
@@ -277,7 +273,7 @@ class _LambdaDecorator(object):
                 create_dd_dummy_metadata_subsegment(
                     self.trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
                 )
-            should_trace_cold_start = self.cold_start_tracing and is_new_sandbox()
+            should_trace_cold_start = config.cold_start_tracing and is_new_sandbox()
             if should_trace_cold_start:
                 trace_ctx = tracer.current_trace_context()
 

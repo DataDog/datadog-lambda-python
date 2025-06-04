@@ -49,7 +49,7 @@ class Config:
     service = _get_env("DD_SERVICE")
     env = _get_env("DD_ENV")
 
-    cold_start_tracing = _get_env("DD_COLD_START_TRACING", "true", as_bool)
+    cold_start_tracing = _get_env("DD_COLD_START_TRACING", "true", as_bool, depends_on_tracing=True)
     min_cold_start_trace_duration = _get_env("DD_MIN_COLD_START_DURATION", 3, int)
     cold_start_trace_skip_lib = _get_env(
             "DD_COLD_START_TRACE_SKIP_LIB", "ddtrace.internal.compat,ddtrace.filters",
