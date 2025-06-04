@@ -155,6 +155,15 @@ _test_config_from_environ = (
     ("DD_LLMOBS_ENABLED", "llmobs_enabled", "1", True),  # CHANGED
     ("DD_LLMOBS_ENABLED", "llmobs_enabled", "0", False),
     ("DD_LLMOBS_ENABLED", "llmobs_enabled", "purple", False),
+    ("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", None, False),
+    ("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", "", False),
+    ("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", "true", True),
+    ("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", "TRUE", True),
+    ("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", "false", False),
+    ("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", "FALSE", False),
+    ("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", "1", True),  # CHANGED
+    ("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", "0", False),
+    ("DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", "purple", False),
 )
 
 
