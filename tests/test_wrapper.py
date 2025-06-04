@@ -622,10 +622,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 class TestLambdaDecoratorSettings(unittest.TestCase):
     @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_some_envs_should_depend_on_dd_tracing_enabled(self):
-        os.environ[wrapper.DD_ENCODE_AUTHORIZER_CONTEXT] = "true"
         os.environ[wrapper.DD_DECODE_AUTHORIZER_CONTEXT] = "true"
         decorator = wrapper._LambdaDecorator(func=None)
-        self.assertFalse(decorator.encode_authorizer_context)
         self.assertFalse(decorator.decode_authorizer_context)
 
 

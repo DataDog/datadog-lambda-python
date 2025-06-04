@@ -59,7 +59,6 @@ if config.exception_replay_enabled:
 logger = logging.getLogger(__name__)
 
 DD_TRACE_MANAGED_SERVICES = "DD_TRACE_MANAGED_SERVICES"
-DD_ENCODE_AUTHORIZER_CONTEXT = "DD_ENCODE_AUTHORIZER_CONTEXT"
 DD_DECODE_AUTHORIZER_CONTEXT = "DD_DECODE_AUTHORIZER_CONTEXT"
 DD_COLD_START_TRACING = "DD_COLD_START_TRACING"
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
@@ -128,9 +127,6 @@ class _LambdaDecorator(object):
             self.inferred_span = None
             depends_on_dd_tracing_enabled = (
                 lambda original_boolean: config.trace_enabled and original_boolean
-            )
-            self.encode_authorizer_context = depends_on_dd_tracing_enabled(
-                os.environ.get(DD_ENCODE_AUTHORIZER_CONTEXT, "true").lower() == "true"
             )
             self.decode_authorizer_context = depends_on_dd_tracing_enabled(
                 os.environ.get(DD_DECODE_AUTHORIZER_CONTEXT, "true").lower() == "true"
@@ -360,7 +356,7 @@ class _LambdaDecorator(object):
             if exception_replay_env_var:
                 LogsIntakeUploaderV1._instance.periodic()
 
-            if self.encode_authorizer_context and is_authorizer_response(self.response):
+            if config.encode_authorizer_context and is_authorizer_response(self.response):
                 self._inject_authorizer_span_headers(
                     event.get("requestContext", {}).get("requestId")
                 )
