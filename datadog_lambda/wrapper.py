@@ -145,8 +145,10 @@ class _LambdaDecorator(object):
                 except Exception:
                     logger.debug(f"Malformatted for env {DD_COLD_START_TRACE_SKIP_LIB}")
             self.response = None
+
             if config.profiling_enabled:
                 self.prof = profiler.Profiler(env=config.env, service=config.service)
+
             if config.trace_extractor:
                 extractor_parts = config.trace_extractor.rsplit(".", 1)
                 if len(extractor_parts) == 2:
@@ -296,7 +298,7 @@ class _LambdaDecorator(object):
                 create_dd_dummy_metadata_subsegment(
                     self.trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
                 )
-            should_trace_cold_start = self.cold_start_tracing and is_new_sandbox()
+            should_trace_cold_start = config.cold_start_tracing and is_new_sandbox()
             if should_trace_cold_start:
                 trace_ctx = tracer.current_trace_context()
 
