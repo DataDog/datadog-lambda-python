@@ -261,6 +261,7 @@ def test_lazy_loaded_package_imports(monkeypatch):
     lambda_context.invoked_function_arn = (
         "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test:1"
     )
+    lambda_context.get_remaining_time_in_millis = lambda: 100
 
     handler.cold_start_tracing = True
     handler({}, lambda_context)
