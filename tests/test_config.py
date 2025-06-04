@@ -146,6 +146,15 @@ _test_config_from_environ = (
     ("DD_PROFILING_ENABLED", "profiling_enabled", "1", True),  # CHANGED
     ("DD_PROFILING_ENABLED", "profiling_enabled", "0", False),
     ("DD_PROFILING_ENABLED", "profiling_enabled", "purple", False),
+    ("DD_LLMOBS_ENABLED", "llmobs_enabled", None, False),
+    ("DD_LLMOBS_ENABLED", "llmobs_enabled", "", False),
+    ("DD_LLMOBS_ENABLED", "llmobs_enabled", "true", True),
+    ("DD_LLMOBS_ENABLED", "llmobs_enabled", "TRUE", True),
+    ("DD_LLMOBS_ENABLED", "llmobs_enabled", "false", False),
+    ("DD_LLMOBS_ENABLED", "llmobs_enabled", "FALSE", False),
+    ("DD_LLMOBS_ENABLED", "llmobs_enabled", "1", True),  # CHANGED
+    ("DD_LLMOBS_ENABLED", "llmobs_enabled", "0", False),
+    ("DD_LLMOBS_ENABLED", "llmobs_enabled", "purple", False),
 )
 
 

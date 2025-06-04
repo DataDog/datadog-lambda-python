@@ -59,6 +59,7 @@ class Config:
     trace_extractor = _get_env("DD_TRACE_EXTRACTOR")
     capture_payload_max_depth = _get_env("DD_CAPTURE_PAYLOAD_MAX_DEPTH", 10, int)
     profiling_enabled = _get_env("DD_PROFILING_ENABLED", "false", as_bool)
+    llmobs_enabled = _get_env("DD_LLMOBS_ENABLED", "false", as_bool)
 
     @property
     def fips_mode_enabled(self):
