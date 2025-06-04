@@ -80,6 +80,8 @@ class Config:
 
     make_inferred_span = _get_env("DD_TRACE_MANAGED_SERVICES", "true", as_bool,
                                    depends_on_tracing=True)
+    encode_authorizer_context = _get_env("DD_ENCODE_AUTHORIZER_CONTEXT", "true", as_bool,
+                                         depends_on_tracing=True)
 
     local_test = _get_env("DD_LOCAL_TEST", "false", as_bool)
 
