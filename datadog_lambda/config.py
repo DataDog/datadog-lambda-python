@@ -44,6 +44,7 @@ class Config:
     )
     trace_enabled = _get_env("DD_TRACE_ENABLED", "true", as_bool)
     merge_xray_traces = _get_env("DD_MERGE_XRAY_TRACES", "false", as_bool)
+    trace_extractor = _get_env("DD_TRACE_EXTRACTOR")
 
     @property
     def fips_mode_enabled(self):
