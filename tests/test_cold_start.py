@@ -8,6 +8,8 @@ from unittest.mock import MagicMock
 import datadog_lambda.cold_start as cold_start
 import datadog_lambda.wrapper as wrapper
 
+from tests.utils import get_mock_context
+
 
 class TestColdStartTracingSetup(unittest.TestCase):
     def test_proactive_init(self):
@@ -247,7 +249,7 @@ def test_lazy_loaded_package_imports(monkeypatch):
 
     monkeypatch.setattr(wrapper.tracer, "_on_span_finish", finish)
     monkeypatch.setattr(wrapper, "is_new_sandbox", lambda: True)
-    monkeypatch.setattr("datadog_lambda.wrapper.dd_tracing_enabled", True)
+    monkeypatch.setattr("datadog_lambda.config.Config.trace_enabled", True)
     monkeypatch.setenv(
         "DD_COLD_START_TRACE_SKIP_LIB", "ddtrace.contrib.logging,datadog_lambda.wrapper"
     )
@@ -257,10 +259,7 @@ def test_lazy_loaded_package_imports(monkeypatch):
     def handler(event, context):
         import tabnanny
 
-    lambda_context = MagicMock()
-    lambda_context.invoked_function_arn = (
-        "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test:1"
-    )
+    lambda_context = get_mock_context()
 
     handler.cold_start_tracing = True
     handler({}, lambda_context)
