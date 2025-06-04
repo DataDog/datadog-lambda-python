@@ -61,9 +61,7 @@ if exception_replay_env_var:
 
 logger = logging.getLogger(__name__)
 
-DD_LOGS_INJECTION = "DD_LOGS_INJECTION"
 DD_LOCAL_TEST = "DD_LOCAL_TEST"
-DD_TRACE_EXTRACTOR = "DD_TRACE_EXTRACTOR"
 DD_TRACE_MANAGED_SERVICES = "DD_TRACE_MANAGED_SERVICES"
 DD_ENCODE_AUTHORIZER_CONTEXT = "DD_ENCODE_AUTHORIZER_CONTEXT"
 DD_DECODE_AUTHORIZER_CONTEXT = "DD_DECODE_AUTHORIZER_CONTEXT"
@@ -155,7 +153,6 @@ class _LambdaDecorator(object):
         """Executes when the wrapped function gets wrapped"""
         try:
             self.func = func
-            self.extractor_env = os.environ.get(DD_TRACE_EXTRACTOR, None)
             self.trace_extractor = None
             self.span = None
             self.inferred_span = None
@@ -194,8 +191,8 @@ class _LambdaDecorator(object):
             self.response = None
             if profiling_env_var:
                 self.prof = profiler.Profiler(env=env_env_var, service=config.service)
-            if self.extractor_env:
-                extractor_parts = self.extractor_env.rsplit(".", 1)
+            if config.trace_extractor:
+                extractor_parts = config.trace_extractor.rsplit(".", 1)
                 if len(extractor_parts) == 2:
                     (mod_name, extractor_name) = extractor_parts
                     modified_extractor_name = modify_module_name(mod_name)

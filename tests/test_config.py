@@ -127,6 +127,9 @@ _test_config_from_environ = (
     ("DD_MERGE_XRAY_TRACES", "merge_xray_traces", "1", True),  # CHANGED
     ("DD_MERGE_XRAY_TRACES", "merge_xray_traces", "0", False),
     ("DD_MERGE_XRAY_TRACES", "merge_xray_traces", "purple", False),
+    ("DD_TRACE_EXTRACTOR", "trace_extractor", None, None),
+    ("DD_TRACE_EXTRACTOR", "trace_extractor", "", ""),
+    ("DD_TRACE_EXTRACTOR", "trace_extractor", "my_extractor", "my_extractor"),
 )
 
 
