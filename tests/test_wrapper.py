@@ -76,6 +76,10 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_dd_lambda_layer_tag = patcher.start()
         self.addCleanup(patcher.stop)
 
+        patcher = patch("datadog_lambda.wrapper.set_dsm_context")
+        self.mock_set_dsm_context = patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_datadog_lambda_wrapper(self):
         wrapper.dd_tracing_enabled = False
 
@@ -564,68 +568,60 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             self.assertFalse(MockPrintExc.called)
 
     def test_set_dsm_context_called_when_DSM_and_tracing_enabled(self):
-        env_vars = {"DD_DATA_STREAMS_ENABLED": "true"}
-        with patch.dict(os.environ, env_vars):
-            with patch("datadog_lambda.wrapper.dd_tracing_enabled", True):
-                with patch(
-                    "datadog_lambda.wrapper.set_dsm_context"
-                ) as set_dsm_context_patch:
+        os.environ["DD_DATA_STREAMS_ENABLED"] = "true"
+        wrapper.dd_tracing_enabled = True
 
-                    @wrapper.datadog_lambda_wrapper
-                    def lambda_handler(event, context):
-                        return "ok"
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return "ok"
 
-                    result = lambda_handler({}, get_mock_context())
-                    assert result == "ok"
-                    assert set_dsm_context_patch.call_count == 1
+        result = lambda_handler({}, get_mock_context())
+        self.assertEqual(result, "ok")
+        self.mock_set_dsm_context.assert_called_once()
+
+        del os.environ["DD_DATA_STREAMS_ENABLED"]
 
     def test_set_dsm_context_not_called_when_only_DSM_enabled(self):
-        env_vars = {"DD_DATA_STREAMS_ENABLED": "true"}
-        with patch.dict(os.environ, env_vars):
-            with patch("datadog_lambda.wrapper.dd_tracing_enabled", False):
-                with patch(
-                    "datadog_lambda.wrapper.set_dsm_context"
-                ) as set_dsm_context_patch:
+        os.environ["DD_DATA_STREAMS_ENABLED"] = "true"
+        wrapper.dd_tracing_enabled = False
 
-                    @wrapper.datadog_lambda_wrapper
-                    def lambda_handler(event, context):
-                        return "ok"
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return "ok"
 
-                    result = lambda_handler({}, get_mock_context())
-                    assert result == "ok"
-                    assert set_dsm_context_patch.call_count == 0
+        result = lambda_handler({}, get_mock_context())
+        self.assertEqual(result, "ok")
+        self.mock_set_dsm_context.assert_not_called()
+
+        del os.environ["DD_DATA_STREAMS_ENABLED"]
 
     def test_set_dsm_context_not_called_when_only_tracing_enabled(self):
-        env_vars = {"DD_DATA_STREAMS_ENABLED": "false"}
-        with patch.dict(os.environ, env_vars):
-            with patch("datadog_lambda.wrapper.dd_tracing_enabled", True):
-                with patch(
-                    "datadog_lambda.wrapper.set_dsm_context"
-                ) as set_dsm_context_patch:
+        os.environ["DD_DATA_STREAMS_ENABLED"] = "false"
+        wrapper.dd_tracing_enabled = True
 
-                    @wrapper.datadog_lambda_wrapper
-                    def lambda_handler(event, context):
-                        return "ok"
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return "ok"
 
-                    result = lambda_handler({}, get_mock_context())
-                    assert result == "ok"
-                    assert set_dsm_context_patch.call_count == 0
+        result = lambda_handler({}, get_mock_context())
+        self.assertEqual(result, "ok")
+        self.mock_set_dsm_context.assert_not_called()
+
+        del os.environ["DD_DATA_STREAMS_ENABLED"]
 
     def test_set_dsm_context_not_called_when_tracing_and_DSM_disabled(self):
-        env_vars = {"DD_DATA_STREAMS_ENABLED": "false"}
-        with patch.dict(os.environ, env_vars):
-            with patch("datadog_lambda.wrapper.dd_tracing_enabled", False):
-                with patch(
-                    "datadog_lambda.wrapper.set_dsm_context"
-                ) as set_dsm_context_patch:
+        os.environ["DD_DATA_STREAMS_ENABLED"] = "false"
+        wrapper.dd_tracing_enabled = False
 
-                    @wrapper.datadog_lambda_wrapper
-                    def lambda_handler(event, context):
-                        return "ok"
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return "ok"
 
-                    result = lambda_handler({}, get_mock_context())
-                    assert result == "ok"
-                    assert set_dsm_context_patch.call_count == 0
+        result = lambda_handler({}, get_mock_context())
+        self.assertEqual(result, "ok")
+        self.mock_set_dsm_context.assert_not_called()
+
+        del os.environ["DD_DATA_STREAMS_ENABLED"]
 
 
 class TestLambdaDecoratorSettings(unittest.TestCase):
