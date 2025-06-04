@@ -183,6 +183,15 @@ _test_config_from_environ = (
     ("DD_MIN_COLD_START_DURATION", "min_cold_start_trace_duration", "2.5", 3),
     ("DD_MIN_COLD_START_DURATION", "min_cold_start_trace_duration", "-1", -1),
     ("DD_MIN_COLD_START_DURATION", "min_cold_start_trace_duration", "purple", 3),
+    ("DD_LOCAL_TEST", "local_test", None, False),
+    ("DD_LOCAL_TEST", "local_test", "", False),
+    ("DD_LOCAL_TEST", "local_test", "true", True),
+    ("DD_LOCAL_TEST", "local_test", "TRUE", True),
+    ("DD_LOCAL_TEST", "local_test", "false", False),
+    ("DD_LOCAL_TEST", "local_test", "FALSE", False),
+    ("DD_LOCAL_TEST", "local_test", "1", True),  # CHANGED
+    ("DD_LOCAL_TEST", "local_test", "0", False),
+    ("DD_LOCAL_TEST", "local_test", "purple", False),
 )
 
 
