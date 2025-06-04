@@ -48,8 +48,7 @@ from datadog_lambda.trigger import (
 if config.profiling_enabled:
     from ddtrace.profiling import profiler
 
-llmobs_env_var = os.environ.get("DD_LLMOBS_ENABLED", "false").lower() in ("true", "1")
-if llmobs_env_var:
+if config.llmobs_enabled:
     from ddtrace.llmobs import LLMObs
 
 exception_replay_env_var = os.environ.get(
@@ -203,7 +202,7 @@ class _LambdaDecorator(object):
             patch_all()
 
             # Enable LLM Observability
-            if llmobs_env_var:
+            if config.llmobs_enabled:
                 LLMObs.enable()
 
             # Enable Exception Replay
@@ -378,7 +377,7 @@ class _LambdaDecorator(object):
                 # logs api
                 flush_extension()
 
-            if llmobs_env_var:
+            if config.llmobs_enabled:
                 LLMObs.flush()
 
             if self.encode_authorizer_context and is_authorizer_response(self.response):
