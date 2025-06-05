@@ -9,6 +9,7 @@ import ujson as json
 from importlib import import_module
 from time import time_ns
 
+from datadog_lambda.dsm import set_dsm_context
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import (
     set_cold_start,
@@ -79,6 +80,7 @@ DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH = "DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH"
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
 DD_ENV = "DD_ENV"
+DD_DATA_STREAMS_ENABLED = "DD_DATA_STREAMS_ENABLED"
 
 
 def get_env_as_int(env_key, default_value: int) -> int:
@@ -189,6 +191,9 @@ class _LambdaDecorator(object):
             )
             self.min_cold_start_trace_duration = get_env_as_int(
                 DD_MIN_COLD_START_DURATION, 3
+            )
+            self.data_streams_enabled = (
+                os.environ.get(DD_DATA_STREAMS_ENABLED, "false").lower() == "true"
             )
             self.local_testing_mode = os.environ.get(
                 DD_LOCAL_TEST, "false"
@@ -322,6 +327,8 @@ class _LambdaDecorator(object):
                     self.inferred_span = create_inferred_span(
                         event, context, event_source, self.decode_authorizer_context
                     )
+                if self.data_streams_enabled:
+                    set_dsm_context(event, event_source)
                 self.span = create_function_execution_span(
                     context=context,
                     function_name=self.function_name,
