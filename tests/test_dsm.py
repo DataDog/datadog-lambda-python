@@ -1,14 +1,22 @@
 import unittest
 from unittest.mock import patch, MagicMock
 
-from datadog_lambda.dsm import set_dsm_context, _dsm_set_sqs_context
+from datadog_lambda.dsm import (
+    set_dsm_context,
+    _dsm_set_sqs_context,
+    _dsm_set_sns_context,
+)
 from datadog_lambda.trigger import EventTypes, _EventSource
 
 
-class TestDsmSQSContext(unittest.TestCase):
+class TestDSMContext(unittest.TestCase):
     def setUp(self):
         patcher = patch("datadog_lambda.dsm._dsm_set_sqs_context")
         self.mock_dsm_set_sqs_context = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("datadog_lambda.dsm._dsm_set_sns_context")
+        self.mock_dsm_set_sns_context = patcher.start()
         self.addCleanup(patcher.stop)
 
         patcher = patch("ddtrace.internal.datastreams.data_streams_processor")
@@ -25,6 +33,13 @@ class TestDsmSQSContext(unittest.TestCase):
         )
         self.mock_calculate_sqs_payload_size = patcher.start()
         self.mock_calculate_sqs_payload_size.return_value = 100
+        self.addCleanup(patcher.stop)
+
+        patcher = patch(
+            "ddtrace.internal.datastreams.botocore.calculate_sns_payload_size"
+        )
+        self.mock_calculate_sns_payload_size = patcher.start()
+        self.mock_calculate_sns_payload_size.return_value = 150
         self.addCleanup(patcher.stop)
 
         patcher = patch("ddtrace.internal.datastreams.processor.DsmPathwayCodec.decode")
@@ -110,3 +125,81 @@ class TestDsmSQSContext(unittest.TestCase):
             self.assertIn(f"topic:{expected_arns[i]}", tags)
             self.assertIn("type:sqs", tags)
             self.assertEqual(kwargs["payload_size"], 100)
+
+    def test_sns_event_with_no_records_does_nothing(self):
+        """Test that events where Records is None don't trigger DSM processing"""
+        events_with_no_records = [
+            {},
+            {"Records": None},
+            {"someOtherField": "value"},
+        ]
+
+        for event in events_with_no_records:
+            _dsm_set_sns_context(event)
+            self.mock_data_streams_processor.assert_not_called()
+
+    def test_sns_event_triggers_dsm_sns_context(self):
+        """Test that SNS event sources trigger the SNS-specific DSM context function"""
+        sns_event = {
+            "Records": [
+                {
+                    "EventSource": "aws:sns",
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:my-topic",
+                        "Message": "Hello from SNS!",
+                    },
+                }
+            ]
+        }
+
+        event_source = _EventSource(EventTypes.SNS)
+        set_dsm_context(sns_event, event_source)
+
+        self.mock_dsm_set_sns_context.assert_called_once_with(sns_event)
+
+    def test_sns_multiple_records_process_each_record(self):
+        """Test that each record in an SNS event gets processed individually"""
+        multi_record_event = {
+            "Records": [
+                {
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:topic1",
+                        "Message": "Message 1",
+                    }
+                },
+                {
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:topic2",
+                        "Message": "Message 2",
+                    }
+                },
+                {
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:topic3",
+                        "Message": "Message 3",
+                    }
+                },
+            ]
+        }
+
+        mock_context = MagicMock()
+        self.mock_dsm_pathway_codec_decode.return_value = mock_context
+
+        _dsm_set_sns_context(multi_record_event)
+
+        self.assertEqual(mock_context.set_checkpoint.call_count, 3)
+
+        calls = mock_context.set_checkpoint.call_args_list
+        expected_arns = [
+            "arn:aws:sns:us-east-1:123456789012:topic1",
+            "arn:aws:sns:us-east-1:123456789012:topic2",
+            "arn:aws:sns:us-east-1:123456789012:topic3",
+        ]
+
+        for i, call in enumerate(calls):
+            args, kwargs = call
+            tags = args[0]
+            self.assertIn("direction:in", tags)
+            self.assertIn(f"topic:{expected_arns[i]}", tags)
+            self.assertIn("type:sns", tags)
+            self.assertEqual(kwargs["payload_size"], 150)
