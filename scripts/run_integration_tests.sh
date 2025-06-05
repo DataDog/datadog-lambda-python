@@ -186,14 +186,6 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
             exit 1
         fi
 
-        mkdir -p raw_logs
-        PYTHON_VERSION=${!python_version} RUNTIME=$parameters_set SERVERLESS_RUNTIME=${!serverless_runtime} ARCH=${ARCH} SLS_ARCH=${SERVERLESS_FRAMEWORK_ARCH} serverless logs --stage ${!run_id} -f $function_name --startTime $script_utc_start_time > raw_logs/${handler_name}-${parameters_set}.log
-        echo '----------------------------------------'
-        echo "Raw logs for $function_name with parameters set $parameters_set:"
-        echo '----------------------------------------'
-        cat raw_logs/${handler_name}-${parameters_set}.log
-        echo '----------------------------------------'
-
         # Replace invocation-specific data like timestamps and IDs with XXXX to normalize logs across executions
         logs=$(
             echo "$raw_logs" |
