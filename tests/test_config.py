@@ -99,16 +99,24 @@ _test_config_from_environ = (
     ("DD_SERVICE", "service", None, None),
     ("DD_SERVICE", "service", "", ""),
     ("DD_SERVICE", "service", "my_service", "my_service"),
+    ("AWS_LAMBDA_FUNCTION_NAME", "aws_lambda_function_name", None, None),
+    ("AWS_LAMBDA_FUNCTION_NAME", "aws_lambda_function_name", "", ""),
+    (
+        "AWS_LAMBDA_FUNCTION_NAME",
+        "aws_lambda_function_name",
+        "my_function",
+        "my_function",
+    ),
     ("AWS_LAMBDA_FUNCTION_NAME", "function_name", None, "function"),
     ("AWS_LAMBDA_FUNCTION_NAME", "function_name", "", ""),
     ("AWS_LAMBDA_FUNCTION_NAME", "function_name", "my_function", "my_function"),
+    ("AWS_LAMBDA_FUNCTION_NAME", "is_lambda_context", None, False),
+    ("AWS_LAMBDA_FUNCTION_NAME", "is_lambda_context", "", False),
+    ("AWS_LAMBDA_FUNCTION_NAME", "is_lambda_context", "my_function", True),
     ("AWS_REGION", "is_gov_region", None, False),
     ("AWS_REGION", "is_gov_region", "", False),
     ("AWS_REGION", "is_gov_region", "us-gov-1", True),
     ("AWS_REGION", "is_gov_region", "us-est-1", False),
-    ("AWS_LAMBDA_FUNCTION_NAME", "is_lambda_context", None, False),
-    ("AWS_LAMBDA_FUNCTION_NAME", "is_lambda_context", "", False),
-    ("AWS_LAMBDA_FUNCTION_NAME", "is_lambda_context", "my_function", True),
     ("DD_TRACE_EXTRACTOR", "trace_extractor", None, None),
     ("DD_TRACE_EXTRACTOR", "trace_extractor", "", ""),
     ("DD_TRACE_EXTRACTOR", "trace_extractor", "my_extractor", "my_extractor"),
@@ -145,6 +153,15 @@ def test_config_from_environ_depends_on_tracing(
     setenv(env_key, env_val)
     setenv("DD_TRACE_ENABLED", "false")
     assert getattr(config, conf_key) is False
+
+
+def test_config_aws_lambda_function_name(setenv):
+    # these config values all access the same environment variable, test to
+    # ensure the wrong value is not cached
+    setenv("AWS_LAMBDA_FUNCTION_NAME", "my_function")
+    assert config.aws_lambda_function_name == "my_function"
+    assert config.function_name == "my_function"
+    assert config.is_lambda_context is True
 
 
 _test_fips_mode_from_environ = (

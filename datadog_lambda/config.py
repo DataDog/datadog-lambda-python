@@ -49,10 +49,6 @@ class Config:
     service = _get_env("DD_SERVICE")
     env = _get_env("DD_ENV")
 
-    function_name = _get_env("AWS_LAMBDA_FUNCTION_NAME", "function")
-    is_gov_region = _get_env("AWS_REGION", "", lambda x: x.startswith("us-gov-"))
-    is_lambda_context = _get_env("AWS_LAMBDA_FUNCTION_NAME", None, bool)
-
     cold_start_tracing = _get_env(
         "DD_COLD_START_TRACING", "true", as_bool, depends_on_tracing=True
     )
@@ -94,8 +90,27 @@ class Config:
     llmobs_enabled = _get_env("DD_LLMOBS_ENABLED", "false", as_bool)
     exception_replay_enabled = _get_env("DD_EXCEPTION_REPLAY_ENABLED", "false", as_bool)
 
+    is_gov_region = _get_env("AWS_REGION", "", lambda x: x.startswith("us-gov-"))
+
     local_test = _get_env("DD_LOCAL_TEST", "false", as_bool)
     integration_test = _get_env("DD_INTEGRATION_TEST", "false", as_bool)
+
+    aws_lambda_function_name = _get_env("AWS_LAMBDA_FUNCTION_NAME")
+
+    @property
+    def function_name(self):
+        if not hasattr(self, "_config_function_name"):
+            if self.aws_lambda_function_name is None:
+                self._config_function_name = "function"
+            else:
+                self._config_function_name = self.aws_lambda_function_name
+        return self._config_function_name
+
+    @property
+    def is_lambda_context(self):
+        if not hasattr(self, "_config_is_lambda_context"):
+            self._config_is_lambda_context = bool(self.aws_lambda_function_name)
+        return self._config_is_lambda_context
 
     @property
     def fips_mode_enabled(self):
