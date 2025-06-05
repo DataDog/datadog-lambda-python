@@ -29,6 +29,7 @@ def _get_env(key, default=None, cast=None, depends_on_tracing=False):
                             default,
                         )
                         val = default
+            print('key,val: ', key,val)
             setattr(self, prop_key, val)
         return getattr(self, prop_key)
 

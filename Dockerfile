@@ -16,6 +16,8 @@ ENV PATH=/root/.cargo/bin:$PATH
 COPY . .
 RUN pip install --no-cache-dir . -t ./python/lib/$runtime/site-packages
 
+COPY debug_encoding.py ./python/lib/$runtime/site-packages/ddtrace/internal/encoding.py
+
 # Remove botocore (40MB) to reduce package size. aws-xray-sdk
 # installs it, while it's already provided by the Lambda Runtime.
 RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
