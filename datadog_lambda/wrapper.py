@@ -316,12 +316,8 @@ class _LambdaDecorator(object):
                     self.inferred_span.set_tag("peer.service", config.service)
 
                 if InferredSpanInfo.is_async(self.inferred_span) and self.span:
-                    print("FINISHING 1")
-                    print('self.inferred_span.resource: ', self.inferred_span.resource)
                     self.inferred_span.finish(finish_time=self.span.start)
                 else:
-                    print("FINISHING 2")
-                    print('self.inferred_span.resource: ', self.inferred_span.resource)
                     self.inferred_span.finish()
 
             if should_trace_cold_start:
