@@ -2,10 +2,10 @@ import unittest
 from unittest.mock import patch, MagicMock
 
 from datadog_lambda.dsm import set_dsm_context, _dsm_set_sqs_context
-from datadog_lambda.trigger import EventTypes
+from datadog_lambda.trigger import EventTypes, _EventSource
 
 
-class TestDsmContext(unittest.TestCase):
+class TestDsmSQSContext(unittest.TestCase):
     def setUp(self):
         patcher = patch("datadog_lambda.dsm._dsm_set_sqs_context")
         self.mock_dsm_set_sqs_context = patcher.start()
@@ -33,17 +33,15 @@ class TestDsmContext(unittest.TestCase):
 
     def test_non_sqs_event_source_does_nothing(self):
         """Test that non-SQS event sources don't trigger DSM context setting"""
-        event = {"Records": [{"body": "test"}]}
+        event = {}
+        # Use Unknown Event Source
+        event_source = _EventSource(EventTypes.UNKNOWN)
+        set_dsm_context(event, event_source)
 
-        mock_event_source = MagicMock()
-        mock_event_source.equals.return_value = False  # Not SQS
-
-        set_dsm_context(event, mock_event_source)
-
-        mock_event_source.equals.assert_called_once_with(EventTypes.SQS)
+        # DSM context should not be set for non-SQS events
         self.mock_dsm_set_sqs_context.assert_not_called()
 
-    def test_event_with_no_records_does_nothing(self):
+    def test_sqs_event_with_no_records_does_nothing(self):
         """Test that events where Records is None don't trigger DSM processing"""
         events_with_no_records = [
             {},
@@ -67,14 +65,12 @@ class TestDsmContext(unittest.TestCase):
             ]
         }
 
-        mock_event_source = MagicMock()
-        mock_event_source.equals.return_value = True
-
-        set_dsm_context(sqs_event, mock_event_source)
+        event_source = _EventSource(EventTypes.SQS)
+        set_dsm_context(sqs_event, event_source)
 
         self.mock_dsm_set_sqs_context.assert_called_once_with(sqs_event)
 
-    def test_multiple_records_process_each_record(self):
+    def test_sqs_multiple_records_process_each_record(self):
         """Test that each record in an SQS event gets processed individually"""
         multi_record_event = {
             "Records": [
