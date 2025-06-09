@@ -1,10 +1,12 @@
 import unittest
+import base64
 import json
 from unittest.mock import patch
 
 from datadog_lambda.dsm import (
     set_dsm_context,
     _dsm_set_sqs_context,
+    _dsm_set_sns_context,
     _get_dsm_context_from_lambda,
 )
 from datadog_lambda.trigger import EventTypes, _EventSource
@@ -22,6 +24,12 @@ class TestSetDSMContext(unittest.TestCase):
 
         patcher = patch("datadog_lambda.dsm._get_dsm_context_from_lambda")
         self.mock_get_dsm_context_from_lambda = patcher.start()
+        patcher = patch("datadog_lambda.dsm._dsm_set_sns_context")
+        self.mock_dsm_set_sns_context = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("ddtrace.internal.datastreams.data_streams_processor")
+        self.mock_data_streams_processor = patcher.start()
         self.addCleanup(patcher.stop)
 
     def test_non_sqs_event_source_does_nothing(self):
@@ -135,6 +143,123 @@ class TestSetDSMContext(unittest.TestCase):
             pathway_ctx = carrier_get_func("dd-pathway-ctx-base64")
             self.assertEqual(pathway_ctx, expected_contexts[i])
 
+    def test_sns_event_with_no_records_does_nothing(self):
+        """Test that events where Records is None don't trigger DSM processing"""
+        events_with_no_records = [
+            {},
+            {"Records": None},
+            {"someOtherField": "value"},
+        ]
+
+        for event in events_with_no_records:
+            _dsm_set_sns_context(event)
+            self.mock_set_consume_checkpoint.assert_not_called()
+
+    def test_sns_event_triggers_dsm_sns_context(self):
+        """Test that SNS event sources trigger the SNS-specific DSM context function"""
+        sns_event = {
+            "Records": [
+                {
+                    "EventSource": "aws:sns",
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:my-topic",
+                        "Message": "Hello from SNS!",
+                    },
+                }
+            ]
+        }
+
+        event_source = _EventSource(EventTypes.SNS)
+        set_dsm_context(sns_event, event_source)
+
+        self.mock_dsm_set_sns_context.assert_called_once_with(sns_event)
+
+    def test_sns_multiple_records_process_each_record(self):
+        """Test that each record in an SNS event gets processed individually"""
+        multi_record_event = {
+            "Records": [
+                {
+                    "EventSource": "aws:sns",
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:topic1",
+                        "Message": "Message 1",
+                        "MessageAttributes": {
+                            "_datadog": {
+                                "Type": "Binary",
+                                "Value": base64.b64encode(
+                                    json.dumps({"dd-pathway-ctx-base64": "context1"})
+                                    .encode("utf-8")
+                                ).decode("utf-8")
+                            }
+                        },
+                    }
+                },
+                {
+                    "EventSource": "aws:sns",
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:topic2",
+                        "Message": "Message 2",
+                        "MessageAttributes": {
+                            "_datadog": {
+                                "Type": "Binary",
+                                "Value": base64.b64encode(
+                                    json.dumps({"dd-pathway-ctx-base64": "context2"})
+                                    .encode("utf-8")
+                                ).decode("utf-8")
+                            }
+                        },
+                    }
+                },
+                {
+                    "EventSource": "aws:sns",
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:topic3",
+                        "Message": "Message 3",
+                        "MessageAttributes": {
+                            "_datadog": {
+                                "Type": "Binary",
+                                "Value": base64.b64encode(
+                                    json.dumps({"dd-pathway-ctx-base64": "context3"})
+                                    .encode("utf-8")
+                                ).decode("utf-8")
+                            }
+                        },
+                    }
+                },
+            ]
+        }
+
+        self.mock_get_dsm_context_from_lambda.side_effect = [
+            {"dd-pathway-ctx-base64": "context1"},
+            {"dd-pathway-ctx-base64": "context2"},
+            {"dd-pathway-ctx-base64": "context3"},
+        ]
+
+        _dsm_set_sns_context(multi_record_event)
+
+        self.assertEqual(self.mock_set_consume_checkpoint.call_count, 3)
+
+        calls = self.mock_set_consume_checkpoint.call_args_list
+        expected_arns = [
+            "arn:aws:sns:us-east-1:123456789012:topic1",
+            "arn:aws:sns:us-east-1:123456789012:topic2",
+            "arn:aws:sns:us-east-1:123456789012:topic3",
+        ]
+        expected_contexts = ["context1", "context2", "context3"]
+
+        for i, call in enumerate(calls):
+            args, kwargs = call
+            service_type = args[0]
+            arn = args[1]
+            carrier_get_func = args[2]
+
+            self.assertEqual(service_type, "sns")
+
+            self.assertEqual(arn, expected_arns[i])
+
+            pathway_ctx = carrier_get_func("dd-pathway-ctx-base64")
+            self.assertEqual(pathway_ctx, expected_contexts[i])
+
 
 class TestGetDSMContext(unittest.TestCase):
     def test_sqs_to_lambda_string_value_format(self):
@@ -181,6 +306,43 @@ class TestGetDSMContext(unittest.TestCase):
         assert result == trace_context
         assert result["x-datadog-trace-id"] == "789123456"
         assert result["x-datadog-parent-id"] == "321987654"
+        assert result["dd-pathway-ctx"] == "test-pathway-ctx"
+
+    def test_sns_to_lambda_format(self):
+        """Test format: message.Sns.MessageAttributes._datadog.Value.decode() (SNS -> lambda)"""
+        trace_context = {
+            "x-datadog-trace-id": "111111111",
+            "x-datadog-parent-id": "222222222",
+            "dd-pathway-ctx": "test-pathway-ctx",
+        }
+        binary_data = base64.b64encode(
+            json.dumps(trace_context).encode("utf-8")
+        ).decode("utf-8")
+
+        sns_lambda_record = {
+            "EventSource": "aws:sns",
+            "EventSubscriptionArn": (
+                "arn:aws:sns:us-east-1:123456789012:sns-topic:12345678-1234-1234-1234-123456789012"
+            ),
+            "Sns": {
+                "Type": "Notification",
+                "MessageId": "95df01b4-ee98-5cb9-9903-4c221d41eb5e",
+                "TopicArn": "arn:aws:sns:us-east-1:123456789012:sns-topic",
+                "Subject": "Test Subject",
+                "Message": "Hello from SNS!",
+                "Timestamp": "2023-01-01T12:00:00.000Z",
+                "MessageAttributes": {
+                    "_datadog": {"Type": "Binary", "Value": binary_data}
+                },
+            },
+        }
+
+        result = _get_dsm_context_from_lambda(sns_lambda_record)
+
+        assert result is not None
+        assert result == trace_context
+        assert result["x-datadog-trace-id"] == "111111111"
+        assert result["x-datadog-parent-id"] == "222222222"
         assert result["dd-pathway-ctx"] == "test-pathway-ctx"
 
     def test_no_message_attributes(self):
