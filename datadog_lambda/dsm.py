@@ -13,6 +13,8 @@ def set_dsm_context(event, event_source):
         _dsm_set_sqs_context(event)
     elif event_source.equals(EventTypes.SNS):
         _dsm_set_sns_context(event)
+    elif event_source.equals(EventTypes.KINESIS):
+        _dsm_set_kinesis_context(event)
 
 
 def _dsm_set_context_helper(
@@ -76,6 +78,23 @@ def _dsm_set_sqs_context(event):
         return record.get("eventSourceARN", "")
 
     _dsm_set_context_helper(event, "sqs", sqs_arn_extractor, sqs_payload_calculator)
+
+
+def _dsm_set_kinesis_context(event):
+    from ddtrace.internal.datastreams.botocore import calculate_kinesis_payload_size
+
+    def kinesis_payload_calculator(record, context_json):
+        return calculate_kinesis_payload_size(record)
+
+    def kinesis_arn_extractor(record):
+        arn = record.get("eventSourceARN")
+        if arn is None:
+            return ""
+        return arn
+
+    _dsm_set_context_helper(
+        event, "kinesis", kinesis_arn_extractor, kinesis_payload_calculator
+    )
 
 
 def _get_dsm_context_from_lambda(message):
