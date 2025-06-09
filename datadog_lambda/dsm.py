@@ -12,6 +12,8 @@ def set_dsm_context(event, event_source):
         _dsm_set_sqs_context(event)
     elif event_source.equals(EventTypes.SNS):
         _dsm_set_sns_context(event)
+    elif event_source.equals(EventTypes.KINESIS):
+        _dsm_set_kinesis_context(event)
 
 
 def _dsm_set_sqs_context(event):
@@ -35,6 +37,16 @@ def _dsm_set_sns_context(event):
             return
         arn = sns_data.get("TopicArn", "")
         _set_dsm_context_for_record(sns_data, "sns", arn)
+
+
+def _dsm_set_kinesis_context(event):
+    records = event.get("Records")
+    if records is None:
+        return
+
+    for record in records:
+        arn = record.get("eventSourceARN", "")
+        _set_dsm_context_for_record(record, "kinesis", arn)
 
 
 def _set_dsm_context_for_record(record, type, arn):
