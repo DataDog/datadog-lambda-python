@@ -22,7 +22,7 @@ def _test_as_bool(env_key, conf_key, default):
         (env_key, conf_key, "TRUE", True),
         (env_key, conf_key, "false", False),
         (env_key, conf_key, "FALSE", False),
-        (env_key, conf_key, "1", True),  # CHANGED
+        (env_key, conf_key, "1", True),
         (env_key, conf_key, "0", False),
         (env_key, conf_key, "purple", False),
     )
