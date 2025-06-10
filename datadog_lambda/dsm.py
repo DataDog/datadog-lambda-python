@@ -12,9 +12,7 @@ def set_dsm_context(event, event_source):
         _dsm_set_sqs_context(event)
 
 
-def _dsm_set_context_helper(
-    record, service_type, arn, payload_size
-):
+def _dsm_set_context_helper(record, service_type, arn, payload_size):
     """
     Common helper function for setting DSM context.
 
