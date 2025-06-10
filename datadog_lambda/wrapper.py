@@ -27,6 +27,7 @@ from datadog_lambda.constants import (
 from datadog_lambda.module_name import modify_module_name
 from datadog_lambda.patch import patch_all
 from datadog_lambda.span_pointers import calculate_span_pointers
+from datadog_lambda.tag_object import tag_object
 from datadog_lambda.tracing import (
     extract_dd_trace_context,
     create_dd_dummy_metadata_subsegment,
@@ -279,8 +280,8 @@ class _LambdaDecorator(object):
 
             if self.span:
                 if config.capture_payload_enabled:
-                    tag_object.tag_object(self.span, "function.request", event)
-                    tag_object.tag_object(self.span, "function.response", self.response)
+                    tag_object(self.span, "function.request", event)
+                    tag_object(self.span, "function.response", self.response)
 
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
