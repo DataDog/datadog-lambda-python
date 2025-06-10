@@ -69,9 +69,20 @@ def _get_dsm_context_from_lambda(message):
     Lambda-specific message formats:
         - message.messageAttributes._datadog.stringValue (SQS -> lambda)
         - message.Sns.MessageAttributes._datadog.Value.decode() (SNS -> lambda)
+        - message.kinesis.data.decode()._datadog (Kinesis -> lambda)
     """
     context_json = None
     message_body = message
+
+    if "kinesis" in message:
+        try:
+            kinesis_data = json.loads(
+                base64.b64decode(message["kinesis"]["data"]).decode()
+            )
+            return kinesis_data.get("_datadog")
+        except (ValueError, TypeError, KeyError):
+            logger.debug("Unable to parse kinesis data for lambda message")
+            return None
 
     if "Sns" in message:
         message_body = message["Sns"]

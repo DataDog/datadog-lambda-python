@@ -448,6 +448,45 @@ class TestGetDSMContext(unittest.TestCase):
         assert result["x-datadog-parent-id"] == "222222222"
         assert result["dd-pathway-ctx"] == "test-pathway-ctx"
 
+    def test_kinesis_to_lambda_format(self):
+        """Test format: message.kinesis.data.decode()._datadog (Kinesis -> lambda)"""
+        trace_context = {
+            "x-datadog-trace-id": "555444333",
+            "x-datadog-parent-id": "888777666",
+            "dd-pathway-ctx": "test-pathway-ctx",
+        }
+
+        # Create the kinesis data payload
+        kinesis_payload = {
+            "_datadog": trace_context,
+            "actualData": "some business data",
+        }
+        encoded_kinesis_data = base64.b64encode(
+            json.dumps(kinesis_payload).encode("utf-8")
+        ).decode("utf-8")
+
+        kinesis_lambda_record = {
+            "eventSource": "aws:kinesis",
+            "eventSourceARN": (
+                "arn:aws:kinesis:us-east-1:123456789012:stream/my-stream"
+            ),
+            "kinesis": {
+                "data": encoded_kinesis_data,
+                "partitionKey": "partition-key-1",
+                "sequenceNumber": (
+                    "49590338271490256608559692538361571095921575989136588898"
+                ),
+            },
+        }
+
+        result = _get_dsm_context_from_lambda(kinesis_lambda_record)
+
+        assert result is not None
+        assert result == trace_context
+        assert result["x-datadog-trace-id"] == "555444333"
+        assert result["x-datadog-parent-id"] == "888777666"
+        assert result["dd-pathway-ctx"] == "test-pathway-ctx"
+
     def test_no_message_attributes(self):
         """Test message without MessageAttributes returns None."""
         message = {
