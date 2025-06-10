@@ -12,15 +12,15 @@ def set_dsm_context(event, event_source):
         _dsm_set_sqs_context(event)
 
 
-def _dsm_set_context_helper(record, service_type, arn, payload_size):
+def _dsm_set_context_helper(service_type, arn, payload_size, context_json):
     """
     Common helper function for setting DSM context.
 
     Args:
-        event: The Lambda event containing records
         service_type: The service type string (example: sqs', 'sns')
         arn:  ARN from the record
         payload_size: payload size of the record
+        context_json: Datadog context for the record
     """
     from datadog_lambda.wrapper import format_err_with_traceback
     from ddtrace.internal.datastreams import data_streams_processor
@@ -29,8 +29,6 @@ def _dsm_set_context_helper(record, service_type, arn, payload_size):
     processor = data_streams_processor()
 
     try:
-        context_json = _get_dsm_context_from_lambda(record)
-
         ctx = DsmPathwayCodec.decode(context_json, processor)
         ctx.set_checkpoint(
             ["direction:in", f"topic:{arn}", f"type:{service_type}"],
@@ -49,8 +47,10 @@ def _dsm_set_sqs_context(event):
 
     for record in records:
         arn = record.get("eventSourceARN", "")
-        payload_size = calculate_sqs_payload_size(record)
-        _dsm_set_context_helper(record, "sqs", arn, payload_size)
+        context_json = _get_dsm_context_from_lambda(record)
+        payload_size = calculate_sqs_payload_size(record, context_json)
+
+        _dsm_set_context_helper("sqs", arn, payload_size, context_json)
 
 
 def _get_dsm_context_from_lambda(message):
