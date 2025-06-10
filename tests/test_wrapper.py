@@ -564,7 +564,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     def test_set_dsm_context_called_when_DSM_and_tracing_enabled(self):
         os.environ["DD_DATA_STREAMS_ENABLED"] = "true"
-        wrapper.dd_tracing_enabled = True
+        os.environ["DD_TRACE_ENABLED"] = "true"
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -578,7 +578,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     def test_set_dsm_context_not_called_when_only_DSM_enabled(self):
         os.environ["DD_DATA_STREAMS_ENABLED"] = "true"
-        wrapper.dd_tracing_enabled = False
+        os.environ["DD_TRACE_ENABLED"] = "false"
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -592,7 +592,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     def test_set_dsm_context_not_called_when_only_tracing_enabled(self):
         os.environ["DD_DATA_STREAMS_ENABLED"] = "false"
-        wrapper.dd_tracing_enabled = True
+        os.environ["DD_TRACE_ENABLED"] = "true"
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -606,7 +606,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     def test_set_dsm_context_not_called_when_tracing_and_DSM_disabled(self):
         os.environ["DD_DATA_STREAMS_ENABLED"] = "false"
-        wrapper.dd_tracing_enabled = False
+        os.environ["DD_TRACE_ENABLED"] = "false"
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):

@@ -85,6 +85,7 @@ _test_config_from_environ = (
         "DD_CAPTURE_LAMBDA_PAYLOAD", "capture_payload_enabled", default=False
     ),
     *_test_as_bool("DD_LOCAL_TEST", "local_test", default=False),
+    *_test_as_bool("DD_DATA_STREAMS_ENABLED", "data_streams_enabled", default=False),
     *_test_int(
         "DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", default=10
     ),

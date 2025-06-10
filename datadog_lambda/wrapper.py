@@ -60,8 +60,6 @@ logger = logging.getLogger(__name__)
 
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
-DD_DATA_STREAMS_ENABLED = "DD_DATA_STREAMS_ENABLED"
-
 
 init_timestamp_ns = time_ns()
 
@@ -121,26 +119,6 @@ class _LambdaDecorator(object):
             self.trace_extractor = None
             self.span = None
             self.inferred_span = None
-            depends_on_dd_tracing_enabled = (
-                lambda original_boolean: config.trace_enabled and original_boolean
-            )
-            self.cold_start_tracing = depends_on_dd_tracing_enabled(
-                os.environ.get(DD_COLD_START_TRACING, "true").lower() == "true"
-            )
-            self.data_streams_enabled = (
-                os.environ.get(DD_DATA_STREAMS_ENABLED, "false").lower() == "true"
-            )
-            self.cold_start_trace_skip_lib = [
-                "ddtrace.internal.compat",
-                "ddtrace.filters",
-            ]
-            if DD_COLD_START_TRACE_SKIP_LIB in os.environ:
-                try:
-                    self.cold_start_trace_skip_lib = os.environ[
-                        DD_COLD_START_TRACE_SKIP_LIB
-                    ].split(",")
-                except Exception:
-                    logger.debug(f"Malformatted for env {DD_COLD_START_TRACE_SKIP_LIB}")
             self.response = None
 
             if config.profiling_enabled:
@@ -261,7 +239,7 @@ class _LambdaDecorator(object):
                     self.inferred_span = create_inferred_span(
                         event, context, event_source, config.decode_authorizer_context
                     )
-                if self.data_streams_enabled:
+                if config.data_streams_enabled:
                     set_dsm_context(event, event_source)
                 self.span = create_function_execution_span(
                     context=context,
@@ -348,7 +326,7 @@ class _LambdaDecorator(object):
                 LLMObs.flush()
 
             # Flush exception replay
-            if exception_replay_env_var:
+            if config.exception_replay_enabled:
                 LogsIntakeUploaderV1._instance.periodic()
 
             if config.encode_authorizer_context and is_authorizer_response(

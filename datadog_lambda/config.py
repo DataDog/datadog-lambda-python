@@ -89,6 +89,9 @@ class Config:
     profiling_enabled = _get_env("DD_PROFILING_ENABLED", "false", as_bool)
     llmobs_enabled = _get_env("DD_LLMOBS_ENABLED", "false", as_bool)
     exception_replay_enabled = _get_env("DD_EXCEPTION_REPLAY_ENABLED", "false", as_bool)
+    data_streams_enabled = _get_env(
+        "DD_DATA_STREAMS_ENABLED", "false", as_bool, depends_on_tracing=True
+    )
 
     is_gov_region = _get_env("AWS_REGION", "", lambda x: x.startswith("us-gov-"))
 
