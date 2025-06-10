@@ -21,13 +21,11 @@ def _get_env(key, default=None, cast=None, depends_on_tracing=False):
                     try:
                         val = cast(val)
                     except (ValueError, TypeError):
-                        logger.warning(
-                            "Failed to cast environment variable '%s' with value '%s' to type %s. Using default value '%s'.",
-                            key,
-                            val,
-                            cast.__name__,
-                            default,
+                        msg = (
+                            "Failed to cast environment variable '%s' with "
+                            "value '%s' to type %s. Using default value '%s'."
                         )
+                        logger.warning(msg, key, val, cast.__name__, default)
                         val = default
             setattr(self, prop_key, val)
         return getattr(self, prop_key)
