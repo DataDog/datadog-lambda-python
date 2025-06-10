@@ -25,7 +25,6 @@ from datadog_lambda.constants import (
     Headers,
 )
 from datadog_lambda.module_name import modify_module_name
-from datadog_lambda.patch import patch_all
 from datadog_lambda.span_pointers import calculate_span_pointers
 from datadog_lambda.tag_object import tag_object
 from datadog_lambda.tracing import (
@@ -46,10 +45,6 @@ from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
 )
-
-# Patch third-party libraries for tracing, must be done before importing any
-# handler code.
-patch_all()
 
 if config.profiling_enabled:
     from ddtrace.profiling import profiler
