@@ -53,7 +53,7 @@ def _dsm_set_sns_context(event):
         arn = sns_data.get("TopicArn", "")
         context_json = _get_dsm_context_from_lambda(sns_data)
         if not context_json:
-            logger.debug("DataStreams skipped lambda message: %r", sns_data)
+            logger.debug("DataStreams skipped lambda message: %r", record)
             return None
 
         carrier_get = _create_carrier_get(context_json)
