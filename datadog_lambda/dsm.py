@@ -42,19 +42,15 @@ def _dsm_set_context_helper(record, service_type, arn, payload_size):
 
 def _dsm_set_sqs_context(event):
     from ddtrace.internal.datastreams.botocore import calculate_sqs_payload_size
-    from datadog_lambda.wrapper import format_err_with_traceback
 
     records = event.get("Records")
     if records is None:
         return
 
     for record in records:
-        try:
-            arn = record.get("eventSourceARN", "")
-            payload_size = calculate_sqs_payload_size(record)
-            _dsm_set_context_helper(record, "sqs", arn, payload_size)
-        except Exception as e:
-            logger.error(format_err_with_traceback(e))
+        arn = record.get("eventSourceARN", "")
+        payload_size = calculate_sqs_payload_size(record)
+        _dsm_set_context_helper(record, "sqs", arn, payload_size)
 
 
 def _get_dsm_context_from_lambda(message):
