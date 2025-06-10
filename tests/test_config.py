@@ -142,6 +142,10 @@ _test_config_from_environ_depends_on_tracing = (
     *_test_as_bool(
         "DD_DECODE_AUTHORIZER_CONTEXT", "decode_authorizer_context", default=True
     ),
+    *_test_as_bool("DD_DATA_STREAMS_ENABLED", "data_streams_enabled", default=False),
+    *_test_as_bool(
+        "DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", default=False
+    ),
 )
 
 

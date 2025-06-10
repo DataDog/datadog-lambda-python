@@ -81,7 +81,10 @@ class Config:
     merge_xray_traces = _get_env("DD_MERGE_XRAY_TRACES", "false", as_bool)
 
     telemetry_enabled = _get_env(
-        "DD_INSTRUMENTATION_TELEMETRY_ENABLED", "false", as_bool
+        "DD_INSTRUMENTATION_TELEMETRY_ENABLED",
+        "false",
+        as_bool,
+        depends_on_tracing=True,
     )
     otel_enabled = _get_env("DD_TRACE_OTEL_ENABLED", "false", as_bool)
     profiling_enabled = _get_env("DD_PROFILING_ENABLED", "false", as_bool)
