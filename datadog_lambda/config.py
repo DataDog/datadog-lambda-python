@@ -13,20 +13,7 @@ def _get_env(key, default=None, cast=None, depends_on_tracing=False):
     @property
     def _getter(self):
         if not hasattr(self, prop_key):
-            if depends_on_tracing and not config.trace_enabled:
-                val = False
-            else:
-                val = os.environ.get(key, default)
-                if cast is not None:
-                    try:
-                        val = cast(val)
-                    except (ValueError, TypeError):
-                        msg = (
-                            "Failed to cast environment variable '%s' with "
-                            "value '%s' to type %s. Using default value '%s'."
-                        )
-                        logger.warning(msg, key, val, cast.__name__, default)
-                        val = default
+            val = self._resolve_env(key, default, cast, depends_on_tracing)
             setattr(self, prop_key, val)
         return getattr(self, prop_key)
 
@@ -43,6 +30,21 @@ def as_list(val):
 
 
 class Config:
+    def _resolve_env(self, key, default=None, cast=None, depends_on_tracing=False):
+        if depends_on_tracing and not self.trace_enabled:
+            return False
+        val = os.environ.get(key, default)
+        if cast is not None:
+            try:
+                val = cast(val)
+            except (ValueError, TypeError):
+                msg = (
+                    "Failed to cast environment variable '%s' with "
+                    "value '%s' to type %s. Using default value '%s'."
+                )
+                logger.warning(msg, key, val, cast.__name__, default)
+                val = default
+        return val
 
     service = _get_env("DD_SERVICE")
     env = _get_env("DD_ENV")

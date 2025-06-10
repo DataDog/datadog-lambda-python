@@ -1,6 +1,6 @@
 import pytest
 
-from datadog_lambda.config import config, _get_env
+from datadog_lambda.config import config, _get_env, Config
 
 
 @pytest.fixture
@@ -218,7 +218,7 @@ def test__get_env_does_not_log_when_env_not_set(setenv, monkeypatch):
     setenv("TEST_3", None)
     setenv("TEST_4", None)
 
-    class Testing:
+    class Testing(Config):
         test_1 = _get_env("TEST_1")
         test_2 = _get_env("TEST_2", "purple")
         test_3 = _get_env("TEST_3", "true", bool)
