@@ -10,7 +10,7 @@ from datadog_lambda.dsm import (
 from datadog_lambda.trigger import EventTypes, _EventSource
 
 
-class TestDSMContext(unittest.TestCase):
+class TestSetDSMContext(unittest.TestCase):
     def setUp(self):
         patcher = patch("datadog_lambda.dsm._dsm_set_sqs_context")
         self.mock_dsm_set_sqs_context = patcher.start()

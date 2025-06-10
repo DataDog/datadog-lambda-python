@@ -13,7 +13,7 @@ def set_dsm_context(event, event_source):
 
 
 def _dsm_set_context_helper(
-    event, service_type, arn_extractor, payload_size_calculator
+    record, service_type, arn, payload_size
 ):
     """
     Common helper function for setting DSM context.
@@ -21,43 +21,42 @@ def _dsm_set_context_helper(
     Args:
         event: The Lambda event containing records
         service_type: The service type string (example: sqs', 'sns')
-        arn_extractor: Function to extract the ARN from the record
-        payload_size_calculator: Function to calculate payload size
+        arn:  ARN from the record
+        payload_size: payload size of the record
     """
     from datadog_lambda.wrapper import format_err_with_traceback
     from ddtrace.internal.datastreams import data_streams_processor
     from ddtrace.internal.datastreams.processor import DsmPathwayCodec
 
-    records = event.get("Records")
-    if records is None:
-        return
     processor = data_streams_processor()
 
-    for record in records:
-        try:
-            arn = arn_extractor(record)
-            context_json = _get_dsm_context_from_lambda(record)
-            payload_size = payload_size_calculator(record, context_json)
+    try:
+        context_json = _get_dsm_context_from_lambda(record)
 
-            ctx = DsmPathwayCodec.decode(context_json, processor)
-            ctx.set_checkpoint(
-                ["direction:in", f"topic:{arn}", f"type:{service_type}"],
-                payload_size=payload_size,
-            )
-        except Exception as e:
-            logger.error(format_err_with_traceback(e))
+        ctx = DsmPathwayCodec.decode(context_json, processor)
+        ctx.set_checkpoint(
+            ["direction:in", f"topic:{arn}", f"type:{service_type}"],
+            payload_size=payload_size,
+        )
+    except Exception as e:
+        logger.error(format_err_with_traceback(e))
 
 
 def _dsm_set_sqs_context(event):
     from ddtrace.internal.datastreams.botocore import calculate_sqs_payload_size
+    from datadog_lambda.wrapper import format_err_with_traceback
 
-    def sqs_payload_calculator(record, context_json):
-        return calculate_sqs_payload_size(record)
+    records = event.get("Records")
+    if records is None:
+        return
 
-    def sqs_arn_extractor(record):
-        return record.get("eventSourceARN", "")
-
-    _dsm_set_context_helper(event, "sqs", sqs_arn_extractor, sqs_payload_calculator)
+    for record in records:
+        try:
+            arn = record.get("eventSourceARN", "")
+            payload_size = calculate_sqs_payload_size(record)
+            _dsm_set_context_helper(record, "sqs", arn, payload_size)
+        except Exception as e:
+            logger.error(format_err_with_traceback(e))
 
 
 def _get_dsm_context_from_lambda(message):
