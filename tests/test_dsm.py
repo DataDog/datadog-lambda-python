@@ -16,11 +16,6 @@ class TestSetDSMContext(unittest.TestCase):
         self.mock_dsm_set_sqs_context = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("ddtrace.internal.datastreams.botocore.get_datastreams_context")
-        self.mock_get_datastreams_context = patcher.start()
-        self.mock_get_datastreams_context.return_value = {}
-        self.addCleanup(patcher.stop)
-
         # Patch set_consume_checkpoint for testing DSM functionality
         patcher = patch("ddtrace.data_streams.set_consume_checkpoint")
         self.mock_set_consume_checkpoint = patcher.start()
