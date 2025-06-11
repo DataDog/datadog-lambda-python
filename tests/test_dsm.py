@@ -306,7 +306,9 @@ class TestSetDSMContext(unittest.TestCase):
                     "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/stream1",
                     "kinesis": {
                         "data": base64.b64encode(
-                            json.dumps({"dd-pathway-ctx-base64": "context1"}).encode("utf-8")
+                            json.dumps({"dd-pathway-ctx-base64": "context1"}).encode(
+                                "utf-8"
+                            )
                         ).decode("utf-8"),
                         "partitionKey": "partition-1",
                     },
@@ -315,7 +317,9 @@ class TestSetDSMContext(unittest.TestCase):
                     "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/stream2",
                     "kinesis": {
                         "data": base64.b64encode(
-                            json.dumps({"dd-pathway-ctx-base64": "context2"}).encode("utf-8")
+                            json.dumps({"dd-pathway-ctx-base64": "context2"}).encode(
+                                "utf-8"
+                            )
                         ).decode("utf-8"),
                         "partitionKey": "partition-2",
                     },
@@ -324,7 +328,9 @@ class TestSetDSMContext(unittest.TestCase):
                     "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/stream3",
                     "kinesis": {
                         "data": base64.b64encode(
-                            json.dumps({"dd-pathway-ctx-base64": "context3"}).encode("utf-8")
+                            json.dumps({"dd-pathway-ctx-base64": "context3"}).encode(
+                                "utf-8"
+                            )
                         ).decode("utf-8"),
                         "partitionKey": "partition-3",
                     },
