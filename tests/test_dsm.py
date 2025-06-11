@@ -16,12 +16,10 @@ class TestSetDSMContext(unittest.TestCase):
         self.mock_dsm_set_sqs_context = patcher.start()
         self.addCleanup(patcher.stop)
 
-        # Patch set_consume_checkpoint for testing DSM functionality
         patcher = patch("ddtrace.data_streams.set_consume_checkpoint")
         self.mock_set_consume_checkpoint = patcher.start()
         self.addCleanup(patcher.stop)
 
-        # Patch _get_dsm_context_from_lambda for testing DSM context extraction
         patcher = patch("datadog_lambda.dsm._get_dsm_context_from_lambda")
         self.mock_get_dsm_context_from_lambda = patcher.start()
         self.addCleanup(patcher.stop)
@@ -29,11 +27,9 @@ class TestSetDSMContext(unittest.TestCase):
     def test_non_sqs_event_source_does_nothing(self):
         """Test that non-SQS event sources don't trigger DSM context setting"""
         event = {}
-        # Use Unknown Event Source
         event_source = _EventSource(EventTypes.UNKNOWN)
         set_dsm_context(event, event_source)
 
-        # DSM context should not be set for non-SQS events
         self.mock_dsm_set_sqs_context.assert_not_called()
 
     def test_sqs_event_with_no_records_does_nothing(self):
@@ -46,7 +42,6 @@ class TestSetDSMContext(unittest.TestCase):
 
         for event in events_with_no_records:
             _dsm_set_sqs_context(event)
-            # Should not call set_consume_checkpoint for events without records
             self.mock_set_consume_checkpoint.assert_not_called()
 
     def test_sqs_event_triggers_dsm_sqs_context(self):
