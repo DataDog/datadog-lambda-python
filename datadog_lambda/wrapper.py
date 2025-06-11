@@ -25,7 +25,6 @@ from datadog_lambda.constants import (
     Headers,
 )
 from datadog_lambda.module_name import modify_module_name
-from datadog_lambda.patch import patch_all
 from datadog_lambda.span_pointers import calculate_span_pointers
 from datadog_lambda.tag_object import tag_object
 from datadog_lambda.tracing import (
@@ -142,8 +141,6 @@ class _LambdaDecorator(object):
             os.environ[DD_REQUESTS_SERVICE_NAME] = os.environ.get(
                 DD_SERVICE, "aws.lambda"
             )
-            # Patch third-party libraries for tracing
-            patch_all()
 
             # Enable LLM Observability
             if config.llmobs_enabled:
