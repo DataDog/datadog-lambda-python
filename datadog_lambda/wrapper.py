@@ -9,6 +9,7 @@ import ujson as json
 from importlib import import_module
 from time import time_ns
 
+from datadog_lambda.asm import asm_start_response, asm_start_request
 from datadog_lambda.dsm import set_dsm_context
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import (
@@ -253,6 +254,8 @@ class _LambdaDecorator(object):
                     parent_span=self.inferred_span,
                     span_pointers=calculate_span_pointers(event_source, event),
                 )
+                if config.appsec_enabled:
+                    asm_start_request(self.span, event, event_source, self.trigger_tags)
             else:
                 set_correlation_ids()
             if config.profiling_enabled and is_new_sandbox():
@@ -285,6 +288,15 @@ class _LambdaDecorator(object):
 
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
+
+                if config.appsec_enabled:
+                    asm_start_response(
+                        self.span,
+                        status_code,
+                        self.event_source,
+                        response=self.response,
+                    )
+
                 self.span.finish()
 
             if self.inferred_span:
