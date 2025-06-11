@@ -187,12 +187,13 @@ class TestSetDSMContext(unittest.TestCase):
                             "_datadog": {
                                 "Type": "Binary",
                                 "Value": base64.b64encode(
-                                    json.dumps({"dd-pathway-ctx-base64": "context1"})
-                                    .encode("utf-8")
-                                ).decode("utf-8")
+                                    json.dumps(
+                                        {"dd-pathway-ctx-base64": "context1"}
+                                    ).encode("utf-8")
+                                ).decode("utf-8"),
                             }
                         },
-                    }
+                    },
                 },
                 {
                     "EventSource": "aws:sns",
@@ -203,12 +204,13 @@ class TestSetDSMContext(unittest.TestCase):
                             "_datadog": {
                                 "Type": "Binary",
                                 "Value": base64.b64encode(
-                                    json.dumps({"dd-pathway-ctx-base64": "context2"})
-                                    .encode("utf-8")
-                                ).decode("utf-8")
+                                    json.dumps(
+                                        {"dd-pathway-ctx-base64": "context2"}
+                                    ).encode("utf-8")
+                                ).decode("utf-8"),
                             }
                         },
-                    }
+                    },
                 },
                 {
                     "EventSource": "aws:sns",
@@ -219,12 +221,13 @@ class TestSetDSMContext(unittest.TestCase):
                             "_datadog": {
                                 "Type": "Binary",
                                 "Value": base64.b64encode(
-                                    json.dumps({"dd-pathway-ctx-base64": "context3"})
-                                    .encode("utf-8")
-                                ).decode("utf-8")
+                                    json.dumps(
+                                        {"dd-pathway-ctx-base64": "context3"}
+                                    ).encode("utf-8")
+                                ).decode("utf-8"),
                             }
                         },
-                    }
+                    },
                 },
             ]
         }
