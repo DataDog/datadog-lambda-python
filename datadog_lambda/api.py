@@ -1,7 +1,7 @@
 import logging
 import os
 
-from datadog_lambda.fips import fips_mode_enabled
+from datadog_lambda.config import config
 
 logger = logging.getLogger(__name__)
 KMS_ENCRYPTION_CONTEXT_KEY = "LambdaFunctionName"
@@ -29,7 +29,6 @@ def decrypt_kms_api_key(kms_client, ciphertext):
     is added. We need to try decrypting the API key both with and without the encryption context.
     """
     # Try without encryption context, in case API key was encrypted using the AWS CLI
-    function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
     try:
         plaintext = kms_client.decrypt(CiphertextBlob=decoded_bytes)[
             "Plaintext"
@@ -43,7 +42,7 @@ def decrypt_kms_api_key(kms_client, ciphertext):
         plaintext = kms_client.decrypt(
             CiphertextBlob=decoded_bytes,
             EncryptionContext={
-                KMS_ENCRYPTION_CONTEXT_KEY: function_name,
+                KMS_ENCRYPTION_CONTEXT_KEY: config.function_name,
             },
         )["Plaintext"].decode("utf-8")
 
@@ -66,7 +65,7 @@ def get_api_key() -> str:
     DD_API_KEY = os.environ.get("DD_API_KEY", os.environ.get("DATADOG_API_KEY", ""))
 
     LAMBDA_REGION = os.environ.get("AWS_REGION", "")
-    if fips_mode_enabled:
+    if config.fips_mode_enabled:
         logger.debug(
             "FIPS mode is enabled, using FIPS endpoints for secrets management."
         )
@@ -82,7 +81,7 @@ def get_api_key() -> str:
             return ""
         endpoint_url = (
             f"https://secretsmanager-fips.{secrets_region}.amazonaws.com"
-            if fips_mode_enabled
+            if config.fips_mode_enabled
             else None
         )
         secrets_manager_client = _boto3_client(
@@ -95,7 +94,7 @@ def get_api_key() -> str:
         # SSM endpoints: https://docs.aws.amazon.com/general/latest/gr/ssm.html
         fips_endpoint = (
             f"https://ssm-fips.{LAMBDA_REGION}.amazonaws.com"
-            if fips_mode_enabled
+            if config.fips_mode_enabled
             else None
         )
         ssm_client = _boto3_client("ssm", endpoint_url=fips_endpoint)
@@ -106,7 +105,7 @@ def get_api_key() -> str:
         # KMS endpoints: https://docs.aws.amazon.com/general/latest/gr/kms.html
         fips_endpoint = (
             f"https://kms-fips.{LAMBDA_REGION}.amazonaws.com"
-            if fips_mode_enabled
+            if config.fips_mode_enabled
             else None
         )
         kms_client = _boto3_client("kms", endpoint_url=fips_endpoint)
@@ -118,7 +117,7 @@ def get_api_key() -> str:
 
 
 def init_api():
-    if not os.environ.get("DD_FLUSH_TO_LOG", "").lower() == "true":
+    if not config.flush_to_log:
         # Make sure that this package would always be lazy-loaded/outside from the critical path
         # since underlying packages are quite heavy to load
         # and useless with the extension unless sending metrics with timestamps

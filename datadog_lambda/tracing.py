@@ -32,6 +32,8 @@ from ddtrace import patch
 from ddtrace import __version__ as ddtrace_version
 from ddtrace.propagation.http import HTTPPropagator
 from ddtrace.trace import Context, Span, tracer
+
+from datadog_lambda.config import config
 from datadog_lambda import __version__ as datadog_lambda_version
 from datadog_lambda.trigger import (
     _EventSource,
@@ -42,10 +44,7 @@ from datadog_lambda.trigger import (
     EventSubtypes,
 )
 
-dd_trace_otel_enabled = (
-    os.environ.get("DD_TRACE_OTEL_ENABLED", "false").lower() == "true"
-)
-if dd_trace_otel_enabled:
+if config.otel_enabled:
     from opentelemetry.trace import set_tracer_provider
     from ddtrace.opentelemetry import TracerProvider
 
@@ -55,18 +54,11 @@ if dd_trace_otel_enabled:
 logger = logging.getLogger(__name__)
 
 dd_trace_context = None
-dd_tracing_enabled = os.environ.get("DD_TRACE_ENABLED", "false").lower() == "true"
-if dd_tracing_enabled:
+if config.telemetry_enabled:
     # Enable the telemetry client if the user has opted in
-    if (
-        os.environ.get("DD_INSTRUMENTATION_TELEMETRY_ENABLED", "false").lower()
-        == "true"
-    ):
-        from ddtrace.internal.telemetry import telemetry_writer
+    from ddtrace.internal.telemetry import telemetry_writer
 
-        telemetry_writer.enable()
-
-is_lambda_context = os.environ.get(XrayDaemon.FUNCTION_NAME_HEADER_NAME) != ""
+    telemetry_writer.enable()
 
 propagator = HTTPPropagator()
 
@@ -97,7 +89,7 @@ def _convert_xray_sampling(xray_sampled):
 
 
 def _get_xray_trace_context():
-    if not is_lambda_context:
+    if not config.is_lambda_context:
         return None
 
     xray_trace_entity = parse_xray_header(
@@ -639,12 +631,10 @@ def get_dd_trace_context_obj():
     automatically, but this function can be used to manually inject the trace
     context to an outgoing request.
     """
-    if dd_tracing_enabled:
+    if config.trace_enabled:
         dd_trace_py_context = _get_dd_trace_py_context()
         if _is_context_complete(dd_trace_py_context):
             return dd_trace_py_context
-
-    global dd_trace_context
 
     try:
         xray_context = _get_xray_trace_context()  # xray (sub)segment
@@ -690,10 +680,10 @@ def set_correlation_ids():
 
     TODO: Remove me when Datadog tracer is natively supported in Lambda.
     """
-    if not is_lambda_context:
+    if not config.is_lambda_context:
         logger.debug("set_correlation_ids is only supported in LambdaContext")
         return
-    if dd_tracing_enabled:
+    if config.trace_enabled:
         logger.debug("using ddtrace implementation for spans")
         return
 
@@ -1480,7 +1470,7 @@ def emit_telemetry_on_exception_outside_of_handler(
     Emit an enhanced error metric and create a span for exceptions occurring outside the handler
     """
     submit_errors_metric(None)
-    if dd_tracing_enabled:
+    if config.trace_enabled:
         span = tracer.trace(
             "aws.lambda",
             service="aws.lambda",

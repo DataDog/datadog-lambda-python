@@ -1,9 +1,17 @@
+import pytest
 import unittest
 
 from unittest.mock import patch, MagicMock
 
 from datadog_lambda.patch import _patch_http, _ensure_patch_requests
 from datadog_lambda.constants import TraceHeader
+
+from ddtrace.contrib.internal.requests.patch import unpatch as unpatch_requests
+
+
+@pytest.fixture(scope="module", autouse=True)
+def reset_patches():
+    unpatch_requests()
 
 
 class TestPatchHTTPClients(unittest.TestCase):

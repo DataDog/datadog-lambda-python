@@ -62,7 +62,7 @@ class TestLambdaMetric(unittest.TestCase):
         self.assertEqual(MetricsHandler.DATADOG_API, _select_metrics_handler())
         del os.environ["DD_FLUSH_TO_LOG"]
 
-    @patch("datadog_lambda.metric.fips_mode_enabled", True)
+    @patch("datadog_lambda.config.Config.fips_mode_enabled", True)
     @patch("datadog_lambda.metric.should_use_extension", False)
     def test_select_metrics_handler_has_no_fallback_in_fips_mode(self):
         os.environ["DD_FLUSH_TO_LOG"] = "False"

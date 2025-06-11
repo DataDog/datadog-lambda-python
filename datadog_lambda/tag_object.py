@@ -4,18 +4,17 @@
 # Copyright 2021 Datadog, Inc.
 
 from decimal import Decimal
-import logging
 import ujson as json
 
+from datadog_lambda.config import config
+
 redactable_keys = ["authorization", "x-authorization", "password", "token"]
-max_depth = 10
-logger = logging.getLogger(__name__)
 
 
 def tag_object(span, key, obj, depth=0):
     if obj is None:
         return span.set_tag(key, obj)
-    if depth >= max_depth:
+    if depth >= config.capture_payload_max_depth:
         return span.set_tag(key, _redact_val(key, str(obj)[0:5000]))
     depth += 1
     if _should_try_string(obj):

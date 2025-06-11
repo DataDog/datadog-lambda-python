@@ -8,6 +8,8 @@ from datadog_lambda.constants import TraceHeader
 
 import datadog_lambda.wrapper as wrapper
 import datadog_lambda.xray as xray
+
+from datadog_lambda.config import config
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 from ddtrace.trace import Span, tracer
@@ -24,7 +26,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         patch("ddtrace.internal.writer.AgentWriter.flush_queue").start()
 
         wrapper.datadog_lambda_wrapper._force_wrap = True
-        wrapper.dd_tracing_enabled = True
         patcher = patch(
             "datadog.threadstats.reporters.HttpReporter.flush_distributions"
         )
@@ -80,9 +81,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_set_dsm_context = patcher.start()
         self.addCleanup(patcher.stop)
 
+    @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_datadog_lambda_wrapper(self):
-        wrapper.dd_tracing_enabled = False
-
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             lambda_metric("test.metric", 100)
@@ -92,7 +92,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         lambda_context = get_mock_context()
 
         lambda_handler(lambda_event, lambda_context)
-        wrapper.dd_tracing_enabled = True
         self.mock_threadstats_flush_distributions.assert_has_calls(
             [
                 call(
@@ -189,9 +188,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         metric_module.lambda_stats.stop()
         metric_module.lambda_stats = ThreadStatsWriter(False)
 
+    @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_datadog_lambda_wrapper_inject_correlation_ids(self):
         os.environ["DD_LOGS_INJECTION"] = "True"
-        wrapper.dd_tracing_enabled = False
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -199,7 +198,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         lambda_event = {}
         lambda_handler(lambda_event, get_mock_context())
-        wrapper.dd_tracing_enabled = True
         self.mock_set_correlation_ids.assert_called()
         self.mock_inject_correlation_ids.assert_called()
 
@@ -457,11 +455,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             ]
         )
 
+    @patch("datadog_lambda.config.Config.enhanced_metrics_enabled", False)
     def test_no_enhanced_metrics_without_env_var(self):
-        patcher = patch("datadog_lambda.metric.enhanced_metrics_enabled", False)
-        patcher.start()
-        self.addCleanup(patcher.stop)
-
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             raise RuntimeError()
@@ -515,6 +510,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.assertEqual(os.environ.get("DD_REQUESTS_SERVICE_NAME"), "myAwesomeService")
         del os.environ["DD_SERVICE"]
 
+    @patch("datadog_lambda.config.Config.make_inferred_span", False)
     def test_encode_authorizer_span(self):
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -541,7 +537,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         trace_ctx.sampling_priority = 1
         test_span.finish()
         lambda_handler.inferred_span = test_span
-        lambda_handler.make_inferred_span = False
         result = lambda_handler(lambda_event, lambda_context)
         raw_inject_data = result["context"]["_datadog"]
         self.assertIsInstance(raw_inject_data, str)
@@ -569,7 +564,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     def test_set_dsm_context_called_when_DSM_and_tracing_enabled(self):
         os.environ["DD_DATA_STREAMS_ENABLED"] = "true"
-        wrapper.dd_tracing_enabled = True
+        os.environ["DD_TRACE_ENABLED"] = "true"
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -583,7 +578,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     def test_set_dsm_context_not_called_when_only_DSM_enabled(self):
         os.environ["DD_DATA_STREAMS_ENABLED"] = "true"
-        wrapper.dd_tracing_enabled = False
+        os.environ["DD_TRACE_ENABLED"] = "false"
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -597,7 +592,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     def test_set_dsm_context_not_called_when_only_tracing_enabled(self):
         os.environ["DD_DATA_STREAMS_ENABLED"] = "false"
-        wrapper.dd_tracing_enabled = True
+        os.environ["DD_TRACE_ENABLED"] = "true"
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -611,7 +606,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     def test_set_dsm_context_not_called_when_tracing_and_DSM_disabled(self):
         os.environ["DD_DATA_STREAMS_ENABLED"] = "false"
-        wrapper.dd_tracing_enabled = False
+        os.environ["DD_TRACE_ENABLED"] = "false"
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -622,18 +617,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_set_dsm_context.assert_not_called()
 
         del os.environ["DD_DATA_STREAMS_ENABLED"]
-
-
-class TestLambdaDecoratorSettings(unittest.TestCase):
-    def test_some_envs_should_depend_on_dd_tracing_enabled(self):
-        wrapper.dd_tracing_enabled = False
-        os.environ[wrapper.DD_TRACE_MANAGED_SERVICES] = "true"
-        os.environ[wrapper.DD_ENCODE_AUTHORIZER_CONTEXT] = "true"
-        os.environ[wrapper.DD_DECODE_AUTHORIZER_CONTEXT] = "true"
-        decorator = wrapper._LambdaDecorator(func=None)
-        self.assertFalse(decorator.make_inferred_span)
-        self.assertFalse(decorator.encode_authorizer_context)
-        self.assertFalse(decorator.decode_authorizer_context)
 
 
 class TestLambdaWrapperWithTraceContext(unittest.TestCase):
@@ -706,14 +689,9 @@ class TestLambdaWrapperWithTraceContext(unittest.TestCase):
 
 
 class TestLambdaWrapperFlushExtension(unittest.TestCase):
-    def setUp(self):
-        self.orig_environ = os.environ
-
-    def tearDown(self):
-        os.environ = self.orig_environ
-
+    @patch("datadog_lambda.config.Config.local_test", True)
     @patch("datadog_lambda.wrapper.should_use_extension", True)
-    def test_local_test_envvar_flushing(self):
+    def test_local_test_true_flushing(self):
         flushes = []
         lambda_event = {}
         lambda_context = get_mock_context()
@@ -721,24 +699,30 @@ class TestLambdaWrapperFlushExtension(unittest.TestCase):
         def flush():
             flushes.append(1)
 
-        for environ, flush_called in (
-            ({"DD_LOCAL_TEST": "True"}, True),
-            ({"DD_LOCAL_TEST": "true"}, True),
-            ({"DD_LOCAL_TEST": "1"}, True),
-            ({"DD_LOCAL_TEST": "False"}, False),
-            ({"DD_LOCAL_TEST": "false"}, False),
-            ({"DD_LOCAL_TEST": "0"}, False),
-            ({"DD_LOCAL_TEST": ""}, False),
-            ({}, False),
-        ):
-            os.environ = environ
-            flushes.clear()
+        @patch("datadog_lambda.wrapper.flush_extension", flush)
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            pass
 
-            @patch("datadog_lambda.wrapper.flush_extension", flush)
-            @wrapper.datadog_lambda_wrapper
-            def lambda_handler(event, context):
-                pass
+        lambda_handler(lambda_event, lambda_context)
 
-            lambda_handler(lambda_event, lambda_context)
+        self.assertEqual(len(flushes), 1)
 
-            self.assertEqual(flush_called, len(flushes) == 1)
+    @patch("datadog_lambda.config.Config.local_test", False)
+    @patch("datadog_lambda.wrapper.should_use_extension", True)
+    def test_local_test_false_flushing(self):
+        flushes = []
+        lambda_event = {}
+        lambda_context = get_mock_context()
+
+        def flush():
+            flushes.append(1)
+
+        @patch("datadog_lambda.wrapper.flush_extension", flush)
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            pass
+
+        lambda_handler(lambda_event, lambda_context)
+
+        self.assertEqual(len(flushes), 0)
