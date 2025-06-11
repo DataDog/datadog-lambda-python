@@ -24,9 +24,7 @@ def _dsm_set_sqs_context(event):
             logger.debug("DataStreams skipped lambda message: %r", record)
             return None
 
-        def carrier_get(key):
-            return context_json.get(key)
-
+        carrier_get = _create_carrier_get(context_json)
         set_consume_checkpoint("sqs", arn, carrier_get)
 
 
@@ -54,3 +52,10 @@ def _get_dsm_context_from_lambda(message):
         logger.debug("DataStreams did not handle lambda message: %r", message)
 
     return context_json
+
+
+def _create_carrier_get(context_json):
+    def carrier_get(key):
+        return context_json.get(key)
+
+    return carrier_get

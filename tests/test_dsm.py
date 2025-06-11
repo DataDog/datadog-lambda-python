@@ -1,6 +1,6 @@
 import unittest
 import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from datadog_lambda.dsm import (
     set_dsm_context,
@@ -16,24 +16,19 @@ class TestSetDSMContext(unittest.TestCase):
         self.mock_dsm_set_sqs_context = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("ddtrace.internal.datastreams.data_streams_processor")
-        self.mock_data_streams_processor = patcher.start()
-        self.addCleanup(patcher.stop)
-
         patcher = patch("ddtrace.internal.datastreams.botocore.get_datastreams_context")
         self.mock_get_datastreams_context = patcher.start()
         self.mock_get_datastreams_context.return_value = {}
         self.addCleanup(patcher.stop)
 
-        patcher = patch(
-            "ddtrace.internal.datastreams.botocore.calculate_sqs_payload_size"
-        )
-        self.mock_calculate_sqs_payload_size = patcher.start()
-        self.mock_calculate_sqs_payload_size.return_value = 100
+        # Patch set_consume_checkpoint for testing DSM functionality
+        patcher = patch("ddtrace.data_streams.set_consume_checkpoint")
+        self.mock_set_consume_checkpoint = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("ddtrace.internal.datastreams.processor.DsmPathwayCodec.decode")
-        self.mock_dsm_pathway_codec_decode = patcher.start()
+        # Patch _get_dsm_context_from_lambda for testing DSM context extraction
+        patcher = patch("datadog_lambda.dsm._get_dsm_context_from_lambda")
+        self.mock_get_dsm_context_from_lambda = patcher.start()
         self.addCleanup(patcher.stop)
 
     def test_non_sqs_event_source_does_nothing(self):
@@ -56,7 +51,8 @@ class TestSetDSMContext(unittest.TestCase):
 
         for event in events_with_no_records:
             _dsm_set_sqs_context(event)
-            self.mock_data_streams_processor.assert_not_called()
+            # Should not call set_consume_checkpoint for events without records
+            self.mock_set_consume_checkpoint.assert_not_called()
 
     def test_sqs_event_triggers_dsm_sqs_context(self):
         """Test that SQS event sources trigger the SQS-specific DSM context function"""
@@ -82,39 +78,66 @@ class TestSetDSMContext(unittest.TestCase):
                 {
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:queue1",
                     "body": "Message 1",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "stringValue": json.dumps({"dd-pathway-ctx-base64": "context1"}),
+                            "dataType": "String",
+                        }
+                    },
                 },
                 {
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:queue2",
                     "body": "Message 2",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "stringValue": json.dumps({"dd-pathway-ctx-base64": "context2"}),
+                            "dataType": "String",
+                        }
+                    },
                 },
                 {
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:queue3",
                     "body": "Message 3",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "stringValue": json.dumps({"dd-pathway-ctx-base64": "context3"}),
+                            "dataType": "String",
+                        }
+                    },
                 },
             ]
         }
 
-        mock_context = MagicMock()
-        self.mock_dsm_pathway_codec_decode.return_value = mock_context
+        self.mock_get_dsm_context_from_lambda.side_effect = [
+            {"dd-pathway-ctx-base64": "context1"},
+            {"dd-pathway-ctx-base64": "context2"},
+            {"dd-pathway-ctx-base64": "context3"},
+        ]
 
         _dsm_set_sqs_context(multi_record_event)
 
-        self.assertEqual(mock_context.set_checkpoint.call_count, 3)
+        self.assertEqual(self.mock_set_consume_checkpoint.call_count, 3)
 
-        calls = mock_context.set_checkpoint.call_args_list
+        calls = self.mock_set_consume_checkpoint.call_args_list
         expected_arns = [
             "arn:aws:sqs:us-east-1:123456789012:queue1",
             "arn:aws:sqs:us-east-1:123456789012:queue2",
             "arn:aws:sqs:us-east-1:123456789012:queue3",
         ]
+        expected_contexts = ["context1", "context2", "context3"]
 
         for i, call in enumerate(calls):
             args, kwargs = call
-            tags = args[0]
-            self.assertIn("direction:in", tags)
-            self.assertIn(f"topic:{expected_arns[i]}", tags)
-            self.assertIn("type:sqs", tags)
-            self.assertEqual(kwargs["payload_size"], 100)
+            service_type = args[0]
+            arn = args[1]
+            carrier_get_func = args[2]
+
+            self.assertEqual(service_type, "sqs")
+
+            self.assertEqual(arn, expected_arns[i])
+
+            pathway_ctx = carrier_get_func("dd-pathway-ctx-base64")
+            self.assertEqual(pathway_ctx, expected_contexts[i])
 
 
 class TestGetDSMContext(unittest.TestCase):
