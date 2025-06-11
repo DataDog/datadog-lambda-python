@@ -280,6 +280,13 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         # Test with string that would normally cause an exception when split
         self.assertFalse(detect_lambda_function_url_domain(""))
 
+    def test_event_source_with_non_dict_event_record(self):
+        # Test with event_record that's not a dictionary
+        event = {"Records": "not_a_dict"}
+        event_source = parse_event_source(event)
+        # Should handle the first non-dict record gracefully and return unknown
+        self.assertEqual(event_source.to_string(), "unknown")
+
 
 class GetTriggerTags(unittest.TestCase):
     def test_extract_trigger_tags_api_gateway(self):

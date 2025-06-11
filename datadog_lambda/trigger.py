@@ -153,7 +153,7 @@ def parse_event_source(event: dict) -> _EventSource:
         event_source = _EventSource(EventTypes.STEPFUNCTIONS)
 
     event_record = get_first_record(event)
-    if event_record:
+    if event_record and isinstance(event_record, dict):
         aws_event_source = event_record.get("eventSource") or event_record.get(
             "EventSource"
         )
