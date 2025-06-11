@@ -75,7 +75,9 @@ class TestSetDSMContext(unittest.TestCase):
                     "body": "Message 1",
                     "messageAttributes": {
                         "_datadog": {
-                            "stringValue": json.dumps({"dd-pathway-ctx-base64": "context1"}),
+                            "stringValue": json.dumps(
+                                {"dd-pathway-ctx-base64": "context1"}
+                            ),
                             "dataType": "String",
                         }
                     },
@@ -85,7 +87,9 @@ class TestSetDSMContext(unittest.TestCase):
                     "body": "Message 2",
                     "messageAttributes": {
                         "_datadog": {
-                            "stringValue": json.dumps({"dd-pathway-ctx-base64": "context2"}),
+                            "stringValue": json.dumps(
+                                {"dd-pathway-ctx-base64": "context2"}
+                            ),
                             "dataType": "String",
                         }
                     },
@@ -95,7 +99,9 @@ class TestSetDSMContext(unittest.TestCase):
                     "body": "Message 3",
                     "messageAttributes": {
                         "_datadog": {
-                            "stringValue": json.dumps({"dd-pathway-ctx-base64": "context3"}),
+                            "stringValue": json.dumps(
+                                {"dd-pathway-ctx-base64": "context3"}
+                            ),
                             "dataType": "String",
                         }
                     },
