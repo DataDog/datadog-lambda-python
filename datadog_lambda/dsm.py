@@ -18,14 +18,17 @@ def _dsm_set_sqs_context(event):
         return
 
     for record in records:
-        arn = record.get("eventSourceARN", "")
-        context_json = _get_dsm_context_from_lambda(record)
-        if not context_json:
-            logger.debug("DataStreams skipped lambda message: %r", record)
-            return None
+        try:
+            arn = record.get("eventSourceARN", "")
+            context_json = _get_dsm_context_from_lambda(record)
+            if not context_json:
+                logger.debug("DataStreams skipped lambda message: %r", record)
+                return
 
-        carrier_get = _create_carrier_get(context_json)
-        set_consume_checkpoint("sqs", arn, carrier_get)
+            carrier_get = _create_carrier_get(context_json)
+            set_consume_checkpoint("sqs", arn, carrier_get)
+        except Exception as e:
+            logger.error(f"Unable to set dsm context: {e}")
 
 
 def _get_dsm_context_from_lambda(message):
