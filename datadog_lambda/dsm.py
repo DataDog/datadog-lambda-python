@@ -51,7 +51,6 @@ def _dsm_set_kinesis_context(event):
 
 def _set_dsm_context_for_record(record, type, arn):
     from ddtrace.data_streams import set_consume_checkpoint
-
     try:
         context_json = _get_dsm_context_from_lambda(record)
         if not context_json:
@@ -59,7 +58,7 @@ def _set_dsm_context_for_record(record, type, arn):
             return
 
         carrier_get = _create_carrier_get(context_json)
-        set_consume_checkpoint(type, arn, carrier_get, manual_checkpoint=False)
+        set_consume_checkpoint(type, arn, carrier_get)
     except Exception as e:
         logger.error(f"Unable to set dsm context: {e}")
 
@@ -91,7 +90,9 @@ def _get_dsm_context_from_lambda(message):
         try:
             body = message.get("body")
             if body:
-                message_body = json.loads(body)
+                parsed_body = json.loads(body)
+                if "MessageAttributes" in parsed_body:
+                    message_body = parsed_body
         except (ValueError, TypeError):
             logger.debug("Unable to parse lambda message body as JSON, treat as non-json")
 
