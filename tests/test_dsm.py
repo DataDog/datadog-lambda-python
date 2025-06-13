@@ -7,6 +7,7 @@ from datadog_lambda.dsm import (
     set_dsm_context,
     _dsm_set_sqs_context,
     _dsm_set_sns_context,
+    _dsm_set_kinesis_context,
     _get_dsm_context_from_lambda,
 )
 from datadog_lambda.trigger import EventTypes, _EventSource
@@ -24,12 +25,14 @@ class TestSetDSMContext(unittest.TestCase):
 
         patcher = patch("datadog_lambda.dsm._get_dsm_context_from_lambda")
         self.mock_get_dsm_context_from_lambda = patcher.start()
+        self.addCleanup(patcher.stop)
+
         patcher = patch("datadog_lambda.dsm._dsm_set_sns_context")
         self.mock_dsm_set_sns_context = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("ddtrace.internal.datastreams.data_streams_processor")
-        self.mock_data_streams_processor = patcher.start()
+        patcher = patch("datadog_lambda.dsm._dsm_set_kinesis_context")
+        self.mock_dsm_set_kinesis_context = patcher.start()
         self.addCleanup(patcher.stop)
 
     def test_non_sqs_event_source_does_nothing(self):
@@ -263,6 +266,109 @@ class TestSetDSMContext(unittest.TestCase):
             pathway_ctx = carrier_get_func("dd-pathway-ctx-base64")
             self.assertEqual(pathway_ctx, expected_contexts[i])
 
+    def test_kinesis_event_with_no_records_does_nothing(self):
+        """Test that events where Records is None don't trigger DSM processing"""
+        events_with_no_records = [
+            {},
+            {"Records": None},
+            {"someOtherField": "value"},
+        ]
+
+        for event in events_with_no_records:
+            _dsm_set_kinesis_context(event)
+            self.mock_set_consume_checkpoint.assert_not_called()
+
+    def test_kinesis_event_triggers_dsm_kinesis_context(self):
+        """Test that Kinesis event sources trigger the Kinesis-specific DSM context function"""
+        kinesis_event = {
+            "Records": [
+                {
+                    "eventSource": "aws:kinesis",
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/my-stream",
+                    "kinesis": {
+                        "data": "SGVsbG8gZnJvbSBLaW5lc2lzIQ==",
+                        "partitionKey": "partition-key",
+                    },
+                }
+            ]
+        }
+
+        event_source = _EventSource(EventTypes.KINESIS)
+        set_dsm_context(kinesis_event, event_source)
+
+        self.mock_dsm_set_kinesis_context.assert_called_once_with(kinesis_event)
+
+    def test_kinesis_multiple_records_process_each_record(self):
+        """Test that each record in a Kinesis event gets processed individually"""
+        multi_record_event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/stream1",
+                    "kinesis": {
+                        "data": base64.b64encode(
+                            json.dumps({"dd-pathway-ctx-base64": "context1"}).encode(
+                                "utf-8"
+                            )
+                        ).decode("utf-8"),
+                        "partitionKey": "partition-1",
+                    },
+                },
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/stream2",
+                    "kinesis": {
+                        "data": base64.b64encode(
+                            json.dumps({"dd-pathway-ctx-base64": "context2"}).encode(
+                                "utf-8"
+                            )
+                        ).decode("utf-8"),
+                        "partitionKey": "partition-2",
+                    },
+                },
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/stream3",
+                    "kinesis": {
+                        "data": base64.b64encode(
+                            json.dumps({"dd-pathway-ctx-base64": "context3"}).encode(
+                                "utf-8"
+                            )
+                        ).decode("utf-8"),
+                        "partitionKey": "partition-3",
+                    },
+                },
+            ]
+        }
+
+        self.mock_get_dsm_context_from_lambda.side_effect = [
+            {"dd-pathway-ctx-base64": "context1"},
+            {"dd-pathway-ctx-base64": "context2"},
+            {"dd-pathway-ctx-base64": "context3"},
+        ]
+
+        _dsm_set_kinesis_context(multi_record_event)
+
+        self.assertEqual(self.mock_set_consume_checkpoint.call_count, 3)
+
+        calls = self.mock_set_consume_checkpoint.call_args_list
+        expected_arns = [
+            "arn:aws:kinesis:us-east-1:123456789012:stream/stream1",
+            "arn:aws:kinesis:us-east-1:123456789012:stream/stream2",
+            "arn:aws:kinesis:us-east-1:123456789012:stream/stream3",
+        ]
+        expected_contexts = ["context1", "context2", "context3"]
+
+        for i, call in enumerate(calls):
+            args, kwargs = call
+            service_type = args[0]
+            arn = args[1]
+            carrier_get_func = args[2]
+
+            self.assertEqual(service_type, "kinesis")
+
+            self.assertEqual(arn, expected_arns[i])
+
+            pathway_ctx = carrier_get_func("dd-pathway-ctx-base64")
+            self.assertEqual(pathway_ctx, expected_contexts[i])
+
 
 class TestGetDSMContext(unittest.TestCase):
     def test_sqs_to_lambda_string_value_format(self):
@@ -346,6 +452,45 @@ class TestGetDSMContext(unittest.TestCase):
         assert result == trace_context
         assert result["x-datadog-trace-id"] == "111111111"
         assert result["x-datadog-parent-id"] == "222222222"
+        assert result["dd-pathway-ctx"] == "test-pathway-ctx"
+
+    def test_kinesis_to_lambda_format(self):
+        """Test format: message.kinesis.data.decode()._datadog (Kinesis -> lambda)"""
+        trace_context = {
+            "x-datadog-trace-id": "555444333",
+            "x-datadog-parent-id": "888777666",
+            "dd-pathway-ctx": "test-pathway-ctx",
+        }
+
+        # Create the kinesis data payload
+        kinesis_payload = {
+            "_datadog": trace_context,
+            "actualData": "some business data",
+        }
+        encoded_kinesis_data = base64.b64encode(
+            json.dumps(kinesis_payload).encode("utf-8")
+        ).decode("utf-8")
+
+        kinesis_lambda_record = {
+            "eventSource": "aws:kinesis",
+            "eventSourceARN": (
+                "arn:aws:kinesis:us-east-1:123456789012:stream/my-stream"
+            ),
+            "kinesis": {
+                "data": encoded_kinesis_data,
+                "partitionKey": "partition-key-1",
+                "sequenceNumber": (
+                    "49590338271490256608559692538361571095921575989136588898"
+                ),
+            },
+        }
+
+        result = _get_dsm_context_from_lambda(kinesis_lambda_record)
+
+        assert result is not None
+        assert result == trace_context
+        assert result["x-datadog-trace-id"] == "555444333"
+        assert result["x-datadog-parent-id"] == "888777666"
         assert result["dd-pathway-ctx"] == "test-pathway-ctx"
 
     def test_no_message_attributes(self):

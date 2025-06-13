@@ -12,6 +12,8 @@ def set_dsm_context(event, event_source):
         _dsm_set_sqs_context(event)
     elif event_source.equals(EventTypes.SNS):
         _dsm_set_sns_context(event)
+    elif event_source.equals(EventTypes.KINESIS):
+        _dsm_set_kinesis_context(event)
 
 
 def _dsm_set_sqs_context(event):
@@ -37,6 +39,16 @@ def _dsm_set_sns_context(event):
         _set_dsm_context_for_record(sns_data, "sns", arn)
 
 
+def _dsm_set_kinesis_context(event):
+    records = event.get("Records")
+    if records is None:
+        return
+
+    for record in records:
+        arn = record.get("eventSourceARN", "")
+        _set_dsm_context_for_record(record, "kinesis", arn)
+
+
 def _set_dsm_context_for_record(record, type, arn):
     from ddtrace.data_streams import set_consume_checkpoint
 
@@ -57,9 +69,20 @@ def _get_dsm_context_from_lambda(message):
     Lambda-specific message formats:
         - message.messageAttributes._datadog.stringValue (SQS -> lambda)
         - message.Sns.MessageAttributes._datadog.Value.decode() (SNS -> lambda)
+        - message.kinesis.data.decode()._datadog (Kinesis -> lambda)
     """
     context_json = None
     message_body = message
+
+    if "kinesis" in message:
+        try:
+            kinesis_data = json.loads(
+                base64.b64decode(message["kinesis"]["data"]).decode()
+            )
+            return kinesis_data.get("_datadog")
+        except (ValueError, TypeError, KeyError):
+            logger.debug("Unable to parse kinesis data for lambda message")
+            return None
 
     if "Sns" in message:
         message_body = message["Sns"]
