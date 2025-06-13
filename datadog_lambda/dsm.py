@@ -51,6 +51,7 @@ def _dsm_set_kinesis_context(event):
 
 def _set_dsm_context_for_record(record, type, arn):
     from ddtrace.data_streams import set_consume_checkpoint
+
     try:
         context_json = _get_dsm_context_from_lambda(record)
         if not context_json:
@@ -94,7 +95,9 @@ def _get_dsm_context_from_lambda(message):
                 if "MessageAttributes" in parsed_body:
                     message_body = parsed_body
         except (ValueError, TypeError):
-            logger.debug("Unable to parse lambda message body as JSON, treat as non-json")
+            logger.debug(
+                "Unable to parse lambda message body as JSON, treat as non-json"
+            )
 
     message_attributes = message_body.get("MessageAttributes") or message_body.get(
         "messageAttributes"
