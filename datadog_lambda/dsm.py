@@ -11,24 +11,28 @@ def set_dsm_context(event, event_source):
 
 
 def _dsm_set_sqs_context(event):
-    from ddtrace.data_streams import set_consume_checkpoint
-
     records = event.get("Records")
     if records is None:
         return
 
     for record in records:
-        try:
-            arn = record.get("eventSourceARN", "")
-            context_json = _get_dsm_context_from_lambda(record)
-            if not context_json:
-                logger.debug("DataStreams skipped lambda message: %r", record)
-                return
+        arn = record.get("eventSourceARN", "")
+        _set_dsm_context_for_record(record, "sqs", arn)
 
-            carrier_get = _create_carrier_get(context_json)
-            set_consume_checkpoint("sqs", arn, carrier_get)
-        except Exception as e:
-            logger.error(f"Unable to set dsm context: {e}")
+
+def _set_dsm_context_for_record(record, type, arn):
+    from ddtrace.data_streams import set_consume_checkpoint
+
+    try:
+        context_json = _get_dsm_context_from_lambda(record)
+        if not context_json:
+            logger.debug("DataStreams skipped lambda message: %r", record)
+            return
+
+        carrier_get = _create_carrier_get(context_json)
+        set_consume_checkpoint(type, arn, carrier_get, manual_checkpoint=False)
+    except Exception as e:
+        logger.error(f"Unable to set dsm context: {e}")
 
 
 def _get_dsm_context_from_lambda(message):
