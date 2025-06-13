@@ -139,7 +139,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
-    - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "ap-east-1" && "{{ $runtime.arch }}" == "amd64"'
+    - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "us-west-2" && "{{ $runtime.arch }}" == "amd64"'
       when: always
     - if: '"{{ $environment_name }}" == "sandbox"'
       when: manual
@@ -180,7 +180,7 @@ run-e2e:
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   needs: {{ range $runtime := (ds "runtimes").runtimes }}
-    - publish-layer-sandbox ({{ $runtime.name }}-amd64): [ap-east-1]
+    - publish-layer-sandbox ({{ $runtime.name }}-amd64): [us-west-2]
   {{- end }}
   trigger:
     project: "DataDog/serverless-e2e-tests"
