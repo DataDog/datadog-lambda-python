@@ -47,17 +47,20 @@ def _dsm_set_sns_context(event):
         return
 
     for record in records:
-        sns_data = record.get("Sns")
-        if not sns_data:
-            return
-        arn = sns_data.get("TopicArn", "")
-        context_json = _get_dsm_context_from_lambda(sns_data)
-        if not context_json:
-            logger.debug("DataStreams skipped lambda message: %r", record)
-            return None
+        try:
+            sns_data = record.get("Sns")
+            if not sns_data:
+                return
+            arn = sns_data.get("TopicArn", "")
+            context_json = _get_dsm_context_from_lambda(sns_data)
+            if not context_json:
+                logger.debug("DataStreams skipped lambda message: %r", record)
+                return
 
-        carrier_get = _create_carrier_get(context_json)
-        set_consume_checkpoint("sns", arn, carrier_get)
+            carrier_get = _create_carrier_get(context_json)
+            set_consume_checkpoint("sns", arn, carrier_get)
+        except Exception as e:
+            logger.error(f"Unable to set dsm context: {e}")
 
 
 def _get_dsm_context_from_lambda(message):
