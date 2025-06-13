@@ -493,6 +493,74 @@ class TestGetDSMContext(unittest.TestCase):
         assert result["x-datadog-parent-id"] == "888777666"
         assert result["dd-pathway-ctx"] == "test-pathway-ctx"
 
+    def test_sns_to_sqs_to_lambda_binary_value_format(self):
+        """Test format: message.messageAttributes._datadog.binaryValue.decode() (SNS -> SQS -> lambda, raw)"""
+        trace_context = {
+            "x-datadog-trace-id": "777666555",
+            "x-datadog-parent-id": "444333222",
+            "dd-pathway-ctx": "test-pathway-ctx",
+        }
+        binary_data = base64.b64encode(
+            json.dumps(trace_context).encode("utf-8")
+        ).decode("utf-8")
+
+        lambda_record = {
+            "messageId": "test-message-id",
+            "receiptHandle": "test-receipt-handle",
+            "body": "Test message body",
+            "messageAttributes": {
+                "_datadog": {"binaryValue": binary_data, "dataType": "Binary"}
+            },
+            "eventSource": "aws:sqs",
+            "eventSourceARN": "arn:aws:sqs:us-west-2:123456789012:test-queue",
+        }
+
+        result = _get_dsm_context_from_lambda(lambda_record)
+
+        assert result is not None
+        assert result == trace_context
+        assert result["x-datadog-trace-id"] == "777666555"
+        assert result["x-datadog-parent-id"] == "444333222"
+        assert result["dd-pathway-ctx"] == "test-pathway-ctx"
+
+    def test_sns_to_sqs_to_lambda_body_format(self):
+        """Test format: message.body.MessageAttributes._datadog.Value.decode() (SNS -> SQS -> lambda)"""
+        trace_context = {
+            "x-datadog-trace-id": "123987456",
+            "x-datadog-parent-id": "654321987",
+            "x-datadog-sampling-priority": "1",
+            "dd-pathway-ctx": "test-pathway-ctx",
+        }
+
+        message_body = {
+            "Type": "Notification",
+            "MessageId": "test-message-id",
+            "Message": "Test message from SNS",
+            "MessageAttributes": {
+                "_datadog": {
+                    "Type": "Binary",
+                    "Value": base64.b64encode(
+                        json.dumps(trace_context).encode("utf-8")
+                    ).decode("utf-8"),
+                }
+            },
+        }
+
+        lambda_record = {
+            "messageId": "lambda-message-id",
+            "body": json.dumps(message_body),
+            "eventSource": "aws:sqs",
+            "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:sns-to-sqs-queue",
+        }
+
+        result = _get_dsm_context_from_lambda(lambda_record)
+
+        assert result is not None
+        assert result == trace_context
+        assert result["x-datadog-trace-id"] == "123987456"
+        assert result["x-datadog-parent-id"] == "654321987"
+        assert result["dd-pathway-ctx"] == "test-pathway-ctx"
+
     def test_no_message_attributes(self):
         """Test message without MessageAttributes returns None."""
         message = {
