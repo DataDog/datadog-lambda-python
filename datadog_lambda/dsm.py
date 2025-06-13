@@ -70,6 +70,8 @@ def _get_dsm_context_from_lambda(message):
         - message.messageAttributes._datadog.stringValue (SQS -> lambda)
         - message.Sns.MessageAttributes._datadog.Value.decode() (SNS -> lambda)
         - message.kinesis.data.decode()._datadog (Kinesis -> lambda)
+        - message.messageAttributes._datadog.binaryValue.decode() (SNS -> SQS -> lambda, raw)
+        - message.body.MessageAttributes._datadog.Value.decode() (SNS -> SQS -> lambda)
     """
     context_json = None
     message_body = message
@@ -83,9 +85,15 @@ def _get_dsm_context_from_lambda(message):
         except (ValueError, TypeError, KeyError):
             logger.debug("Unable to parse kinesis data for lambda message")
             return None
-
-    if "Sns" in message:
+    elif "Sns" in message:
         message_body = message["Sns"]
+    else:
+        try:
+            body = message.get("body")
+            if body:
+                message_body = json.loads(body)
+        except (ValueError, TypeError):
+            logger.debug("Unable to parse lambda message body as JSON, treat as non-json")
 
     message_attributes = message_body.get("MessageAttributes") or message_body.get(
         "messageAttributes"
@@ -108,6 +116,11 @@ def _get_dsm_context_from_lambda(message):
     elif "stringValue" in datadog_attr:
         # SQS -> lambda
         context_json = json.loads(datadog_attr["stringValue"])
+    elif "binaryValue" in datadog_attr:
+        # SNS -> SQS -> lambda, raw message delivery
+        context_json = json.loads(
+            base64.b64decode(datadog_attr["binaryValue"]).decode()
+        )
     else:
         logger.debug("DataStreams did not handle lambda message: %r", message)
 
