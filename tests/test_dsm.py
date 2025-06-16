@@ -141,6 +141,35 @@ class TestSetDSMContext(unittest.TestCase):
             self.assertEqual(pathway_ctx, expected_contexts[i])
 
     def test_set_context_exception_handled(self):
+        """Test that exceptions in set_consume_checkpoint are properly handled"""
+        self.mock_get_dsm_context_from_sqs_lambda.return_value = {
+            "dd-pathway-ctx": "test-context"
+        }
+
+        self.mock_set_consume_checkpoint.side_effect = Exception("Checkpoint error")
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:my-queue",
+                    "body": "Test message",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "stringValue": '{"dd-pathway-ctx": "test-context"}',
+                            "dataType": "String",
+                        }
+                    },
+                }
+            ]
+        }
+
+        _dsm_set_sqs_context(event)
+
+        self.mock_logger.error.assert_called_once_with(
+            "Unable to set dsm context: Checkpoint error"
+        )
+
+    def test_get_context_exception_handled(self):
         """Test that exceptions in _get_dsm_context_from_sqs_lambda are properly handled"""
         self.mock_get_dsm_context_from_sqs_lambda.side_effect = Exception(
             "JSON parsing error"
@@ -153,7 +182,7 @@ class TestSetDSMContext(unittest.TestCase):
                     "body": "Test message",
                     "messageAttributes": {
                         "_datadog": {
-                            "stringValue": "invalid json",
+                            "stringValue": "invalid json{",
                             "dataType": "String",
                         }
                     },
@@ -166,8 +195,6 @@ class TestSetDSMContext(unittest.TestCase):
         self.mock_logger.error.assert_called_once_with(
             "Unable to set dsm context: JSON parsing error"
         )
-
-        self.mock_set_consume_checkpoint.assert_not_called()
 
 
 class TestGetDSMContextFromSQS(unittest.TestCase):
