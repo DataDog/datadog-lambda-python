@@ -142,7 +142,6 @@ class TestSetDSMContext(unittest.TestCase):
 
     def test_set_context_exception_handled(self):
         """Test that exceptions in _get_dsm_context_from_sqs_lambda are properly handled"""
-        # Make _get_dsm_context_from_sqs_lambda raise an exception
         self.mock_get_dsm_context_from_sqs_lambda.side_effect = Exception(
             "JSON parsing error"
         )
