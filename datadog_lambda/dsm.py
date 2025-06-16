@@ -17,28 +17,27 @@ def _dsm_set_sqs_context(event):
 
     for record in records:
         arn = record.get("eventSourceARN", "")
-        _set_dsm_context_for_record(record, "sqs", arn)
+        try:
+            context_json = _get_dsm_context_from_sqs_lambda(record)
+            if not context_json:
+                return
+            _set_dsm_context_for_record(context_json, "sqs", arn)
+
+        except Exception as e:
+            logger.error(f"Unable to set dsm context: {e}")
 
 
-def _set_dsm_context_for_record(record, type, arn):
+def _set_dsm_context_for_record(context_json, type, arn):
     from ddtrace.data_streams import set_consume_checkpoint
 
-    try:
-        context_json = _get_dsm_context_from_lambda(record)
-        if not context_json:
-            logger.debug("DataStreams skipped lambda message: %r", record)
-            return
-
-        carrier_get = _create_carrier_get(context_json)
-        set_consume_checkpoint(type, arn, carrier_get, manual_checkpoint=False)
-    except Exception as e:
-        logger.error(f"Unable to set dsm context: {e}")
+    carrier_get = _create_carrier_get(context_json)
+    set_consume_checkpoint(type, arn, carrier_get, manual_checkpoint=False)
 
 
-def _get_dsm_context_from_lambda(message):
+def _get_dsm_context_from_sqs_lambda(message):
     """
-    Lambda-specific message formats:
-        - message.messageAttributes._datadog.stringValue (SQS -> lambda)
+    Lambda-specific message shape for SQS -> Lambda:
+        - message.messageAttributes._datadog.stringValue
     """
     context_json = None
     message_attributes = message.get("messageAttributes")
@@ -53,8 +52,10 @@ def _get_dsm_context_from_lambda(message):
     datadog_attr = message_attributes["_datadog"]
 
     if "stringValue" in datadog_attr:
-        # SQS -> lambda
         context_json = json.loads(datadog_attr["stringValue"])
+        if not isinstance(context_json, dict):
+            logger.debug("DataStreams did not handle lambda message: %r", message)
+            return None
     else:
         logger.debug("DataStreams did not handle lambda message: %r", message)
 

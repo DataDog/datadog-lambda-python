@@ -5,7 +5,8 @@ from unittest.mock import patch
 from datadog_lambda.dsm import (
     set_dsm_context,
     _dsm_set_sqs_context,
-    _get_dsm_context_from_lambda,
+    _get_dsm_context_from_sqs_lambda,
+    _create_carrier_get,
 )
 from datadog_lambda.trigger import EventTypes, _EventSource
 
@@ -20,8 +21,12 @@ class TestSetDSMContext(unittest.TestCase):
         self.mock_set_consume_checkpoint = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("datadog_lambda.dsm._get_dsm_context_from_lambda")
-        self.mock_get_dsm_context_from_lambda = patcher.start()
+        patcher = patch("datadog_lambda.dsm._get_dsm_context_from_sqs_lambda")
+        self.mock_get_dsm_context_from_sqs_lambda = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("datadog_lambda.dsm.logger")
+        self.mock_logger = patcher.start()
         self.addCleanup(patcher.stop)
 
     def test_non_sqs_event_source_does_nothing(self):
@@ -104,7 +109,7 @@ class TestSetDSMContext(unittest.TestCase):
             ]
         }
 
-        self.mock_get_dsm_context_from_lambda.side_effect = [
+        self.mock_get_dsm_context_from_sqs_lambda.side_effect = [
             {"dd-pathway-ctx-base64": "context1"},
             {"dd-pathway-ctx-base64": "context2"},
             {"dd-pathway-ctx-base64": "context3"},
@@ -129,14 +134,44 @@ class TestSetDSMContext(unittest.TestCase):
             carrier_get_func = args[2]
 
             self.assertEqual(service_type, "sqs")
-
             self.assertEqual(arn, expected_arns[i])
 
             pathway_ctx = carrier_get_func("dd-pathway-ctx-base64")
+
             self.assertEqual(pathway_ctx, expected_contexts[i])
 
+    def test_set_context_exception_handled(self):
+        """Test that exceptions in _get_dsm_context_from_sqs_lambda are properly handled"""
+        # Make _get_dsm_context_from_sqs_lambda raise an exception
+        self.mock_get_dsm_context_from_sqs_lambda.side_effect = Exception(
+            "JSON parsing error"
+        )
 
-class TestGetDSMContext(unittest.TestCase):
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:my-queue",
+                    "body": "Test message",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "stringValue": "invalid json",
+                            "dataType": "String",
+                        }
+                    },
+                }
+            ]
+        }
+
+        _dsm_set_sqs_context(event)
+
+        self.mock_logger.error.assert_called_once_with(
+            "Unable to set dsm context: JSON parsing error"
+        )
+
+        self.mock_set_consume_checkpoint.assert_not_called()
+
+
+class TestGetDSMContextFromSQS(unittest.TestCase):
     def test_sqs_to_lambda_string_value_format(self):
         """Test format: message.messageAttributes._datadog.stringValue (SQS -> lambda)"""
         trace_context = {
@@ -175,13 +210,44 @@ class TestGetDSMContext(unittest.TestCase):
             "awsRegion": "us-east-2",
         }
 
-        result = _get_dsm_context_from_lambda(lambda_record)
+        result = _get_dsm_context_from_sqs_lambda(lambda_record)
 
         assert result is not None
         assert result == trace_context
         assert result["x-datadog-trace-id"] == "789123456"
         assert result["x-datadog-parent-id"] == "321987654"
         assert result["dd-pathway-ctx"] == "test-pathway-ctx"
+
+    def test_sqs_record_context_not_dict(self):
+        """Test if that context is not a dict, get_dsm_context_from_sqs_lambda returns None"""
+
+        message_string = {
+            "messageId": "test-message-id",
+            "messageAttributes": {
+                "_datadog": {
+                    "stringValue": '"just a string"',
+                    "dataType": "String",
+                }
+            },
+        }
+
+        result = _get_dsm_context_from_sqs_lambda(message_string)
+
+        assert result is None
+
+        message_array = {
+            "messageId": "test-message-id",
+            "messageAttributes": {
+                "_datadog": {
+                    "stringValue": '["array", "values"]',
+                    "dataType": "String",
+                }
+            },
+        }
+
+        result = _get_dsm_context_from_sqs_lambda(message_array)
+
+        assert result is None
 
     def test_no_message_attributes(self):
         """Test message without MessageAttributes returns None."""
@@ -190,7 +256,7 @@ class TestGetDSMContext(unittest.TestCase):
             "body": "Test message without attributes",
         }
 
-        result = _get_dsm_context_from_lambda(message)
+        result = _get_dsm_context_from_sqs_lambda(message)
 
         assert result is None
 
@@ -204,7 +270,7 @@ class TestGetDSMContext(unittest.TestCase):
             },
         }
 
-        result = _get_dsm_context_from_lambda(message)
+        result = _get_dsm_context_from_sqs_lambda(message)
 
         assert result is None
 
@@ -215,6 +281,45 @@ class TestGetDSMContext(unittest.TestCase):
             "messageAttributes": {"_datadog": {}},
         }
 
-        result = _get_dsm_context_from_lambda(message)
+        result = _get_dsm_context_from_sqs_lambda(message)
 
         assert result is None
+
+
+class TestCarrierGet(unittest.TestCase):
+    def test_carrier_get_returns_correct_values(self):
+        """Test that carrier_get function returns correct values from context_json"""
+        context_json = {
+            "x-datadog-trace-id": "789123456",
+            "x-datadog-parent-id": "321987654",
+            "dd-pathway-ctx": "test-pathway-ctx",
+            "custom-header": "custom-value",
+        }
+
+        carrier_get = _create_carrier_get(context_json)
+
+        assert carrier_get("x-datadog-trace-id") == "789123456"
+        assert carrier_get("x-datadog-parent-id") == "321987654"
+        assert carrier_get("dd-pathway-ctx") == "test-pathway-ctx"
+        assert carrier_get("custom-header") == "custom-value"
+        assert carrier_get("non-existent-key") is None
+
+    def test_carrier_get_with_empty_context(self):
+        """Test carrier_get with empty context_json"""
+        context_json = {}
+
+        carrier_get = _create_carrier_get(context_json)
+
+        assert carrier_get("any-key") is None
+        assert carrier_get("x-datadog-trace-id") is None
+
+    def test_carrier_get_function_closure(self):
+        """Test that each carrier_get function has its own closure"""
+        context_json_1 = {"key": "value1"}
+        context_json_2 = {"key": "value2"}
+
+        carrier_get_1 = _create_carrier_get(context_json_1)
+        carrier_get_2 = _create_carrier_get(context_json_2)
+
+        assert carrier_get_1("key") == "value1"
+        assert carrier_get_2("key") == "value2"
