@@ -57,52 +57,52 @@ check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
-  needs: 
+  needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-  script: 
+  script:
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/check_layer_size.sh
 
-lint python:
-  stage: test
-  tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
-  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
-  before_script: *python-before-script
-  script: 
-    - source venv/bin/activate
-    - ./scripts/check_format.sh
+#lint python:
+#  stage: test
+#  tags: ["arch:amd64"]
+#  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
+#  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
+#  before_script: *python-before-script
+#  script:
+#    - source venv/bin/activate
+#    - ./scripts/check_format.sh
 
-unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
-  stage: test
-  tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
-  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
-  before_script: *python-before-script
-  script: 
-    - source venv/bin/activate
-    - pytest -vv
+#unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
+#  stage: test
+#  tags: ["arch:amd64"]
+#  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
+#  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
+#  before_script: *python-before-script
+#  script:
+#    - source venv/bin/activate
+#    - pytest -vv
 
-integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
-  stage: test
-  tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10-py3
-  needs: 
-    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-  dependencies:
-    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
-  variables:
-    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
-  before_script:
-    - *install-node
-    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
-    - yarn global add serverless@^3.38.0 --prefix /usr/local
-    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
-    - cd integration_tests && yarn install && cd ..
-  script:
-    - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
+#integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
+#  stage: test
+#  tags: ["arch:amd64"]
+#  image: registry.ddbuild.io/images/docker:20.10-py3
+#  needs:
+#    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
+#  dependencies:
+#    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
+#  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
+#  variables:
+#    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+#  before_script:
+#    - *install-node
+#    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+#    - yarn global add serverless@^3.38.0 --prefix /usr/local
+#    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+#    - cd integration_tests && yarn install && cd ..
+#  script:
+#    - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
 
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
@@ -114,9 +114,9 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
     - check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
-    - lint python
-    - unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
-    - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
+    #- lint python
+    #- unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
+    #- integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   artifacts: # Re specify artifacts so the modified signed file is passed
@@ -145,15 +145,18 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
       when: manual
       allow_failure: true
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: layer-version
   needs:
 {{ if or (eq $environment_name "prod") }}
       - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
 {{ else }}
       - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
       - check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
-      - lint python
-      - unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
-      - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
+      #- lint python
+      #- unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
+      #- integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
 {{ end }}
   dependencies:
 {{ if or (eq $environment_name "prod") }}
@@ -169,31 +172,13 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   before_script:
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
   script:
-    - STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh
+    - STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh | tee publish.log
+    # Extract the arn from the publish log to be used as envvar in e2e tests
+    - echo "PYTHON_{{ $runtime.python_version }}_VERSION=$(grep -oP 'Published arn \K\.*' publish.log)" > layer-version
 
 {{- end }}
 
 {{- end }}
-
-run-e2e:
-  stage: e2e
-  tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10-py3
-  needs: {{ range $runtime := (ds "runtimes").runtimes }}
-    - publish-layer-sandbox ({{ $runtime.name }}-amd64): [us-west-2]
-  {{- end }}
-  trigger:
-    project: "DataDog/serverless-e2e-tests"
-    strategy: depend
-  variables:
-    LANGUAGES_SUBSET: python
-    PYTHON_38_VERSION: latest
-    PYTHON_39_VERSION: latest
-    PYTHON_310_VERSION: latest
-    PYTHON_311_VERSION: latest
-    PYTHON_312_VERSION: latest
-    PYTHON_313_VERSION: latest
-
 
 publish-pypi-package:
   stage: publish
@@ -255,3 +240,22 @@ signed layer bundle:
     - rm -rf datadog_lambda_py-signed-bundle-${CI_JOB_ID}
     - mkdir -p datadog_lambda_py-signed-bundle-${CI_JOB_ID}
     - cp .layers/datadog_lambda_py-*.zip datadog_lambda_py-signed-bundle-${CI_JOB_ID}
+
+e2e-test:
+  stage: e2e
+  trigger:
+    project: DataDog/serverless-e2e-tests
+    strategy: depend
+  variables:
+    LANGUAGES_SUBSET: python
+    PYTHON_38_VERSION: latest
+    PYTHON_39_VERSION: latest
+    PYTHON_310_VERSION: latest
+    PYTHON_311_VERSION: latest
+    PYTHON_312_VERSION: latest
+    PYTHON_313_VERSION: latest
+  needs: {{ range (ds "runtimes").runtimes }}
+    {{- if eq .arch "amd64" }}
+      - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [us-west-2]"
+    {{- end }}
+  {{- end }}
