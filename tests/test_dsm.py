@@ -205,6 +205,7 @@ class TestGetDSMContext(unittest.TestCase):
         }
 
         result = _get_dsm_context_from_lambda(message)
+
         assert result is None
 
     def test_empty_datadog_attribute(self):
