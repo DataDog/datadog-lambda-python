@@ -259,10 +259,9 @@ e2e-test:
   trigger:
     project: DataDog/serverless-e2e-tests
     strategy: depend
+    artifacts: true
   variables:
     LANGUAGES_SUBSET: python
-  before_script:
-    - env
   needs: {{ range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
       - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
