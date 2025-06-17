@@ -205,7 +205,8 @@ class TestSetDSMContext(unittest.TestCase):
 
         assert result is None
         self.mock_logger.debug.assert_called_with(
-            "DataStreams skipped lambda message: %r", message_no_attrs
+            "DataStreams skipped lambda message: %r, no messageAttributes",
+            message_no_attrs,
         )
 
         self.mock_logger.reset_mock()
@@ -221,7 +222,8 @@ class TestSetDSMContext(unittest.TestCase):
 
         assert result is None
         self.mock_logger.debug.assert_called_with(
-            "DataStreams skipped lambda message: %r", message_no_datadog
+            "DataStreams skipped lambda message: %r, no datadog context",
+            message_no_datadog,
         )
 
         self.mock_logger.reset_mock()
@@ -237,7 +239,8 @@ class TestSetDSMContext(unittest.TestCase):
 
         assert result is None
         self.mock_logger.debug.assert_called_with(
-            "DataStreams did not handle lambda message: %r", message_not_dict
+            "DataStreams did not handle lambda message: %r, context is not a dict",
+            message_not_dict,
         )
 
 
