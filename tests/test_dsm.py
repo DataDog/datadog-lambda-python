@@ -196,6 +196,50 @@ class TestSetDSMContext(unittest.TestCase):
             "Unable to set dsm context: JSON parsing error"
         )
 
+    def test_debug_logging_for_skipped_messages(self):
+        """Test debug logging for various scenarios where messages are skipped"""
+
+        message_no_attrs = {"messageId": "test-id", "body": "test body"}
+
+        result = _get_dsm_context_from_sqs_lambda(message_no_attrs)
+
+        assert result is None
+        self.mock_logger.debug.assert_called_with(
+            "DataStreams skipped lambda message: %r", message_no_attrs
+        )
+
+        self.mock_logger.reset_mock()
+
+        message_no_datadog = {
+            "messageId": "test-id",
+            "messageAttributes": {
+                "other_attr": {"stringValue": "value", "dataType": "String"}
+            },
+        }
+
+        result = _get_dsm_context_from_sqs_lambda(message_no_datadog)
+
+        assert result is None
+        self.mock_logger.debug.assert_called_with(
+            "DataStreams skipped lambda message: %r", message_no_datadog
+        )
+
+        self.mock_logger.reset_mock()
+
+        message_not_dict = {
+            "messageId": "test-id",
+            "messageAttributes": {
+                "_datadog": {"stringValue": '"just a string"', "dataType": "String"}
+            },
+        }
+
+        result = _get_dsm_context_from_sqs_lambda(message_not_dict)
+
+        assert result is None
+        self.mock_logger.debug.assert_called_with(
+            "DataStreams did not handle lambda message: %r", message_not_dict
+        )
+
 
 class TestGetDSMContextFromSQS(unittest.TestCase):
     def test_sqs_to_lambda_string_value_format(self):
