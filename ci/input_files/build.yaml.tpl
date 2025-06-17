@@ -33,6 +33,18 @@ default:
   - apt-get install nodejs -y
   - npm install --global yarn
 
+# Extract the arn from the publish log to be used as envvar in e2e tests
+.extract-arn: &extract-arn
+  - |
+    layer_arn="$(grep 'Published arn' publish.log | grep -oE 'arn:aws:lambda:.*')"
+    if [ -z "$layer_arn" ]; then
+      echo "Error: Layer ARN not found in publish log"
+      exit 1
+    else
+      echo "Found layer arn, $layer_arn"
+    fi
+    echo "PYTHON_{{ $runtime.name | strings.Trim "python" }}_VERSION=$layer_arn" > {{ $dotenv }}
+
 {{ range $runtime := (ds "runtimes").runtimes }}
 
 # TODO(astuyve) - figure out python build cache
@@ -149,8 +161,6 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
       allow_failure: true
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   artifacts:
-    paths:
-      - {{ $dotenv }}
     reports:
       dotenv: {{ $dotenv }}
   needs:
@@ -177,22 +187,8 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   before_script:
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
   script:
-    - |
-      set -x
-      STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh | tee publish.log
-      # Extract the arn from the publish log to be used as envvar in e2e tests
-      cat publish.log
-      grep 'Published arn' publish.log
-      grep 'Published arn' publish.log | grep -oE 'arn:aws:lambda:.*'
-      layer_arn="$(grep 'Published arn' publish.log | grep -oE 'arn:aws:lambda:.*')"
-      if [ -z "$layer_arn" ]; then
-        echo "Error: Layer ARN not found in publish log"
-        exit 1
-      else
-        echo "Found layer arn: $layer_arn"
-      fi
-      echo "PYTHON_{{ $runtime.name | strings.Trim "python" }}_VERSION=$layer_arn" > {{ $dotenv }}
-      cat {{ $dotenv }}
+    - STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh | tee publish.log
+    - *extract-arn
 
 
 {{- end }}
@@ -267,6 +263,8 @@ e2e-test:
     strategy: depend
   variables:
     LANGUAGES_SUBSET: python
+  before_script:
+    - env
   needs: {{ range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
       - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
