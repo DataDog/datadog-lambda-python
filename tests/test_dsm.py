@@ -239,7 +239,7 @@ class TestSetDSMContext(unittest.TestCase):
 
         assert result is None
         self.mock_logger.debug.assert_called_with(
-            "DataStreams did not handle lambda message, context is not a dict, message: %r",
+            "DataStreams did not handle lambda message, dsm context is not a dict, message: %r",
             message_not_dict,
         )
 
