@@ -262,15 +262,14 @@ e2e-test:
     branch: rey.abolofia/variable-passing
   variables:
     LANGUAGES_SUBSET: python
+    PYTHON_38_VERSION: $PYTHON_38_VERSION
+    PYTHON_39_VERSION: $PYTHON_39_VERSION
+    PYTHON_310_VERSION: $PYTHON_310_VERSION
+    PYTHON_311_VERSION: $PYTHON_311_VERSION
+    PYTHON_312_VERSION: $PYTHON_312_VERSION
+    PYTHON_313_VERSION: $PYTHON_313_VERSION
   needs: {{ range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
       - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
     {{- end }}
   {{- end }}
-  dependencies: {{ range (ds "runtimes").runtimes }}
-    {{- if eq .arch "amd64" }}
-      - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
-    {{- end }}
-  {{- end }}
-  inherit:
-    variables: true
