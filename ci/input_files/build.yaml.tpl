@@ -1,3 +1,5 @@
+{{- $e2e_region := "us-west-2" -}}
+
 stages:
  - build
  - test
@@ -133,21 +135,24 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
     - LAYER_FILE=datadog_lambda_py-{{ $runtime.arch}}-{{ $runtime.python_version }}.zip ./scripts/sign_layers.sh prod
 
 {{ range $environment_name, $environment := (ds "environments").environments }}
+{{ $dotenv := print $runtime.name "_" $runtime.arch "_" $environment_name ".env" }}
 
 publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: publish
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
-    - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "us-west-2" && "{{ $runtime.arch }}" == "amd64"'
+    - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "{{ $e2e_region }}" && "{{ $runtime.arch }}" == "amd64"'
       when: always
     - if: '"{{ $environment_name }}" == "sandbox"'
       when: manual
       allow_failure: true
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   artifacts:
+    paths:
+      - {{ $dotenv }}
     reports:
-      dotenv: layer_version
+      dotenv: {{ $dotenv }}
   needs:
 {{ if or (eq $environment_name "prod") }}
       - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
@@ -174,7 +179,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   script:
     - STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh | tee publish.log
     # Extract the arn from the publish log to be used as envvar in e2e tests
-    - echo "PYTHON_{{ $runtime.python_version | strings.ReplaceAll "." "" }}_VERSION=$(grep -oP 'Published arn \K\.*' publish.log)" > layer_version
+    - echo "PYTHON_{{ $runtime.python_version | strings.ReplaceAll "." "" }}_VERSION=$(grep -oP 'Published arn \K\.*' publish.log)" > {{ $dotenv }}
 
 {{- end }}
 
@@ -256,6 +261,6 @@ e2e-test:
     PYTHON_313_VERSION: latest
   needs: {{ range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
-      - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [us-west-2]"
+      - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
     {{- end }}
   {{- end }}
