@@ -261,9 +261,11 @@ e2e-test:
     strategy: depend
   variables:
     LANGUAGES_SUBSET: python
-    {{- range $runtime := (ds "runtimes").runtimes }}
-    {{- if eq $runtime.arch "amd64" }}
-    PYTHON_{{ $runtime.name | strings.Trim "python" }}_VERSION: $PYTHON_{{ $runtime.name | strings.Trim "python" }}_VERSION
+    # These env vars are inherited from the dotenv reports of the publish-layer jobs
+    {{- range (ds "runtimes").runtimes }}
+    {{- if eq .arch "amd64" }}
+    {{- $version := print (.name | strings.Trim "python") }}
+    PYTHON_{{ $version }}_VERSION: $PYTHON_{{ $version }}_VERSION
     {{- end }}
     {{- end }}
   needs: {{ range (ds "runtimes").runtimes }}
