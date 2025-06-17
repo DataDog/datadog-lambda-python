@@ -174,7 +174,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   script:
     - STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh | tee publish.log
     # Extract the arn from the publish log to be used as envvar in e2e tests
-    - echo "PYTHON_{{ $runtime.python_version | replace "." "" }}_VERSION=$(grep -oP 'Published arn \K\.*' publish.log)" > layer_version
+    - echo "PYTHON_{{ $runtime.python_version | strings.ReplaceAll "." "" }}_VERSION=$(grep -oP 'Published arn \K\.*' publish.log)" > layer_version
 
 {{- end }}
 
