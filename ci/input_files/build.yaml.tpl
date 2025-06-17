@@ -181,7 +181,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
     # Extract the arn from the publish log to be used as envvar in e2e tests
     - layer_arn="$(grep 'Published arn' publish.log | grep -oE 'arn:aws:lambda:.*:\d+')"
     - echo "Found published arn: $layer_arn"
-    - echo "PYTHON_{{ $runtime.name | strings.TrimLeft "python" }}_VERSION=$layer_arn" > {{ $dotenv }}
+    - echo "PYTHON_{{ $runtime.name | strings.Trim "python" }}_VERSION=$layer_arn" > {{ $dotenv }}
 
 {{- end }}
 
@@ -255,12 +255,6 @@ e2e-test:
     strategy: depend
   variables:
     LANGUAGES_SUBSET: python
-    PYTHON_38_VERSION: latest
-    PYTHON_39_VERSION: latest
-    PYTHON_310_VERSION: latest
-    PYTHON_311_VERSION: latest
-    PYTHON_312_VERSION: latest
-    PYTHON_313_VERSION: latest
   needs: {{ range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
       - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
