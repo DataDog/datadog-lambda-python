@@ -20,7 +20,7 @@ def _dsm_set_sqs_context(event):
             arn = record.get("eventSourceARN", "")
             context_json = _get_dsm_context_from_sqs_lambda(record)
             if not context_json:
-                return
+                continue
             _set_dsm_context_for_record(context_json, "sqs", arn)
 
         except Exception as e:
