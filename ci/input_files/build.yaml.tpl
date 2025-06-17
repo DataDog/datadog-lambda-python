@@ -66,45 +66,45 @@ check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   script:
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/check_layer_size.sh
 
-#lint python:
-#  stage: test
-#  tags: ["arch:amd64"]
-#  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
-#  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
-#  before_script: *python-before-script
-#  script:
-#    - source venv/bin/activate
-#    - ./scripts/check_format.sh
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
+  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
+  before_script: *python-before-script
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
 
-#unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
-#  stage: test
-#  tags: ["arch:amd64"]
-#  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
-#  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
-#  before_script: *python-before-script
-#  script:
-#    - source venv/bin/activate
-#    - pytest -vv
+unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
+  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
+  before_script: *python-before-script
+  script:
+    - source venv/bin/activate
+    - pytest -vv
 
-#integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
-#  stage: test
-#  tags: ["arch:amd64"]
-#  image: registry.ddbuild.io/images/docker:20.10-py3
-#  needs:
-#    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-#  dependencies:
-#    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-#  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
-#  variables:
-#    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
-#  before_script:
-#    - *install-node
-#    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
-#    - yarn global add serverless@^3.38.0 --prefix /usr/local
-#    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
-#    - cd integration_tests && yarn install && cd ..
-#  script:
-#    - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
+integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  needs:
+    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
+  dependencies:
+    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
+  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
 
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
@@ -116,9 +116,9 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
     - check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
-    #- lint python
-    #- unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
-    #- integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
+    - lint python
+    - unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
+    - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   artifacts: # Re specify artifacts so the modified signed file is passed
@@ -157,9 +157,9 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
 {{ else }}
       - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
       - check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
-      #- lint python
-      #- unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
-      #- integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
+      - lint python
+      - unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
+      - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
 {{ end }}
   dependencies:
 {{ if or (eq $environment_name "prod") }}
