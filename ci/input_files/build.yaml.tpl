@@ -180,7 +180,14 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
     - |
       STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh | tee publish.log
       # Extract the arn from the publish log to be used as envvar in e2e tests
-      echo "PYTHON_{{ $runtime.name | strings.Trim "python" }}_VERSION=$(grep 'Published arn' publish.log | grep -oE 'arn:aws:lambda:.*:\d+')" > {{ $dotenv }}
+      layer_arn="$(grep 'Published arn' publish.log | grep -oE 'arn:aws:lambda:.*:\d+')"
+      if [ -z "$layer_arn" ]; then
+        echo "Error: Layer ARN not found in publish log"
+        exit 1
+      else
+        echo "Found layer arn: $layer_arn"
+      fi
+      echo "PYTHON_{{ $runtime.name | strings.Trim "python" }}_VERSION=$layer_arn" > {{ $dotenv }}
       cat {{ $dotenv }}
 
 
