@@ -259,15 +259,13 @@ e2e-test:
   trigger:
     project: DataDog/serverless-e2e-tests
     strategy: depend
-    branch: rey.abolofia/variable-passing
   variables:
     LANGUAGES_SUBSET: python
-    PYTHON_38_VERSION: $PYTHON_38_VERSION
-    PYTHON_39_VERSION: $PYTHON_39_VERSION
-    PYTHON_310_VERSION: $PYTHON_310_VERSION
-    PYTHON_311_VERSION: $PYTHON_311_VERSION
-    PYTHON_312_VERSION: $PYTHON_312_VERSION
-    PYTHON_313_VERSION: $PYTHON_313_VERSION
+    {{- range $runtime := (ds "runtimes").runtimes }}
+    {{- if eq $runtime.arch "amd64" }}
+    PYTHON_{{ $runtime.name | strings.Trim "python" }}_VERSION: $PYTHON_{{ $runtime.name | strings.Trim "python" }}_VERSION
+    {{- end }}
+    {{- end }}
   needs: {{ range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
       - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
