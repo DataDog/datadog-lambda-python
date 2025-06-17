@@ -183,8 +183,8 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
       # Extract the arn from the publish log to be used as envvar in e2e tests
       cat publish.log
       grep 'Published arn' publish.log
-      grep 'Published arn' publish.log | grep -oE 'arn:aws:lambda:.*:\d+'
-      layer_arn="$(grep 'Published arn' publish.log | grep -oE 'arn:aws:lambda:.*:\d+')"
+      grep 'Published arn' publish.log | grep -oE 'arn:aws:lambda:.*'
+      layer_arn="$(grep 'Published arn' publish.log | grep -oE 'arn:aws:lambda:.*')"
       if [ -z "$layer_arn" ]; then
         echo "Error: Layer ARN not found in publish log"
         exit 1
