@@ -56,12 +56,18 @@ def _get_dsm_context_from_sqs_lambda(message):
         return None
 
     datadog_attr = message_attributes["_datadog"]
+    if not isinstance(datadog_attr, dict):
+        logger.debug(
+            "DataStreams did not handle lambda message, datadog context is not a dict, message: %r",
+            message,
+        )
+        return None
 
     if "stringValue" in datadog_attr:
         context_json = json.loads(datadog_attr["stringValue"])
         if not isinstance(context_json, dict):
             logger.debug(
-                "DataStreams did not handle lambda message, context is not a dict, message: %r",
+                "DataStreams did not handle lambda message, dsm context is not a dict, message: %r",
                 message,
             )
             return None
