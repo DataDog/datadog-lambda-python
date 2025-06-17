@@ -259,6 +259,7 @@ e2e-test:
   trigger:
     project: DataDog/serverless-e2e-tests
     strategy: depend
+    branch: rey.abolofia/variable-passing
   variables:
     LANGUAGES_SUBSET: python
   needs: {{ range (ds "runtimes").runtimes }}
