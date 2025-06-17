@@ -16,8 +16,8 @@ def _dsm_set_sqs_context(event):
         return
 
     for record in records:
-        arn = record.get("eventSourceARN", "")
         try:
+            arn = record.get("eventSourceARN", "")
             context_json = _get_dsm_context_from_sqs_lambda(record)
             if not context_json:
                 return
