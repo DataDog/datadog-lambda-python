@@ -1,3 +1,4 @@
+from copy import deepcopy
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -15,16 +16,32 @@ from datadog_lambda.trigger import (
 logger = logging.getLogger(__name__)
 
 
-def _to_single_value_headers(request_headers: Dict[str, List[str]]) -> Dict[str, str]:
+def _to_single_value_headers(headers: Dict[str, List[str]]) -> Dict[str, str]:
     """
     Convert multi-value headers to single-value headers.
-    If a header has multiple values, the first value is used.
+    If a header has multiple values, join them with commas.
     """
     single_value_headers = {}
-    for key, values in request_headers.items():
-        if len(values) >= 1:
-            single_value_headers[key] = values[0]
+    for key, values in headers.items():
+        single_value_headers[key] = ", ".join(values)
     return single_value_headers
+
+
+def _merge_single_and_multi_value_headers(
+    single_value_headers: Dict[str, str],
+    multi_value_headers: Dict[str, List[str]],
+):
+    """
+    Merge single-value headers with multi-value headers.
+    If a header exists in both, we merge them removing duplicates
+    """
+    merged_headers = deepcopy(multi_value_headers)
+    for key, value in single_value_headers.items():
+        if key not in merged_headers:
+            merged_headers[key] = [value]
+        elif value not in merged_headers[key]:
+            merged_headers[key].append(value)
+    return _to_single_value_headers(merged_headers)
 
 
 def asm_start_request(
@@ -36,6 +53,7 @@ def asm_start_request(
     request_headers: Dict[str, str] = {}
     peer_ip: Optional[str] = None
     request_path_parameters: Optional[Dict[str, Any]] = None
+    route: Optional[str] = None
 
     if event_source.event_type == EventTypes.ALB:
         headers = event.get("headers")
@@ -59,11 +77,10 @@ def asm_start_request(
     elif event_source.event_type == EventTypes.API_GATEWAY:
         request_context = event.get("requestContext", {})
         request_path_parameters = event.get("pathParameters")
+        route = trigger_tags.get("http.route")
 
         if event_source.subtype == EventSubtypes.API_GATEWAY:
-            request_headers = _to_single_value_headers(
-                event.get("multiValueHeaders", {})
-            )
+            request_headers = event.get("headers", {})
             peer_ip = request_context.get("identity", {}).get("sourceIp")
             raw_uri = event.get("path")
             parsed_query = event.get("multiValueQueryStringParameters")
@@ -105,7 +122,7 @@ def asm_start_request(
             body,
             is_base64_encoded,
             raw_uri,
-            trigger_tags.get("http.route"),
+            route,
             trigger_tags.get("http.method"),
             parsed_query,
             request_path_parameters,
@@ -122,9 +139,14 @@ def asm_start_response(
     if event_source.event_type not in _http_event_types:
         return
 
-    response_headers = response.get("headers", {})
-    if not isinstance(response_headers, dict):
-        response_headers = {}
+    headers = response.get("headers", {})
+    multi_value_request_headers = response.get("multiValueHeaders")
+    if multi_value_request_headers:
+        response_headers = _merge_single_and_multi_value_headers(
+            headers, multi_value_request_headers
+        )
+    else:
+        response_headers = headers
 
     core.dispatch(
         "aws_lambda.start_response",
