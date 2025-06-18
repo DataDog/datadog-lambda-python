@@ -273,3 +273,14 @@ e2e-test:
       - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
     {{- end }}
     {{- end }}
+
+e2e-status:
+  stage: e2e
+  image: registry.ddbuild.io/images/mirror/alpine:latest
+  tags: ["arch:amd64"]
+  needs:
+    - e2e-test
+  script:
+    - echo "✅ e2e tests completed successfully"
+  rules:
+    - when: on_success
