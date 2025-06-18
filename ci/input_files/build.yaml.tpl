@@ -260,16 +260,16 @@ e2e-test:
     project: DataDog/serverless-e2e-tests
     strategy: depend
   variables:
-    LANGUAGES_SUBSET: python
-    # These env vars are inherited from the dotenv reports of the publish-layer jobs
+      LANGUAGES_SUBSET: python
+      # These env vars are inherited from the dotenv reports of the publish-layer jobs
     {{- range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
     {{- $version := print (.name | strings.Trim "python") }}
-    PYTHON_{{ $version }}_VERSION: $PYTHON_{{ $version }}_VERSION
+      PYTHON_{{ $version }}_VERSION: $PYTHON_{{ $version }}_VERSION
     {{- end }}
     {{- end }}
   needs: {{ range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
       - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
     {{- end }}
-  {{- end }}
+    {{- end }}
