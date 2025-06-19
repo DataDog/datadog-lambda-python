@@ -50,6 +50,9 @@ if config.otel_enabled:
 
     set_tracer_provider(TracerProvider())
 
+data_streams_enabled = (
+    os.environ.get("DD_DATA_STREAMS_ENABLED", "false").lower() == "true"
+)
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +68,37 @@ propagator = HTTPPropagator()
 DD_TRACE_JAVA_TRACE_ID_PADDING = "00000000"
 HIGHER_64_BITS = "HIGHER_64_BITS"
 LOWER_64_BITS = "LOWER_64_BITS"
+
+
+def _extract_context(context_json, event_type, arn):
+    from ddtrace.data_streams import set_consume_checkpoint
+
+    """
+    Extracts the context from a JSON carrier and optionally sets a consume checkpoint
+    if the context is complete and data streams are enabled.
+    """
+    context = propagator.extract(context_json)
+
+    if not _is_context_complete(context):
+        return context
+
+    if not data_streams_enabled:
+        return context
+    try:
+        carrier_get = _create_carrier_get(context_json)
+        set_consume_checkpoint(event_type, arn, carrier_get, manual_checkpoint=False)
+    except Exception as e:
+        logger.debug(
+            f"DSM:Failed to set consume checkpoint for {event_type} {arn}: {e}"
+        )
+    return context
+
+
+def _create_carrier_get(context_json):
+    def carrier_get(key):
+        return context_json.get(key)
+
+    return carrier_get
 
 
 def _convert_xray_trace_id(xray_trace_id):
@@ -215,6 +249,8 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 
     Falls back to lambda context if no trace data is found in the SQS message attributes.
     """
+    is_sqs = False
+    arn = None
 
     # EventBridge => SQS
     try:
@@ -226,6 +262,9 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 
     try:
         first_record = event.get("Records")[0]
+        arn = first_record.get("eventSourceARN", "")
+        if arn:
+            is_sqs = True
 
         # logic to deal with SNS => SQS event
         if "body" in first_record:
@@ -272,8 +311,12 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                         logger.debug(
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
-
-                return propagator.extract(dd_data)
+                if is_sqs:
+                    return _extract_context(dd_data, "sqs", arn)
+                else:
+                    return _extract_context(
+                        dd_data, "sns", sns_record.get(("TopicArn"))
+                    )
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
@@ -360,6 +403,7 @@ def extract_context_from_kinesis_event(event, lambda_context):
     """
     try:
         record = get_first_record(event)
+        arn = record.get("eventSourceARN", "")
         kinesis = record.get("kinesis")
         if not kinesis:
             return extract_context_from_lambda_context(lambda_context)
@@ -373,7 +417,7 @@ def extract_context_from_kinesis_event(event, lambda_context):
             data_obj = json.loads(data_str)
             dd_ctx = data_obj.get("_datadog")
             if dd_ctx:
-                return propagator.extract(dd_ctx)
+                return _extract_context(dd_ctx, "kinesis", arn)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
 
