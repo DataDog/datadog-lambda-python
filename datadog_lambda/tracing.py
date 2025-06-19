@@ -50,10 +50,6 @@ if config.otel_enabled:
 
     set_tracer_provider(TracerProvider())
 
-data_streams_enabled = (
-    os.environ.get("DD_DATA_STREAMS_ENABLED", "false").lower() == "true"
-)
-
 logger = logging.getLogger(__name__)
 
 dd_trace_context = None
@@ -82,7 +78,7 @@ def _extract_context(context_json, event_type, arn):
     if not _is_context_complete(context):
         return context
 
-    if not data_streams_enabled:
+    if not config.data_streams_enabled:
         return context
     try:
         carrier_get = _create_carrier_get(context_json)
