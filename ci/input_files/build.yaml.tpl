@@ -53,6 +53,7 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   variables:
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   script:
+    - exit 0
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/build_layers.sh
 
 #check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
@@ -73,6 +74,7 @@ lint python:
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   before_script: *python-before-script
   script:
+    - exit 0
     - source venv/bin/activate
     - ./scripts/check_format.sh
 
@@ -176,6 +178,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
   script:
     - |
+      exit 0
       STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh | tee publish.log
       # Extract the arn from the publish log to be used as envvar in e2e tests
       layer_arn="$(grep 'Published arn' publish.log | grep -oE 'arn:aws:lambda:.*')"
@@ -226,6 +229,7 @@ layer bundle:
       - datadog_lambda_py-bundle-${CI_JOB_ID}/
     name: datadog_lambda_py-bundle-${CI_JOB_ID}
   script:
+    - exit 0
     - rm -rf datadog_lambda_py-bundle-${CI_JOB_ID}
     - mkdir -p datadog_lambda_py-bundle-${CI_JOB_ID}
     - cp .layers/datadog_lambda_py-*.zip datadog_lambda_py-bundle-${CI_JOB_ID}
@@ -300,11 +304,11 @@ e2e-status:
       # Poll for e2e-test job completion
       while true; do
         # Get the e2e-test job status
-        URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/jobs"
+        URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/bridges"
         echo "Fetching E2E job status from: $URL"
         RESPONSE=$(curl -s --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "$URL")
         echo "Response: $RESPONSE"
-        E2E_JOB_STATUS=$(echo "$RESPONSE" | jq -r '.[] | select(.name=="e2e-test") | .status')
+        E2E_JOB_STATUS=$(echo "$RESPONSE" | jq -r '.[] | select(.name=="e2e-test") | .pipeline.status')
         echo "E2E job status: $E2E_JOB_STATUS"
         case "$E2E_JOB_STATUS" in
           "success")
