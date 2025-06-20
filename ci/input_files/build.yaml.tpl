@@ -301,12 +301,13 @@ e2e-status:
       # TODO: link to the test results
       #       do not wait around for the scheduled job to complete
       echo "🔄 Waiting for E2E tests to complete..."
-      # Poll for e2e-test job completion
+      URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/bridges"
+      echo "Fetching E2E job status from: $URL"
+      env
       while true; do
         # Get the e2e-test job status
-        URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/bridges"
-        echo "Fetching E2E job status from: $URL"
-        RESPONSE=$(curl -s --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "$URL")
+        #RESPONSE=$(curl -s --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "$URL")
+        RESPONSE=$(curl -s --header "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" "$URL")
         echo "Response: $RESPONSE"
         E2E_JOB_STATUS=$(echo "$RESPONSE" | jq -r '.[] | select(.name=="e2e-test") | .pipeline.status')
         echo "E2E job status: $E2E_JOB_STATUS"
