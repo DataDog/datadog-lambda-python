@@ -53,19 +53,18 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   variables:
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   script:
-    - exit 0
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/build_layers.sh
 
-#check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
-#  stage: test
-#  tags: ["arch:amd64"]
-#  image: registry.ddbuild.io/images/docker:20.10
-#  needs:
-#    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-#  dependencies:
-#    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-#  script:
-#    - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/check_layer_size.sh
+check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
+  dependencies:
+    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
+  script:
+    - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/check_layer_size.sh
 
 lint python:
   stage: test
@@ -74,39 +73,38 @@ lint python:
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   before_script: *python-before-script
   script:
-    - exit 0
     - source venv/bin/activate
     - ./scripts/check_format.sh
 
-#unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
-#  stage: test
-#  tags: ["arch:amd64"]
-#  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
-#  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
-#  before_script: *python-before-script
-#  script:
-#    - source venv/bin/activate
-#    - pytest -vv
+unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
+  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
+  before_script: *python-before-script
+  script:
+    - source venv/bin/activate
+    - pytest -vv
 
-#integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
-#  stage: test
-#  tags: ["arch:amd64"]
-#  image: registry.ddbuild.io/images/docker:20.10-py3
-#  needs:
-#    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-#  dependencies:
-#    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-#  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
-#  variables:
-#    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
-#  before_script:
-#    - *install-node
-#    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
-#    - yarn global add serverless@^3.38.0 --prefix /usr/local
-#    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
-#    - cd integration_tests && yarn install && cd ..
-#  script:
-#    - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
+integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  needs:
+    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
+  dependencies:
+    - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
+  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
 
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
@@ -117,10 +115,10 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
       when: manual
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-    #- check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
+    - check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
     - lint python
-    #- unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
-    #- integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
+    - unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
+    - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   artifacts: # Re specify artifacts so the modified signed file is passed
@@ -158,10 +156,10 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
       - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
 {{ else }}
       - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
-      #- check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
+      - check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
       - lint python
-      #- unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
-      #- integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
+      - unit-test ({{ $runtime.name }}-{{ $runtime.arch }})
+      - integration-test ({{ $runtime.name }}-{{ $runtime.arch }})
 {{ end }}
   dependencies:
 {{ if or (eq $environment_name "prod") }}
@@ -178,7 +176,6 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
   script:
     - |
-      exit 0
       STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./ci/publish_layers.sh | tee publish.log
       # Extract the arn from the publish log to be used as envvar in e2e tests
       layer_arn="$(grep 'Published arn' publish.log | grep -oE 'arn:aws:lambda:.*')"
@@ -229,7 +226,6 @@ layer bundle:
       - datadog_lambda_py-bundle-${CI_JOB_ID}/
     name: datadog_lambda_py-bundle-${CI_JOB_ID}
   script:
-    - exit 0
     - rm -rf datadog_lambda_py-bundle-${CI_JOB_ID}
     - mkdir -p datadog_lambda_py-bundle-${CI_JOB_ID}
     - cp .layers/datadog_lambda_py-*.zip datadog_lambda_py-bundle-${CI_JOB_ID}
@@ -283,13 +279,13 @@ e2e-status:
   image: registry.ddbuild.io/images/mirror/alpine:latest
   tags: ["arch:amd64"]
   needs:
+    - e2e-test
     {{- range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
     - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
     {{- end }}
     {{- end }}
   script:
-    - apk add --no-cache curl jq
     - echo "Python layer ARNs used in E2E tests:"
     {{- range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
@@ -299,39 +295,21 @@ e2e-status:
     {{- end }}
     - |
       # TODO: link to the test results
+      #       make this job start running at same time as e2e-test job
       #       do not wait around for the scheduled job to complete
-      echo "🔄 Waiting for E2E tests to complete..."
-      URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/bridges"
-      echo "Fetching E2E job status from: $URL"
-      env
-      while true; do
-        # Get the e2e-test job status
-        #RESPONSE=$(curl -s --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "$URL")
-        RESPONSE=$(curl -s --header "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" "$URL")
-        echo "Response: $RESPONSE"
-        E2E_JOB_STATUS=$(echo "$RESPONSE" | jq -r '.[] | select(.name=="e2e-test") | .pipeline.status')
-        echo "E2E job status: $E2E_JOB_STATUS"
-        case "$E2E_JOB_STATUS" in
-          "success")
-            echo "✅ E2E tests completed successfully"
-            exit 0
-            ;;
-          "failed")
-            echo "❌ E2E tests failed"
-            echo "💡 Look for pipelines triggered around $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
-            exit 1
-            ;;
-          "canceled")
-            echo "⚠️ E2E tests were canceled"
-            exit 1
-            ;;
-          "running"|"pending"|"created")
-            echo "⏳ E2E tests still running..."
-            sleep 30
-            ;;
-          *)
-            echo "❓ Unknown E2E test status: $E2E_JOB_STATUS"
-            sleep 30
-            ;;
-        esac
-      done
+      switch "${CI_JOB_STATUS}" in
+        "success")
+          echo "✅ E2E tests completed successfully"
+          ;;
+        "failed")
+          echo "❌ E2E tests failed"
+          exit 1
+          ;;
+        "canceled")
+          echo "❌ E2E tests were canceled"
+          exit 1
+          ;;
+        *)
+          echo "❌ E2E tests unknown status: ${CI_JOB_STATUS}"
+          exit 1
+      esac
