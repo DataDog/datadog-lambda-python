@@ -30,7 +30,7 @@ class TestExtractContext(unittest.TestCase):
         self.addCleanup(logger_patcher.stop)
 
     def test_extract_context_data_streams_disabled(self):
-        with patch.dict(os.environ, {'DD_DATA_STREAMS_ENABLED': 'false'}):
+        with patch.dict(os.environ, {"DD_DATA_STREAMS_ENABLED": "false"}):
             context_json = {"dd-pathway-ctx-base64": "12345"}
             event_type = "sqs"
             arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
@@ -45,7 +45,7 @@ class TestExtractContext(unittest.TestCase):
             self.assertEqual(result, mock_context)
 
     def test_extract_context_data_streams_enabled_complete_context(self):
-        with patch.dict(os.environ, {'DD_DATA_STREAMS_ENABLED': 'true'}):
+        with patch.dict(os.environ, {"DD_DATA_STREAMS_ENABLED": "true"}):
             context_json = {"dd-pathway-ctx-base64": "12345"}
             event_type = "sqs"
             arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
@@ -65,7 +65,7 @@ class TestExtractContext(unittest.TestCase):
             self.assertEqual(result, mock_context)
 
     def test_extract_context_data_streams_enabled_incomplete_context(self):
-        with patch.dict(os.environ, {'DD_DATA_STREAMS_ENABLED': 'true'}):
+        with patch.dict(os.environ, {"DD_DATA_STREAMS_ENABLED": "true"}):
             context_json = {"dd-pathway-ctx-base64": "12345"}
             event_type = "sqs"
             arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
@@ -80,7 +80,7 @@ class TestExtractContext(unittest.TestCase):
             self.assertEqual(result, mock_context)
 
     def test_extract_context_exception_path(self):
-        with patch.dict(os.environ, {'DD_DATA_STREAMS_ENABLED': 'true'}):
+        with patch.dict(os.environ, {"DD_DATA_STREAMS_ENABLED": "true"}):
             context_json = {"dd-pathway-ctx-base64": "12345"}
             event_type = "sqs"
             arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
@@ -104,7 +104,7 @@ class TestCreateCarrierGet(unittest.TestCase):
         context_json = {
             "x-datadog-trace-id": "12345",
             "x-datadog-parent-id": "67890",
-            "x-datadog-sampling-priority": "1"
+            "x-datadog-sampling-priority": "1",
         }
 
         carrier_get = _create_carrier_get(context_json)
@@ -142,21 +142,22 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
         dd_json_data = json.dumps(dd_data)
 
         event = {
-            "Records": [{
-                "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
-                "messageAttributes": {
-                    "_datadog": {
-                        "dataType": "String",
-                        "stringValue": dd_json_data
-                    }
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {"dataType": "String", "stringValue": dd_json_data}
+                    },
                 }
-            }]
+            ]
         }
 
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
         mock_extract_context.return_value = mock_context
 
-        result = extract_context_from_sqs_or_sns_event_or_context(event, self.lambda_context)
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context
+        )
 
         mock_extract_context.assert_called_once_with(
             dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
@@ -164,27 +165,30 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
         self.assertEqual(result, mock_context)
 
     @patch("datadog_lambda.tracing._extract_context")
-    def test_sqs_event_with_binary_datadog_message_attributes(self, mock_extract_context):
+    def test_sqs_event_with_binary_datadog_message_attributes(
+        self, mock_extract_context
+    ):
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
         encoded_data = base64.b64encode(dd_json_data.encode()).decode()
 
         event = {
-            "Records": [{
-                "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
-                "messageAttributes": {
-                    "_datadog": {
-                        "dataType": "Binary",
-                        "binaryValue": encoded_data
-                    }
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {"dataType": "Binary", "binaryValue": encoded_data}
+                    },
                 }
-            }]
+            ]
         }
 
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
         mock_extract_context.return_value = mock_context
 
-        result = extract_context_from_sqs_or_sns_event_or_context(event, self.lambda_context)
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context
+        )
 
         mock_extract_context.assert_called_once_with(
             dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
@@ -197,24 +201,25 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
         dd_json_data = json.dumps(dd_data)
 
         event = {
-            "Records": [{
-                "eventSourceARN": "",
-                "Sns": {
-                    "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
-                    "MessageAttributes": {
-                        "_datadog": {
-                            "Type": "String",
-                            "Value": dd_json_data
-                        }
-                    }
+            "Records": [
+                {
+                    "eventSourceARN": "",
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "MessageAttributes": {
+                            "_datadog": {"Type": "String", "Value": dd_json_data}
+                        },
+                    },
                 }
-            }]
+            ]
         }
 
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
         mock_extract_context.return_value = mock_context
 
-        result = extract_context_from_sqs_or_sns_event_or_context(event, self.lambda_context)
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context
+        )
 
         mock_extract_context.assert_called_once_with(
             dd_data, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
@@ -234,12 +239,12 @@ class TestExtractContextFromKinesisEvent(unittest.TestCase):
         encoded_data = base64.b64encode(kinesis_data_str.encode()).decode()
 
         event = {
-            "Records": [{
-                "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
-                "kinesis": {
-                    "data": encoded_data
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {"data": encoded_data},
                 }
-            }]
+            ]
         }
 
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
@@ -248,6 +253,8 @@ class TestExtractContextFromKinesisEvent(unittest.TestCase):
         result = extract_context_from_kinesis_event(event, self.lambda_context)
 
         mock_extract_context.assert_called_once_with(
-            dd_data, "kinesis", "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+            dd_data,
+            "kinesis",
+            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
         )
         self.assertEqual(result, mock_context)
