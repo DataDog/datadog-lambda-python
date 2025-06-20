@@ -279,13 +279,13 @@ e2e-status:
   image: registry.ddbuild.io/images/mirror/alpine:latest
   tags: ["arch:amd64"]
   needs:
-    - e2e-test
     {{- range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
     - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
     {{- end }}
     {{- end }}
   script:
+    - apt-get install -y curl
     - echo "Python layer ARNs used in E2E tests:"
     {{- range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
@@ -295,11 +295,36 @@ e2e-status:
     {{- end }}
     - |
       # TODO: link to the test results
-      #       make this job start running at same time as e2e-test job
       #       do not wait around for the scheduled job to complete
-      if [ "${CI_JOB_STATUS}" = "failed" ]; then
-        echo "❌ E2E tests failed"
-        exit 1
-      else
-        echo "✅ E2E tests completed successfully"
-      fi
+      echo "🔄 Waiting for E2E tests to complete..."
+      # Poll for e2e-test job completion
+      while true; do
+        # Get the e2e-test job status
+        E2E_JOB_STATUS=$(curl -s --header "PRIVATE-TOKEN: ${CI_JOB_TOKEN}" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/jobs" | \
+          jq -r '.[] | select(.name=="e2e-test") | .status')
+        echo "E2E job status: $E2E_JOB_STATUS"
+        case "$E2E_JOB_STATUS" in
+          "success")
+            echo "✅ E2E tests completed successfully"
+            exit 0
+            ;;
+          "failed")
+            echo "❌ E2E tests failed"
+            echo "💡 Look for pipelines triggered around $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+            exit 1
+            ;;
+          "canceled")
+            echo "⚠️ E2E tests were canceled"
+            exit 1
+            ;;
+          "running"|"pending"|"created")
+            echo "⏳ E2E tests still running..."
+            sleep 30
+            ;;
+          *)
+            echo "❓ Unknown E2E test status: $E2E_JOB_STATUS"
+            sleep 30
+            ;;
+        esac
+      done
