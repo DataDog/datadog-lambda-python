@@ -281,6 +281,20 @@ e2e-status:
   needs:
     - e2e-test
   script:
-    - echo "✅ e2e tests completed successfully"
-  rules:
-    - when: on_success
+    - echo "Python layer ARNs used in E2E tests:"
+    {{- range (ds "runtimes").runtimes }}
+    {{- if eq .arch "amd64" }}
+    {{- $version := print (.name | strings.Trim "python") }}
+    - echo "  PYTHON_{{ $version }}_VERSION=$PYTHON_{{ $version }}_VERSION"
+    {{- end }}
+    {{- end }}
+    - |
+      # TODO: link to the test results
+      #       make this job start running at same time as e2e-test job
+      #       do not wait around for the scheduled job to complete
+      if [ "${CI_JOB_STATUS}" = "failed" ]; then
+        echo "❌ E2E tests failed"
+        exit 1
+      else
+        echo "✅ E2E tests completed successfully"
+      fi
