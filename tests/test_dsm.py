@@ -64,13 +64,13 @@ class TestExtractContext(unittest.TestCase):
             self.assertEqual(kwargs["manual_checkpoint"], False)
             self.assertEqual(result, mock_context)
 
-    def test_extract_context_data_streams_enabled_incomplete_context(self):
+    def test_extract_context_data_streams_enabled_invalid_context(self):
         with patch.dict(os.environ, {"DD_DATA_STREAMS_ENABLED": "true"}):
-            context_json = {"dd-pathway-ctx-base64": "12345"}
+            context_json = {"something-malformed": "12345"}
             event_type = "sqs"
             arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
 
-            mock_context = Context(trace_id=12345, span_id=None, sampling_priority=1)
+            mock_context = Context(trace_id=12345, span_id=12345, sampling_priority=1)
             self.mock_extract.return_value = mock_context
 
             result = _extract_context_with_data_streams(context_json, event_type, arn)
