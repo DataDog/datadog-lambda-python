@@ -17,3 +17,10 @@ from datadog_lambda.logger import initialize_logging  # noqa: E402
 
 
 initialize_logging(__name__)
+
+
+from datadog_lambda.patch import patch_all  # noqa: E402
+
+# Patch third-party libraries for tracing, must be done before importing any
+# handler code.
+patch_all()
