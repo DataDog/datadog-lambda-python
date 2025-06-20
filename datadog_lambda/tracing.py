@@ -70,7 +70,7 @@ def _extract_context(context_json, event_type, arn):
     from ddtrace.data_streams import set_consume_checkpoint
 
     """
-    Extracts the context from a JSON carrier and optionally sets a consume checkpoint
+    Extracts the context from a JSON carrier and optionally sets a dsm consume checkpoint
     if the context is complete and data streams are enabled.
     """
     context = propagator.extract(context_json)
