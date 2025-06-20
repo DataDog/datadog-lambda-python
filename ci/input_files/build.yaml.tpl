@@ -285,7 +285,7 @@ e2e-status:
     {{- end }}
     {{- end }}
   script:
-    - apt-get install -y curl
+    - apk add --no-cache curl jq
     - echo "Python layer ARNs used in E2E tests:"
     {{- range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
