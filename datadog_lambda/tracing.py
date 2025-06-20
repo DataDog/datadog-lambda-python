@@ -66,7 +66,7 @@ HIGHER_64_BITS = "HIGHER_64_BITS"
 LOWER_64_BITS = "LOWER_64_BITS"
 
 
-def _extract_context(context_json, event_type, arn):
+def _extract_context_with_data_streams(context_json, event_type, arn):
     from ddtrace.data_streams import set_consume_checkpoint
 
     """
@@ -307,7 +307,9 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                         logger.debug(
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
-                return _extract_context(dd_data, "sqs" if is_sqs else "sns", arn)
+                return _extract_context_with_data_streams(
+                    dd_data, "sqs" if is_sqs else "sns", arn
+                )
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
@@ -408,7 +410,7 @@ def extract_context_from_kinesis_event(event, lambda_context):
             data_obj = json.loads(data_str)
             dd_ctx = data_obj.get("_datadog")
             if dd_ctx:
-                return _extract_context(dd_ctx, "kinesis", arn)
+                return _extract_context_with_data_streams(dd_ctx, "kinesis", arn)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
 
