@@ -309,7 +309,9 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                         )
                 if is_sqs:
                     return _extract_context(dd_data, "sqs", arn)
-                return _extract_context(dd_data, "sns", sns_record.get(("TopicArn")))
+                return _extract_context(
+                    dd_data, "sns", sns_record.get(("TopicArn"), "")
+                )
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
