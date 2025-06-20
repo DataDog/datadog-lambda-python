@@ -75,10 +75,10 @@ def _extract_context(context_json, event_type, arn):
     """
     context = propagator.extract(context_json)
 
-    if not _is_context_complete(context):
+    if not config.data_streams_enabled:
         return context
 
-    if not config.data_streams_enabled:
+    if not _is_context_complete(context):
         return context
     try:
         carrier_get = _create_carrier_get(context_json)
@@ -246,7 +246,6 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     Falls back to lambda context if no trace data is found in the SQS message attributes.
     """
     is_sqs = False
-    arn = None
 
     # EventBridge => SQS
     try:
@@ -276,6 +275,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         msg_attributes = first_record.get("messageAttributes")
         if msg_attributes is None:
             sns_record = first_record.get("Sns") or {}
+            arn = sns_record.get("TopicArn", "")
             msg_attributes = sns_record.get("MessageAttributes") or {}
         dd_payload = msg_attributes.get("_datadog")
         if dd_payload:
@@ -307,9 +307,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                         logger.debug(
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
-                if is_sqs:
-                    return _extract_context(dd_data, "sqs", arn)
-                return _extract_context(dd_data, "sns", sns_record.get("TopicArn", ""))
+                return _extract_context(dd_data, "sqs" if is_sqs else "sns", arn)
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
