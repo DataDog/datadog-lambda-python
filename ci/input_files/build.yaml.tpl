@@ -300,8 +300,9 @@ e2e-status:
       # Poll for e2e-test job completion
       while true; do
         # Get the e2e-test job status
-        RESPONSE=$(curl -s --header "JOB-TOKEN: ${CI_JOB_TOKEN}" \
-          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/jobs")
+        URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/jobs"
+        echo "Fetching E2E job status from: $URL"
+        RESPONSE=$(curl -s --header "JOB-TOKEN: ${CI_JOB_TOKEN}" "$URL")
         echo "Response: $RESPONSE"
         E2E_JOB_STATUS=$(echo "$RESPONSE" | jq -r '.[] | select(.name=="e2e-test") | .status')
         echo "E2E job status: $E2E_JOB_STATUS"
