@@ -7,7 +7,7 @@ from unittest.mock import patch
 from ddtrace.trace import Context
 
 from datadog_lambda.tracing import (
-    _extract_context,
+    _extract_context_with_data_streams,
     _create_carrier_get,
     extract_context_from_sqs_or_sns_event_or_context,
     extract_context_from_kinesis_event,
@@ -38,7 +38,7 @@ class TestExtractContext(unittest.TestCase):
             mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
             self.mock_extract.return_value = mock_context
 
-            result = _extract_context(context_json, event_type, arn)
+            result = _extract_context_with_data_streams(context_json, event_type, arn)
 
             self.mock_extract.assert_called_once_with(context_json)
             self.mock_checkpoint.assert_not_called()
@@ -53,7 +53,7 @@ class TestExtractContext(unittest.TestCase):
             mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
             self.mock_extract.return_value = mock_context
 
-            result = _extract_context(context_json, event_type, arn)
+            result = _extract_context_with_data_streams(context_json, event_type, arn)
 
             self.mock_extract.assert_called_once_with(context_json)
             self.mock_checkpoint.assert_called_once()
@@ -73,7 +73,7 @@ class TestExtractContext(unittest.TestCase):
             mock_context = Context(trace_id=12345, span_id=None, sampling_priority=1)
             self.mock_extract.return_value = mock_context
 
-            result = _extract_context(context_json, event_type, arn)
+            result = _extract_context_with_data_streams(context_json, event_type, arn)
 
             self.mock_extract.assert_called_once_with(context_json)
             self.mock_checkpoint.assert_not_called()
@@ -91,7 +91,7 @@ class TestExtractContext(unittest.TestCase):
             test_exception = Exception("Test exception")
             self.mock_checkpoint.side_effect = test_exception
 
-            result = _extract_context(context_json, event_type, arn)
+            result = _extract_context_with_data_streams(context_json, event_type, arn)
 
             self.mock_extract.assert_called_once_with(context_json)
             self.mock_checkpoint.assert_called_once()
@@ -136,8 +136,10 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
     def setUp(self):
         self.lambda_context = get_mock_context()
 
-    @patch("datadog_lambda.tracing._extract_context")
-    def test_sqs_event_with_datadog_message_attributes(self, mock_extract_context):
+    @patch("datadog_lambda.tracing._extract_context_with_data_streams")
+    def test_sqs_event_with_datadog_message_attributes(
+        self, mock_extract_context_with_data_streams
+    ):
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
 
@@ -153,20 +155,20 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
         }
 
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
-        mock_extract_context.return_value = mock_context
+        mock_extract_context_with_data_streams.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context
         )
 
-        mock_extract_context.assert_called_once_with(
+        mock_extract_context_with_data_streams.assert_called_once_with(
             dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
         self.assertEqual(result, mock_context)
 
-    @patch("datadog_lambda.tracing._extract_context")
+    @patch("datadog_lambda.tracing._extract_context_with_data_streams")
     def test_sqs_event_with_binary_datadog_message_attributes(
-        self, mock_extract_context
+        self, mock_extract_context_with_data_streams
     ):
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
@@ -184,19 +186,21 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
         }
 
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
-        mock_extract_context.return_value = mock_context
+        mock_extract_context_with_data_streams.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context
         )
 
-        mock_extract_context.assert_called_once_with(
+        mock_extract_context_with_data_streams.assert_called_once_with(
             dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
         self.assertEqual(result, mock_context)
 
-    @patch("datadog_lambda.tracing._extract_context")
-    def test_sns_event_with_datadog_message_attributes(self, mock_extract_context):
+    @patch("datadog_lambda.tracing._extract_context_with_data_streams")
+    def test_sns_event_with_datadog_message_attributes(
+        self, mock_extract_context_with_data_streams
+    ):
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
 
@@ -215,13 +219,13 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
         }
 
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
-        mock_extract_context.return_value = mock_context
+        mock_extract_context_with_data_streams.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context
         )
 
-        mock_extract_context.assert_called_once_with(
+        mock_extract_context_with_data_streams.assert_called_once_with(
             dd_data, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
         )
         self.assertEqual(result, mock_context)
@@ -231,8 +235,10 @@ class TestExtractContextFromKinesisEvent(unittest.TestCase):
     def setUp(self):
         self.lambda_context = get_mock_context()
 
-    @patch("datadog_lambda.tracing._extract_context")
-    def test_kinesis_event_with_datadog_data(self, mock_extract_context):
+    @patch("datadog_lambda.tracing._extract_context_with_data_streams")
+    def test_kinesis_event_with_datadog_data(
+        self, mock_extract_context_with_data_streams
+    ):
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         kinesis_data = {"_datadog": dd_data, "message": "test"}
         kinesis_data_str = json.dumps(kinesis_data)
@@ -248,11 +254,11 @@ class TestExtractContextFromKinesisEvent(unittest.TestCase):
         }
 
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
-        mock_extract_context.return_value = mock_context
+        mock_extract_context_with_data_streams.return_value = mock_context
 
         result = extract_context_from_kinesis_event(event, self.lambda_context)
 
-        mock_extract_context.assert_called_once_with(
+        mock_extract_context_with_data_streams.assert_called_once_with(
             dd_data,
             "kinesis",
             "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
