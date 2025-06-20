@@ -275,7 +275,8 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         msg_attributes = first_record.get("messageAttributes")
         if msg_attributes is None:
             sns_record = first_record.get("Sns") or {}
-            arn = sns_record.get("TopicArn", "")
+            if not is_sqs:
+                arn = sns_record.get("TopicArn", "")
             msg_attributes = sns_record.get("MessageAttributes") or {}
         dd_payload = msg_attributes.get("_datadog")
         if dd_payload:
