@@ -2660,6 +2660,76 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
         )
         self.assertEqual(result, mock_context)
 
+    @patch("datadog_lambda.tracing._extract_context_with_data_streams")
+    def test_sqs_event_determines_is_sqs_true_when_event_source_arn_present(
+        self, mock_extract_context_with_data_streams
+    ):
+        """Test that is_sqs = True when eventSourceARN is present in first record"""
+        dd_data = {"dd-pathway-ctx-base64": "12345"}
+        dd_json_data = json.dumps(dd_data)
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {"dataType": "String", "stringValue": dd_json_data}
+                    },
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
+        mock_extract_context_with_data_streams.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context
+        )
+
+        mock_extract_context_with_data_streams.assert_called_once_with(
+            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        )
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing._extract_context_with_data_streams")
+    def test_sns_to_sqs_event_detection_and_processing(
+        self, mock_extract_context_with_data_streams
+    ):
+        """Test SNS->SQS case where SQS body contains SNS notification"""
+        dd_data = {"dd-pathway-ctx-base64": "12345"}
+        dd_json_data = json.dumps(dd_data)
+
+        sns_notification = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {
+                "_datadog": {"Type": "String", "Value": dd_json_data}
+            },
+            "Message": "test message",
+        }
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "body": json.dumps(sns_notification),
+                    "messageAttributes": {},
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
+        mock_extract_context_with_data_streams.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context
+        )
+
+        mock_extract_context_with_data_streams.assert_called_once_with(
+            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        )
+        self.assertEqual(result, mock_context)
+
 
 class TestExtractContextFromKinesisEvent(unittest.TestCase):
     def setUp(self):
