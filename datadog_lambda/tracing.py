@@ -78,7 +78,7 @@ def _extract_context_with_data_streams(context_json, event_type, arn):
     if not config.data_streams_enabled:
         return context
 
-    if not _is_context_complete(context):
+    if "dd-pathway-ctx-base64" not in context_json:
         return context
     try:
         carrier_get = _create_carrier_get(context_json)
