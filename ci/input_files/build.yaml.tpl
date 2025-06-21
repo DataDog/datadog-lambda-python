@@ -294,22 +294,15 @@ e2e-status:
     {{- end }}
     {{- end }}
     - |
-      # TODO: link to the test results
-      #       make this job start running at same time as e2e-test job
-      #       do not wait around for the scheduled job to complete
-      switch "${CI_JOB_STATUS}" in
-        "success")
-          echo "✅ E2E tests completed successfully"
-          ;;
-        "failed")
-          echo "❌ E2E tests failed"
-          exit 1
-          ;;
-        "canceled")
-          echo "❌ E2E tests were canceled"
-          exit 1
-          ;;
-        *)
-          echo "❌ E2E tests unknown status: ${CI_JOB_STATUS}"
-          exit 1
-      esac
+      if [ "$CI_JOB_STATUS" = "success" ]; then
+        echo "✅ E2E tests completed successfully"
+      elif [ "$CI_JOB_STATUS" = "failed" ]; then
+        echo "❌ E2E tests failed"
+        exit 1
+      elif [ "$CI_JOB_STATUS" = "canceled" ]; then
+        echo "❌ E2E tests were canceled"
+        exit 1
+      else
+        echo "❌ E2E tests unknown status: ${CI_JOB_STATUS}"
+        exit 1
+      fi
