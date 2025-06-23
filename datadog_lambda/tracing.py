@@ -224,7 +224,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
     try:
-        dd_json_data, _ = extract_dd_json_data_from_message_attributes(event)
+        dd_json_data, _ = extract_dd_context_from_sqs_or_sns_event(event)
         if dd_json_data:
             dd_data = json.loads(dd_json_data)
 
@@ -264,7 +264,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
-def extract_dd_json_data_from_message_attributes(event):
+def extract_dd_context_from_sqs_or_sns_event(event):
     first_record = event.get("Records")[0]
     arn = first_record.get("eventSourceARN", "")
     is_sqs = bool(arn)
@@ -366,26 +366,32 @@ def extract_context_from_kinesis_event(event, lambda_context):
     Extract datadog trace context from a Kinesis Stream's base64 encoded data string
     """
     try:
-        record = get_first_record(event)
-        kinesis = record.get("kinesis")
-        if not kinesis:
-            return extract_context_from_lambda_context(lambda_context)
-        data = kinesis.get("data")
-        if data:
-            import base64
-
-            b64_bytes = data.encode("ascii")
-            str_bytes = base64.b64decode(b64_bytes)
-            data_str = str_bytes.decode("ascii")
-            data_obj = json.loads(data_str)
-            dd_ctx = data_obj.get("_datadog")
-            if dd_ctx:
-                context = propagator.extract(dd_ctx)
-                return context
+        dd_ctx, _ = extract_dd_context_from_kinesis_event(event, lambda_context)
+        if dd_ctx:
+            return propagator.extract(dd_ctx)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
 
     return extract_context_from_lambda_context(lambda_context)
+
+
+def extract_dd_context_from_kinesis_event(event, lambda_context):
+    record = get_first_record(event)
+    arn = record.get("eventSourceARN", "")
+    kinesis = record.get("kinesis")
+    if not kinesis:
+        return extract_context_from_lambda_context(lambda_context)
+    data = kinesis.get("data")
+    if data:
+        import base64
+
+        b64_bytes = data.encode("ascii")
+        str_bytes = base64.b64decode(b64_bytes)
+        data_str = str_bytes.decode("ascii")
+        data_obj = json.loads(data_str)
+        dd_ctx = data_obj.get("_datadog")
+        return dd_ctx, arn
+    return None, None
 
 
 def _deterministic_sha256_hash(s: str, part: str) -> int:
