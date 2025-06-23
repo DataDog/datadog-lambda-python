@@ -234,6 +234,14 @@ class _LambdaDecorator(object):
                 )
 
             if config.trace_enabled:
+                if config.data_streams_enabled:
+                    from datadog_lambda.tracing import extract_dd_json_data_from_message_attributes
+                    from ddtrace.data_streams import set_consume_checkpoint
+                    dd_json_data, arn = extract_dd_json_data_from_message_attributes(event)
+                    if dd_json_data:
+                        carrier_get = lambda k: dd_json_data.get(k)
+                        set_consume_checkpoint(event_source, arn, carrier_get)
+
                 set_dd_trace_py_root(trace_context_source, config.merge_xray_traces)
                 if config.make_inferred_span:
                     self.inferred_span = create_inferred_span(
