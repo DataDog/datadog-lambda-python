@@ -66,31 +66,6 @@ HIGHER_64_BITS = "HIGHER_64_BITS"
 LOWER_64_BITS = "LOWER_64_BITS"
 
 
-def _set_data_streams_checkpoint(context_json, event_type, arn):
-    if not config.data_streams_enabled:
-        return
-
-    if "dd-pathway-ctx-base64" not in context_json:
-        return
-
-    try:
-        from ddtrace.data_streams import set_consume_checkpoint
-
-        carrier_get = _create_carrier_get(context_json)
-        set_consume_checkpoint(event_type, arn, carrier_get, manual_checkpoint=False)
-    except Exception as e:
-        logger.debug(
-            f"DSM:Failed to set consume checkpoint for {event_type} {arn}: {e}"
-        )
-
-
-def _create_carrier_get(context_json):
-    def carrier_get(key):
-        return context_json.get(key)
-
-    return carrier_get
-
-
 def _convert_xray_trace_id(xray_trace_id):
     """
     Convert X-Ray trace id (hex)'s last 63 bits to a Datadog trace id (int).
@@ -392,7 +367,6 @@ def extract_context_from_kinesis_event(event, lambda_context):
     """
     try:
         record = get_first_record(event)
-        arn = record.get("eventSourceARN", "")
         kinesis = record.get("kinesis")
         if not kinesis:
             return extract_context_from_lambda_context(lambda_context)
@@ -407,7 +381,6 @@ def extract_context_from_kinesis_event(event, lambda_context):
             dd_ctx = data_obj.get("_datadog")
             if dd_ctx:
                 context = propagator.extract(dd_ctx)
-                _set_data_streams_checkpoint(dd_ctx, "kinesis", arn)
                 return context
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
