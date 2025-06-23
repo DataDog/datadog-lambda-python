@@ -66,28 +66,22 @@ HIGHER_64_BITS = "HIGHER_64_BITS"
 LOWER_64_BITS = "LOWER_64_BITS"
 
 
-def _extract_context_with_data_streams(context_json, event_type, arn):
-    from ddtrace.data_streams import set_consume_checkpoint
-
-    """
-    Extracts the context from a JSON carrier and optionally sets a dsm consume checkpoint
-    if the context is complete and data streams are enabled.
-    """
-    context = propagator.extract(context_json)
-
+def _set_data_streams_checkpoint(context_json, event_type, arn):
     if not config.data_streams_enabled:
-        return context
+        return
 
     if "dd-pathway-ctx-base64" not in context_json:
-        return context
+        return
+
     try:
+        from ddtrace.data_streams import set_consume_checkpoint
+
         carrier_get = _create_carrier_get(context_json)
         set_consume_checkpoint(event_type, arn, carrier_get, manual_checkpoint=False)
     except Exception as e:
         logger.debug(
             f"DSM:Failed to set consume checkpoint for {event_type} {arn}: {e}"
         )
-    return context
 
 
 def _create_carrier_get(context_json):
@@ -308,9 +302,10 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                         logger.debug(
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
-                return _extract_context_with_data_streams(
-                    dd_data, "sqs" if is_sqs else "sns", arn
-                )
+                event_type = "sqs" if is_sqs else "sns"
+                context = propagator.extract(dd_data)
+                _set_data_streams_checkpoint(dd_data, event_type, arn)
+                return context
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
@@ -411,7 +406,9 @@ def extract_context_from_kinesis_event(event, lambda_context):
             data_obj = json.loads(data_str)
             dd_ctx = data_obj.get("_datadog")
             if dd_ctx:
-                return _extract_context_with_data_streams(dd_ctx, "kinesis", arn)
+                context = propagator.extract(dd_ctx)
+                _set_data_streams_checkpoint(dd_ctx, "kinesis", arn)
+                return context
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
 
