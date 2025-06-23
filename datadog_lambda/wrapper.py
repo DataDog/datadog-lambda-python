@@ -235,10 +235,18 @@ class _LambdaDecorator(object):
 
             if config.trace_enabled:
                 if config.data_streams_enabled:
-                    from datadog_lambda.tracing import extract_dd_json_data_from_message_attributes
+                    from datadog_lambda.tracing import (
+                        extract_dd_json_data_from_message_attributes,
+                    )
                     from ddtrace.data_streams import set_consume_checkpoint
-                    dd_json_data, arn = extract_dd_json_data_from_message_attributes(event)
+
+                    dd_json_data, arn = extract_dd_json_data_from_message_attributes(
+                        event
+                    )
                     if dd_json_data:
+                        print(f"dd_json_data {dd_json_data}")
+                        print(f"event_source {event_source}")
+                        print(f"arn {arn}")
                         carrier_get = lambda k: dd_json_data.get(k)
                         set_consume_checkpoint(event_source, arn, carrier_get)
 
