@@ -234,32 +234,27 @@ class _LambdaDecorator(object):
                 )
 
             if config.trace_enabled:
-                if config.data_streams_enabled:
-                    from datadog_lambda.tracing import (
-                        extract_dd_json_data_from_message_attributes,
-                    )
-                    from ddtrace.data_streams import set_consume_checkpoint
-
-                    dd_json_data, arn = extract_dd_json_data_from_message_attributes(
-                        event
-                    )
-                    if dd_json_data:
-                        dd_json_data = json.loads(dd_json_data)
-
-                        def create_carrier_get(dd_json_data):
-                            def carrier_get(key):
-                                return dd_json_data.get(key)
-
-                            return carrier_get
-
-                        carrier_get = create_carrier_get(dd_json_data)
-                        set_consume_checkpoint(event_source, arn, carrier_get)
-
                 set_dd_trace_py_root(trace_context_source, config.merge_xray_traces)
                 if config.make_inferred_span:
                     self.inferred_span = create_inferred_span(
                         event, context, event_source, config.decode_authorizer_context
                     )
+                if config.data_streams_enabled:
+                    from datadog_lambda.tracing import (
+                        extract_dd_json_data_from_message_attributes,
+                    )
+
+                    try:
+                        (
+                            dd_json_data,
+                            arn,
+                        ) = extract_dd_json_data_from_message_attributes(event)
+                    except Exception as e:
+                        logger.debug(f"Failed to extract DSM checkpoint: {e}")
+
+                    if dd_json_data:
+                        set_dsm_checkpoint(dd_json_data, event_source, arn)
+
                 self.span = create_function_execution_span(
                     context=context,
                     function_name=config.function_name,
@@ -362,6 +357,28 @@ class _LambdaDecorator(object):
 def format_err_with_traceback(e):
     tb = traceback.format_exc().replace("\n", "\r")
     return f"Error {e}. Traceback: {tb}"
+
+
+def set_dsm_checkpoint(dd_json_data, event_source, arn):
+    from ddtrace.data_streams import set_consume_checkpoint
+
+    try:
+        dd_json_data = json.loads(dd_json_data)
+        if "dd-pathway-ctx-base64" not in dd_json_data:
+            return
+
+        def create_carrier_get(dd_json_data):
+            def carrier_get(key):
+                return dd_json_data.get(key)
+
+            return carrier_get
+
+        carrier_get = create_carrier_get(dd_json_data)
+        set_consume_checkpoint(
+            event_source.to_string(), arn, carrier_get, manual_checkpoint=False
+        )
+    except Exception as e:
+        logger.debug(f"Failed to set DSM checkpoint: {e}")
 
 
 datadog_lambda_wrapper = _LambdaDecorator
