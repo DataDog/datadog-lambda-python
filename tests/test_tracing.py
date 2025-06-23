@@ -42,9 +42,6 @@ from datadog_lambda.tracing import (
     service_mapping as global_service_mapping,
     propagator,
     emit_telemetry_on_exception_outside_of_handler,
-    _create_carrier_get,
-    extract_context_from_sqs_or_sns_event_or_context,
-    extract_context_from_kinesis_event,
 )
 
 from tests.utils import get_mock_context

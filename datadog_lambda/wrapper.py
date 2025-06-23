@@ -247,7 +247,14 @@ class _LambdaDecorator(object):
                         print(f"dd_json_data {dd_json_data}")
                         print(f"event_source {event_source}")
                         print(f"arn {arn}")
-                        carrier_get = lambda k: dd_json_data.get(k)
+
+                        def create_carrier_get(context_json):
+                            def carrier_get(key):
+                                return context_json.get(key)
+
+                            return carrier_get
+
+                        carrier_get = create_carrier_get(dd_json_data)
                         set_consume_checkpoint(event_source, arn, carrier_get)
 
                 set_dd_trace_py_root(trace_context_source, config.merge_xray_traces)
