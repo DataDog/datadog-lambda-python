@@ -244,13 +244,11 @@ class _LambdaDecorator(object):
                         event
                     )
                     if dd_json_data:
-                        print(f"dd_json_data {dd_json_data}")
-                        print(f"event_source {event_source}")
-                        print(f"arn {arn}")
+                        dd_json_data = json.loads(dd_json_data)
 
-                        def create_carrier_get(context_json):
+                        def create_carrier_get(dd_json_data):
                             def carrier_get(key):
-                                return context_json.get(key)
+                                return dd_json_data.get(key)
 
                             return carrier_get
 
