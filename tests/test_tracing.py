@@ -627,7 +627,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             TraceHeader.TAGS: f"_dd.p.tid={expected_tid}",
         }
 
-        ctx, source, event_source, _ = extract_dd_trace_context(event, lambda_ctx)
+        ctx, source, _, _ = extract_dd_trace_context(event, lambda_ctx)
 
         self.assertEqual(source, "event")
         self.assertEqual(ctx, expected_context)
