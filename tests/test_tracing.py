@@ -2443,7 +2443,7 @@ class TestExceptionOutsideHandler(unittest.TestCase):
         mock_trace.assert_not_called()
 
 
-class TestExtractContextHaveAddedReturnValues(unittest.TestCase):
+class TestExtractContextHaveAddedDDContext(unittest.TestCase):
     def test_extract_context_from_sqs_event_with_datadog_context(self):
         """Test SQS event extraction with datadog context returns expected values."""
         lambda_ctx = get_mock_context()
