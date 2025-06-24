@@ -247,7 +247,7 @@ class _LambdaDecorator(object):
                     )
                 if config.data_streams_enabled:
                     if dd_json_data:
-                        source_arn = extract_source_arn(event, event_source)
+                        source_arn = extract_source_arn(event)
                         set_dsm_checkpoint(
                             dd_json_data, event_source.to_string(), source_arn
                         )
@@ -382,13 +382,12 @@ def set_dsm_checkpoint(dd_json_data, event_source, arn):
         logger.debug(f"Failed to set DSM checkpoint: {e}")
 
 
-def extract_source_arn(event, event_source):
-    if event_source.equals(EventTypes.SQS) or event_source.equals(EventTypes.KINESIS):
-        return event.get("Records", [{}])[0].get("eventSourceARN", "")
-    elif event_source.equals(EventTypes.SNS):
-        return event.get("Records", [{}])[0].get("Sns", {}).get("TopicArn", "")
-    else:
-        return ""
+def extract_source_arn(event):
+    first_record = event.get("Records", [{}])[0]
+    arn = first_record.get("eventSourceARN", "")
+    if not arn:
+        arn = first_record.get("Sns", {}).get("TopicArn", "")
+    return arn
 
 
 datadog_lambda_wrapper = _LambdaDecorator

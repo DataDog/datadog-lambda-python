@@ -928,13 +928,8 @@ class TestExtractSourceArn(unittest.TestCase):
             ]
         }
 
-        event_source = type(
-            "EventSource",
-            (),
-            {"equals": lambda self, event_type, **kwargs: event_type.name == "SQS"},
-        )()
+        result = wrapper.extract_source_arn(sqs_event)
 
-        result = wrapper.extract_source_arn(sqs_event, event_source)
         self.assertEqual(result, "arn:aws:sqs:us-east-1:123456789012:test-queue")
 
     def test_extract_source_arn_sns_event(self):
@@ -952,13 +947,8 @@ class TestExtractSourceArn(unittest.TestCase):
             ]
         }
 
-        event_source = type(
-            "EventSource",
-            (),
-            {"equals": lambda self, event_type, **kwargs: event_type.name == "SNS"},
-        )()
+        result = wrapper.extract_source_arn(sns_event)
 
-        result = wrapper.extract_source_arn(sns_event, event_source)
         self.assertEqual(result, "arn:aws:sns:us-east-1:123456789012:test-topic")
 
     def test_extract_source_arn_other_event(self):
@@ -971,11 +961,75 @@ class TestExtractSourceArn(unittest.TestCase):
             },
         }
 
-        event_source = type(
-            "EventSource",
-            (),
-            {"equals": lambda self, event_type, **kwargs: event_type.name == "S3"},
-        )()
+        result = wrapper.extract_source_arn(other_event)
 
-        result = wrapper.extract_source_arn(other_event, event_source)
         self.assertEqual(result, "")
+
+    def test_extract_source_arn_kinesis_event(self):
+        """Test extracting ARN from Kinesis event"""
+        kinesis_event = {
+            "Records": [
+                {
+                    "kinesis": {
+                        "kinesisSchemaVersion": "1.0",
+                        "partitionKey": "partitionkey",
+                        "sequenceNumber": "496242301546858",
+                        "data": "eyJmb28iOiAiYmFyIn0=",
+                        "approximateArrivalTimestamp": 1643638425.163,
+                    },
+                    "eventSource": "aws:kinesis",
+                    "eventVersion": "1.0",
+                    "eventID": "shardId-000000000002:49624230154685806402418",
+                    "eventName": "aws:kinesis:record",
+                    "invokeIdentityArn": "arn:aws:iam::601427279990:role/test-role",
+                    "awsRegion": "us-east-1",
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                }
+            ]
+        }
+
+        result = wrapper.extract_source_arn(kinesis_event)
+
+        self.assertEqual(
+            result, "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+        )
+
+    def test_extract_source_arn_sns_to_sqs_event(self):
+        """Test extracting ARN from SNS -> SQS event (SQS record from SNS topic)"""
+        sns_to_sqs_event = {
+            "Records": [
+                {
+                    "messageId": "892f0033-3a4e-4d61-9e26-70d6f7901cd5",
+                    "receiptHandle": "test-receipt-handle",
+                    "body": {
+                        "Type": "Notification",
+                        "MessageId": "6dacdb4e-f8dd-5752-9f49-858ee02bcd55",
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "Message": "hello from SNS",
+                        "Timestamp": "2024-05-16T14:22:46.902Z",
+                        "SignatureVersion": "1",
+                        "Signature": "test-signature",
+                        "SigningCertURL": "https://sns.us-east-1.amazonaws.com/test-cert.pem",
+                        "UnsubscribeURL": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe",
+                        "MessageAttributes": {},
+                    },
+                    "attributes": {
+                        "ApproximateReceiveCount": "1",
+                        "SentTimestamp": "1715869366931",
+                        "SenderId": "test-sender-id",
+                        "ApproximateFirstReceiveTimestamp": "1715869366945",
+                    },
+                    "messageAttributes": {},
+                    "md5OfBody": "test-md5-hash",
+                    "eventSource": "aws:sqs",
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue-from-sns",
+                    "awsRegion": "us-east-1",
+                }
+            ]
+        }
+
+        result = wrapper.extract_source_arn(sns_to_sqs_event)
+
+        self.assertEqual(
+            result, "arn:aws:sqs:us-east-1:123456789012:test-queue-from-sns"
+        )
