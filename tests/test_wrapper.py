@@ -978,4 +978,4 @@ class TestExtractSourceArn(unittest.TestCase):
         )()
 
         result = wrapper.extract_source_arn(other_event, event_source)
-        self.assertIsNone(result)
+        self.assertEqual(result, "")

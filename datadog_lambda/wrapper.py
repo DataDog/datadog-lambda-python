@@ -384,11 +384,11 @@ def set_dsm_checkpoint(dd_json_data, event_source, arn):
 
 def extract_source_arn(event, event_source):
     if event_source.equals(EventTypes.SQS) or event_source.equals(EventTypes.KINESIS):
-        return event.get("Records", [{}])[0].get("eventSourceARN")
+        return event.get("Records", [{}])[0].get("eventSourceARN", "")
     elif event_source.equals(EventTypes.SNS):
-        return event.get("Records", [{}])[0].get("Sns", {}).get("TopicArn")
+        return event.get("Records", [{}])[0].get("Sns", {}).get("TopicArn", "")
     else:
-        return None
+        return ""
 
 
 datadog_lambda_wrapper = _LambdaDecorator
