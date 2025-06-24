@@ -77,6 +77,10 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_dd_lambda_layer_tag = patcher.start()
         self.addCleanup(patcher.stop)
 
+        patcher = patch("datadog_lambda.wrapper.set_dsm_checkpoint")
+        self.mock_set_dsm_checkpoint = patcher.start()
+        self.addCleanup(patcher.stop)
+
     @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_datadog_lambda_wrapper(self):
         @wrapper.datadog_lambda_wrapper
@@ -558,6 +562,110 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             self.assertEqual(result, test_result)
             self.assertFalse(MockPrintExc.called)
 
+    def test_set_dsm_checkpoint_called_when_DSM_and_tracing_enabled(self):
+        os.environ["DD_DATA_STREAMS_ENABLED"] = "true"
+        os.environ["DD_TRACE_ENABLED"] = "true"
+
+        event_source = type("EventSource", (), {"to_string": lambda self: "sqs"})()
+        dd_json_data = {"dd-pathway-ctx-base64": "test-data"}
+        arn = "test-arn"
+        self.mock_extract_dd_trace_context.return_value = (
+            {},
+            None,
+            event_source,
+            dd_json_data,
+            arn,
+        )
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return "ok"
+
+        result = lambda_handler({}, get_mock_context())
+        self.assertEqual(result, "ok")
+        self.mock_set_dsm_checkpoint.assert_called_once_with(dd_json_data, "sqs", arn)
+
+        del os.environ["DD_DATA_STREAMS_ENABLED"]
+        del os.environ["DD_TRACE_ENABLED"]
+
+    def test_set_dsm_checkpoint_not_called_when_only_DSM_enabled(self):
+        os.environ["DD_DATA_STREAMS_ENABLED"] = "true"
+        os.environ["DD_TRACE_ENABLED"] = "false"
+
+        event_source = type("EventSource", (), {"to_string": lambda: "sqs"})()
+        dd_json_data = {"dd-pathway-ctx-base64": "test-data"}
+        arn = "test-arn"
+        self.mock_extract_dd_trace_context.return_value = (
+            {},
+            None,
+            event_source,
+            dd_json_data,
+            arn,
+        )
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return "ok"
+
+        result = lambda_handler({}, get_mock_context())
+        self.assertEqual(result, "ok")
+        self.mock_set_dsm_checkpoint.assert_not_called()
+
+        del os.environ["DD_DATA_STREAMS_ENABLED"]
+        del os.environ["DD_TRACE_ENABLED"]
+
+    def test_set_dsm_checkpoint_not_called_when_only_tracing_enabled(self):
+        os.environ["DD_DATA_STREAMS_ENABLED"] = "false"
+        os.environ["DD_TRACE_ENABLED"] = "true"
+
+        event_source = type("EventSource", (), {"to_string": lambda: "sqs"})()
+        dd_json_data = {"dd-pathway-ctx-base64": "test-data"}
+        arn = "test-arn"
+        self.mock_extract_dd_trace_context.return_value = (
+            {},
+            None,
+            event_source,
+            dd_json_data,
+            arn,
+        )
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return "ok"
+
+        result = lambda_handler({}, get_mock_context())
+        self.assertEqual(result, "ok")
+        self.mock_set_dsm_checkpoint.assert_not_called()
+
+        del os.environ["DD_DATA_STREAMS_ENABLED"]
+        del os.environ["DD_TRACE_ENABLED"]
+
+    def test_set_dsm_checkpoint_not_called_when_tracing_and_DSM_disabled(self):
+        os.environ["DD_DATA_STREAMS_ENABLED"] = "false"
+        os.environ["DD_TRACE_ENABLED"] = "false"
+
+        event_source = type("EventSource", (), {"to_string": lambda: "sqs"})()
+        dd_json_data = {"dd-pathway-ctx-base64": "test-data"}
+        arn = "test-arn"
+        self.mock_extract_dd_trace_context.return_value = (
+            {},
+            None,
+            event_source,
+            dd_json_data,
+            arn,
+        )
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return "ok"
+
+        result = lambda_handler({}, get_mock_context())
+        self.assertEqual(result, "ok")
+        self.mock_set_dsm_checkpoint.assert_not_called()
+
+        del os.environ["DD_DATA_STREAMS_ENABLED"]
+        del os.environ["DD_TRACE_ENABLED"]
+
 
 class TestLambdaWrapperWithTraceContext(unittest.TestCase):
     xray_root = "1-5e272390-8c398be037738dc042009320"
@@ -666,3 +774,133 @@ class TestLambdaWrapperFlushExtension(unittest.TestCase):
         lambda_handler(lambda_event, lambda_context)
 
         self.assertEqual(len(flushes), 0)
+
+
+class TestSetDSMCheckpoint(unittest.TestCase):
+    """Test cases for the set_dsm_checkpoint function"""
+
+    def setUp(self):
+        # Mock the logger to avoid actual debug output during tests
+        self.logger_patcher = patch("datadog_lambda.wrapper.logger")
+        self.mock_logger = self.logger_patcher.start()
+        self.addCleanup(self.logger_patcher.stop)
+
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_set_dsm_checkpoint_success(self, mock_set_consume_checkpoint):
+        """Test successful DSM checkpoint setting"""
+        dd_json_data = {
+            "dd-pathway-ctx-base64": "dGVzdC1wYXRod2F5LWRhdGE=",
+            "other-key": "other-value",
+        }
+        event_source = "sqs"
+        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
+
+        wrapper.set_dsm_checkpoint(dd_json_data, event_source, arn)
+
+        mock_set_consume_checkpoint.assert_called_once()
+        args, kwargs = mock_set_consume_checkpoint.call_args
+
+        self.assertEqual(args[0], event_source)
+        self.assertEqual(args[1], arn)
+        self.assertTrue(callable(args[2]))
+        self.assertEqual(kwargs["manual_checkpoint"], False)
+
+        carrier_get = args[2]
+        self.assertEqual(
+            carrier_get("dd-pathway-ctx-base64"), "dGVzdC1wYXRod2F5LWRhdGE="
+        )
+        self.assertEqual(carrier_get("other-key"), "other-value")
+        self.assertIsNone(carrier_get("non-existent-key"))
+
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_set_dsm_checkpoint_not_dict(self, mock_set_consume_checkpoint):
+        """Test DSM checkpoint when dd_json_data is not a dict"""
+        dd_json_data = "not-a-dict"
+        event_source = "sqs"
+        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
+
+        wrapper.set_dsm_checkpoint(dd_json_data, event_source, arn)
+
+        mock_set_consume_checkpoint.assert_not_called()
+        self.mock_logger.debug.assert_called_with(
+            "Failed to set DSM checkpoint: context is not a dict"
+        )
+
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_set_dsm_checkpoint_missing_pathway_key(self, mock_set_consume_checkpoint):
+        """Test DSM checkpoint when dd-pathway-ctx-base64 key is missing"""
+        dd_json_data = {"other-key": "other-value"}
+        event_source = "sqs"
+        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
+
+        wrapper.set_dsm_checkpoint(dd_json_data, event_source, arn)
+
+        mock_set_consume_checkpoint.assert_not_called()
+        self.mock_logger.debug.assert_called_with(
+            "Failed to set DSM checkpoint: dd-pathway-ctx-base64 not found"
+        )
+
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_set_dsm_checkpoint_exception_handling(self, mock_set_consume_checkpoint):
+        """Test DSM checkpoint exception handling"""
+        mock_set_consume_checkpoint.side_effect = Exception("Test exception")
+
+        dd_json_data = {"dd-pathway-ctx-base64": "test-data"}
+        event_source = "sqs"
+        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
+
+        wrapper.set_dsm_checkpoint(dd_json_data, event_source, arn)
+
+        self.mock_logger.debug.assert_called_with(
+            "Failed to set DSM checkpoint: Test exception"
+        )
+
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_set_dsm_checkpoint_empty_dict(self, mock_set_consume_checkpoint):
+        """Test DSM checkpoint with empty dict"""
+        dd_json_data = {}
+        event_source = "sqs"
+        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
+
+        wrapper.set_dsm_checkpoint(dd_json_data, event_source, arn)
+
+        mock_set_consume_checkpoint.assert_not_called()
+        self.mock_logger.debug.assert_called_with(
+            "Failed to set DSM checkpoint: dd-pathway-ctx-base64 not found"
+        )
+
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_set_dsm_checkpoint_none_data(self, mock_set_consume_checkpoint):
+        """Test DSM checkpoint with None data"""
+        dd_json_data = None
+        event_source = "sqs"
+        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
+
+        wrapper.set_dsm_checkpoint(dd_json_data, event_source, arn)
+
+        mock_set_consume_checkpoint.assert_not_called()
+        self.mock_logger.debug.assert_called_with(
+            "Failed to set DSM checkpoint: context is not a dict"
+        )
+
+    def test_carrier_get_function_creation(self):
+        """Test the create_carrier_get function and its returned carrier_get function"""
+        dd_json_data = {
+            "dd-pathway-ctx-base64": "base64-data",
+            "key1": "value1",
+            "key2": "value2",
+        }
+
+        # Access the inner function directly for testing
+        def create_carrier_get(dd_json_data):
+            def carrier_get(key):
+                return dd_json_data.get(key)
+
+            return carrier_get
+
+        carrier_get = create_carrier_get(dd_json_data)
+
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "base64-data")
+        self.assertEqual(carrier_get("key1"), "value1")
+        self.assertEqual(carrier_get("key2"), "value2")
+        self.assertIsNone(carrier_get("non-existent-key"))

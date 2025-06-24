@@ -5,6 +5,7 @@ import traceback
 import pytest
 import os
 import unittest
+import base64
 
 from unittest.mock import Mock, patch, call
 
@@ -41,6 +42,8 @@ from datadog_lambda.tracing import (
     service_mapping as global_service_mapping,
     propagator,
     emit_telemetry_on_exception_outside_of_handler,
+    extract_context_from_sqs_or_sns_event_or_context,
+    extract_context_from_kinesis_event,
 )
 
 from tests.utils import get_mock_context
@@ -714,7 +717,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     @with_trace_propagation_style("datadog")
     def test_step_function_trace_data_lambda_root(self):
-        """Test JSONata style step function trace data extraction where there's an upstream Lambda"""
+        """Test JSONata style step function trace data extraction with upstream Lambda."""
         sfn_event = {
             "_datadog": {
                 "Execution": {
@@ -2438,3 +2441,176 @@ class TestExceptionOutsideHandler(unittest.TestCase):
 
         mock_submit_errors_metric.assert_called_once_with(None)
         mock_trace.assert_not_called()
+
+
+class TestExtractContextHaveAddedReturnValues(unittest.TestCase):
+    def test_extract_context_from_sqs_event_with_datadog_context(self):
+        """Test SQS event extraction with datadog context returns expected values."""
+        lambda_ctx = get_mock_context()
+        expected_trace_data = {
+            TraceHeader.TRACE_ID: "456",
+            TraceHeader.PARENT_ID: "789",
+            TraceHeader.SAMPLING_PRIORITY: "1",
+        }
+        sqs_event = {
+            "Records": [
+                {
+                    "messageId": "test-message-id",
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "stringValue": json.dumps(expected_trace_data),
+                            "dataType": "String",
+                        }
+                    },
+                }
+            ]
+        }
+
+        (context, dd_json_data, arn) = extract_context_from_sqs_or_sns_event_or_context(
+            sqs_event, lambda_ctx
+        )
+
+        self.assertEqual(context.trace_id, 456)
+        self.assertEqual(context.span_id, 789)
+        self.assertEqual(context.sampling_priority, 1)
+        self.assertEqual(dd_json_data, expected_trace_data)
+        self.assertEqual(arn, "arn:aws:sqs:us-east-1:123456789012:test-queue")
+
+    def test_extract_context_from_sns_event_with_datadog_context(self):
+        """Test SNS event extraction with datadog context returns expected values."""
+        lambda_ctx = get_mock_context()
+        expected_trace_data = {
+            TraceHeader.TRACE_ID: "111",
+            TraceHeader.PARENT_ID: "222",
+            TraceHeader.SAMPLING_PRIORITY: "2",
+        }
+        sns_event = {
+            "Records": [
+                {
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "MessageAttributes": {
+                            "_datadog": {
+                                "Type": "String",
+                                "Value": json.dumps(expected_trace_data),
+                            }
+                        },
+                    }
+                }
+            ]
+        }
+
+        (context, dd_json_data, arn) = extract_context_from_sqs_or_sns_event_or_context(
+            sns_event, lambda_ctx
+        )
+
+        self.assertEqual(context.trace_id, 111)
+        self.assertEqual(context.span_id, 222)
+        self.assertEqual(context.sampling_priority, 2)
+        self.assertEqual(dd_json_data, expected_trace_data)
+        self.assertEqual(arn, "arn:aws:sns:us-east-1:123456789012:test-topic")
+
+    def test_extract_context_from_kinesis_event_with_datadog_context(self):
+        """Test Kinesis event extraction with datadog context returns expected values."""
+        lambda_ctx = get_mock_context()
+        expected_trace_data = {
+            TraceHeader.TRACE_ID: "333",
+            TraceHeader.PARENT_ID: "444",
+        }
+        kinesis_event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {
+                        "data": base64.b64encode(
+                            json.dumps({"_datadog": expected_trace_data}).encode()
+                        ).decode()
+                    },
+                }
+            ]
+        }
+
+        context, dd_json_data, arn = extract_context_from_kinesis_event(
+            kinesis_event, lambda_ctx
+        )
+
+        self.assertEqual(context.trace_id, 333)
+        self.assertEqual(context.span_id, 444)
+        self.assertEqual(dd_json_data, expected_trace_data)
+        self.assertEqual(
+            arn, "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+        )
+
+    def test_step_function_context_in_sqs_calls_step_function_extractor(self):
+        """Test that Step Function context in SQS calls the step function extractor."""
+        lambda_ctx = get_mock_context()
+        sfn_context = {
+            "Execution": {"Id": "test-execution-id"},
+            "StateMachine": {"Id": "test-state-machine-id"},
+            "State": {"Name": "test-state"},
+        }
+        sfn_sqs_event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "stringValue": json.dumps(sfn_context),
+                            "dataType": "String",
+                        }
+                    },
+                }
+            ]
+        }
+
+        (context, dd_json_data, arn) = extract_context_from_sqs_or_sns_event_or_context(
+            sfn_sqs_event, lambda_ctx
+        )
+
+        self.assertIsNotNone(context)
+        self.assertIsNone(dd_json_data)
+        self.assertIsNone(arn)
+
+    def test_extract_context_from_sns_to_sqs_event_with_datadog_context(self):
+        """Test SNS -> SQS event extraction with datadog context returns expected values."""
+        lambda_ctx = get_mock_context()
+        expected_trace_data = {
+            TraceHeader.TRACE_ID: "555",
+            TraceHeader.PARENT_ID: "666",
+            TraceHeader.SAMPLING_PRIORITY: "1",
+        }
+
+        sns_body = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {
+                "_datadog": {
+                    "Type": "String",
+                    "Value": json.dumps(expected_trace_data),
+                }
+            },
+            "Message": "Test message",
+            "MessageId": "test-message-id",
+            "Timestamp": "2023-01-01T00:00:00.000Z",
+        }
+
+        sns_to_sqs_event = {
+            "Records": [
+                {
+                    "messageId": "sqs-message-id",
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "body": json.dumps(sns_body),
+                }
+            ]
+        }
+
+        (context, dd_json_data, arn) = extract_context_from_sqs_or_sns_event_or_context(
+            sns_to_sqs_event, lambda_ctx
+        )
+
+        self.assertEqual(context.trace_id, 555)
+        self.assertEqual(context.span_id, 666)
+        self.assertEqual(context.sampling_priority, 1)
+        self.assertEqual(dd_json_data, expected_trace_data)
+        self.assertEqual(arn, "arn:aws:sqs:us-east-1:123456789012:test-queue")
