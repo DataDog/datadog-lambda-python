@@ -590,7 +590,6 @@ def extract_dd_trace_context(
     global dd_trace_context
     trace_context_source = None
     event_source = parse_event_source(event)
-    context = None
     dd_json_data = None
 
     if extractor is not None:
