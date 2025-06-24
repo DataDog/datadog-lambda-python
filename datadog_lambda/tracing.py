@@ -252,7 +252,6 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                 import base64
 
                 dd_json_data = dd_payload.get("binaryValue") or dd_payload.get("Value")
-
                 if dd_json_data:
                     dd_json_data = base64.b64decode(dd_json_data)
             elif dd_json_data_type == "String":
