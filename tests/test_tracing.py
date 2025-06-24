@@ -269,7 +269,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     @with_trace_propagation_style("datadog")
     def test_without_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source, _, _ = extract_dd_trace_context({}, lambda_ctx)
+        ctx, source, event_source, _ = extract_dd_trace_context({}, lambda_ctx)
         self.assertEqual(source, "xray")
         self.assertEqual(
             ctx,
@@ -292,7 +292,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     @with_trace_propagation_style("datadog")
     def test_with_non_object_event(self):
         lambda_ctx = get_mock_context()
-        ctx, source, _, _ = extract_dd_trace_context(b"", lambda_ctx)
+        ctx, source, event_source, _ = extract_dd_trace_context(b"", lambda_ctx)
         self.assertEqual(source, "xray")
         self.assertEqual(
             ctx,
@@ -315,7 +315,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     @with_trace_propagation_style("datadog")
     def test_with_incomplete_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source, _, _ = extract_dd_trace_context(
+        ctx, source, event_source, _ = extract_dd_trace_context(
             {"headers": {TraceHeader.TRACE_ID: "123"}},
             lambda_ctx,
         )
@@ -340,7 +340,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     def common_tests_with_trace_context_extraction_injection(
         self, headers, event_containing_headers, lambda_context=get_mock_context()
     ):
-        ctx, source, _, _ = extract_dd_trace_context(
+        ctx, source, event_source, _ = extract_dd_trace_context(
             event_containing_headers,
             lambda_context,
         )
@@ -393,7 +393,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             return trace_id, parent_id, sampling_priority
 
         lambda_ctx = get_mock_context()
-        ctx, ctx_source, _, _ = extract_dd_trace_context(
+        ctx, ctx_source, event_source, _ = extract_dd_trace_context(
             {
                 "foo": {
                     TraceHeader.TRACE_ID: "123",
@@ -627,7 +627,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             TraceHeader.TAGS: f"_dd.p.tid={expected_tid}",
         }
 
-        ctx, source, _, _ = extract_dd_trace_context(event, lambda_ctx)
+        ctx, source, event_source, _ = extract_dd_trace_context(event, lambda_ctx)
 
         self.assertEqual(source, "event")
         self.assertEqual(ctx, expected_context)
@@ -717,7 +717,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
 
     @with_trace_propagation_style("datadog")
     def test_step_function_trace_data_lambda_root(self):
-        """Test JSONata style step function trace data extraction with upstream Lambda."""
+        """Test JSONata style step function trace data extraction where there's an upstream Lambda"""
         sfn_event = {
             "_datadog": {
                 "Execution": {
@@ -1148,7 +1148,7 @@ class TestSetTraceRootSpan(unittest.TestCase):
         # use the dd-trace trace-id and the x-ray parent-id
         # This allows parenting relationships like dd-trace -> x-ray -> dd-trace
         lambda_ctx = get_mock_context()
-        ctx, source, _, _ = extract_dd_trace_context(
+        ctx, source, event_type, _ = extract_dd_trace_context(
             {
                 "headers": {
                     TraceHeader.TRACE_ID: "123",
@@ -1174,7 +1174,7 @@ class TestSetTraceRootSpan(unittest.TestCase):
         os.environ["_X_AMZN_TRACE_ID"] = "Root=1-5e272390-8c398be037738dc042009320"
 
         lambda_ctx = get_mock_context()
-        ctx, source, _, _ = extract_dd_trace_context(
+        ctx, source, event_type, _ = extract_dd_trace_context(
             {
                 "headers": {
                     TraceHeader.TRACE_ID: "123",
