@@ -44,7 +44,6 @@ from datadog_lambda.tracing import (
 from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
-    EventTypes,
 )
 
 if config.profiling_enabled:
