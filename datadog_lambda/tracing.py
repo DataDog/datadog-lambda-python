@@ -383,8 +383,8 @@ def extract_context_from_kinesis_event(event, lambda_context):
             data_str = str_bytes.decode("ascii")
             data_obj = json.loads(data_str)
             dd_ctx = data_obj.get("_datadog")
-        if dd_ctx:
-            return propagator.extract(dd_ctx), dd_ctx, arn
+            if dd_ctx:
+                return propagator.extract(dd_ctx), dd_ctx, arn
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
 

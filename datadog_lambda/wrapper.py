@@ -374,7 +374,7 @@ def set_dsm_checkpoint(dd_json_data, event_source, arn):
             return carrier_get
 
         carrier_get = create_carrier_get(dd_json_data)
-        set_consume_checkpoint(event_source, arn, carrier_get)
+        set_consume_checkpoint(event_source, arn, carrier_get, manual_checkpoint=False)
     except Exception as e:
         logger.debug(f"Failed to set DSM checkpoint: {e}")
 
