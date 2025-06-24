@@ -215,7 +215,13 @@ class _LambdaDecorator(object):
 
             self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
-            dd_context, trace_context_source, event_source = extract_dd_trace_context(
+            (
+                dd_context,
+                trace_context_source,
+                event_source,
+                dd_json_data,
+                arn,
+            ) = extract_dd_trace_context(
                 event,
                 context,
                 extractor=self.trace_extractor,
@@ -240,31 +246,6 @@ class _LambdaDecorator(object):
                         event, context, event_source, config.decode_authorizer_context
                     )
                 if config.data_streams_enabled:
-                    from datadog_lambda.trigger import EventTypes
-
-                    from datadog_lambda.tracing import (
-                        extract_dd_context_from_sqs_or_sns_event,
-                        extract_dd_context_from_kinesis_event,
-                    )
-
-                    dd_json_data = None
-                    arn = None
-
-                    try:
-                        if event_source.equals(EventTypes.SQS) or event_source.equals(
-                            EventTypes.SNS
-                        ):
-                            (
-                                dd_json_data,
-                                arn,
-                            ) = extract_dd_context_from_sqs_or_sns_event(event)
-                        elif event_source.equals(EventTypes.KINESIS):
-                            dd_json_data, arn = extract_dd_context_from_kinesis_event(
-                                event, context
-                            )
-                    except Exception as e:
-                        logger.debug(f"Failed to extract DSM checkpoint: {e}")
-
                     if dd_json_data:
                         set_dsm_checkpoint(dd_json_data, event_source.to_string(), arn)
 
@@ -377,8 +358,13 @@ def set_dsm_checkpoint(dd_json_data, event_source, arn):
 
     try:
         if type(dd_json_data) is not dict:
-            dd_json_data = json.loads(dd_json_data)
+            logger.debug("Failed to set DSM checkpoint: context is not a dict")
+            return
+
         if "dd-pathway-ctx-base64" not in dd_json_data:
+            logger.debug(
+                "Failed to set DSM checkpoint: dd-pathway-ctx-base64 not found"
+            )
             return
 
         def create_carrier_get(dd_json_data):
@@ -388,7 +374,7 @@ def set_dsm_checkpoint(dd_json_data, event_source, arn):
             return carrier_get
 
         carrier_get = create_carrier_get(dd_json_data)
-        set_consume_checkpoint(event_source, arn, carrier_get, manual_checkpoint=False)
+        set_consume_checkpoint(event_source, arn, carrier_get)
     except Exception as e:
         logger.debug(f"Failed to set DSM checkpoint: {e}")
 
