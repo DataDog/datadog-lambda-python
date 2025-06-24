@@ -229,7 +229,6 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         arn = first_record.get("eventSourceARN", "")
         if arn:
             is_sqs = True
-        dd_json_data = None
         # logic to deal with SNS => SQS event
         if "body" in first_record:
             body_str = first_record.get("body")
@@ -251,6 +250,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         if dd_payload:
             # SQS uses dataType and binaryValue/stringValue
             # SNS uses Type and Value
+            dd_json_data = None
             dd_json_data_type = dd_payload.get("Type") or dd_payload.get("dataType")
             if dd_json_data_type == "Binary":
                 import base64
@@ -265,21 +265,21 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                     "Datadog Lambda Python only supports extracting trace"
                     "context from String or Binary SQS/SNS message attributes"
                 )
-        if dd_json_data:
-            dd_data = json.loads(dd_json_data)
+            if dd_json_data:
+                dd_data = json.loads(dd_json_data)
 
-            if is_step_function_event(dd_data):
-                try:
-                    return (
-                        extract_context_from_step_functions(dd_data, None),
-                        None,
-                        None,
-                    )
-                except Exception:
-                    logger.debug(
-                        "Failed to extract Step Functions context from SQS/SNS event."
-                    )
-            return propagator.extract(dd_data), dd_data, arn
+                if is_step_function_event(dd_data):
+                    try:
+                        return (
+                            extract_context_from_step_functions(dd_data, None),
+                            None,
+                            None,
+                        )
+                    except Exception:
+                        logger.debug(
+                            "Failed to extract Step Functions context from SQS/SNS event."
+                        )
+                return propagator.extract(dd_data), dd_data, arn
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
