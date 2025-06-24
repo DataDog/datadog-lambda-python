@@ -34,7 +34,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         patcher = patch("datadog_lambda.wrapper.extract_dd_trace_context")
         self.mock_extract_dd_trace_context = patcher.start()
-        self.mock_extract_dd_trace_context.return_value = ({}, None, None, None, None)
+        self.mock_extract_dd_trace_context.return_value = ({}, None, None, None)
         self.addCleanup(patcher.stop)
 
         patcher = patch("datadog_lambda.wrapper.set_correlation_ids")
@@ -574,16 +574,19 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             None,
             event_source,
             dd_json_data,
-            arn,
         )
 
-        @wrapper.datadog_lambda_wrapper
-        def lambda_handler(event, context):
-            return "ok"
+        with patch("datadog_lambda.wrapper.extract_source_arn", return_value=arn):
 
-        result = lambda_handler({}, get_mock_context())
-        self.assertEqual(result, "ok")
-        self.mock_set_dsm_checkpoint.assert_called_once_with(dd_json_data, "sqs", arn)
+            @wrapper.datadog_lambda_wrapper
+            def lambda_handler(event, context):
+                return "ok"
+
+            result = lambda_handler({}, get_mock_context())
+            self.assertEqual(result, "ok")
+            self.mock_set_dsm_checkpoint.assert_called_once_with(
+                dd_json_data, "sqs", arn
+            )
 
         del os.environ["DD_DATA_STREAMS_ENABLED"]
         del os.environ["DD_TRACE_ENABLED"]
@@ -600,16 +603,17 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             None,
             event_source,
             dd_json_data,
-            arn,
         )
 
-        @wrapper.datadog_lambda_wrapper
-        def lambda_handler(event, context):
-            return "ok"
+        with patch("datadog_lambda.wrapper.extract_source_arn", return_value=arn):
 
-        result = lambda_handler({}, get_mock_context())
-        self.assertEqual(result, "ok")
-        self.mock_set_dsm_checkpoint.assert_not_called()
+            @wrapper.datadog_lambda_wrapper
+            def lambda_handler(event, context):
+                return "ok"
+
+            result = lambda_handler({}, get_mock_context())
+            self.assertEqual(result, "ok")
+            self.mock_set_dsm_checkpoint.assert_not_called()
 
         del os.environ["DD_DATA_STREAMS_ENABLED"]
         del os.environ["DD_TRACE_ENABLED"]
@@ -626,16 +630,17 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             None,
             event_source,
             dd_json_data,
-            arn,
         )
 
-        @wrapper.datadog_lambda_wrapper
-        def lambda_handler(event, context):
-            return "ok"
+        with patch("datadog_lambda.wrapper.extract_source_arn", return_value=arn):
 
-        result = lambda_handler({}, get_mock_context())
-        self.assertEqual(result, "ok")
-        self.mock_set_dsm_checkpoint.assert_not_called()
+            @wrapper.datadog_lambda_wrapper
+            def lambda_handler(event, context):
+                return "ok"
+
+            result = lambda_handler({}, get_mock_context())
+            self.assertEqual(result, "ok")
+            self.mock_set_dsm_checkpoint.assert_not_called()
 
         del os.environ["DD_DATA_STREAMS_ENABLED"]
         del os.environ["DD_TRACE_ENABLED"]
@@ -652,16 +657,17 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             None,
             event_source,
             dd_json_data,
-            arn,
         )
 
-        @wrapper.datadog_lambda_wrapper
-        def lambda_handler(event, context):
-            return "ok"
+        with patch("datadog_lambda.wrapper.extract_source_arn", return_value=arn):
 
-        result = lambda_handler({}, get_mock_context())
-        self.assertEqual(result, "ok")
-        self.mock_set_dsm_checkpoint.assert_not_called()
+            @wrapper.datadog_lambda_wrapper
+            def lambda_handler(event, context):
+                return "ok"
+
+            result = lambda_handler({}, get_mock_context())
+            self.assertEqual(result, "ok")
+            self.mock_set_dsm_checkpoint.assert_not_called()
 
         del os.environ["DD_DATA_STREAMS_ENABLED"]
         del os.environ["DD_TRACE_ENABLED"]
@@ -904,3 +910,72 @@ class TestSetDSMCheckpoint(unittest.TestCase):
         self.assertEqual(carrier_get("key1"), "value1")
         self.assertEqual(carrier_get("key2"), "value2")
         self.assertIsNone(carrier_get("non-existent-key"))
+
+
+class TestExtractSourceArn(unittest.TestCase):
+    """Test cases for the extract_source_arn function"""
+
+    def test_extract_source_arn_sqs_event(self):
+        """Test extracting ARN from SQS event"""
+        sqs_event = {
+            "Records": [
+                {
+                    "messageId": "test-message-id",
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "eventSource": "aws:sqs",
+                    "body": "test message body",
+                }
+            ]
+        }
+
+        event_source = type(
+            "EventSource",
+            (),
+            {"equals": lambda self, event_type, **kwargs: event_type.name == "SQS"},
+        )()
+
+        result = wrapper.extract_source_arn(sqs_event, event_source)
+        self.assertEqual(result, "arn:aws:sqs:us-east-1:123456789012:test-queue")
+
+    def test_extract_source_arn_sns_event(self):
+        """Test extracting ARN from SNS event"""
+        sns_event = {
+            "Records": [
+                {
+                    "EventSource": "aws:sns",
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "Message": "test message",
+                        "Subject": "test subject",
+                    },
+                }
+            ]
+        }
+
+        event_source = type(
+            "EventSource",
+            (),
+            {"equals": lambda self, event_type, **kwargs: event_type.name == "SNS"},
+        )()
+
+        result = wrapper.extract_source_arn(sns_event, event_source)
+        self.assertEqual(result, "arn:aws:sns:us-east-1:123456789012:test-topic")
+
+    def test_extract_source_arn_other_event(self):
+        """Test extracting ARN from other event types returns None"""
+        other_event = {
+            "source": "aws.s3",
+            "detail": {
+                "bucket": {"name": "test-bucket"},
+                "object": {"key": "test-key"},
+            },
+        }
+
+        event_source = type(
+            "EventSource",
+            (),
+            {"equals": lambda self, event_type, **kwargs: event_type.name == "S3"},
+        )()
+
+        result = wrapper.extract_source_arn(other_event, event_source)
+        self.assertIsNone(result)

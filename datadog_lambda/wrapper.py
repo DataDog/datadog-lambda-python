@@ -44,6 +44,7 @@ from datadog_lambda.tracing import (
 from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
+    EventTypes,
 )
 
 if config.profiling_enabled:
@@ -220,7 +221,6 @@ class _LambdaDecorator(object):
                 trace_context_source,
                 event_source,
                 dd_json_data,
-                arn,
             ) = extract_dd_trace_context(
                 event,
                 context,
@@ -247,7 +247,10 @@ class _LambdaDecorator(object):
                     )
                 if config.data_streams_enabled:
                     if dd_json_data:
-                        set_dsm_checkpoint(dd_json_data, event_source.to_string(), arn)
+                        source_arn = extract_source_arn(event, event_source)
+                        set_dsm_checkpoint(
+                            dd_json_data, event_source.to_string(), source_arn
+                        )
 
                 self.span = create_function_execution_span(
                     context=context,
@@ -377,6 +380,15 @@ def set_dsm_checkpoint(dd_json_data, event_source, arn):
         set_consume_checkpoint(event_source, arn, carrier_get, manual_checkpoint=False)
     except Exception as e:
         logger.debug(f"Failed to set DSM checkpoint: {e}")
+
+
+def extract_source_arn(event, event_source):
+    if event_source.equals(EventTypes.SQS) or event_source.equals(EventTypes.KINESIS):
+        return event.get("Records", [{}])[0].get("eventSourceARN")
+    elif event_source.equals(EventTypes.SNS):
+        return event.get("Records", [{}])[0].get("Sns", {}).get("TopicArn")
+    else:
+        return None
 
 
 datadog_lambda_wrapper = _LambdaDecorator
