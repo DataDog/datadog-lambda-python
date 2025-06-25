@@ -166,10 +166,9 @@ class _LambdaDecorator(object):
             self.response = self.func(event, context, **kwargs)
             return self.response
         except Exception:
-            if not should_use_extension:
-                from datadog_lambda.metric import submit_errors_metric
+            from datadog_lambda.metric import submit_errors_metric
 
-                submit_errors_metric(context)
+            submit_errors_metric(context)
 
             if self.span:
                 self.span.set_traceback()
