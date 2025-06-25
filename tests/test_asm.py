@@ -181,6 +181,22 @@ ASM_START_RESPONSE_TEST_CASES = [
         {},
         False,  # Should not dispatch for non-HTTP events
     ),
+    (
+        "api_gateway_v2_string_response",
+        "api-gateway-v2-parametrized.json",
+        "Hello, World!",
+        "200",
+        {"content-type": "application/json"},
+        True,
+    ),
+    (
+        "api_gateway_v2_dict_response",
+        "api-gateway-v2-parametrized.json",
+        {"message": "Hello, World!"},
+        "200",
+        {"content-type": "application/json"},
+        True,
+    ),
 ]
 
 

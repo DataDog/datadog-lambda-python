@@ -1,6 +1,6 @@
 from copy import deepcopy
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 from ddtrace.contrib.internal.trace_utils import _get_request_header_client_ip
 from ddtrace.internal import core
@@ -134,19 +134,30 @@ def asm_start_response(
     span: Span,
     status_code: str,
     event_source: _EventSource,
-    response: Dict[str, Any],
+    response: Union[Dict[str, Any], str, None],
 ):
     if event_source.event_type not in _http_event_types:
         return
 
-    headers = response.get("headers", {})
-    multi_value_request_headers = response.get("multiValueHeaders")
-    if multi_value_request_headers:
-        response_headers = _merge_single_and_multi_value_headers(
-            headers, multi_value_request_headers
-        )
+    if isinstance(response, dict) and (
+        "headers" in response or "multiValueHeaders" in response
+    ):
+        headers = response.get("headers", {})
+        multi_value_request_headers = response.get("multiValueHeaders")
+        if isinstance(multi_value_request_headers, dict) and isinstance(headers, dict):
+            response_headers = _merge_single_and_multi_value_headers(
+                headers, multi_value_request_headers
+            )
+        elif isinstance(headers, dict):
+            response_headers = headers
+        else:
+            response_headers = {
+                "content-type": "application/json",
+            }
     else:
-        response_headers = headers
+        response_headers = {
+            "content-type": "application/json",
+        }
 
     core.dispatch(
         "aws_lambda.start_response",
