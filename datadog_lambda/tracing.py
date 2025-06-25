@@ -215,6 +215,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 
     Falls back to lambda context if no trace data is found in the SQS message attributes.
     """
+    data_streams_ctx = {}
 
     # EventBridge => SQS
     try:
@@ -265,6 +266,15 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
             if dd_json_data:
                 dd_data = json.loads(dd_json_data)
 
+                if config.data_streams_enabled:
+                    from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
+
+                    data_streams_ctx = (
+                        {PROPAGATION_KEY_BASE_64: dd_data[PROPAGATION_KEY_BASE_64]}
+                        if PROPAGATION_KEY_BASE_64 in dd_data
+                        else {}
+                    )
+
                 if is_step_function_event(dd_data):
                     try:
                         return (
@@ -275,7 +285,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                         logger.debug(
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
-                return propagator.extract(dd_data), dd_data
+                return propagator.extract(dd_data), data_streams_ctx.get
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
@@ -301,7 +311,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                             ),
                             None,
                         )
-        return extract_context_from_lambda_context(lambda_context), None
+        return extract_context_from_lambda_context(lambda_context), data_streams_ctx.get
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context), None
@@ -363,6 +373,7 @@ def extract_context_from_kinesis_event(event, lambda_context):
     """
     Extract datadog trace context from a Kinesis Stream's base64 encoded data string
     """
+    data_streams_ctx = {}
     try:
         record = get_first_record(event)
         kinesis = record.get("kinesis")
@@ -378,11 +389,19 @@ def extract_context_from_kinesis_event(event, lambda_context):
             data_obj = json.loads(data_str)
             dd_ctx = data_obj.get("_datadog")
             if dd_ctx:
-                return propagator.extract(dd_ctx), dd_ctx
+                if config.data_streams_enabled:
+                    from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
+
+                    data_streams_ctx = (
+                        {PROPAGATION_KEY_BASE_64: dd_ctx[PROPAGATION_KEY_BASE_64]}
+                        if PROPAGATION_KEY_BASE_64 in dd_ctx
+                        else {}
+                    )
+                return propagator.extract(dd_ctx), data_streams_ctx.get
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
 
-    return extract_context_from_lambda_context(lambda_context), None
+    return extract_context_from_lambda_context(lambda_context), data_streams_ctx.get
 
 
 def _deterministic_sha256_hash(s: str, part: str) -> int:
@@ -590,7 +609,7 @@ def extract_dd_trace_context(
     global dd_trace_context
     trace_context_source = None
     event_source = parse_event_source(event)
-    dd_json_data = None
+    dsm_carrier = None
 
     if extractor is not None:
         context = extract_context_custom_extractor(extractor, event, lambda_context)
@@ -599,15 +618,13 @@ def extract_dd_trace_context(
             event, lambda_context, event_source, decode_authorizer_context
         )
     elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
-        context, dd_json_data = extract_context_from_sqs_or_sns_event_or_context(
+        context, dsm_carrier = extract_context_from_sqs_or_sns_event_or_context(
             event, lambda_context
         )
     elif event_source.equals(EventTypes.EVENTBRIDGE):
         context = extract_context_from_eventbridge_event(event, lambda_context)
     elif event_source.equals(EventTypes.KINESIS):
-        context, dd_json_data = extract_context_from_kinesis_event(
-            event, lambda_context
-        )
+        context, dsm_carrier = extract_context_from_kinesis_event(event, lambda_context)
     elif event_source.equals(EventTypes.STEPFUNCTIONS):
         context = extract_context_from_step_functions(event, lambda_context)
     else:
@@ -624,7 +641,7 @@ def extract_dd_trace_context(
         if dd_trace_context:
             trace_context_source = TraceContextSource.XRAY
     logger.debug("extracted dd trace context %s", dd_trace_context)
-    return dd_trace_context, trace_context_source, event_source, dd_json_data
+    return dd_trace_context, trace_context_source, event_source, dsm_carrier
 
 
 def get_dd_trace_context_obj():

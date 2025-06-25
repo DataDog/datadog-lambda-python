@@ -44,6 +44,7 @@ from datadog_lambda.tracing import (
 from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
+    EventTypes,
 )
 
 if config.profiling_enabled:
@@ -219,7 +220,7 @@ class _LambdaDecorator(object):
                 dd_context,
                 trace_context_source,
                 event_source,
-                dd_json_data,
+                dsm_carrier,
             ) = extract_dd_trace_context(
                 event,
                 context,
@@ -245,10 +246,14 @@ class _LambdaDecorator(object):
                         event, context, event_source, config.decode_authorizer_context
                     )
                 if config.data_streams_enabled:
-                    if dd_json_data:
+                    if (
+                        event_source.equals(EventTypes.SQS)
+                        or event_source.equals(EventTypes.SNS)
+                        or event_source.equals(EventTypes.KINESIS)
+                    ):
                         source_arn = extract_source_arn(event)
                         set_dsm_checkpoint(
-                            dd_json_data, event_source.to_string(), source_arn
+                            dsm_carrier, event_source.to_string(), source_arn
                         )
 
                 self.span = create_function_execution_span(
@@ -355,28 +360,11 @@ def format_err_with_traceback(e):
     return f"Error {e}. Traceback: {tb}"
 
 
-def set_dsm_checkpoint(dd_json_data, event_source, arn):
+def set_dsm_checkpoint(dsm_carrier, event_source, arn):
     from ddtrace.data_streams import set_consume_checkpoint
 
     try:
-        if type(dd_json_data) is not dict:
-            logger.debug("Failed to set DSM checkpoint: context is not a dict")
-            return
-
-        if "dd-pathway-ctx-base64" not in dd_json_data:
-            logger.debug(
-                "Failed to set DSM checkpoint: dd-pathway-ctx-base64 not found"
-            )
-            return
-
-        def create_carrier_get(dd_json_data):
-            def carrier_get(key):
-                return dd_json_data.get(key)
-
-            return carrier_get
-
-        carrier_get = create_carrier_get(dd_json_data)
-        set_consume_checkpoint(event_source, arn, carrier_get, manual_checkpoint=False)
+        set_consume_checkpoint(event_source, arn, dsm_carrier)
     except Exception as e:
         logger.debug(f"Failed to set DSM checkpoint: {e}")
 
