@@ -221,7 +221,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     try:
         context = _extract_context_from_eventbridge_sqs_event(event)
         if _is_context_complete(context):
-            return context, None
+            return context, data_streams_ctx.get
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
@@ -279,7 +279,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                     try:
                         return (
                             extract_context_from_step_functions(dd_data, None),
-                            None,
+                            data_streams_ctx.get,
                         )
                     except Exception:
                         logger.debug(
@@ -309,12 +309,12 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                                 span_id=int(x_ray_context["parent_id"], 16),
                                 sampling_priority=float(x_ray_context["sampled"]),
                             ),
-                            None,
+                            data_streams_ctx.get,
                         )
         return extract_context_from_lambda_context(lambda_context), data_streams_ctx.get
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
-        return extract_context_from_lambda_context(lambda_context), None
+        return extract_context_from_lambda_context(lambda_context), data_streams_ctx.get
 
 
 def _extract_context_from_eventbridge_sqs_event(event):
