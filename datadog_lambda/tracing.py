@@ -269,11 +269,10 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                 if config.data_streams_enabled:
                     from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
 
-                    data_streams_ctx = (
-                        {PROPAGATION_KEY_BASE_64: dd_data[PROPAGATION_KEY_BASE_64]}
-                        if PROPAGATION_KEY_BASE_64 in dd_data
-                        else {}
-                    )
+                    if PROPAGATION_KEY_BASE_64 in dd_data:
+                        data_streams_ctx = {
+                            PROPAGATION_KEY_BASE_64: dd_data[PROPAGATION_KEY_BASE_64]
+                        }
 
                 if is_step_function_event(dd_data):
                     try:
@@ -392,11 +391,11 @@ def extract_context_from_kinesis_event(event, lambda_context):
                 if config.data_streams_enabled:
                     from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
 
-                    data_streams_ctx = (
-                        {PROPAGATION_KEY_BASE_64: dd_ctx[PROPAGATION_KEY_BASE_64]}
-                        if PROPAGATION_KEY_BASE_64 in dd_ctx
-                        else {}
-                    )
+                    if PROPAGATION_KEY_BASE_64 in dd_ctx:
+                        data_streams_ctx = {
+                            PROPAGATION_KEY_BASE_64: dd_ctx[PROPAGATION_KEY_BASE_64]
+                        }
+
                 return propagator.extract(dd_ctx), data_streams_ctx.get
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
