@@ -392,10 +392,11 @@ def extract_context_from_kinesis_event(event, lambda_context):
                 if config.data_streams_enabled:
                     from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
 
-                    if PROPAGATION_KEY_BASE_64 in dd_ctx:
-                        data_streams_ctx = {
-                            PROPAGATION_KEY_BASE_64: dd_ctx[PROPAGATION_KEY_BASE_64]
-                        }
+                    data_streams_ctx = {
+                        PROPAGATION_KEY_BASE_64: dd_ctx[PROPAGATION_KEY_BASE_64]
+                        if PROPAGATION_KEY_BASE_64 in dd_ctx
+                        else {}
+                    }
 
                 return propagator.extract(dd_ctx), data_streams_ctx.get
     except Exception as e:
