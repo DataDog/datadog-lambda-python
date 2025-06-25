@@ -215,13 +215,12 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 
     Falls back to lambda context if no trace data is found in the SQS message attributes.
     """
-    data_streams_ctx = {}
 
     # EventBridge => SQS
     try:
         context = _extract_context_from_eventbridge_sqs_event(event)
         if _is_context_complete(context):
-            return context, data_streams_ctx.get
+            return context, None
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
@@ -266,19 +265,21 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
             if dd_json_data:
                 dd_data = json.loads(dd_json_data)
 
+                data_streams_ctx = {}
                 if config.data_streams_enabled:
                     from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
 
-                    if PROPAGATION_KEY_BASE_64 in dd_data:
-                        data_streams_ctx = {
-                            PROPAGATION_KEY_BASE_64: dd_data[PROPAGATION_KEY_BASE_64]
-                        }
+                    data_streams_ctx = {
+                        PROPAGATION_KEY_BASE_64: dd_data[PROPAGATION_KEY_BASE_64]
+                        if PROPAGATION_KEY_BASE_64 in dd_data
+                        else {}
+                    }
 
                 if is_step_function_event(dd_data):
                     try:
                         return (
                             extract_context_from_step_functions(dd_data, None),
-                            data_streams_ctx.get,
+                            None,
                         )
                     except Exception:
                         logger.debug(
@@ -308,12 +309,12 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                                 span_id=int(x_ray_context["parent_id"], 16),
                                 sampling_priority=float(x_ray_context["sampled"]),
                             ),
-                            data_streams_ctx.get,
+                            None,
                         )
-        return extract_context_from_lambda_context(lambda_context), data_streams_ctx.get
+        return extract_context_from_lambda_context(lambda_context), {}.get
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
-        return extract_context_from_lambda_context(lambda_context), data_streams_ctx.get
+        return extract_context_from_lambda_context(lambda_context), None
 
 
 def _extract_context_from_eventbridge_sqs_event(event):
