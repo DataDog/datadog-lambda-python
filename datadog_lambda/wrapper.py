@@ -364,7 +364,7 @@ def set_dsm_checkpoint(dsm_carrier, event_source, arn):
     from ddtrace.data_streams import set_consume_checkpoint
 
     try:
-        set_consume_checkpoint(event_source, arn, dsm_carrier)
+        set_consume_checkpoint(event_source, arn, dsm_carrier, manual_checkpoint=False)
     except Exception as e:
         logger.debug(f"Failed to set DSM checkpoint: {e}")
 
