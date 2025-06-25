@@ -314,7 +314,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context), {}.get
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
-        return extract_context_from_lambda_context(lambda_context), None
+        return extract_context_from_lambda_context(lambda_context), {}.get
 
 
 def _extract_context_from_eventbridge_sqs_event(event):
