@@ -270,6 +270,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                     try:
                         return (
                             extract_context_from_step_functions(dd_data, None),
+                            # Unsupported DSM context propagation method
                             None,
                         )
                     except Exception:
