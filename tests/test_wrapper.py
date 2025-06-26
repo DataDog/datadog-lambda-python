@@ -3,16 +3,15 @@ import json
 import os
 import unittest
 
-from unittest.mock import patch, call, ANY
+from unittest.mock import patch, call, ANY, Mock
 from datadog_lambda.constants import TraceHeader
 
 import datadog_lambda.wrapper as wrapper
-import datadog_lambda.xray as xray
 
-from datadog_lambda.config import config
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
-from ddtrace.trace import Span, tracer
+from datadog_lambda.trigger import EventTypes
+from ddtrace.trace import tracer
 from ddtrace.internal.constants import MAX_UINT_64BITS
 
 from tests.utils import get_mock_context, reset_xray_connection
@@ -34,7 +33,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         patcher = patch("datadog_lambda.wrapper.extract_dd_trace_context")
         self.mock_extract_dd_trace_context = patcher.start()
-        self.mock_extract_dd_trace_context.return_value = ({}, None, None)
+        self.mock_extract_dd_trace_context.return_value = ({}, None, None, None)
         self.addCleanup(patcher.stop)
 
         patcher = patch("datadog_lambda.wrapper.set_correlation_ids")
@@ -77,8 +76,8 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_dd_lambda_layer_tag = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("datadog_lambda.wrapper.set_dsm_context")
-        self.mock_set_dsm_context = patcher.start()
+        patcher = patch("datadog_lambda.wrapper.set_dsm_checkpoint")
+        self.mock_set_dsm_checkpoint = patcher.start()
         self.addCleanup(patcher.stop)
 
     @patch("datadog_lambda.config.Config.trace_enabled", False)
@@ -284,7 +283,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
     def test_5xx_sends_errors_metric_and_set_tags(self, mock_extract_trigger_tags):
         mock_extract_trigger_tags.return_value = {
             "function_trigger.event_source": "api-gateway",
-            "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod",
+            "function_trigger.event_source_arn": (
+                "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod"
+            ),
             "http.url": "https://70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
             "http.url_details.path": "/prod/path/to/resource",
             "http.method": "GET",
@@ -562,9 +563,49 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             self.assertEqual(result, test_result)
             self.assertFalse(MockPrintExc.called)
 
-    def test_set_dsm_context_called_when_DSM_and_tracing_enabled(self):
-        os.environ["DD_DATA_STREAMS_ENABLED"] = "true"
-        os.environ["DD_TRACE_ENABLED"] = "true"
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
+    @patch("datadog_lambda.wrapper._create_dsm_carrier_func")
+    def test_set_dsm_checkpoint_called_when_DSM_and_tracing_enabled(
+        self, mock_create_dsm_carrier_func
+    ):
+        event_source = Mock()
+        event_source.to_string.return_value = "sqs"
+        event_source.equals.return_value = True
+
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
+        arn = "test-arn"
+        self.mock_extract_dd_trace_context.return_value = (
+            {},
+            None,
+            event_source,
+            data_streams_ctx,
+        )
+
+        with patch("datadog_lambda.wrapper.extract_source_arn", return_value=arn):
+
+            @wrapper.datadog_lambda_wrapper
+            def lambda_handler(event, context):
+                return "ok"
+
+            result = lambda_handler({}, get_mock_context())
+            self.assertEqual(result, "ok")
+            self.mock_set_dsm_checkpoint.assert_called_once_with(
+                mock_create_dsm_carrier_func.return_value, "sqs", arn
+            )
+
+    @patch("datadog_lambda.config.Config.trace_enabled", False)
+    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
+    def test_set_dsm_checkpoint_not_called_when_only_DSM_enabled(self):
+        event_source = Mock()
+        event_source.to_string.return_value = "sqs"
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
+        self.mock_extract_dd_trace_context.return_value = (
+            {},
+            None,
+            event_source,
+            data_streams_ctx,
+        )
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -572,27 +613,20 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         result = lambda_handler({}, get_mock_context())
         self.assertEqual(result, "ok")
-        self.mock_set_dsm_context.assert_called_once()
+        self.mock_set_dsm_checkpoint.assert_not_called()
 
-        del os.environ["DD_DATA_STREAMS_ENABLED"]
-
-    def test_set_dsm_context_not_called_when_only_DSM_enabled(self):
-        os.environ["DD_DATA_STREAMS_ENABLED"] = "true"
-        os.environ["DD_TRACE_ENABLED"] = "false"
-
-        @wrapper.datadog_lambda_wrapper
-        def lambda_handler(event, context):
-            return "ok"
-
-        result = lambda_handler({}, get_mock_context())
-        self.assertEqual(result, "ok")
-        self.mock_set_dsm_context.assert_not_called()
-
-        del os.environ["DD_DATA_STREAMS_ENABLED"]
-
-    def test_set_dsm_context_not_called_when_only_tracing_enabled(self):
-        os.environ["DD_DATA_STREAMS_ENABLED"] = "false"
-        os.environ["DD_TRACE_ENABLED"] = "true"
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.data_streams_enabled", False)
+    def test_set_dsm_checkpoint_not_called_when_only_tracing_enabled(self):
+        event_source = Mock()
+        event_source.to_string.return_value = "sqs"
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
+        self.mock_extract_dd_trace_context.return_value = (
+            {},
+            None,
+            event_source,
+            data_streams_ctx,
+        )
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -600,13 +634,20 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         result = lambda_handler({}, get_mock_context())
         self.assertEqual(result, "ok")
-        self.mock_set_dsm_context.assert_not_called()
+        self.mock_set_dsm_checkpoint.assert_not_called()
 
-        del os.environ["DD_DATA_STREAMS_ENABLED"]
-
-    def test_set_dsm_context_not_called_when_tracing_and_DSM_disabled(self):
-        os.environ["DD_DATA_STREAMS_ENABLED"] = "false"
-        os.environ["DD_TRACE_ENABLED"] = "false"
+    @patch("datadog_lambda.config.Config.trace_enabled", False)
+    @patch("datadog_lambda.config.Config.data_streams_enabled", False)
+    def test_set_dsm_checkpoint_not_called_when_tracing_and_DSM_disabled(self):
+        event_source = Mock()
+        event_source.to_string.return_value = "sqs"
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
+        self.mock_extract_dd_trace_context.return_value = (
+            {},
+            None,
+            event_source,
+            data_streams_ctx,
+        )
 
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
@@ -614,9 +655,134 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         result = lambda_handler({}, get_mock_context())
         self.assertEqual(result, "ok")
-        self.mock_set_dsm_context.assert_not_called()
+        self.mock_set_dsm_checkpoint.assert_not_called()
 
-        del os.environ["DD_DATA_STREAMS_ENABLED"]
+    @patch("datadog_lambda.wrapper._create_dsm_carrier_func")
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
+    def test_set_dsm_checkpoint_called_for_sqs_event(
+        self, mock_create_dsm_carrier_func
+    ):
+        event_source = Mock()
+        event_source.to_string.return_value = "sqs"
+        event_source.equals.side_effect = (
+            lambda event_type: event_type == EventTypes.SQS
+        )
+
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
+        arn = "test-arn"
+        self.mock_extract_dd_trace_context.return_value = (
+            {},
+            None,
+            event_source,
+            data_streams_ctx,
+        )
+
+        with patch("datadog_lambda.wrapper.extract_source_arn", return_value=arn):
+
+            @wrapper.datadog_lambda_wrapper
+            def lambda_handler(event, context):
+                return "ok"
+
+            result = lambda_handler({}, get_mock_context())
+            self.assertEqual(result, "ok")
+            self.mock_set_dsm_checkpoint.assert_called_once_with(
+                mock_create_dsm_carrier_func.return_value, "sqs", arn
+            )
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
+    @patch("datadog_lambda.wrapper._create_dsm_carrier_func")
+    def test_set_dsm_checkpoint_called_for_sns_event(
+        self, mock_create_dsm_carrier_func
+    ):
+        event_source = Mock()
+        event_source.to_string.return_value = "sns"
+        event_source.equals.side_effect = (
+            lambda event_type: event_type == EventTypes.SNS
+        )
+
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
+        arn = "test-arn"
+        self.mock_extract_dd_trace_context.return_value = (
+            {},
+            None,
+            event_source,
+            data_streams_ctx,
+        )
+
+        with patch("datadog_lambda.wrapper.extract_source_arn", return_value=arn):
+
+            @wrapper.datadog_lambda_wrapper
+            def lambda_handler(event, context):
+                return "ok"
+
+            result = lambda_handler({}, get_mock_context())
+            self.assertEqual(result, "ok")
+            self.mock_set_dsm_checkpoint.assert_called_once_with(
+                mock_create_dsm_carrier_func.return_value, "sns", arn
+            )
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
+    @patch("datadog_lambda.wrapper._create_dsm_carrier_func")
+    def test_set_dsm_checkpoint_called_for_kinesis_event(
+        self, mock_create_dsm_carrier_func
+    ):
+        event_source = Mock()
+        event_source.to_string.return_value = "kinesis"
+        event_source.equals.side_effect = (
+            lambda event_type: event_type == EventTypes.KINESIS
+        )
+
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}.get
+        arn = "test-arn"
+        self.mock_extract_dd_trace_context.return_value = (
+            {},
+            None,
+            event_source,
+            data_streams_ctx,
+        )
+
+        with patch("datadog_lambda.wrapper.extract_source_arn", return_value=arn):
+
+            @wrapper.datadog_lambda_wrapper
+            def lambda_handler(event, context):
+                return "ok"
+
+            result = lambda_handler({}, get_mock_context())
+            self.assertEqual(result, "ok")
+            self.mock_set_dsm_checkpoint.assert_called_once_with(
+                mock_create_dsm_carrier_func.return_value, "kinesis", arn
+            )
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
+    @patch("datadog_lambda.wrapper._create_dsm_carrier_func")
+    def test_set_dsm_checkpoint_not_called_for_unknown_event(
+        self, mock_create_dsm_carrier_func
+    ):
+        event_source = Mock()
+        event_source.to_string.return_value = "kinesis"
+        event_source.equals.side_effect = (
+            lambda event_type: event_type == EventTypes.UNKNOWN
+        )
+
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
+        self.mock_extract_dd_trace_context.return_value = (
+            {},
+            None,
+            event_source,
+            data_streams_ctx,
+        )
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return "ok"
+
+        result = lambda_handler({}, get_mock_context())
+        self.assertEqual(result, "ok")
+        self.mock_set_dsm_checkpoint.assert_not_called()
 
 
 class TestLambdaWrapperWithTraceContext(unittest.TestCase):
@@ -726,3 +892,151 @@ class TestLambdaWrapperFlushExtension(unittest.TestCase):
         lambda_handler(lambda_event, lambda_context)
 
         self.assertEqual(len(flushes), 0)
+
+
+class TestExtractSourceArn(unittest.TestCase):
+    """Test cases for the extract_source_arn function"""
+
+    def test_extract_source_arn_sqs_event(self):
+        """Test extracting ARN from SQS event"""
+        sqs_event = {
+            "Records": [
+                {
+                    "messageId": "test-message-id",
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "eventSource": "aws:sqs",
+                    "body": "test message body",
+                }
+            ]
+        }
+
+        result = wrapper.extract_source_arn(sqs_event)
+
+        self.assertEqual(result, "arn:aws:sqs:us-east-1:123456789012:test-queue")
+
+    def test_extract_source_arn_sns_event(self):
+        """Test extracting ARN from SNS event"""
+        sns_event = {
+            "Records": [
+                {
+                    "EventSource": "aws:sns",
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "Message": "test message",
+                        "Subject": "test subject",
+                    },
+                }
+            ]
+        }
+
+        result = wrapper.extract_source_arn(sns_event)
+
+        self.assertEqual(result, "arn:aws:sns:us-east-1:123456789012:test-topic")
+
+    def test_extract_source_arn_other_event(self):
+        """Test extracting ARN from other event types returns None"""
+        other_event = {
+            "source": "aws.s3",
+            "detail": {
+                "bucket": {"name": "test-bucket"},
+                "object": {"key": "test-key"},
+            },
+        }
+
+        result = wrapper.extract_source_arn(other_event)
+
+        self.assertEqual(result, "")
+
+    def test_extract_source_arn_kinesis_event(self):
+        """Test extracting ARN from Kinesis event"""
+        kinesis_event = {
+            "Records": [
+                {
+                    "kinesis": {
+                        "kinesisSchemaVersion": "1.0",
+                        "partitionKey": "partitionkey",
+                        "sequenceNumber": "496242301546858",
+                        "data": "eyJmb28iOiAiYmFyIn0=",
+                        "approximateArrivalTimestamp": 1643638425.163,
+                    },
+                    "eventSource": "aws:kinesis",
+                    "eventVersion": "1.0",
+                    "eventID": "shardId-000000000002:49624230154685806402418",
+                    "eventName": "aws:kinesis:record",
+                    "invokeIdentityArn": "arn:aws:iam::601427279990:role/test-role",
+                    "awsRegion": "us-east-1",
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                }
+            ]
+        }
+
+        result = wrapper.extract_source_arn(kinesis_event)
+
+        self.assertEqual(
+            result, "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+        )
+
+    def test_extract_source_arn_sns_to_sqs_event(self):
+        """Test extracting ARN from SNS -> SQS event (SQS record from SNS topic)"""
+        sns_to_sqs_event = {
+            "Records": [
+                {
+                    "messageId": "892f0033-3a4e-4d61-9e26-70d6f7901cd5",
+                    "receiptHandle": "test-receipt-handle",
+                    "body": {
+                        "Type": "Notification",
+                        "MessageId": "6dacdb4e-f8dd-5752-9f49-858ee02bcd55",
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "Message": "hello from SNS",
+                        "Timestamp": "2024-05-16T14:22:46.902Z",
+                        "SignatureVersion": "1",
+                        "Signature": "test-signature",
+                        "SigningCertURL": "https://sns.us-east-1.amazonaws.com/test-cert.pem",
+                        "UnsubscribeURL": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe",
+                        "MessageAttributes": {},
+                    },
+                    "attributes": {
+                        "ApproximateReceiveCount": "1",
+                        "SentTimestamp": "1715869366931",
+                        "SenderId": "test-sender-id",
+                        "ApproximateFirstReceiveTimestamp": "1715869366945",
+                    },
+                    "messageAttributes": {},
+                    "md5OfBody": "test-md5-hash",
+                    "eventSource": "aws:sqs",
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue-from-sns",
+                    "awsRegion": "us-east-1",
+                }
+            ]
+        }
+
+        result = wrapper.extract_source_arn(sns_to_sqs_event)
+
+        self.assertEqual(
+            result, "arn:aws:sqs:us-east-1:123456789012:test-queue-from-sns"
+        )
+
+
+class TestCreateDsmCarrierFunc(unittest.TestCase):
+    def test_carrier_with_data(self):
+        """Test that the carrier function works with a dict-like object."""
+        mock_dd_data = Mock()
+        mock_dd_data.get.return_value = "mock_value"
+
+        carrier = wrapper._create_dsm_carrier_func(mock_dd_data)
+        self.assertTrue(callable(carrier))
+        self.assertEqual(carrier("some_key"), "mock_value")
+        mock_dd_data.get.assert_called_once_with("some_key")
+
+    def test_carrier_with_empty_dict(self):
+        """Test that the carrier function works with an empty dictionary."""
+        carrier = wrapper._create_dsm_carrier_func({})
+        self.assertTrue(callable(carrier))
+        self.assertIsNone(carrier("some_key"))
+
+    def test_carrier_with_none(self):
+        """Test that the carrier function fails correctly when given None."""
+        carrier = wrapper._create_dsm_carrier_func(None)
+        self.assertTrue(callable(carrier))
+        with self.assertRaises(AttributeError):
+            carrier("some_key")

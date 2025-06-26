@@ -220,7 +220,11 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     try:
         context = _extract_context_from_eventbridge_sqs_event(event)
         if _is_context_complete(context):
-            return context
+            return (
+                context,
+                # Unsupported DSM context propagation method
+                None,
+            )
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
@@ -267,13 +271,16 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 
                 if is_step_function_event(dd_data):
                     try:
-                        return extract_context_from_step_functions(dd_data, None)
+                        return (
+                            extract_context_from_step_functions(dd_data, None),
+                            # Unsupported DSM context propagation method
+                            None,
+                        )
                     except Exception:
                         logger.debug(
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
-
-                return propagator.extract(dd_data)
+                return propagator.extract(dd_data), dd_data
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
@@ -291,15 +298,20 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                         logger.debug(
                             "Found dd-trace injected trace context from AWSTraceHeader"
                         )
-                        return Context(
-                            trace_id=int(trace_id_parts[2][8:], 16),
-                            span_id=int(x_ray_context["parent_id"], 16),
-                            sampling_priority=float(x_ray_context["sampled"]),
+                        return (
+                            Context(
+                                trace_id=int(trace_id_parts[2][8:], 16),
+                                span_id=int(x_ray_context["parent_id"], 16),
+                                sampling_priority=float(x_ray_context["sampled"]),
+                            ),
+                            # Unsupported DSM context propagation method
+                            None,
                         )
-        return extract_context_from_lambda_context(lambda_context)
+        # return a empty dict so dsm checkpoint can be set even if no context is found
+        return extract_context_from_lambda_context(lambda_context), {}
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
-        return extract_context_from_lambda_context(lambda_context)
+        return extract_context_from_lambda_context(lambda_context), {}
 
 
 def _extract_context_from_eventbridge_sqs_event(event):
@@ -373,11 +385,12 @@ def extract_context_from_kinesis_event(event, lambda_context):
             data_obj = json.loads(data_str)
             dd_ctx = data_obj.get("_datadog")
             if dd_ctx:
-                return propagator.extract(dd_ctx)
+                return propagator.extract(dd_ctx), dd_ctx
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
 
-    return extract_context_from_lambda_context(lambda_context)
+    # return a empty dict so dsm checkpoint can be set even if no context is found
+    return extract_context_from_lambda_context(lambda_context), {}
 
 
 def _deterministic_sha256_hash(s: str, part: str) -> int:
@@ -585,6 +598,7 @@ def extract_dd_trace_context(
     global dd_trace_context
     trace_context_source = None
     event_source = parse_event_source(event)
+    dd_data = None
 
     if extractor is not None:
         context = extract_context_custom_extractor(extractor, event, lambda_context)
@@ -593,13 +607,13 @@ def extract_dd_trace_context(
             event, lambda_context, event_source, decode_authorizer_context
         )
     elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
-        context = extract_context_from_sqs_or_sns_event_or_context(
+        context, dd_data = extract_context_from_sqs_or_sns_event_or_context(
             event, lambda_context
         )
     elif event_source.equals(EventTypes.EVENTBRIDGE):
         context = extract_context_from_eventbridge_event(event, lambda_context)
     elif event_source.equals(EventTypes.KINESIS):
-        context = extract_context_from_kinesis_event(event, lambda_context)
+        context, dd_data = extract_context_from_kinesis_event(event, lambda_context)
     elif event_source.equals(EventTypes.STEPFUNCTIONS):
         context = extract_context_from_step_functions(event, lambda_context)
     else:
@@ -616,7 +630,7 @@ def extract_dd_trace_context(
         if dd_trace_context:
             trace_context_source = TraceContextSource.XRAY
     logger.debug("extracted dd trace context %s", dd_trace_context)
-    return dd_trace_context, trace_context_source, event_source
+    return dd_trace_context, trace_context_source, event_source, dd_data
 
 
 def get_dd_trace_context_obj():

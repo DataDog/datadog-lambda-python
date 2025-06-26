@@ -9,8 +9,9 @@ import ujson as json
 from importlib import import_module
 from time import time_ns
 
+
 from datadog_lambda.asm import asm_start_response, asm_start_request
-from datadog_lambda.dsm import set_dsm_context
+
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import (
     set_cold_start,
@@ -46,6 +47,7 @@ from datadog_lambda.tracing import (
 from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
+    EventTypes,
 )
 
 if config.profiling_enabled:
@@ -216,7 +218,12 @@ class _LambdaDecorator(object):
 
             self.trigger_tags = extract_trigger_tags(event, context)
             # Extract Datadog trace context and source from incoming requests
-            dd_context, trace_context_source, event_source = extract_dd_trace_context(
+            (
+                dd_context,
+                trace_context_source,
+                event_source,
+                dd_data,
+            ) = extract_dd_trace_context(
                 event,
                 context,
                 extractor=self.trace_extractor,
@@ -241,7 +248,17 @@ class _LambdaDecorator(object):
                         event, context, event_source, config.decode_authorizer_context
                     )
                 if config.data_streams_enabled:
-                    set_dsm_context(event, event_source)
+                    if (
+                        event_source.equals(EventTypes.SQS)
+                        or event_source.equals(EventTypes.SNS)
+                        or event_source.equals(EventTypes.KINESIS)
+                    ):
+                        source_arn = extract_source_arn(event)
+                        dsm_carrier = _create_dsm_carrier_func(dd_data)
+                        set_dsm_checkpoint(
+                            dsm_carrier, event_source.to_string(), source_arn
+                        )
+
                 self.span = create_function_execution_span(
                     context=context,
                     function_name=config.function_name,
@@ -355,6 +372,32 @@ class _LambdaDecorator(object):
 def format_err_with_traceback(e):
     tb = traceback.format_exc().replace("\n", "\r")
     return f"Error {e}. Traceback: {tb}"
+
+
+def set_dsm_checkpoint(dsm_carrier, event_source, arn):
+    from ddtrace.data_streams import set_consume_checkpoint
+
+    try:
+        set_consume_checkpoint(event_source, arn, dsm_carrier, manual_checkpoint=False)
+    except Exception as e:
+        logger.debug(f"Failed to set DSM checkpoint: {e}")
+
+
+def extract_source_arn(event):
+    first_record = event.get("Records", [{}])[0]
+    arn = first_record.get("eventSourceARN", "")
+    if not arn:
+        arn = first_record.get("Sns", {}).get("TopicArn", "")
+    return arn
+
+
+def _create_dsm_carrier_func(dd_data):
+    def carrier_get(key):
+        # {}.get(key) returns None, DSM checkpoint can be set even if DSM context extraction fails
+        # None.get(key) errors, preventing checkpoint for unsupported dsm context propagation method
+        return dd_data.get(key)
+
+    return carrier_get
 
 
 datadog_lambda_wrapper = _LambdaDecorator

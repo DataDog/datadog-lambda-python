@@ -5,6 +5,7 @@ import traceback
 import pytest
 import os
 import unittest
+import base64
 
 from unittest.mock import Mock, patch, call
 
@@ -14,6 +15,7 @@ from ddtrace.trace import Context, tracer
 from ddtrace._trace._span_pointer import _SpanPointer
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
+from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
 
 from datadog_lambda.constants import (
     SamplingPriority,
@@ -41,6 +43,8 @@ from datadog_lambda.tracing import (
     service_mapping as global_service_mapping,
     propagator,
     emit_telemetry_on_exception_outside_of_handler,
+    extract_context_from_sqs_or_sns_event_or_context,
+    extract_context_from_kinesis_event,
 )
 
 from tests.utils import get_mock_context
@@ -242,7 +246,7 @@ def test_extract_dd_trace_context(event, expect):
             event = json.load(f)
     ctx = get_mock_context()
 
-    actual, _, _ = extract_dd_trace_context(event, ctx)
+    actual, _, _, _ = extract_dd_trace_context(event, ctx)
     assert (expect is None) is (actual is None)
     assert (expect is None) or actual.trace_id == expect.trace_id
     assert (expect is None) or actual.span_id == expect.span_id
@@ -259,6 +263,9 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.mock_is_lambda_context = patcher.start()
         self.mock_is_lambda_context.return_value = True
         self.addCleanup(patcher.stop)
+        patcher = patch("datadog_lambda.config.Config.data_streams_enabled", True)
+        self.mock_data_streams_enabled = patcher.start()
+        self.addCleanup(patcher.stop)
 
     def tearDown(self):
         del os.environ["_X_AMZN_TRACE_ID"]
@@ -266,7 +273,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     @with_trace_propagation_style("datadog")
     def test_without_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source, event_source = extract_dd_trace_context({}, lambda_ctx)
+        ctx, source, event_source, _ = extract_dd_trace_context({}, lambda_ctx)
         self.assertEqual(source, "xray")
         self.assertEqual(
             ctx,
@@ -289,7 +296,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     @with_trace_propagation_style("datadog")
     def test_with_non_object_event(self):
         lambda_ctx = get_mock_context()
-        ctx, source, event_source = extract_dd_trace_context(b"", lambda_ctx)
+        ctx, source, event_source, _ = extract_dd_trace_context(b"", lambda_ctx)
         self.assertEqual(source, "xray")
         self.assertEqual(
             ctx,
@@ -312,7 +319,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     @with_trace_propagation_style("datadog")
     def test_with_incomplete_datadog_trace_headers(self):
         lambda_ctx = get_mock_context()
-        ctx, source, event_source = extract_dd_trace_context(
+        ctx, source, event_source, _ = extract_dd_trace_context(
             {"headers": {TraceHeader.TRACE_ID: "123"}},
             lambda_ctx,
         )
@@ -337,7 +344,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
     def common_tests_with_trace_context_extraction_injection(
         self, headers, event_containing_headers, lambda_context=get_mock_context()
     ):
-        ctx, source, event_source = extract_dd_trace_context(
+        ctx, source, event_source, _ = extract_dd_trace_context(
             event_containing_headers,
             lambda_context,
         )
@@ -390,7 +397,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             return trace_id, parent_id, sampling_priority
 
         lambda_ctx = get_mock_context()
-        ctx, ctx_source, event_source = extract_dd_trace_context(
+        ctx, ctx_source, event_source, _ = extract_dd_trace_context(
             {
                 "foo": {
                     TraceHeader.TRACE_ID: "123",
@@ -425,7 +432,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             raise Exception("kreator")
 
         lambda_ctx = get_mock_context()
-        ctx, ctx_source, event_source = extract_dd_trace_context(
+        ctx, ctx_source, event_source, _ = extract_dd_trace_context(
             {
                 "foo": {
                     TraceHeader.TRACE_ID: "123",
@@ -624,7 +631,7 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
             TraceHeader.TAGS: f"_dd.p.tid={expected_tid}",
         }
 
-        ctx, source, _ = extract_dd_trace_context(event, lambda_ctx)
+        ctx, source, _, _ = extract_dd_trace_context(event, lambda_ctx)
 
         self.assertEqual(source, "event")
         self.assertEqual(ctx, expected_context)
@@ -1145,7 +1152,7 @@ class TestSetTraceRootSpan(unittest.TestCase):
         # use the dd-trace trace-id and the x-ray parent-id
         # This allows parenting relationships like dd-trace -> x-ray -> dd-trace
         lambda_ctx = get_mock_context()
-        ctx, source, event_type = extract_dd_trace_context(
+        ctx, source, event_type, _ = extract_dd_trace_context(
             {
                 "headers": {
                     TraceHeader.TRACE_ID: "123",
@@ -1171,7 +1178,7 @@ class TestSetTraceRootSpan(unittest.TestCase):
         os.environ["_X_AMZN_TRACE_ID"] = "Root=1-5e272390-8c398be037738dc042009320"
 
         lambda_ctx = get_mock_context()
-        ctx, source, event_type = extract_dd_trace_context(
+        ctx, source, event_type, _ = extract_dd_trace_context(
             {
                 "headers": {
                     TraceHeader.TRACE_ID: "123",
@@ -2438,3 +2445,151 @@ class TestExceptionOutsideHandler(unittest.TestCase):
 
         mock_submit_errors_metric.assert_called_once_with(None)
         mock_trace.assert_not_called()
+
+
+class TestExtractContextHaveDSMContext(unittest.TestCase):
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
+    def test_extract_context_from_sqs_event_with_datadog_context(self):
+        """Test SQS event extraction with datadog context returns expected values."""
+        lambda_ctx = get_mock_context()
+        header = {
+            TraceHeader.TRACE_ID: "456",
+            TraceHeader.PARENT_ID: "789",
+            TraceHeader.SAMPLING_PRIORITY: "1",
+            PROPAGATION_KEY_BASE_64: "test-data",
+        }
+
+        sqs_event = {
+            "Records": [
+                {
+                    "messageId": "test-message-id",
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "stringValue": json.dumps(header),
+                            "dataType": "String",
+                        }
+                    },
+                }
+            ]
+        }
+
+        (context, dd_data) = extract_context_from_sqs_or_sns_event_or_context(
+            sqs_event, lambda_ctx
+        )
+
+        self.assertEqual(context.trace_id, 456)
+        self.assertEqual(context.span_id, 789)
+        self.assertEqual(context.sampling_priority, 1)
+        self.assertEqual(dd_data, header)
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
+    def test_extract_context_from_sns_event_with_datadog_context(self):
+        """Test SNS event extraction with datadog context returns expected values."""
+        lambda_ctx = get_mock_context()
+        expected_trace_data = {
+            TraceHeader.TRACE_ID: "111",
+            TraceHeader.PARENT_ID: "222",
+            TraceHeader.SAMPLING_PRIORITY: "2",
+            PROPAGATION_KEY_BASE_64: "test-data",
+        }
+        sns_event = {
+            "Records": [
+                {
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "MessageAttributes": {
+                            "_datadog": {
+                                "Type": "String",
+                                "Value": json.dumps(expected_trace_data),
+                            }
+                        },
+                    }
+                }
+            ]
+        }
+
+        (context, dd_data) = extract_context_from_sqs_or_sns_event_or_context(
+            sns_event, lambda_ctx
+        )
+
+        self.assertEqual(context.trace_id, 111)
+        self.assertEqual(context.span_id, 222)
+        self.assertEqual(context.sampling_priority, 2)
+        self.assertEqual(dd_data, expected_trace_data)
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
+    def test_extract_context_from_kinesis_event_with_datadog_context(self):
+        """Test Kinesis event extraction with datadog context returns expected values."""
+        lambda_ctx = get_mock_context()
+        expected_trace_data = {
+            TraceHeader.TRACE_ID: "333",
+            TraceHeader.PARENT_ID: "444",
+            PROPAGATION_KEY_BASE_64: "test-data",
+        }
+        kinesis_event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {
+                        "data": base64.b64encode(
+                            json.dumps({"_datadog": expected_trace_data}).encode()
+                        ).decode()
+                    },
+                }
+            ]
+        }
+
+        context, dd_data = extract_context_from_kinesis_event(kinesis_event, lambda_ctx)
+
+        self.assertEqual(context.trace_id, 333)
+        self.assertEqual(context.span_id, 444)
+        self.assertEqual(dd_data, expected_trace_data)
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
+    def test_extract_context_from_sns_to_sqs_event_with_datadog_context(self):
+        """Test SNS -> SQS event extraction with datadog context returns expected values."""
+        lambda_ctx = get_mock_context()
+        expected_trace_data = {
+            TraceHeader.TRACE_ID: "555",
+            TraceHeader.PARENT_ID: "666",
+            TraceHeader.SAMPLING_PRIORITY: "1",
+            PROPAGATION_KEY_BASE_64: "test-data",
+        }
+
+        sns_body = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {
+                "_datadog": {
+                    "Type": "String",
+                    "Value": json.dumps(expected_trace_data),
+                }
+            },
+            "Message": "Test message",
+            "MessageId": "test-message-id",
+            "Timestamp": "2023-01-01T00:00:00.000Z",
+        }
+
+        sns_to_sqs_event = {
+            "Records": [
+                {
+                    "messageId": "sqs-message-id",
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "body": json.dumps(sns_body),
+                }
+            ]
+        }
+
+        (context, dd_data) = extract_context_from_sqs_or_sns_event_or_context(
+            sns_to_sqs_event, lambda_ctx
+        )
+
+        self.assertEqual(context.trace_id, 555)
+        self.assertEqual(context.span_id, 666)
+        self.assertEqual(context.sampling_priority, 1)
+        self.assertEqual(dd_data, expected_trace_data)
