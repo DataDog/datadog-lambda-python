@@ -220,8 +220,11 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     try:
         context = _extract_context_from_eventbridge_sqs_event(event)
         if _is_context_complete(context):
-            # Unsupported DSM context propagation method
-            return context, None
+            return (
+                context,
+                # Unsupported DSM context propagation method
+                None,
+            )
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
