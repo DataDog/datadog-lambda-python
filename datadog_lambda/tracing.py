@@ -590,7 +590,7 @@ def extract_dd_trace_context(
     global dd_trace_context
     trace_context_source = None
     event_source = parse_event_source(event)
-    dsm_carrier = None
+    dd_data = None
 
     if extractor is not None:
         context = extract_context_custom_extractor(extractor, event, lambda_context)
@@ -599,13 +599,13 @@ def extract_dd_trace_context(
             event, lambda_context, event_source, decode_authorizer_context
         )
     elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
-        context, dsm_carrier = extract_context_from_sqs_or_sns_event_or_context(
+        context, dd_data = extract_context_from_sqs_or_sns_event_or_context(
             event, lambda_context
         )
     elif event_source.equals(EventTypes.EVENTBRIDGE):
         context = extract_context_from_eventbridge_event(event, lambda_context)
     elif event_source.equals(EventTypes.KINESIS):
-        context, dsm_carrier = extract_context_from_kinesis_event(event, lambda_context)
+        context, dd_data = extract_context_from_kinesis_event(event, lambda_context)
     elif event_source.equals(EventTypes.STEPFUNCTIONS):
         context = extract_context_from_step_functions(event, lambda_context)
     else:
@@ -622,7 +622,7 @@ def extract_dd_trace_context(
         if dd_trace_context:
             trace_context_source = TraceContextSource.XRAY
     logger.debug("extracted dd trace context %s", dd_trace_context)
-    return dd_trace_context, trace_context_source, event_source, dsm_carrier
+    return dd_trace_context, trace_context_source, event_source, dd_data
 
 
 def get_dd_trace_context_obj():
