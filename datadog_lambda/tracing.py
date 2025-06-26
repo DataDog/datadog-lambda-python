@@ -301,6 +301,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                             ),
                             None,
                         )
+        # return a empty dict so dsm checkpoint can be set even if no context is found
         return extract_context_from_lambda_context(lambda_context), {}
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
@@ -382,6 +383,7 @@ def extract_context_from_kinesis_event(event, lambda_context):
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
 
+    # return a empty dict so dsm checkpoint can be set even if no context is found
     return extract_context_from_lambda_context(lambda_context), {}
 
 

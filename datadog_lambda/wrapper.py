@@ -396,7 +396,7 @@ def _create_dsm_carrier_func(dd_data):
     """Create a carrier function for DSM context extraction."""
 
     def carrier_get(key):
-        return dd_data.get(key) if dd_data else None
+        return dd_data.get(key) if dd_data is not None else None
 
     return carrier_get
 
