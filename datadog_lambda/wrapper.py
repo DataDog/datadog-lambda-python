@@ -392,10 +392,9 @@ def extract_source_arn(event):
 
 
 def _create_dsm_carrier_func(dd_data):
-    # {}.get(key) returns None, allowing DSM checkpoint to be set even if context is missing
-    # None.get(key) errors, preventing checkpoint for unsupported dsm context propagation methods
-
     def carrier_get(key):
+        # {}.get(key) returns None, DSM checkpoint can be set even if DSM context extraction fails
+        # None.get(key) errors, preventing checkpoint for unsupported dsm context propagation method
         return dd_data.get(key)
 
     return carrier_get

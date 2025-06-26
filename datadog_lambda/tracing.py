@@ -220,6 +220,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     try:
         context = _extract_context_from_eventbridge_sqs_event(event)
         if _is_context_complete(context):
+            # Unsupported DSM context propagation method
             return context, None
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
@@ -299,6 +300,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                                 span_id=int(x_ray_context["parent_id"], 16),
                                 sampling_priority=float(x_ray_context["sampled"]),
                             ),
+                            # Unsupported DSM context propagation method
                             None,
                         )
         # return a empty dict so dsm checkpoint can be set even if no context is found

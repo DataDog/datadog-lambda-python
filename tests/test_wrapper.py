@@ -7,13 +7,11 @@ from unittest.mock import patch, call, ANY, Mock
 from datadog_lambda.constants import TraceHeader
 
 import datadog_lambda.wrapper as wrapper
-import datadog_lambda.xray as xray
 
-from datadog_lambda.config import config
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 from datadog_lambda.trigger import EventTypes
-from ddtrace.trace import Span, tracer
+from ddtrace.trace import tracer
 from ddtrace.internal.constants import MAX_UINT_64BITS
 
 from tests.utils import get_mock_context, reset_xray_connection
@@ -285,7 +283,9 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
     def test_5xx_sends_errors_metric_and_set_tags(self, mock_extract_trigger_tags):
         mock_extract_trigger_tags.return_value = {
             "function_trigger.event_source": "api-gateway",
-            "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod",
+            "function_trigger.event_source_arn": (
+                "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod"
+            ),
             "http.url": "https://70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
             "http.url_details.path": "/prod/path/to/resource",
             "http.method": "GET",
@@ -1015,3 +1015,28 @@ class TestExtractSourceArn(unittest.TestCase):
         self.assertEqual(
             result, "arn:aws:sqs:us-east-1:123456789012:test-queue-from-sns"
         )
+
+
+class TestCreateDsmCarrierFunc(unittest.TestCase):
+    def test_carrier_with_data(self):
+        """Test that the carrier function works with a dict-like object."""
+        mock_dd_data = Mock()
+        mock_dd_data.get.return_value = "mock_value"
+
+        carrier = wrapper._create_dsm_carrier_func(mock_dd_data)
+        self.assertTrue(callable(carrier))
+        self.assertEqual(carrier("some_key"), "mock_value")
+        mock_dd_data.get.assert_called_once_with("some_key")
+
+    def test_carrier_with_empty_dict(self):
+        """Test that the carrier function works with an empty dictionary."""
+        carrier = wrapper._create_dsm_carrier_func({})
+        self.assertTrue(callable(carrier))
+        self.assertIsNone(carrier("some_key"))
+
+    def test_carrier_with_none(self):
+        """Test that the carrier function fails correctly when given None."""
+        carrier = wrapper._create_dsm_carrier_func(None)
+        self.assertTrue(callable(carrier))
+        with self.assertRaises(AttributeError):
+            carrier("some_key")
