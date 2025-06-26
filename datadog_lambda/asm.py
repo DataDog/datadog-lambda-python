@@ -50,6 +50,9 @@ def asm_start_request(
     event_source: _EventSource,
     trigger_tags: Dict[str, str],
 ):
+    if event_source.event_type not in _http_event_types:
+        return
+
     request_headers: Dict[str, str] = {}
     peer_ip: Optional[str] = None
     request_path_parameters: Optional[Dict[str, Any]] = None
@@ -114,6 +117,7 @@ def asm_start_request(
         span.set_tag_str("network.client.ip", request_ip)
 
     core.dispatch(
+        # The matching listener is registered in ddtrace.appsec._handlers
         "aws_lambda.start_request",
         (
             span,
@@ -160,6 +164,7 @@ def asm_start_response(
         }
 
     core.dispatch(
+        # The matching listener is registered in ddtrace.appsec._handlers
         "aws_lambda.start_response",
         (
             span,
