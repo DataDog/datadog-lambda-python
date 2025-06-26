@@ -265,16 +265,6 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
             if dd_json_data:
                 dd_data = json.loads(dd_json_data)
 
-                data_streams_ctx = {}
-                if config.data_streams_enabled:
-                    from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
-
-                    data_streams_ctx = {
-                        PROPAGATION_KEY_BASE_64: dd_data[PROPAGATION_KEY_BASE_64]
-                        if PROPAGATION_KEY_BASE_64 in dd_data
-                        else {}
-                    }
-
                 if is_step_function_event(dd_data):
                     try:
                         return (
@@ -285,7 +275,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                         logger.debug(
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
-                return propagator.extract(dd_data), data_streams_ctx.get
+                return propagator.extract(dd_data), dd_data
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
             # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
@@ -311,10 +301,10 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                             ),
                             None,
                         )
-        return extract_context_from_lambda_context(lambda_context), {}.get
+        return extract_context_from_lambda_context(lambda_context), {}
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
-        return extract_context_from_lambda_context(lambda_context), {}.get
+        return extract_context_from_lambda_context(lambda_context), {}
 
 
 def _extract_context_from_eventbridge_sqs_event(event):
@@ -373,7 +363,6 @@ def extract_context_from_kinesis_event(event, lambda_context):
     """
     Extract datadog trace context from a Kinesis Stream's base64 encoded data string
     """
-    data_streams_ctx = {}
     try:
         record = get_first_record(event)
         kinesis = record.get("kinesis")
@@ -389,20 +378,11 @@ def extract_context_from_kinesis_event(event, lambda_context):
             data_obj = json.loads(data_str)
             dd_ctx = data_obj.get("_datadog")
             if dd_ctx:
-                if config.data_streams_enabled:
-                    from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
-
-                    data_streams_ctx = {
-                        PROPAGATION_KEY_BASE_64: dd_ctx[PROPAGATION_KEY_BASE_64]
-                        if PROPAGATION_KEY_BASE_64 in dd_ctx
-                        else {}
-                    }
-
-                return propagator.extract(dd_ctx), data_streams_ctx.get
+                return propagator.extract(dd_ctx), dd_ctx
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
 
-    return extract_context_from_lambda_context(lambda_context), data_streams_ctx.get
+    return extract_context_from_lambda_context(lambda_context), {}
 
 
 def _deterministic_sha256_hash(s: str, part: str) -> int:

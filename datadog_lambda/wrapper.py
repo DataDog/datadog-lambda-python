@@ -11,7 +11,6 @@ from time import time_ns
 
 
 from datadog_lambda.asm import asm_start_response, asm_start_request
-from datadog_lambda.dsm import set_dsm_context
 
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import (
@@ -224,7 +223,7 @@ class _LambdaDecorator(object):
                 dd_context,
                 trace_context_source,
                 event_source,
-                dsm_carrier,
+                dd_data,
             ) = extract_dd_trace_context(
                 event,
                 context,
@@ -256,6 +255,7 @@ class _LambdaDecorator(object):
                         or event_source.equals(EventTypes.KINESIS)
                     ):
                         source_arn = extract_source_arn(event)
+                        dsm_carrier = _create_dsm_carrier_func(dd_data)
                         set_dsm_checkpoint(
                             dsm_carrier, event_source.to_string(), source_arn
                         )
@@ -390,6 +390,15 @@ def extract_source_arn(event):
     if not arn:
         arn = first_record.get("Sns", {}).get("TopicArn", "")
     return arn
+
+
+def _create_dsm_carrier_func(dd_data):
+    """Create a carrier function for DSM context extraction."""
+
+    def carrier_get(key):
+        return dd_data.get(key) if dd_data else None
+
+    return carrier_get
 
 
 datadog_lambda_wrapper = _LambdaDecorator

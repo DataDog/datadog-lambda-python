@@ -2475,14 +2475,14 @@ class TestExtractContextHaveDSMContext(unittest.TestCase):
             ]
         }
 
-        (context, dsm_carrier) = extract_context_from_sqs_or_sns_event_or_context(
+        (context, dd_data) = extract_context_from_sqs_or_sns_event_or_context(
             sqs_event, lambda_ctx
         )
 
         self.assertEqual(context.trace_id, 456)
         self.assertEqual(context.span_id, 789)
         self.assertEqual(context.sampling_priority, 1)
-        self.assertEqual(dsm_carrier(PROPAGATION_KEY_BASE_64), "test-data")
+        self.assertEqual(dd_data, header)
 
     @patch("datadog_lambda.config.Config.trace_enabled", True)
     @patch("datadog_lambda.config.Config.data_streams_enabled", True)
@@ -2511,14 +2511,14 @@ class TestExtractContextHaveDSMContext(unittest.TestCase):
             ]
         }
 
-        (context, dsm_carrier) = extract_context_from_sqs_or_sns_event_or_context(
+        (context, dd_data) = extract_context_from_sqs_or_sns_event_or_context(
             sns_event, lambda_ctx
         )
 
         self.assertEqual(context.trace_id, 111)
         self.assertEqual(context.span_id, 222)
         self.assertEqual(context.sampling_priority, 2)
-        self.assertEqual(dsm_carrier(PROPAGATION_KEY_BASE_64), "test-data")
+        self.assertEqual(dd_data, expected_trace_data)
 
     @patch("datadog_lambda.config.Config.trace_enabled", True)
     @patch("datadog_lambda.config.Config.data_streams_enabled", True)
@@ -2543,13 +2543,11 @@ class TestExtractContextHaveDSMContext(unittest.TestCase):
             ]
         }
 
-        context, dsm_carrier = extract_context_from_kinesis_event(
-            kinesis_event, lambda_ctx
-        )
+        context, dd_data = extract_context_from_kinesis_event(kinesis_event, lambda_ctx)
 
         self.assertEqual(context.trace_id, 333)
         self.assertEqual(context.span_id, 444)
-        self.assertEqual(dsm_carrier(PROPAGATION_KEY_BASE_64), "test-data")
+        self.assertEqual(dd_data, expected_trace_data)
 
     @patch("datadog_lambda.config.Config.trace_enabled", True)
     @patch("datadog_lambda.config.Config.data_streams_enabled", True)
@@ -2587,11 +2585,11 @@ class TestExtractContextHaveDSMContext(unittest.TestCase):
             ]
         }
 
-        (context, dsm_carrier) = extract_context_from_sqs_or_sns_event_or_context(
+        (context, dd_data) = extract_context_from_sqs_or_sns_event_or_context(
             sns_to_sqs_event, lambda_ctx
         )
 
         self.assertEqual(context.trace_id, 555)
         self.assertEqual(context.span_id, 666)
         self.assertEqual(context.sampling_priority, 1)
-        self.assertEqual(dsm_carrier(PROPAGATION_KEY_BASE_64), "test-data")
+        self.assertEqual(dd_data, expected_trace_data)

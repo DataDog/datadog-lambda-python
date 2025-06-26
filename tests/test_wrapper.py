@@ -14,7 +14,6 @@ from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 from datadog_lambda.trigger import EventTypes
 from ddtrace.trace import Span, tracer
-from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
 from ddtrace.internal.constants import MAX_UINT_64BITS
 
 from tests.utils import get_mock_context, reset_xray_connection
@@ -566,12 +565,15 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     @patch("datadog_lambda.config.Config.trace_enabled", True)
     @patch("datadog_lambda.config.Config.data_streams_enabled", True)
-    def test_set_dsm_checkpoint_called_when_DSM_and_tracing_enabled(self):
+    @patch("datadog_lambda.wrapper._create_dsm_carrier_func")
+    def test_set_dsm_checkpoint_called_when_DSM_and_tracing_enabled(
+        self, mock_create_dsm_carrier_func
+    ):
         event_source = Mock()
         event_source.to_string.return_value = "sqs"
         event_source.equals.return_value = True
 
-        data_streams_ctx = {PROPAGATION_KEY_BASE_64: "test-data"}.get
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
         arn = "test-arn"
         self.mock_extract_dd_trace_context.return_value = (
             {},
@@ -589,7 +591,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             result = lambda_handler({}, get_mock_context())
             self.assertEqual(result, "ok")
             self.mock_set_dsm_checkpoint.assert_called_once_with(
-                data_streams_ctx, "sqs", arn
+                mock_create_dsm_carrier_func.return_value, "sqs", arn
             )
 
     @patch("datadog_lambda.config.Config.trace_enabled", False)
@@ -597,7 +599,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
     def test_set_dsm_checkpoint_not_called_when_only_DSM_enabled(self):
         event_source = Mock()
         event_source.to_string.return_value = "sqs"
-        data_streams_ctx = {PROPAGATION_KEY_BASE_64: "test-data"}.get
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
         self.mock_extract_dd_trace_context.return_value = (
             {},
             None,
@@ -618,7 +620,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
     def test_set_dsm_checkpoint_not_called_when_only_tracing_enabled(self):
         event_source = Mock()
         event_source.to_string.return_value = "sqs"
-        data_streams_ctx = {PROPAGATION_KEY_BASE_64: "test-data"}.get
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
         self.mock_extract_dd_trace_context.return_value = (
             {},
             None,
@@ -639,7 +641,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
     def test_set_dsm_checkpoint_not_called_when_tracing_and_DSM_disabled(self):
         event_source = Mock()
         event_source.to_string.return_value = "sqs"
-        data_streams_ctx = {PROPAGATION_KEY_BASE_64: "test-data"}.get
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
         self.mock_extract_dd_trace_context.return_value = (
             {},
             None,
@@ -655,16 +657,19 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.assertEqual(result, "ok")
         self.mock_set_dsm_checkpoint.assert_not_called()
 
+    @patch("datadog_lambda.wrapper._create_dsm_carrier_func")
     @patch("datadog_lambda.config.Config.trace_enabled", True)
     @patch("datadog_lambda.config.Config.data_streams_enabled", True)
-    def test_set_dsm_checkpoint_called_for_sqs_event(self):
+    def test_set_dsm_checkpoint_called_for_sqs_event(
+        self, mock_create_dsm_carrier_func
+    ):
         event_source = Mock()
         event_source.to_string.return_value = "sqs"
         event_source.equals.side_effect = (
             lambda event_type: event_type == EventTypes.SQS
         )
 
-        data_streams_ctx = {PROPAGATION_KEY_BASE_64: "test-data"}.get
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
         arn = "test-arn"
         self.mock_extract_dd_trace_context.return_value = (
             {},
@@ -682,19 +687,22 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             result = lambda_handler({}, get_mock_context())
             self.assertEqual(result, "ok")
             self.mock_set_dsm_checkpoint.assert_called_once_with(
-                data_streams_ctx, "sqs", arn
+                mock_create_dsm_carrier_func.return_value, "sqs", arn
             )
 
     @patch("datadog_lambda.config.Config.trace_enabled", True)
     @patch("datadog_lambda.config.Config.data_streams_enabled", True)
-    def test_set_dsm_checkpoint_called_for_sns_event(self):
+    @patch("datadog_lambda.wrapper._create_dsm_carrier_func")
+    def test_set_dsm_checkpoint_called_for_sns_event(
+        self, mock_create_dsm_carrier_func
+    ):
         event_source = Mock()
         event_source.to_string.return_value = "sns"
         event_source.equals.side_effect = (
             lambda event_type: event_type == EventTypes.SNS
         )
 
-        data_streams_ctx = {PROPAGATION_KEY_BASE_64: "test-data"}.get
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
         arn = "test-arn"
         self.mock_extract_dd_trace_context.return_value = (
             {},
@@ -712,19 +720,22 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             result = lambda_handler({}, get_mock_context())
             self.assertEqual(result, "ok")
             self.mock_set_dsm_checkpoint.assert_called_once_with(
-                data_streams_ctx, "sns", arn
+                mock_create_dsm_carrier_func.return_value, "sns", arn
             )
 
     @patch("datadog_lambda.config.Config.trace_enabled", True)
     @patch("datadog_lambda.config.Config.data_streams_enabled", True)
-    def test_set_dsm_checkpoint_called_for_kinesis_event(self):
+    @patch("datadog_lambda.wrapper._create_dsm_carrier_func")
+    def test_set_dsm_checkpoint_called_for_kinesis_event(
+        self, mock_create_dsm_carrier_func
+    ):
         event_source = Mock()
         event_source.to_string.return_value = "kinesis"
         event_source.equals.side_effect = (
             lambda event_type: event_type == EventTypes.KINESIS
         )
 
-        data_streams_ctx = {PROPAGATION_KEY_BASE_64: "test-data"}.get
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}.get
         arn = "test-arn"
         self.mock_extract_dd_trace_context.return_value = (
             {},
@@ -742,19 +753,22 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             result = lambda_handler({}, get_mock_context())
             self.assertEqual(result, "ok")
             self.mock_set_dsm_checkpoint.assert_called_once_with(
-                data_streams_ctx, "kinesis", arn
+                mock_create_dsm_carrier_func.return_value, "kinesis", arn
             )
 
     @patch("datadog_lambda.config.Config.trace_enabled", True)
     @patch("datadog_lambda.config.Config.data_streams_enabled", True)
-    def test_set_dsm_checkpoint_not_called_for_unknown_event(self):
+    @patch("datadog_lambda.wrapper._create_dsm_carrier_func")
+    def test_set_dsm_checkpoint_not_called_for_unknown_event(
+        self, mock_create_dsm_carrier_func
+    ):
         event_source = Mock()
         event_source.to_string.return_value = "kinesis"
         event_source.equals.side_effect = (
             lambda event_type: event_type == EventTypes.UNKNOWN
         )
 
-        data_streams_ctx = {PROPAGATION_KEY_BASE_64: "test-data"}.get
+        data_streams_ctx = {"dd-pathway-ctx-base64": "test-data"}
         self.mock_extract_dd_trace_context.return_value = (
             {},
             None,
