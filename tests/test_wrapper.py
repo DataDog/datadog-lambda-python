@@ -45,10 +45,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_inject_correlation_ids = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("datadog_lambda.wrapper.patch_all")
-        self.mock_patch_all = patcher.start()
-        self.addCleanup(patcher.stop)
-
         patcher = patch("datadog_lambda.tags.get_cold_start_tag")
         self.mock_get_cold_start_tag = patcher.start()
         self.mock_get_cold_start_tag.return_value = "cold_start:true"
@@ -117,7 +113,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         )
         self.mock_set_correlation_ids.assert_called()
         self.mock_inject_correlation_ids.assert_called()
-        self.mock_patch_all.assert_called()
 
     def test_datadog_lambda_wrapper_flush_to_log(self):
         os.environ["DD_FLUSH_TO_LOG"] = "True"
@@ -487,7 +482,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
         lambda_handler_double_wrapped(lambda_event, get_mock_context())
 
-        self.mock_patch_all.assert_called_once()
         self.mock_submit_invocations_metric.assert_called_once()
 
     def test_dd_requests_service_name_default(self):
