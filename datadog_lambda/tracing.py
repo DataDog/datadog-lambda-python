@@ -70,10 +70,6 @@ LOWER_64_BITS = "LOWER_64_BITS"
 def _dsm_set_checkpoint(context_json, event_type, arn):
     from ddtrace.data_streams import set_consume_checkpoint
 
-    """
-    Extracts the context from a JSON carrier and optionally sets a dsm consume checkpoint
-    if the context is complete and data streams are enabled.
-    """
     if not isinstance(context_json, dict):
         return
 
