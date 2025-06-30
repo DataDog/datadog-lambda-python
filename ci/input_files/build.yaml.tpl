@@ -264,7 +264,7 @@ e2e-test:
 
 e2e-status:
   stage: e2e
-  image: registry.ddbuild.io/images/mirror/alpine:latest
+  image: registry.ddbuild.io/images/docker:20.10-py3
   tags: ["arch:amd64"]
   needs:
     - e2e-test
