@@ -211,4 +211,10 @@ while [ $latest_version -lt $VERSION ]; do
     fi
 done
 
+if [ -n "$DOTENV" ]; then
+    printf "[$REGION] Exporting layer version to $DOTENV file...\n"
+    echo "PYTHON_${PYTHON_VERSION/./}_VERSION=$latest_arn" >> "$DOTENV"
+    cat "$DOTENV"
+fi
+
 printf "[$REGION] Finished publishing layers...\n\n"
