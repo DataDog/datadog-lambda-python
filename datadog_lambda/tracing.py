@@ -69,18 +69,17 @@ LOWER_64_BITS = "LOWER_64_BITS"
 
 def _dsm_set_checkpoint(context_json, event_type, arn):
     from ddtrace.data_streams import set_consume_checkpoint
-    from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
 
     """
     Extracts the context from a JSON carrier and optionally sets a dsm consume checkpoint
     if the context is complete and data streams are enabled.
     """
-
-    if PROPAGATION_KEY_BASE_64 not in context_json:
+    if not isinstance(context_json, dict):
         return
 
     if not config.data_streams_enabled:
         return
+
     try:
         carrier_get = _create_carrier_get(context_json)
         set_consume_checkpoint(event_type, arn, carrier_get, manual_checkpoint=False)
@@ -336,9 +335,13 @@ def extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled
                             span_id=int(x_ray_context["parent_id"], 16),
                             sampling_priority=float(x_ray_context["sampled"]),
                         )
+        # Still want to set a DSM checkpoint even if DSM context not propagated
+        _dsm_set_checkpoint({}, "sqs" if is_sqs else "sns", arn)
         return extract_context_from_lambda_context(lambda_context)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
+        # Still want to set a DSM checkpoint even if DSM context not propagated
+        _dsm_set_checkpoint({}, "sqs" if is_sqs else "sns", arn)
         return extract_context_from_lambda_context(lambda_context)
 
 
@@ -422,7 +425,8 @@ def extract_context_from_kinesis_event_and_set_dsm_checkpoint_if_enabled(
                 return context
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
-
+    # Still want to set a DSM checkpoint even if DSM context not propagated
+    _dsm_set_checkpoint({}, "kinesis", arn)
     return extract_context_from_lambda_context(lambda_context)
 
 
