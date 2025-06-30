@@ -50,6 +50,7 @@ if config.otel_enabled:
 
     set_tracer_provider(TracerProvider())
 
+
 logger = logging.getLogger(__name__)
 
 dd_trace_context = None
