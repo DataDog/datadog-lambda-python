@@ -269,23 +269,6 @@ e2e-status:
   needs:
     - e2e-test
   script:
-    - echo "Python layer ARNs used in E2E tests:"
-    {{- range (ds "runtimes").runtimes }}
-    {{- if eq .arch "amd64" }}
-    {{- $version := print (.name | strings.Trim "python") }}
-    - echo "  PYTHON_{{ $version }}_VERSION=$PYTHON_{{ $version }}_VERSION"
-    {{- end }}
-    {{- end }}
-    - |
-      if [ "$CI_JOB_STATUS" = "success" ]; then
-        echo "✅ E2E tests completed successfully"
-      elif [ "$CI_JOB_STATUS" = "failed" ]; then
-        echo "❌ E2E tests failed"
-        exit 1
-      elif [ "$CI_JOB_STATUS" = "canceled" ]; then
-        echo "❌ E2E tests were canceled"
-        exit 1
-      else
-        echo "❌ E2E tests unknown status: ${CI_JOB_STATUS}"
-        exit 1
-      fi
+    - git clone -b rey.abolofia/status-check --single-branch https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/serverless-e2e-tests.git
+    - cd ./serverless-e2e-tests
+    - ./scripts/check_e2e_status.sh
