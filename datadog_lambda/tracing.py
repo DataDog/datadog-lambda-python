@@ -77,12 +77,19 @@ def _dsm_set_checkpoint(context_json, event_type, arn):
     try:
         from ddtrace.data_streams import set_consume_checkpoint
 
-        carrier_get = lambda k: context_json.get(k)
+        carrier_get = _create_carrier_get(context_json)
         set_consume_checkpoint(event_type, arn, carrier_get, manual_checkpoint=False)
     except Exception as e:
         logger.debug(
             f"DSM:Failed to set consume checkpoint for {event_type} {arn}: {e}"
         )
+
+
+def _create_carrier_get(context_json):
+    def carrier_get(key):
+        return context_json.get(key)
+
+    return carrier_get
 
 
 def _convert_xray_trace_id(xray_trace_id):
