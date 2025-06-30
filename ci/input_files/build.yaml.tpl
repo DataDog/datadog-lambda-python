@@ -262,13 +262,11 @@ e2e-test:
     {{- end }}
     {{- end }}
 
-e2e-status:
-  stage: e2e
+e2e-test-status:
+  stage: test
   image: registry.ddbuild.io/images/docker:20.10-py3
   tags: ["arch:amd64"]
-  needs:
-    - e2e-test
   script:
-    - git clone -b rey.abolofia/status-check --single-branch https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/serverless-e2e-tests.git
+    - git clone -b rey.abolofia/status-check --single-branch https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/serverless-e2e-tests
     - cd ./serverless-e2e-tests
     - ./scripts/check_e2e_status.sh
