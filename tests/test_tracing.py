@@ -45,7 +45,7 @@ from datadog_lambda.tracing import (
     _dsm_set_checkpoint,
     _create_carrier_get,
     extract_context_from_kinesis_event_and_set_dsm_checkpoint_if_enabled,
-    extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_checkpoint_if_enabled,
+    extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled,
 )
 
 from tests.utils import get_mock_context
@@ -2564,7 +2564,7 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
         mock_extract.return_value = mock_context
 
-        result = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_checkpoint_if_enabled(
+        result = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled(
             event, self.lambda_context
         )
 
@@ -2597,7 +2597,7 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
         mock_extract.return_value = mock_context
 
-        result = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_checkpoint_if_enabled(
+        result = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled(
             event, self.lambda_context
         )
 
@@ -2632,7 +2632,7 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
         mock_extract.return_value = mock_context
 
-        result = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_checkpoint_if_enabled(
+        result = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled(
             event, self.lambda_context
         )
 
@@ -2665,7 +2665,7 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
         mock_extract.return_value = mock_context
 
-        result = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_checkpoint_if_enabled(
+        result = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled(
             event, self.lambda_context
         )
 
@@ -2706,7 +2706,7 @@ class TestExtractContextFromSqsOrSnsEvent(unittest.TestCase):
         mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
         mock_extract.return_value = mock_context
 
-        result = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_checkpoint_if_enabled(
+        result = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled(
             event, self.lambda_context
         )
 

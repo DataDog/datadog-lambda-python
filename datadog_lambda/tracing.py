@@ -231,7 +231,7 @@ def create_sns_event(message):
     }
 
 
-def extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_checkpoint_if_enabled(
+def extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled(
     event, lambda_context
 ):
     """
@@ -638,7 +638,7 @@ def extract_dd_trace_context(
             event, lambda_context, event_source, decode_authorizer_context
         )
     elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
-        context = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_checkpoint_if_enabled(
+        context = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled(
             event, lambda_context
         )
     elif event_source.equals(EventTypes.EVENTBRIDGE):
