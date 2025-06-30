@@ -268,11 +268,6 @@ e2e-status:
   tags: ["arch:amd64"]
   needs:
     - e2e-test
-    {{- range (ds "runtimes").runtimes }}
-    {{- if eq .arch "amd64" }}
-    - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
-    {{- end }}
-    {{- end }}
   script:
     - echo "Python layer ARNs used in E2E tests:"
     {{- range (ds "runtimes").runtimes }}
