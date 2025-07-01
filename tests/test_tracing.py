@@ -43,7 +43,6 @@ from datadog_lambda.tracing import (
     propagator,
     emit_telemetry_on_exception_outside_of_handler,
     _dsm_set_checkpoint,
-    _create_carrier_get,
     extract_context_from_kinesis_event_and_set_dsm_checkpoint_if_enabled,
     extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled,
 )
@@ -60,6 +59,7 @@ fake_xray_header_value_parent_decimal = "10713633173203262661"
 fake_xray_header_value_root_decimal = "3995693151288333088"
 
 event_samples = "tests/event_samples/"
+PROPAGATION_KEY_BASE_64 = "dd-pathway-ctx-base64"
 
 
 def with_trace_propagation_style(style):
@@ -2457,7 +2457,7 @@ class TestDsmSetCheckpoint(unittest.TestCase):
 
     @patch("datadog_lambda.config.Config.data_streams_enabled", False)
     def test_dsm_set_checkpoint_data_streams_disabled(self):
-        context_json = {"dd-pathway-ctx-base64": "12345"}
+        context_json = {PROPAGATION_KEY_BASE_64: "12345"}
         event_type = "sqs"
         arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
 
@@ -2467,7 +2467,7 @@ class TestDsmSetCheckpoint(unittest.TestCase):
 
     @patch("datadog_lambda.config.Config.data_streams_enabled", True)
     def test_dsm_set_checkpoint_data_streams_enabled_complete_context(self):
-        context_json = {"dd-pathway-ctx-base64": "12345"}
+        context_json = {PROPAGATION_KEY_BASE_64: "12345"}
         event_type = "sqs"
         arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
 
@@ -2482,7 +2482,7 @@ class TestDsmSetCheckpoint(unittest.TestCase):
 
     @patch("datadog_lambda.config.Config.data_streams_enabled", True)
     def test_dsm_set_checkpoint_exception_path(self):
-        context_json = {"dd-pathway-ctx-base64": "12345"}
+        context_json = {PROPAGATION_KEY_BASE_64: "12345"}
         event_type = "sqs"
         arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
 
@@ -2495,65 +2495,22 @@ class TestDsmSetCheckpoint(unittest.TestCase):
         self.mock_logger.debug.assert_called_once()
 
     @patch("ddtrace.data_streams.set_consume_checkpoint")
-    def test_dsm_set_checkpoint_non_dict_context_sqs(self, mock_checkpoint):
+    def test_dsm_set_checkpoint_non_dict_context(self, mock_checkpoint):
         _dsm_set_checkpoint(
             "not_a_dict", "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
         mock_checkpoint.assert_not_called()
 
     @patch("ddtrace.data_streams.set_consume_checkpoint")
-    def test_dsm_set_checkpoint_non_dict_context_sns_to_sqs(self, mock_checkpoint):
+    def test_dsm_set_checkpoint_PROPAGATION_KEY_BASE_64_not_present(
+        self, mock_checkpoint
+    ):
         _dsm_set_checkpoint(
-            ["not", "a", "dict"], "sqs", "arn:aws:sqs:us-east-1:123456789012:test"
+            {"not_a_dict": "not_a_dict"},
+            "sqs",
+            "arn:aws:sqs:us-east-1:123456789012:test-queue",
         )
         mock_checkpoint.assert_not_called()
-
-    @patch("ddtrace.data_streams.set_consume_checkpoint")
-    def test_dsm_set_checkpoint_non_dict_context_kinesis(self, mock_checkpoint):
-        _dsm_set_checkpoint(
-            12345, "kinesis", "arn:aws:kinesis:us-east-1:123456789012:stream/test"
-        )
-        mock_checkpoint.assert_not_called()
-
-    @patch("ddtrace.data_streams.set_consume_checkpoint")
-    def test_dsm_set_checkpoint_non_dict_context_sns(self, mock_checkpoint):
-        _dsm_set_checkpoint(
-            None, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
-        )
-        mock_checkpoint.assert_not_called()
-
-
-class TestCreateCarrierGet(unittest.TestCase):
-    def test_create_carrier_get_with_valid_data(self):
-        context_json = {
-            "x-datadog-trace-id": "12345",
-            "x-datadog-parent-id": "67890",
-            "x-datadog-sampling-priority": "1",
-        }
-
-        carrier_get = _create_carrier_get(context_json)
-
-        self.assertTrue(callable(carrier_get))
-        self.assertEqual(carrier_get("x-datadog-trace-id"), "12345")
-        self.assertEqual(carrier_get("x-datadog-parent-id"), "67890")
-        self.assertEqual(carrier_get("x-datadog-sampling-priority"), "1")
-
-    def test_create_carrier_get_with_missing_key(self):
-        context_json = {"x-datadog-trace-id": "12345"}
-
-        carrier_get = _create_carrier_get(context_json)
-
-        self.assertTrue(callable(carrier_get))
-        self.assertEqual(carrier_get("x-datadog-trace-id"), "12345")
-        self.assertIsNone(carrier_get("x-datadog-parent-id"))
-
-    def test_create_carrier_get_with_empty_context(self):
-        context_json = {}
-
-        carrier_get = _create_carrier_get(context_json)
-
-        self.assertTrue(callable(carrier_get))
-        self.assertIsNone(carrier_get("any-key"))
 
 
 class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
@@ -2565,7 +2522,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
     def test_sqs_event_with_datadog_message_attributes(
         self, mock_extract, mock_dsm_set_checkpoint
     ):
-        dd_data = {"dd-pathway-ctx-base64": "12345"}
+        dd_data = {PROPAGATION_KEY_BASE_64: "12345"}
         dd_json_data = json.dumps(dd_data)
 
         event = {
@@ -2597,7 +2554,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
     def test_sqs_event_with_binary_datadog_message_attributes(
         self, mock_extract, mock_dsm_set_checkpoint
     ):
-        dd_data = {"dd-pathway-ctx-base64": "12345"}
+        dd_data = {PROPAGATION_KEY_BASE_64: "12345"}
         dd_json_data = json.dumps(dd_data)
         encoded_data = base64.b64encode(dd_json_data.encode()).decode()
 
@@ -2630,7 +2587,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
     def test_sns_event_with_datadog_message_attributes(
         self, mock_extract, mock_dsm_set_checkpoint
     ):
-        dd_data = {"dd-pathway-ctx-base64": "12345"}
+        dd_data = {PROPAGATION_KEY_BASE_64: "12345"}
         dd_json_data = json.dumps(dd_data)
 
         event = {
@@ -2666,7 +2623,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         self, mock_extract, mock_dsm_set_checkpoint
     ):
         """Test that is_sqs = True when eventSourceARN is present in first record"""
-        dd_data = {"dd-pathway-ctx-base64": "12345"}
+        dd_data = {PROPAGATION_KEY_BASE_64: "12345"}
         dd_json_data = json.dumps(dd_data)
 
         event = {
@@ -2699,7 +2656,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         self, mock_extract, mock_dsm_set_checkpoint
     ):
         """Test SNS->SQS case where SQS body contains SNS notification"""
-        dd_data = {"dd-pathway-ctx-base64": "12345"}
+        dd_data = {PROPAGATION_KEY_BASE_64: "12345"}
         dd_json_data = json.dumps(dd_data)
 
         sns_notification = {
@@ -2904,7 +2861,7 @@ class TestExtractContextFromKinesisEventWithDSMLogic(unittest.TestCase):
     def test_kinesis_event_with_datadog_data(
         self, mock_extract, mock_dsm_set_checkpoint
     ):
-        dd_data = {"dd-pathway-ctx-base64": "12345"}
+        dd_data = {PROPAGATION_KEY_BASE_64: "12345"}
         kinesis_data = {"_datadog": dd_data, "message": "test"}
         kinesis_data_str = json.dumps(kinesis_data)
         encoded_data = base64.b64encode(kinesis_data_str.encode()).decode()
