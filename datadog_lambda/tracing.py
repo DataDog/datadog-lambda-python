@@ -65,18 +65,17 @@ propagator = HTTPPropagator()
 DD_TRACE_JAVA_TRACE_ID_PADDING = "00000000"
 HIGHER_64_BITS = "HIGHER_64_BITS"
 LOWER_64_BITS = "LOWER_64_BITS"
+PROPAGATION_KEY_BASE_64 = "dd-pathway-ctx-base64"
 
 
 def _dsm_set_checkpoint(context_json, event_type, arn):
-    if not config.data_streams_enabled:
-        return
-
     if not isinstance(context_json, dict):
         return
 
-    from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
-
     if context_json and PROPAGATION_KEY_BASE_64 not in context_json:
+        return
+
+    if not config.data_streams_enabled:
         return
 
     try:
