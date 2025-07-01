@@ -65,23 +65,24 @@ propagator = HTTPPropagator()
 DD_TRACE_JAVA_TRACE_ID_PADDING = "00000000"
 HIGHER_64_BITS = "HIGHER_64_BITS"
 LOWER_64_BITS = "LOWER_64_BITS"
-PROPAGATION_KEY_BASE_64 = "dd-pathway-ctx-base64"
+DSM_PROPAGATION_KEY_BASE_64 = "dd-pathway-ctx-base64"
 
 
 def _dsm_set_checkpoint(context_json, event_type, arn):
     if not config.data_streams_enabled:
         return
 
-    if not isinstance(context_json, dict):
-        return
-
-    if context_json and PROPAGATION_KEY_BASE_64 not in context_json:
-        return
+    if context_json is not None:
+        if (
+            not isinstance(context_json, dict)
+            or DSM_PROPAGATION_KEY_BASE_64 not in context_json
+        ):
+            return
 
     try:
         from ddtrace.data_streams import set_consume_checkpoint
 
-        carrier_get = lambda k: context_json.get(k)  # noqa: E731
+        carrier_get = lambda k: context_json and context_json.get(k)  # noqa: E731
         set_consume_checkpoint(event_type, arn, carrier_get, manual_checkpoint=False)
     except Exception as e:
         logger.debug(
@@ -224,9 +225,7 @@ def create_sns_event(message):
     }
 
 
-def extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled(
-    event, lambda_context
-):
+def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     """
     Extract Datadog trace context from an SQS event.
 
@@ -241,6 +240,7 @@ def extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled
     Set a DSM checkpoint if DSM is enabled and the method for context propagation is supported.
     """
     is_sqs = False
+    arn = ""
 
     # EventBridge => SQS
     try:
@@ -329,12 +329,12 @@ def extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled
                             sampling_priority=float(x_ray_context["sampled"]),
                         )
         # Still want to set a DSM checkpoint even if DSM context not propagated
-        _dsm_set_checkpoint({}, "sqs" if is_sqs else "sns", arn)
+        _dsm_set_checkpoint(None, "sqs" if is_sqs else "sns", arn)
         return extract_context_from_lambda_context(lambda_context)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         # Still want to set a DSM checkpoint even if DSM context not propagated
-        _dsm_set_checkpoint({}, "sqs" if is_sqs else "sns", arn)
+        _dsm_set_checkpoint(None, "sqs" if is_sqs else "sns", arn)
         return extract_context_from_lambda_context(lambda_context)
 
 
@@ -390,13 +390,12 @@ def extract_context_from_eventbridge_event(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
-def extract_context_from_kinesis_event_and_set_dsm_checkpoint_if_enabled(
-    event, lambda_context
-):
+def extract_context_from_kinesis_event(event, lambda_context):
     """
     Extract datadog trace context from a Kinesis Stream's base64 encoded data string
     Set a DSM checkpoint if DSM is enabled and the method for context propagation is supported.
     """
+    arn = ""
     try:
         record = get_first_record(event)
         arn = record.get("eventSourceARN", "")
@@ -419,7 +418,7 @@ def extract_context_from_kinesis_event_and_set_dsm_checkpoint_if_enabled(
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
     # Still want to set a DSM checkpoint even if DSM context not propagated
-    _dsm_set_checkpoint({}, "kinesis", arn)
+    _dsm_set_checkpoint(None, "kinesis", arn)
     return extract_context_from_lambda_context(lambda_context)
 
 
@@ -636,15 +635,13 @@ def extract_dd_trace_context(
             event, lambda_context, event_source, decode_authorizer_context
         )
     elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
-        context = extract_context_from_sqs_or_sns_event_or_context_and_set_dsm_ckpt_if_enabled(
+        context = extract_context_from_sqs_or_sns_event_or_context(
             event, lambda_context
         )
     elif event_source.equals(EventTypes.EVENTBRIDGE):
         context = extract_context_from_eventbridge_event(event, lambda_context)
     elif event_source.equals(EventTypes.KINESIS):
-        context = extract_context_from_kinesis_event_and_set_dsm_checkpoint_if_enabled(
-            event, lambda_context
-        )
+        context = extract_context_from_kinesis_event(event, lambda_context)
     elif event_source.equals(EventTypes.STEPFUNCTIONS):
         context = extract_context_from_step_functions(event, lambda_context)
     else:
