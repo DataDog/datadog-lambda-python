@@ -69,13 +69,13 @@ PROPAGATION_KEY_BASE_64 = "dd-pathway-ctx-base64"
 
 
 def _dsm_set_checkpoint(context_json, event_type, arn):
+    if not config.data_streams_enabled:
+        return
+
     if not isinstance(context_json, dict):
         return
 
     if context_json and PROPAGATION_KEY_BASE_64 not in context_json:
-        return
-
-    if not config.data_streams_enabled:
         return
 
     try:
