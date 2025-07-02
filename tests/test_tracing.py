@@ -2618,7 +2618,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
     def test_sqs_event_determines_is_sqs_true_when_event_source_arn_present(
         self, mock_extract, mock_dsm_set_checkpoint
     ):
-        """Test that is_sqs = True when eventSourceARN is present in first record"""
+        """Test that is_sqs = True when eventSource is SQS"""
         dd_data = {DSM_PROPAGATION_KEY_BASE_64: "12345"}
         dd_json_data = json.dumps(dd_data)
 
