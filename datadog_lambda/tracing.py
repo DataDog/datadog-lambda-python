@@ -65,19 +65,11 @@ propagator = HTTPPropagator()
 DD_TRACE_JAVA_TRACE_ID_PADDING = "00000000"
 HIGHER_64_BITS = "HIGHER_64_BITS"
 LOWER_64_BITS = "LOWER_64_BITS"
-DSM_PROPAGATION_KEY_BASE_64 = "dd-pathway-ctx-base64"
 
 
 def _dsm_set_checkpoint(context_json, event_type, arn):
     if not config.data_streams_enabled:
         return
-
-    if context_json is not None:
-        if (
-            not isinstance(context_json, dict)
-            or DSM_PROPAGATION_KEY_BASE_64 not in context_json
-        ):
-            return
 
     try:
         from ddtrace.data_streams import set_consume_checkpoint
@@ -239,8 +231,8 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     Falls back to lambda context if no trace data is found in the SQS message attributes.
     Set a DSM checkpoint if DSM is enabled and the method for context propagation is supported.
     """
-    is_sqs = False
     arn = ""
+    event_source = parse_event_source(event)
 
     # EventBridge => SQS
     try:
@@ -253,8 +245,6 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
     try:
         first_record = event.get("Records")[0]
         arn = first_record.get("eventSourceARN", "")
-        if arn:
-            is_sqs = True
 
         # logic to deal with SNS => SQS event
         if "body" in first_record:
@@ -270,7 +260,8 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         msg_attributes = first_record.get("messageAttributes")
         if msg_attributes is None:
             sns_record = first_record.get("Sns") or {}
-            if not is_sqs:
+            # SNS->SQS event would extract SNS arn without this check
+            if event_source.equals(EventTypes.SNS):
                 arn = sns_record.get("TopicArn", "")
             msg_attributes = sns_record.get("MessageAttributes") or {}
         dd_payload = msg_attributes.get("_datadog")
@@ -304,7 +295,14 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
                 context = propagator.extract(dd_data)
-                _dsm_set_checkpoint(dd_data, "sqs" if is_sqs else "sns", arn)
+                # Do not want to set checkpoint with "" arn
+                if arn:
+                    _dsm_set_checkpoint(
+                        dd_data,
+                        # In this function only recieves SQS and SNS events, if not SQS must be SNS
+                        "sqs" if event_source.equals(EventTypes.SQS) else "sns",
+                        arn,
+                    )
                 return context
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
@@ -329,12 +327,23 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
                             sampling_priority=float(x_ray_context["sampled"]),
                         )
         # Still want to set a DSM checkpoint even if DSM context not propagated
-        _dsm_set_checkpoint(None, "sqs" if is_sqs else "sns", arn)
+        # In this function only recieves SQS and SNS events, if not SQS must be SNS
+        # Do not want to set checkpoint with "" arn
+        if arn:
+            _dsm_set_checkpoint(
+                None, "sqs" if event_source.equals(EventTypes.SQS) else "sns", arn
+            )
         return extract_context_from_lambda_context(lambda_context)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         # Still want to set a DSM checkpoint even if DSM context not propagated
-        _dsm_set_checkpoint(None, "sqs" if is_sqs else "sns", arn)
+        # Do not want to set checkpoint with "" arn
+        if arn:
+            _dsm_set_checkpoint(
+                None,
+                "sqs" if event_source.equals(EventTypes.SQS) else "sns",
+                arn,
+            )
         return extract_context_from_lambda_context(lambda_context)
 
 
@@ -418,7 +427,9 @@ def extract_context_from_kinesis_event(event, lambda_context):
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
     # Still want to set a DSM checkpoint even if DSM context not propagated
-    _dsm_set_checkpoint(None, "kinesis", arn)
+    # Do not want to set checkpoint with "" arn
+    if arn:
+        _dsm_set_checkpoint(None, "kinesis", arn)
     return extract_context_from_lambda_context(lambda_context)
 
 

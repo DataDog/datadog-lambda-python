@@ -2495,13 +2495,6 @@ class TestDsmSetCheckpoint(unittest.TestCase):
         self.mock_logger.debug.assert_called_once()
 
     @patch("ddtrace.data_streams.set_consume_checkpoint")
-    def test_dsm_set_checkpoint_non_dict_context(self, mock_checkpoint):
-        _dsm_set_checkpoint(
-            "not_a_dict", "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
-        mock_checkpoint.assert_not_called()
-
-    @patch("ddtrace.data_streams.set_consume_checkpoint")
     def test_dsm_set_checkpoint_DSM_PROPAGATION_KEY_BASE_64_not_present(
         self, mock_checkpoint
     ):
@@ -2532,6 +2525,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
                     "messageAttributes": {
                         "_datadog": {"dataType": "String", "stringValue": dd_json_data}
                     },
+                    "eventSource": "aws:sqs",
                 }
             ]
         }
@@ -2565,6 +2559,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
                     "messageAttributes": {
                         "_datadog": {"dataType": "Binary", "binaryValue": encoded_data}
                     },
+                    "eventSource": "aws:sqs",
                 }
             ]
         }
@@ -2600,6 +2595,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
                             "_datadog": {"Type": "String", "Value": dd_json_data}
                         },
                     },
+                    "eventSource": "aws:sns",
                 }
             ]
         }
@@ -2633,6 +2629,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
                     "messageAttributes": {
                         "_datadog": {"dataType": "String", "stringValue": dd_json_data}
                     },
+                    "eventSource": "aws:sqs",
                 }
             ]
         }
@@ -2674,6 +2671,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
                     "body": json.dumps(sns_notification),
                     "messageAttributes": {},
+                    "eventSource": "aws:sqs",
                 }
             ]
         }
@@ -2701,6 +2699,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
                 {
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
                     "messageAttributes": {},
+                    "eventSource": "aws:sqs",
                 }
             ]
         }
@@ -2732,6 +2731,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
                     "messageAttributes": {
                         "_datadog": {"dataType": "String", "stringValue": dd_json_data}
                     },
+                    "eventSource": "aws:sqs",
                 }
             ]
         }
@@ -2760,7 +2760,8 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
                     "Sns": {
                         "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
                         "MessageAttributes": {},
-                    }
+                    },
+                    "eventSource": "aws:sns",
                 }
             ]
         }
@@ -2793,7 +2794,8 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
                         "MessageAttributes": {
                             "_datadog": {"Type": "String", "Value": dd_json_data}
                         },
-                    }
+                    },
+                    "eventSource": "aws:sns",
                 }
             ]
         }
@@ -2834,6 +2836,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
                     "body": json.dumps(sns_notification),
                     "messageAttributes": {},
+                    "eventSource": "aws:sqs",
                 }
             ]
         }
@@ -2866,7 +2869,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
             event, self.lambda_context
         )
 
-        mock_dsm_set_checkpoint.assert_called_once_with(None, "sns", "")
+        mock_dsm_set_checkpoint.assert_not_called()
         mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
         self.assertEqual(result, mock_context)
 
@@ -2982,6 +2985,6 @@ class TestExtractContextFromKinesisEventWithDSMLogic(unittest.TestCase):
 
         # Verify that _dsm_set_checkpoint is called with empty string for arn
         # even when exception occurs
-        mock_dsm_set_checkpoint.assert_called_once_with(None, "kinesis", "")
+        mock_dsm_set_checkpoint.assert_not_called()
         mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
         self.assertEqual(result, mock_context)
