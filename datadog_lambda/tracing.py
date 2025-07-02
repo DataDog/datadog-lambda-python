@@ -422,7 +422,9 @@ def extract_context_from_kinesis_event(event, lambda_context):
             dd_ctx = data_obj.get("_datadog")
             if dd_ctx:
                 context = propagator.extract(dd_ctx)
-                _dsm_set_checkpoint(dd_ctx, "kinesis", arn)
+                # Do not want to set checkpoint with "" arn
+                if arn:
+                    _dsm_set_checkpoint(dd_ctx, "kinesis", arn)
                 return context
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
