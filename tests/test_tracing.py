@@ -2495,11 +2495,11 @@ class TestDsmSetCheckpoint(unittest.TestCase):
         self.mock_logger.debug.assert_called_once()
 
     @patch("ddtrace.data_streams.set_consume_checkpoint")
-    def test_dsm_set_checkpoint_DSM_PROPAGATION_KEY_BASE_64_not_present(
+    def test_dsm_set_checkpoint_with_non_dict_context_does_not_set_checkpoint(
         self, mock_checkpoint
     ):
         _dsm_set_checkpoint(
-            {"not_a_dict": "not_a_dict"},
+            [],
             "sqs",
             "arn:aws:sqs:us-east-1:123456789012:test-queue",
         )
