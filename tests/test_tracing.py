@@ -2859,7 +2859,6 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
     def test_sqs_sns_event_with_exception_accessing_first_record(
         self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
     ):
-        """Test that arn is properly initialized to empty string when exception occur"""
         event = {"Records": None}
 
         mock_context = Context(trace_id=123, span_id=456)
@@ -2975,7 +2974,6 @@ class TestExtractContextFromKinesisEventWithDSMLogic(unittest.TestCase):
     def test_kinesis_event_with_exception_accessing_first_record(
         self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
     ):
-        """Test that arn is properly initialized to empty string when exception occur"""
         event = {"Records": None}
 
         mock_context = Context(trace_id=123, span_id=456)
@@ -2983,8 +2981,6 @@ class TestExtractContextFromKinesisEventWithDSMLogic(unittest.TestCase):
 
         result = extract_context_from_kinesis_event(event, self.lambda_context)
 
-        # Verify that _dsm_set_checkpoint is called with empty string for arn
-        # even when exception occurs
         mock_dsm_set_checkpoint.assert_not_called()
         mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
         self.assertEqual(result, mock_context)
