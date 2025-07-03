@@ -332,7 +332,9 @@ def extract_context_from_sqs_or_sns_event_or_context(
         # Do not want to set checkpoint with "" arn
         if source_arn:
             _dsm_set_checkpoint(
-                None, "sqs" if event_source.equals(EventTypes.SQS) else "sns", source_arn
+                None,
+                "sqs" if event_source.equals(EventTypes.SQS) else "sns",
+                source_arn,
             )
         return extract_context_from_lambda_context(lambda_context)
     except Exception as e:
