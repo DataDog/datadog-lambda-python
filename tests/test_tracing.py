@@ -2873,6 +2873,97 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
         self.assertEqual(result, mock_context)
 
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_sqs_event_with_empty_arn(
+        self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
+    ):
+        """Test SQS event with empty eventSourceARN"""
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "",
+                    "messageAttributes": {},
+                    "eventSource": "aws:sqs",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_not_called()
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_sns_event_with_empty_arn(
+        self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
+    ):
+        """Test SNS event with empty TopicArn"""
+        event = {
+            "Records": [
+                {
+                    "Sns": {
+                        "TopicArn": "",
+                        "MessageAttributes": {},
+                    },
+                    "eventSource": "aws:sns",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_not_called()
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_sns_to_sqs_event_with_empty_arn(
+        self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
+    ):
+        """Test SNS->SQS event with empty eventSourceARN"""
+        sns_notification = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {},
+            "Message": "test message",
+        }
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "",
+                    "body": json.dumps(sns_notification),
+                    "messageAttributes": {},
+                    "eventSource": "aws:sqs",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_not_called()
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
 
 class TestExtractContextFromKinesisEventWithDSMLogic(unittest.TestCase):
     def setUp(self):
@@ -2967,6 +3058,34 @@ class TestExtractContextFromKinesisEventWithDSMLogic(unittest.TestCase):
             "kinesis",
             "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
         )
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_kinesis_event_with_empty_arn(
+        self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
+    ):
+        """Test Kinesis event with empty eventSourceARN"""
+        kinesis_data = {"message": "test"}
+        kinesis_data_str = json.dumps(kinesis_data)
+        encoded_data = base64.b64encode(kinesis_data_str.encode()).decode()
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "",
+                    "kinesis": {"data": encoded_data},
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_kinesis_event(event, self.lambda_context)
+
+        mock_dsm_set_checkpoint.assert_not_called()
         mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
         self.assertEqual(result, mock_context)
 
