@@ -300,11 +300,7 @@ def extract_context_from_sqs_or_sns_event_or_context(
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
                 context = propagator.extract(dd_data)
-                _dsm_set_checkpoint(
-                    dd_data,
-                    event_type,
-                    source_arn,
-                )
+                _dsm_set_checkpoint(dd_data, event_type, source_arn)
                 return context
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
@@ -329,20 +325,12 @@ def extract_context_from_sqs_or_sns_event_or_context(
                             sampling_priority=float(x_ray_context["sampled"]),
                         )
         # Still want to set a DSM checkpoint even if DSM context not propagated
-        _dsm_set_checkpoint(
-            None,
-            event_type,
-            source_arn,
-        )
+        _dsm_set_checkpoint(None, event_type, source_arn)
         return extract_context_from_lambda_context(lambda_context)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         # Still want to set a DSM checkpoint even if DSM context not propagated
-        _dsm_set_checkpoint(
-            None,
-            event_type,
-            source_arn,
-        )
+        _dsm_set_checkpoint(None, event_type, source_arn)
         return extract_context_from_lambda_context(lambda_context)
 
 
