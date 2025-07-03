@@ -426,9 +426,7 @@ def extract_context_from_kinesis_event(event, lambda_context):
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
     # Still want to set a DSM checkpoint even if DSM context not propagated
-    # Do not want to set checkpoint with "" arn
-    if source_arn:
-        _dsm_set_checkpoint(None, "kinesis", source_arn)
+    _dsm_set_checkpoint(None, "kinesis", source_arn)
     return extract_context_from_lambda_context(lambda_context)
 
 
