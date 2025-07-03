@@ -47,6 +47,7 @@ from datadog_lambda.tracing import (
     extract_context_from_sqs_or_sns_event_or_context,
 )
 
+from datadog_lambda.trigger import parse_event_source
 from tests.utils import get_mock_context
 
 
@@ -2534,7 +2535,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         mock_extract.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context
+            event, self.lambda_context, parse_event_source(event)
         )
 
         mock_extract.assert_called_once_with(dd_data)
@@ -2568,7 +2569,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         mock_extract.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context
+            event, self.lambda_context, parse_event_source(event)
         )
 
         mock_extract.assert_called_once_with(dd_data)
@@ -2604,7 +2605,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         mock_extract.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context
+            event, self.lambda_context, parse_event_source(event)
         )
 
         mock_extract.assert_called_once_with(dd_data)
@@ -2638,7 +2639,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         mock_extract.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context
+            event, self.lambda_context, parse_event_source(event)
         )
 
         mock_extract.assert_called_once_with(dd_data)
@@ -2680,7 +2681,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         mock_extract.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context
+            event, self.lambda_context, parse_event_source(event)
         )
 
         mock_extract.assert_called_once_with(dd_data)
@@ -2708,7 +2709,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         mock_extract_from_lambda_context.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context
+            event, self.lambda_context, parse_event_source(event)
         )
 
         mock_dsm_set_checkpoint.assert_called_once_with(
@@ -2740,7 +2741,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         mock_extract_from_lambda_context.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context
+            event, self.lambda_context, parse_event_source(event)
         )
 
         mock_dsm_set_checkpoint.assert_called_once_with(
@@ -2770,7 +2771,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         mock_extract_from_lambda_context.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context
+            event, self.lambda_context, parse_event_source(event)
         )
 
         mock_dsm_set_checkpoint.assert_called_once_with(
@@ -2804,7 +2805,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         mock_extract_from_lambda_context.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context
+            event, self.lambda_context, parse_event_source(event)
         )
 
         mock_dsm_set_checkpoint.assert_called_once_with(
@@ -2845,7 +2846,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         mock_extract_from_lambda_context.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context
+            event, self.lambda_context, parse_event_source(event)
         )
 
         mock_dsm_set_checkpoint.assert_called_once_with(
@@ -2865,7 +2866,7 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
         mock_extract_from_lambda_context.return_value = mock_context
 
         result = extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context
+            event, self.lambda_context, parse_event_source(event)
         )
 
         mock_dsm_set_checkpoint.assert_not_called()
