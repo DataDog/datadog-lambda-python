@@ -263,7 +263,7 @@ def extract_context_from_sqs_or_sns_event_or_context(
             sns_record = first_record.get("Sns") or {}
             # SNS->SQS event would extract SNS arn without this check
             if event_source.equals(EventTypes.SNS):
-                arn = sns_record.get("TopicArn", "")
+                source_arn = sns_record.get("TopicArn", "")
             msg_attributes = sns_record.get("MessageAttributes") or {}
         dd_payload = msg_attributes.get("_datadog")
         if dd_payload:
