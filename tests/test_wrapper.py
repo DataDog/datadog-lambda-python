@@ -73,10 +73,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_dd_lambda_layer_tag = patcher.start()
         self.addCleanup(patcher.stop)
 
-        patcher = patch("datadog_lambda.wrapper.set_dsm_context")
-        self.mock_set_dsm_context = patcher.start()
-        self.addCleanup(patcher.stop)
-
     @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_datadog_lambda_wrapper(self):
         @wrapper.datadog_lambda_wrapper
@@ -555,62 +551,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             result = return_type_test({}, mock_context)
             self.assertEqual(result, test_result)
             self.assertFalse(MockPrintExc.called)
-
-    def test_set_dsm_context_called_when_DSM_and_tracing_enabled(self):
-        os.environ["DD_DATA_STREAMS_ENABLED"] = "true"
-        os.environ["DD_TRACE_ENABLED"] = "true"
-
-        @wrapper.datadog_lambda_wrapper
-        def lambda_handler(event, context):
-            return "ok"
-
-        result = lambda_handler({}, get_mock_context())
-        self.assertEqual(result, "ok")
-        self.mock_set_dsm_context.assert_called_once()
-
-        del os.environ["DD_DATA_STREAMS_ENABLED"]
-
-    def test_set_dsm_context_not_called_when_only_DSM_enabled(self):
-        os.environ["DD_DATA_STREAMS_ENABLED"] = "true"
-        os.environ["DD_TRACE_ENABLED"] = "false"
-
-        @wrapper.datadog_lambda_wrapper
-        def lambda_handler(event, context):
-            return "ok"
-
-        result = lambda_handler({}, get_mock_context())
-        self.assertEqual(result, "ok")
-        self.mock_set_dsm_context.assert_not_called()
-
-        del os.environ["DD_DATA_STREAMS_ENABLED"]
-
-    def test_set_dsm_context_not_called_when_only_tracing_enabled(self):
-        os.environ["DD_DATA_STREAMS_ENABLED"] = "false"
-        os.environ["DD_TRACE_ENABLED"] = "true"
-
-        @wrapper.datadog_lambda_wrapper
-        def lambda_handler(event, context):
-            return "ok"
-
-        result = lambda_handler({}, get_mock_context())
-        self.assertEqual(result, "ok")
-        self.mock_set_dsm_context.assert_not_called()
-
-        del os.environ["DD_DATA_STREAMS_ENABLED"]
-
-    def test_set_dsm_context_not_called_when_tracing_and_DSM_disabled(self):
-        os.environ["DD_DATA_STREAMS_ENABLED"] = "false"
-        os.environ["DD_TRACE_ENABLED"] = "false"
-
-        @wrapper.datadog_lambda_wrapper
-        def lambda_handler(event, context):
-            return "ok"
-
-        result = lambda_handler({}, get_mock_context())
-        self.assertEqual(result, "ok")
-        self.mock_set_dsm_context.assert_not_called()
-
-        del os.environ["DD_DATA_STREAMS_ENABLED"]
 
 
 class TestLambdaWrapperWithTraceContext(unittest.TestCase):

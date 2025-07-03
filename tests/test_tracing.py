@@ -1,3 +1,4 @@
+import base64
 import copy
 import functools
 import json
@@ -41,8 +42,12 @@ from datadog_lambda.tracing import (
     service_mapping as global_service_mapping,
     propagator,
     emit_telemetry_on_exception_outside_of_handler,
+    _dsm_set_checkpoint,
+    extract_context_from_kinesis_event,
+    extract_context_from_sqs_or_sns_event_or_context,
 )
 
+from datadog_lambda.trigger import parse_event_source
 from tests.utils import get_mock_context
 
 
@@ -55,6 +60,7 @@ fake_xray_header_value_parent_decimal = "10713633173203262661"
 fake_xray_header_value_root_decimal = "3995693151288333088"
 
 event_samples = "tests/event_samples/"
+DSM_PROPAGATION_KEY_BASE_64 = "dd-pathway-ctx-base64"
 
 
 def with_trace_propagation_style(style):
@@ -2438,3 +2444,650 @@ class TestExceptionOutsideHandler(unittest.TestCase):
 
         mock_submit_errors_metric.assert_called_once_with(None)
         mock_trace.assert_not_called()
+
+
+class TestDsmSetCheckpoint(unittest.TestCase):
+    def setUp(self):
+        checkpoint_patcher = patch("ddtrace.data_streams.set_consume_checkpoint")
+        self.mock_checkpoint = checkpoint_patcher.start()
+        self.addCleanup(checkpoint_patcher.stop)
+
+        logger_patcher = patch("datadog_lambda.tracing.logger")
+        self.mock_logger = logger_patcher.start()
+        self.addCleanup(logger_patcher.stop)
+
+    @patch("datadog_lambda.config.Config.data_streams_enabled", False)
+    def test_dsm_set_checkpoint_data_streams_disabled(self):
+        context_json = {DSM_PROPAGATION_KEY_BASE_64: "12345"}
+        event_type = "sqs"
+        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
+
+        _dsm_set_checkpoint(context_json, event_type, arn)
+
+        self.mock_checkpoint.assert_not_called()
+
+    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
+    def test_dsm_set_checkpoint_data_streams_enabled_complete_context(self):
+        context_json = {DSM_PROPAGATION_KEY_BASE_64: "12345"}
+        event_type = "sqs"
+        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
+
+        _dsm_set_checkpoint(context_json, event_type, arn)
+
+        self.mock_checkpoint.assert_called_once()
+        args, kwargs = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], event_type)
+        self.assertEqual(args[1], arn)
+        self.assertTrue(callable(args[2]))
+        self.assertEqual(kwargs["manual_checkpoint"], False)
+
+    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
+    def test_dsm_set_checkpoint_exception_path(self):
+        context_json = {DSM_PROPAGATION_KEY_BASE_64: "12345"}
+        event_type = "sqs"
+        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
+
+        test_exception = Exception("Test exception")
+        self.mock_checkpoint.side_effect = test_exception
+
+        _dsm_set_checkpoint(context_json, event_type, arn)
+
+        self.mock_checkpoint.assert_called_once()
+        self.mock_logger.debug.assert_called_once()
+
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_dsm_set_checkpoint_with_non_dict_context_does_not_set_checkpoint(
+        self, mock_checkpoint
+    ):
+        _dsm_set_checkpoint(
+            [],
+            "sqs",
+            "arn:aws:sqs:us-east-1:123456789012:test-queue",
+        )
+        mock_checkpoint.assert_not_called()
+
+
+class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
+    def setUp(self):
+        self.lambda_context = get_mock_context()
+
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("datadog_lambda.tracing.propagator.extract")
+    def test_sqs_event_with_datadog_message_attributes(
+        self, mock_extract, mock_dsm_set_checkpoint
+    ):
+        dd_data = {DSM_PROPAGATION_KEY_BASE_64: "12345"}
+        dd_json_data = json.dumps(dd_data)
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {"dataType": "String", "stringValue": dd_json_data}
+                    },
+                    "eventSource": "aws:sqs",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
+        mock_extract.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_extract.assert_called_once_with(dd_data)
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        )
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("datadog_lambda.tracing.propagator.extract")
+    def test_sqs_event_with_binary_datadog_message_attributes(
+        self, mock_extract, mock_dsm_set_checkpoint
+    ):
+        dd_data = {DSM_PROPAGATION_KEY_BASE_64: "12345"}
+        dd_json_data = json.dumps(dd_data)
+        encoded_data = base64.b64encode(dd_json_data.encode()).decode()
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {"dataType": "Binary", "binaryValue": encoded_data}
+                    },
+                    "eventSource": "aws:sqs",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
+        mock_extract.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_extract.assert_called_once_with(dd_data)
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        )
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("datadog_lambda.tracing.propagator.extract")
+    def test_sns_event_with_datadog_message_attributes(
+        self, mock_extract, mock_dsm_set_checkpoint
+    ):
+        dd_data = {DSM_PROPAGATION_KEY_BASE_64: "12345"}
+        dd_json_data = json.dumps(dd_data)
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "",
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "MessageAttributes": {
+                            "_datadog": {"Type": "String", "Value": dd_json_data}
+                        },
+                    },
+                    "eventSource": "aws:sns",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
+        mock_extract.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_extract.assert_called_once_with(dd_data)
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            dd_data, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
+        )
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("datadog_lambda.tracing.propagator.extract")
+    def test_sns_to_sqs_event_detection_and_processing(
+        self, mock_extract, mock_dsm_set_checkpoint
+    ):
+        """Test SNS->SQS case where SQS body contains SNS notification"""
+        dd_data = {DSM_PROPAGATION_KEY_BASE_64: "12345"}
+        dd_json_data = json.dumps(dd_data)
+
+        sns_notification = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {
+                "_datadog": {"Type": "String", "Value": dd_json_data}
+            },
+            "Message": "test message",
+        }
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "body": json.dumps(sns_notification),
+                    "messageAttributes": {},
+                    "eventSource": "aws:sqs",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
+        mock_extract.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_extract.assert_called_once_with(dd_data)
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        )
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_sqs_event_without_datadog_message_attributes(
+        self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
+    ):
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {},
+                    "eventSource": "aws:sqs",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        )
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_sqs_event_with_malformed_datadog_message_attributes(
+        self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
+    ):
+        dd_json_data = "not-json"
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {"dataType": "String", "stringValue": dd_json_data}
+                    },
+                    "eventSource": "aws:sqs",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        )
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_sns_event_without_datadog_message_attributes(
+        self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
+    ):
+        event = {
+            "Records": [
+                {
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "MessageAttributes": {},
+                    },
+                    "eventSource": "aws:sns",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            None, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
+        )
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_sns_event_with_malformed_datadog_message_attributes(
+        self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
+    ):
+        dd_json_data = "not-json"
+
+        event = {
+            "Records": [
+                {
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "MessageAttributes": {
+                            "_datadog": {"Type": "String", "Value": dd_json_data}
+                        },
+                    },
+                    "eventSource": "aws:sns",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            None, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
+        )
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_sns_to_sqs_event_with_malformed_datadog_message_attributes(
+        self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
+    ):
+        """Test SNS->SQS case where SQS body contains SNS notification with malformed datadog ctx"""
+        dd_json_data = "not-json"
+
+        sns_notification = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {
+                "_datadog": {"Type": "String", "Value": dd_json_data}
+            },
+            "Message": "test message",
+        }
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "body": json.dumps(sns_notification),
+                    "messageAttributes": {},
+                    "eventSource": "aws:sqs",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        )
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_sqs_sns_event_with_exception_accessing_first_record(
+        self,
+        mock_set_consume_checkpoint,
+        mock_dsm_set_checkpoint,
+        mock_extract_from_lambda_context,
+    ):
+        event = {"Records": None, "eventSource": "aws:sqs"}
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+        mock_set_consume_checkpoint.assert_not_called()
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_sqs_event_with_empty_arn(
+        self,
+        mock_set_consume_checkpoint,
+        mock_dsm_set_checkpoint,
+        mock_extract_from_lambda_context,
+    ):
+        """Test SQS event with empty eventSourceARN"""
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "",
+                    "messageAttributes": {},
+                    "eventSource": "aws:sqs",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_called_once_with(None, "sqs", "")
+        mock_set_consume_checkpoint.assert_not_called()
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_sns_event_with_empty_arn(
+        self,
+        mock_set_consume_checkpoint,
+        mock_dsm_set_checkpoint,
+        mock_extract_from_lambda_context,
+    ):
+        """Test SNS event with empty TopicArn"""
+        event = {
+            "Records": [
+                {
+                    "Sns": {
+                        "TopicArn": "",
+                        "MessageAttributes": {},
+                    },
+                    "eventSource": "aws:sns",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_called_once_with(None, "sns", "")
+        mock_set_consume_checkpoint.assert_not_called()
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_sns_to_sqs_event_with_empty_arn(
+        self,
+        mock_set_consume_checkpoint,
+        mock_dsm_set_checkpoint,
+        mock_extract_from_lambda_context,
+    ):
+        """Test SNS->SQS event with empty eventSourceARN"""
+        sns_notification = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {},
+            "Message": "test message",
+        }
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "",
+                    "body": json.dumps(sns_notification),
+                    "messageAttributes": {},
+                    "eventSource": "aws:sqs",
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_called_once_with(None, "sqs", "")
+        mock_set_consume_checkpoint.assert_not_called()
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+
+class TestExtractContextFromKinesisEventWithDSMLogic(unittest.TestCase):
+    def setUp(self):
+        self.lambda_context = get_mock_context()
+
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("datadog_lambda.tracing.propagator.extract")
+    def test_kinesis_event_with_datadog_data(
+        self, mock_extract, mock_dsm_set_checkpoint
+    ):
+        dd_data = {DSM_PROPAGATION_KEY_BASE_64: "12345"}
+        kinesis_data = {"_datadog": dd_data, "message": "test"}
+        kinesis_data_str = json.dumps(kinesis_data)
+        encoded_data = base64.b64encode(kinesis_data_str.encode()).decode()
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {"data": encoded_data},
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
+        mock_extract.return_value = mock_context
+
+        result = extract_context_from_kinesis_event(event, self.lambda_context)
+
+        mock_extract.assert_called_once_with(dd_data)
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            dd_data,
+            "kinesis",
+            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+        )
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_kinesis_event_without_datadog_data(
+        self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
+    ):
+        kinesis_data = {"message": "test"}
+        kinesis_data_str = json.dumps(kinesis_data)
+        encoded_data = base64.b64encode(kinesis_data_str.encode()).decode()
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {"data": encoded_data},
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_kinesis_event(event, self.lambda_context)
+
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            None,
+            "kinesis",
+            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+        )
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_kinesis_event_with_malformed_data(
+        self, mock_dsm_set_checkpoint, mock_extract_from_lambda_context
+    ):
+        encoded_data = "not-base64-or-json"
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {"data": encoded_data},
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_kinesis_event(event, self.lambda_context)
+
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            None,
+            "kinesis",
+            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+        )
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_kinesis_event_with_empty_arn(
+        self,
+        mock_set_consume_checkpoint,
+        mock_dsm_set_checkpoint,
+        mock_extract_from_lambda_context,
+    ):
+        """Test Kinesis event with empty eventSourceARN"""
+        kinesis_data = {"message": "test"}
+        kinesis_data_str = json.dumps(kinesis_data)
+        encoded_data = base64.b64encode(kinesis_data_str.encode()).decode()
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "",
+                    "kinesis": {"data": encoded_data},
+                }
+            ]
+        }
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_kinesis_event(event, self.lambda_context)
+
+        mock_dsm_set_checkpoint.assert_called_once_with(None, "kinesis", "")
+        mock_set_consume_checkpoint.assert_not_called()
+        mock_extract_from_lambda_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(result, mock_context)
+
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    @patch("ddtrace.data_streams.set_consume_checkpoint")
+    def test_kinesis_event_with_exception_accessing_first_record(
+        self, mock_set_consume_checkpoint, mock_extract_from_lambda_context
+    ):
+        event = {"Records": None}
+
+        mock_context = Context(trace_id=123, span_id=456)
+        mock_extract_from_lambda_context.return_value = mock_context
+
+        result = extract_context_from_kinesis_event(event, self.lambda_context)
+        mock_set_consume_checkpoint.assert_not_called()
+        self.assertEqual(result, mock_context)
