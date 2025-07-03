@@ -217,7 +217,9 @@ def create_sns_event(message):
     }
 
 
-def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context, event_source):
+def extract_context_from_sqs_or_sns_event_or_context(
+    event, lambda_context, event_source
+):
     """
     Extract Datadog trace context from an SQS event.
 
