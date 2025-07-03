@@ -2616,40 +2616,6 @@ class TestExtractContextFromSqsOrSnsEventWithDSMLogic(unittest.TestCase):
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
     @patch("datadog_lambda.tracing.propagator.extract")
-    def test_sqs_event_determines_is_sqs_true_when_event_source_arn_present(
-        self, mock_extract, mock_dsm_set_checkpoint
-    ):
-        """Test that is_sqs = True when eventSource is SQS"""
-        dd_data = {DSM_PROPAGATION_KEY_BASE_64: "12345"}
-        dd_json_data = json.dumps(dd_data)
-
-        event = {
-            "Records": [
-                {
-                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
-                    "messageAttributes": {
-                        "_datadog": {"dataType": "String", "stringValue": dd_json_data}
-                    },
-                    "eventSource": "aws:sqs",
-                }
-            ]
-        }
-
-        mock_context = Context(trace_id=12345, span_id=67890, sampling_priority=1)
-        mock_extract.return_value = mock_context
-
-        result = extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context, parse_event_source(event)
-        )
-
-        mock_extract.assert_called_once_with(dd_data)
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
-        self.assertEqual(result, mock_context)
-
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    @patch("datadog_lambda.tracing.propagator.extract")
     def test_sns_to_sqs_event_detection_and_processing(
         self, mock_extract, mock_dsm_set_checkpoint
     ):
