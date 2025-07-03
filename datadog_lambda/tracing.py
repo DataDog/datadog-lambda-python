@@ -71,6 +71,9 @@ def _dsm_set_checkpoint(context_json, event_type, arn):
     if not config.data_streams_enabled:
         return
 
+    if not arn:
+        return
+
     try:
         from ddtrace.data_streams import set_consume_checkpoint
 
@@ -234,6 +237,7 @@ def extract_context_from_sqs_or_sns_event_or_context(
     Set a DSM checkpoint if DSM is enabled and the method for context propagation is supported.
     """
     source_arn = ""
+    event_type = "sqs" if event_source.equals(EventTypes.SQS) else "sns"
 
     # EventBridge => SQS
     try:
@@ -296,14 +300,11 @@ def extract_context_from_sqs_or_sns_event_or_context(
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
                 context = propagator.extract(dd_data)
-                # Do not want to set checkpoint with "" arn
-                if source_arn:
-                    _dsm_set_checkpoint(
-                        dd_data,
-                        # In this function only recieves SQS and SNS events, if not SQS must be SNS
-                        "sqs" if event_source.equals(EventTypes.SQS) else "sns",
-                        source_arn,
-                    )
+                _dsm_set_checkpoint(
+                    dd_data,
+                    event_type,
+                    source_arn,
+                )
                 return context
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
@@ -328,25 +329,20 @@ def extract_context_from_sqs_or_sns_event_or_context(
                             sampling_priority=float(x_ray_context["sampled"]),
                         )
         # Still want to set a DSM checkpoint even if DSM context not propagated
-        # In this function only recieves SQS and SNS events, if not SQS must be SNS
-        # Do not want to set checkpoint with "" arn
-        if source_arn:
-            _dsm_set_checkpoint(
-                None,
-                "sqs" if event_source.equals(EventTypes.SQS) else "sns",
-                source_arn,
-            )
+        _dsm_set_checkpoint(
+            None,
+            event_type,
+            source_arn,
+        )
         return extract_context_from_lambda_context(lambda_context)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         # Still want to set a DSM checkpoint even if DSM context not propagated
-        # Do not want to set checkpoint with "" arn
-        if source_arn:
-            _dsm_set_checkpoint(
-                None,
-                "sqs" if event_source.equals(EventTypes.SQS) else "sns",
-                source_arn,
-            )
+        _dsm_set_checkpoint(
+            None,
+            event_type,
+            source_arn,
+        )
         return extract_context_from_lambda_context(lambda_context)
 
 
@@ -425,9 +421,7 @@ def extract_context_from_kinesis_event(event, lambda_context):
             dd_ctx = data_obj.get("_datadog")
             if dd_ctx:
                 context = propagator.extract(dd_ctx)
-                # Do not want to set checkpoint with "" arn
-                if source_arn:
-                    _dsm_set_checkpoint(dd_ctx, "kinesis", source_arn)
+                _dsm_set_checkpoint(dd_ctx, "kinesis", source_arn)
                 return context
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
