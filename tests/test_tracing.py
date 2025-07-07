@@ -2445,106 +2445,17 @@ class TestExceptionOutsideHandler(unittest.TestCase):
         mock_trace.assert_not_called()
 
 
-class TestDsmSetCheckpoint(unittest.TestCase):
+class TestExtractDDContextWithDSMLogic(unittest.TestCase):
     def setUp(self):
         checkpoint_patcher = patch("ddtrace.data_streams.set_consume_checkpoint")
         self.mock_checkpoint = checkpoint_patcher.start()
         self.addCleanup(checkpoint_patcher.stop)
-
-        logger_patcher = patch("datadog_lambda.tracing.logger")
-        self.mock_logger = logger_patcher.start()
-        self.addCleanup(logger_patcher.stop)
-
-    @patch("datadog_lambda.config.Config.data_streams_enabled", False)
-    def test_dsm_set_checkpoint_data_streams_disabled(self):
-        context_json = {"dd-pathway-ctx-base64": "12345"}
-        event_type = "sqs"
-        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
-
-        _dsm_set_checkpoint(context_json, event_type, arn)
-
-        self.mock_checkpoint.assert_not_called()
-
-    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
-    def test_dsm_set_checkpoint_data_streams_enabled_complete_context(self):
-        context_json = {"dd-pathway-ctx-base64": "12345"}
-        event_type = "sqs"
-        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
-
-        _dsm_set_checkpoint(context_json, event_type, arn)
-
-        self.mock_checkpoint.assert_called_once()
-        args, kwargs = self.mock_checkpoint.call_args
-        self.assertEqual(args[0], event_type)
-        self.assertEqual(args[1], arn)
-        self.assertTrue(callable(args[2]))
-        self.assertEqual(kwargs["manual_checkpoint"], False)
-
-    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
-    def test_dsm_set_checkpoint_happy_path_with_none_context(self):
-        context_json = None  # None context should still work
-        event_type = "sqs"
-        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
-
-        _dsm_set_checkpoint(context_json, event_type, arn)
-
-        self.mock_checkpoint.assert_called_once()
-        args, kwargs = self.mock_checkpoint.call_args
-        self.assertEqual(args[0], event_type)
-        self.assertEqual(args[1], arn)
-        self.assertTrue(callable(args[2]))
-        self.assertEqual(kwargs["manual_checkpoint"], False)
-
-    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
-    def test_dsm_set_checkpoint_happy_path_with_empty_dict_context(self):
-        context_json = {}  # Empty dict context should still work
-        event_type = "sqs"
-        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
-
-        _dsm_set_checkpoint(context_json, event_type, arn)
-
-        self.mock_checkpoint.assert_called_once()
-        args, kwargs = self.mock_checkpoint.call_args
-        self.assertEqual(args[0], event_type)
-        self.assertEqual(args[1], arn)
-        self.assertTrue(callable(args[2]))
-        self.assertEqual(kwargs["manual_checkpoint"], False)
-
-    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
-    def test_dsm_set_checkpoint_exception_path(self):
-        context_json = {"dd-pathway-ctx-base64": "12345"}
-        event_type = "sqs"
-        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
-
-        test_exception = Exception("Test exception")
-        self.mock_checkpoint.side_effect = test_exception
-
-        _dsm_set_checkpoint(context_json, event_type, arn)
-
-        self.mock_checkpoint.assert_called_once()
-        self.mock_logger.debug.assert_called_once()
-
-    @patch("datadog_lambda.config.Config.data_streams_enabled", True)
-    def test_dsm_set_checkpoint_empty_arn_not_called(self):
-        context_json = {"dd-pathway-ctx-base64": "12345"}
-        event_type = "sqs"
-        arn = ""  # Empty ARN
-
-        _dsm_set_checkpoint(context_json, event_type, arn)
-
-        self.mock_checkpoint.assert_not_called()
-
-
-class TestExtractDDContextWithDSMLogic(unittest.TestCase):
-    def setUp(self):
         self.lambda_context = get_mock_context()
 
     # SQS TESTS - Testing _dsm_set_checkpoint calls for SQS events
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_datadog_context_propagated_properly_string_type_with_arn_found(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sqs_context_propagated_string_value(self, mock_dsm_set_checkpoint):
         """Test SQS with valid String datadog context"""
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
@@ -2570,9 +2481,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_datadog_context_propagated_properly_binary_type_with_arn_found(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sqs_context_propagated_binary_value(self, mock_dsm_set_checkpoint):
         """Test SQS with valid Binary datadog context"""
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
@@ -2599,9 +2508,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_no_datadog_context_DSM_checkpoint_set_with_none(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sqs_no_datadog_message_attribute(self, mock_dsm_set_checkpoint):
         """Test SQS with no _datadog key set DSM checkpoint with None"""
         event = {
             "Records": [
@@ -2622,9 +2529,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_unsupported_data_type_DSM_checkpoint_set_with_none(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sqs_incorrect_datadog_message_attribute(self, mock_dsm_set_checkpoint):
         """Test SQS with unsupported dataType set DSM checkpoint with None"""
         event = {
             "Records": [
@@ -2650,9 +2555,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_empty_datadog_context_set_DSM_checkpoint_with_none(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sqs_empty_datadog_message_attribute(self, mock_dsm_set_checkpoint):
         """Test SQS with empty datadog context set DSM checkpoint with None"""
         event = {
             "Records": [
@@ -2678,7 +2581,37 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_invalid_base64_raises_exception_set_DSM_checkpoint_with_none(
+    def test_sqs_no_DSM_context_in_message_attribute(self, mock_dsm_set_checkpoint):
+        """Test SQS with no DSM context in _datadog message attribute - carrier_get returns None"""
+        dd_data = {"NOT-DSM-KEY": "12345"}
+        dd_json_data = json.dumps(dd_data)
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {"dataType": "String", "stringValue": dd_json_data}
+                    },
+                    "eventSource": "aws:sqs",
+                }
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        )
+
+        # DSM context is not propagated
+        context_json = mock_dsm_set_checkpoint.call_args[0][0]
+        carrier_get = lambda k: context_json and context_json.get(k)  # noqa: E731
+        assert carrier_get("dd-pathway-ctx-base64") is None
+
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_sqs_invalid_datadog_message_attribute_raises_exception(
         self, mock_dsm_set_checkpoint
     ):
         """Test SQS when exception occurs due to invalid base64 - ctx_json=None"""
@@ -2706,9 +2639,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_source_arn_empty_string_set_DSM_checkpoint_with_empty_string(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sqs_source_arn_not_found(self, mock_dsm_set_checkpoint):
         """Test SQS with empty source ARN - arn parameter"""
         event = {
             "Records": [
@@ -2725,13 +2656,22 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
         mock_dsm_set_checkpoint.assert_called_once_with(None, "sqs", "")
+        self.mock_checkpoint.assert_not_called()
+
+    @patch("datadog_lambda.config.Config.data_streams_enabled", False)
+    def test_sqs_data_streams_disabled(self):
+        context_json = {"dd-pathway-ctx-base64": "12345"}
+        event_type = "sqs"
+        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
+
+        _dsm_set_checkpoint(context_json, event_type, arn)
+
+        self.mock_checkpoint.assert_not_called()
 
     # SNS TESTS - Testing _dsm_set_checkpoint calls for SNS events
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_datadog_context_propagated_properly_string_type_with_arn_found(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sns_context_propagated_string_value(self, mock_dsm_set_checkpoint):
         """Test SNS with valid String datadog context"""
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
@@ -2760,9 +2700,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_datadog_context_propagated_properly_binary_type_with_arn_found(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sns_context_propagated_binary_value(self, mock_dsm_set_checkpoint):
         """Test SNS with valid Binary datadog context"""
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
@@ -2792,9 +2730,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_no_datadog_context_set_DSM_checkpoint_with_none(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sns_no_datadog_message_attribute(self, mock_dsm_set_checkpoint):
         """Test SNS with no _datadog key set DSM checkpoint with None"""
         event = {
             "Records": [
@@ -2817,9 +2753,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_unsupported_data_type_set_DSM_checkpoint_with_none(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sns_incorrect_datadog_message_attribute(self, mock_dsm_set_checkpoint):
         """Test SNS with unsupported dataType set DSM checkpoint with None"""
         event = {
             "Records": [
@@ -2847,9 +2781,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_empty_datadog_context_set_DSM_checkpoint_with_none(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sns_empty_datadog_message_attribute(self, mock_dsm_set_checkpoint):
         """Test SNS with empty datadog context set DSM checkpoint with None"""
         event = {
             "Records": [
@@ -2877,7 +2809,41 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_invalid_base64_raises_exception_set_DSM_checkpoint_with_none(
+    def test_sns_no_DSM_context_in_message_attribute(self, mock_dsm_set_checkpoint):
+        """Test SNS with no DSM context in _datadog message attribute - carrier_get returns None"""
+        dd_data = {"NOT-DSM-KEY": "12345"}
+        dd_json_data = json.dumps(dd_data)
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "",
+                    "Sns": {
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "MessageAttributes": {
+                            "_datadog": {"Type": "String", "Value": dd_json_data}
+                        },
+                    },
+                    "eventSource": "aws:sns",
+                }
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            dd_data, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
+        )
+
+        # DSM context is not propagated
+        context_json = mock_dsm_set_checkpoint.call_args[0][0]
+        carrier_get = lambda k: context_json and context_json.get(k)  # noqa: E731
+        assert carrier_get("dd-pathway-ctx-base64") is None
+
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_sns_invalid_datadog_message_attribute_raises_exception(
         self, mock_dsm_set_checkpoint
     ):
         """Test SNS with invalid base64 raises exception and sets checkpoint with None"""
@@ -2907,9 +2873,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_source_arn_empty_string_set_DSM_checkpoint_with_empty_string(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sns_source_arn_not_found(self, mock_dsm_set_checkpoint):
         """Test SNS with empty source ARN - arn parameter"""
         event = {
             "Records": [
@@ -2928,13 +2892,22 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
         mock_dsm_set_checkpoint.assert_called_once_with(None, "sns", "")
+        self.mock_checkpoint.assert_not_called()
+
+    @patch("datadog_lambda.config.Config.data_streams_enabled", False)
+    def test_sns_data_streams_disabled(self):
+        context_json = {"dd-pathway-ctx-base64": "12345"}
+        event_type = "sns"
+        arn = "arn:aws:sns:us-east-1:123456789012:test-topic"
+
+        _dsm_set_checkpoint(context_json, event_type, arn)
+
+        self.mock_checkpoint.assert_not_called()
 
     # SNS -> SQS TESTS - Testing _dsm_set_checkpoint calls for SNS->SQS events
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_datadog_context_propagated_properly_string_type_with_arn_found(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sns_to_sqs_context_propagated_string_value(self, mock_dsm_set_checkpoint):
         """Test SNS->SQS with valid datadog context and SQS ARN"""
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
@@ -2969,9 +2942,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_datadog_context_propagated_properly_binary_type_with_arn_found(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sns_to_sqs_context_propagated_binary_value(self, mock_dsm_set_checkpoint):
         """Test SNS->SQS with valid Binary datadog context"""
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
@@ -3009,9 +2980,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_no_datadog_context_set_DSM_checkpoint_with_none(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sns_to_sqs_no_datadog_message_attribute(self, mock_dsm_set_checkpoint):
         """Test SNS->SQS with no _datadog key set DSM checkpoint with None"""
         sns_notification = {
             "Type": "Notification",
@@ -3040,7 +3009,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_unsupported_data_type_set_DSM_checkpoint_with_none(
+    def test_sns_to_sqs_incorrect_datadog_message_attribute(
         self, mock_dsm_set_checkpoint
     ):
         """Test SNS->SQS with unsupported dataType set DSM checkpoint with None"""
@@ -3073,9 +3042,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_empty_datadog_context_set_DSM_checkpoint_with_none(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sns_to_sqs_empty_datadog_message_attribute(self, mock_dsm_set_checkpoint):
         """Test SNS->SQS with empty datadog context set DSM checkpoint with None"""
         sns_notification = {
             "Type": "Notification",
@@ -3109,7 +3076,39 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_invalid_base64_raises_exception_set_DSM_checkpoint_with_none(
+    def test_sns_to_sqs_no_DSM_context_in_message_attribute(
+        self, mock_dsm_set_checkpoint
+    ):
+        """Test SNS->SQS with no DSM context, carrier_get returns None"""
+        dd_data = {"NOT-DSM-KEY": "12345"}
+        dd_json_data = json.dumps(dd_data)
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {"dataType": "String", "stringValue": dd_json_data}
+                    },
+                    "eventSource": "aws:sqs",
+                }
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        )
+
+        # DSM context is not propagated
+        context_json = mock_dsm_set_checkpoint.call_args[0][0]
+        carrier_get = lambda k: context_json and context_json.get(k)  # noqa: E731
+        assert carrier_get("dd-pathway-ctx-base64") is None
+
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_sns_to_sqs_invalid_datadog_message_attribute_raises_exception(
         self, mock_dsm_set_checkpoint
     ):
         """Test SNS->SQS with invalid base64 payload raises exception and sets checkpoint with None"""
@@ -3142,9 +3141,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_source_arn_empty_string_set_DSM_checkpoint_with_empty_string(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sns_to_sqs_source_arn_not_found(self, mock_dsm_set_checkpoint):
         """Test SNS->SQS with empty SQS ARN - arn parameter"""
         sns_notification = {
             "Type": "Notification",
@@ -3169,13 +3166,22 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
         mock_dsm_set_checkpoint.assert_called_once_with(None, "sqs", "")
+        self.mock_checkpoint.assert_not_called()
+
+    @patch("datadog_lambda.config.Config.data_streams_enabled", False)
+    def test_sns_to_sqs_data_streams_disabled(self):
+        context_json = {"dd-pathway-ctx-base64": "12345"}
+        event_type = "sqs"
+        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
+
+        _dsm_set_checkpoint(context_json, event_type, arn)
+
+        self.mock_checkpoint.assert_not_called()
 
     # KINESIS TESTS - Testing _dsm_set_checkpoint calls for Kinesis events
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_kinesis_datadog_context_propagated_properly_with_arn_found(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_kinesis_context_propagated_binary_value(self, mock_dsm_set_checkpoint):
         """Test Kinesis with valid datadog context"""
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         kinesis_data = {"_datadog": dd_data, "message": "test"}
@@ -3200,9 +3206,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_kinesis_no_datadog_context_set_DSM_checkpoint_with_none(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_kinesis_no_datadog_message_attribute(self, mock_dsm_set_checkpoint):
         """Test Kinesis with no _datadog key set DSM checkpoint with None"""
         kinesis_data = {"message": "test"}  # No _datadog key
         kinesis_data_str = json.dumps(kinesis_data)
@@ -3223,20 +3227,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             None, "kinesis", "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
         )
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_kinesis_data_is_none_set_DSM_checkpoint_with_none(
-        self, mock_dsm_set_checkpoint
-    ):
-        """Test Kinesis when exception occurs due to invalid base64 - ctx_json=None"""
-        event = {
-            "Records": [
-                {
-                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
-                    "kinesis": {"data": None},  # data key holds None
-                }
-            ]
-        }
-
         extract_context_from_kinesis_event(event, self.lambda_context)
 
         mock_dsm_set_checkpoint.assert_called_once_with(
@@ -3244,7 +3234,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_kinesis_exception_occurs_invalid_base64_set_DSM_checkpoint_with_none(
+    def test_kinesis_invalid_datadog_message_attribute_raises_exception(
         self, mock_dsm_set_checkpoint
     ):
         """Test Kinesis when exception occurs due to invalid base64 - ctx_json=None"""
@@ -3264,9 +3254,37 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_kinesis_source_arn_empty_string_set_DSM_checkpoint_with_empty_string(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_kinesis_no_DSM_context_in_message_attribute(self, mock_dsm_set_checkpoint):
+        """Test Kinesis with no DSM context - carrier_get returns None"""
+        dd_data = {"NOT-DSM-KEY": "12345"}
+        kinesis_data = {"_datadog": dd_data, "message": "test"}
+        kinesis_data_str = json.dumps(kinesis_data)
+        encoded_data = base64.b64encode(kinesis_data_str.encode()).decode()
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {"data": encoded_data},
+                }
+            ]
+        }
+
+        extract_context_from_kinesis_event(event, self.lambda_context)
+
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            dd_data,
+            "kinesis",
+            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+        )
+
+        # DSM context is not propagated
+        context_json = mock_dsm_set_checkpoint.call_args[0][0]
+        carrier_get = lambda k: context_json and context_json.get(k)  # noqa: E731
+        assert carrier_get("dd-pathway-ctx-base64") is None
+
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_kinesis_source_arn_not_found(self, mock_dsm_set_checkpoint):
         """Test Kinesis with empty source ARN - arn parameter"""
         kinesis_data = {"message": "test"}
         kinesis_data_str = json.dumps(kinesis_data)
@@ -3284,3 +3302,12 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_kinesis_event(event, self.lambda_context)
 
         mock_dsm_set_checkpoint.assert_called_once_with(None, "kinesis", "")
+        self.mock_checkpoint.assert_not_called()
+
+    @patch("datadog_lambda.config.Config.data_streams_enabled", False)
+    def test_kinesis_data_streams_disabled(self):
+        context_json = {"dd-pathway-ctx-base64": "12345"}
+        event_type = "kinesis"
+        arn = "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+
+        _dsm_set_checkpoint(context_json, event_type, arn)
