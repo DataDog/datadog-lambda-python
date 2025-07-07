@@ -2545,7 +2545,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
@@ -2570,6 +2570,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
@@ -2625,7 +2626,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
@@ -2735,7 +2736,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
         )
@@ -2762,7 +2763,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
         )
@@ -2789,7 +2790,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
         )
@@ -2984,7 +2985,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
@@ -3016,7 +3017,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
@@ -3049,7 +3050,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
@@ -3112,7 +3113,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
@@ -3140,7 +3141,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(None, "sqs", "")
         self.mock_checkpoint.assert_not_called()
 
@@ -3197,7 +3198,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         }
 
         extract_context_from_kinesis_event(event, self.lambda_context)
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "kinesis", "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
         )
@@ -3216,7 +3217,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         }
 
         extract_context_from_kinesis_event(event, self.lambda_context)
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "kinesis", "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
         )
