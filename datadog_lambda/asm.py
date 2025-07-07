@@ -44,6 +44,16 @@ def _merge_single_and_multi_value_headers(
     return _to_single_value_headers(merged_headers)
 
 
+def asm_set_context(event_source: _EventSource):
+    """Add asm specific items to the ExecutionContext.
+
+    This allows the AppSecSpanProcessor to know information about the event
+    at the moment the span is created and skip it when not relevant.
+    """
+    if event_source.event_type not in _http_event_types:
+        core.set_item("appsec_skip_next_lambda_event", True)
+
+
 def asm_start_request(
     span: Span,
     event: Dict[str, Any],
