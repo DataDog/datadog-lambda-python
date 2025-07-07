@@ -3003,7 +3003,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # Should use SQS ARN, not SNS ARN
         mock_dsm_set_checkpoint.assert_called_once_with(
             dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
@@ -3035,7 +3035,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
-        # Should use SQS ARN, not SNS ARN
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
@@ -3069,7 +3068,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
-        # Should use SQS ARN, not SNS ARN
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
@@ -3106,7 +3104,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
-        # Should use SQS ARN, not SNS ARN
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
