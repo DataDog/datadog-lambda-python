@@ -3227,12 +3227,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             None, "kinesis", "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
         )
 
-        extract_context_from_kinesis_event(event, self.lambda_context)
-
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "kinesis", "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
-        )
-
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
     def test_kinesis_invalid_datadog_message_attribute_raises_exception(
         self, mock_dsm_set_checkpoint
