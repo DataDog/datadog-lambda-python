@@ -7,7 +7,7 @@ import pytest
 import os
 import unittest
 
-from unittest.mock import Mock, patch, call
+from unittest.mock import Mock, patch, call, ANY
 
 import ddtrace
 
@@ -2605,8 +2605,9 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         assert carrier_get("dd-pathway-ctx-base64") is None
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("datadog_lambda.tracing.logger")
     def test_sqs_invalid_datadog_message_attribute_raises_exception(
-        self, mock_dsm_set_checkpoint
+        self, mock_logger, mock_dsm_set_checkpoint
     ):
         event = {
             "Records": [
@@ -2625,6 +2626,11 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
+        )
+        # Exception handled by logger
+        mock_logger.debug.assert_any_call(
+            "The trace extractor returned with error %s",
+            ANY,
         )
         # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
@@ -2829,8 +2835,9 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         assert carrier_get("dd-pathway-ctx-base64") is None
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("datadog_lambda.tracing.logger")
     def test_sns_invalid_datadog_message_attribute_raises_exception(
-        self, mock_dsm_set_checkpoint
+        self, mock_logger, mock_dsm_set_checkpoint
     ):
         event = {
             "Records": [
@@ -2851,6 +2858,11 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
+        )
+        # Exception handled by logger
+        mock_logger.debug.assert_any_call(
+            "The trace extractor returned with error %s",
+            ANY,
         )
         # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
@@ -3088,8 +3100,9 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         assert carrier_get("dd-pathway-ctx-base64") is None
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("datadog_lambda.tracing.logger")
     def test_sns_to_sqs_invalid_datadog_message_attribute_raises_exception(
-        self, mock_dsm_set_checkpoint
+        self, mock_logger, mock_dsm_set_checkpoint
     ):
         sns_notification = {
             "Type": "Notification",
@@ -3112,6 +3125,11 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
+        )
+        # Exception handled by logger
+        mock_logger.debug.assert_any_call(
+            "The trace extractor returned with error %s",
+            ANY,
         )
         # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
@@ -3247,8 +3265,9 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    @patch("datadog_lambda.tracing.logger")
     def test_kinesis_invalid_datadog_message_attribute_raises_exception(
-        self, mock_dsm_set_checkpoint
+        self, mock_logger, mock_dsm_set_checkpoint
     ):
         event = {
             "Records": [
@@ -3260,6 +3279,11 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         }
 
         extract_context_from_kinesis_event(event, self.lambda_context)
+        # Exception handled by logger
+        mock_logger.debug.assert_any_call(
+            "The trace extractor returned with error %s",
+            ANY,
+        )
         # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "kinesis", "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
