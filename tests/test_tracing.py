@@ -2452,7 +2452,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         self.addCleanup(checkpoint_patcher.stop)
         self.lambda_context = get_mock_context()
 
-    # SQS TESTS - Testing _dsm_set_checkpoint calls for SQS events
+    # SQS TESTS
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
     def test_sqs_context_propagated_string_value(self, mock_dsm_set_checkpoint):
@@ -2666,7 +2666,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
         self.mock_checkpoint.assert_not_called()
 
-    # SNS TESTS - Testing _dsm_set_checkpoint calls for SNS events
+    # SNS TESTS
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
     def test_sns_context_propagated_string_value(self, mock_dsm_set_checkpoint):
@@ -2901,7 +2901,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
         self.mock_checkpoint.assert_not_called()
 
-    # SNS -> SQS TESTS - Testing _dsm_set_checkpoint calls for SNS->SQS events
+    # SNS -> SQS TESTS
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
     def test_sns_to_sqs_context_propagated_string_value(self, mock_dsm_set_checkpoint):
@@ -3173,7 +3173,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
         self.mock_checkpoint.assert_not_called()
 
-    # KINESIS TESTS - Testing _dsm_set_checkpoint calls for Kinesis events
+    # KINESIS TESTS
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
     def test_kinesis_context_propagated_binary_value(self, mock_dsm_set_checkpoint):
