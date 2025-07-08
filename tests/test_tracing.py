@@ -2451,11 +2451,15 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         self.mock_checkpoint = checkpoint_patcher.start()
         self.addCleanup(checkpoint_patcher.stop)
         self.lambda_context = get_mock_context()
+        config_patcher = patch(
+            "datadog_lambda.config.Config.data_streams_enabled", True
+        )
+        config_patcher.start()
+        self.addCleanup(config_patcher.stop)
 
     # SQS TESTS
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_context_propagated_string_value(self, mock_dsm_set_checkpoint):
+    def test_sqs_context_propagated_string_value(self):
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
 
@@ -2475,12 +2479,14 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get = args[2]
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_context_propagated_binary_value(self, mock_dsm_set_checkpoint):
+    def test_sqs_context_propagated_binary_value(self):
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
         encoded_data = base64.b64encode(dd_json_data.encode()).decode()
@@ -2501,12 +2507,14 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get = args[2]
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_no_datadog_message_attribute(self, mock_dsm_set_checkpoint):
+    def test_sqs_no_datadog_message_attribute(self):
         event = {
             "Records": [
                 {
@@ -2520,38 +2528,15 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_incorrect_datadog_message_attribute(self, mock_dsm_set_checkpoint):
-        event = {
-            "Records": [
-                {
-                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
-                    "messageAttributes": {
-                        "_datadog": {
-                            "dataType": "Number",
-                            "numberValue": 123,
-                        }  # Unsupported type
-                    },
-                    "eventSource": "aws:sqs",
-                }
-            ]
-        }
-
-        extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context, parse_event_source(event)
-        )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
-
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_empty_datadog_message_attribute(self, mock_dsm_set_checkpoint):
+    def test_sqs_empty_datadog_message_attribute(self):
         event = {
             "Records": [
                 {
@@ -2570,13 +2555,15 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_no_DSM_context_in_message_attribute(self, mock_dsm_set_checkpoint):
+    def test_sqs_no_DSM_context_in_message_attribute(self):
         dd_data = {"NOT-DSM-KEY": "12345"}
         dd_json_data = json.dumps(dd_data)
         event = {
@@ -2595,50 +2582,90 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
-        # DSM context is not propagated
-        context_json = mock_dsm_set_checkpoint.call_args[0][0]
-        carrier_get = lambda k: context_json and context_json.get(k)  # noqa: E731
-        assert carrier_get("dd-pathway-ctx-base64") is None
-
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
     @patch("datadog_lambda.tracing.logger")
-    def test_sqs_invalid_datadog_message_attribute_raises_exception(
-        self, mock_logger, mock_dsm_set_checkpoint
-    ):
-        event = {
-            "Records": [
-                {
-                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
-                    "messageAttributes": {
-                        "_datadog": {
-                            "dataType": "Binary",
-                            "binaryValue": "invalid-base64",
+    def test_sqs_invalid_datadog_message_attribute(self, mock_logger):
+        test_cases = [
+            {
+                "name": "invalid_base64",
+                "event": {
+                    "Records": [
+                        {
+                            "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                            "messageAttributes": {
+                                "_datadog": {
+                                    "dataType": "Binary",
+                                    "binaryValue": "invalid-base64",
+                                }
+                            },
+                            "eventSource": "aws:sqs",
                         }
-                    },
-                    "eventSource": "aws:sqs",
-                }
-            ]
-        }
+                    ]
+                },
+                "expected_log": "The trace extractor returned with error %s",
+            },
+            {
+                "name": "unsupported_datatype",
+                "event": {
+                    "Records": [
+                        {
+                            "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                            "messageAttributes": {
+                                "_datadog": {
+                                    "dataType": "Number",
+                                    "numberValue": 123,
+                                }  # Unsupported type
+                            },
+                            "eventSource": "aws:sqs",
+                        }
+                    ]
+                },
+                "expected_log": "Datadog Lambda Python only supports extracting trace"
+                "context from String or Binary SQS/SNS message attributes",
+            },
+        ]
 
-        extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context, parse_event_source(event)
-        )
-        # Exception triggers logger
-        mock_logger.debug.assert_any_call(
-            "The trace extractor returned with error %s",
-            ANY,
-        )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        for test_case in test_cases:
+            with self.subTest(test_case=test_case["name"]):
+                mock_logger.reset_mock()
+                self.mock_checkpoint.reset_mock()
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sqs_source_arn_not_found(self, mock_dsm_set_checkpoint):
+                extract_context_from_sqs_or_sns_event_or_context(
+                    test_case["event"],
+                    self.lambda_context,
+                    parse_event_source(test_case["event"]),
+                )
+
+                # Exception triggers logger
+                if (
+                    test_case["expected_log"]
+                    == "The trace extractor returned with error %s"
+                ):
+                    mock_logger.debug.assert_any_call(
+                        test_case["expected_log"],
+                        ANY,
+                    )
+                else:
+                    mock_logger.debug.assert_any_call(test_case["expected_log"])
+
+                self.assertEqual(self.mock_checkpoint.call_count, 1)
+                args, _ = self.mock_checkpoint.call_args
+                self.assertEqual(args[0], "sqs")
+                self.assertEqual(
+                    args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue"
+                )
+                carrier_get = args[2]
+                # None indicates no DSM context propagation
+                self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
+
+    def test_sqs_source_arn_not_found(self):
         event = {
             "Records": [
                 {
@@ -2653,7 +2680,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
-        mock_dsm_set_checkpoint.assert_called_once_with(None, "sqs", "")
         self.mock_checkpoint.assert_not_called()
 
     @patch("datadog_lambda.config.Config.data_streams_enabled", False)
@@ -2668,8 +2694,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
     # SNS TESTS
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_context_propagated_string_value(self, mock_dsm_set_checkpoint):
+    def test_sns_context_propagated_string_value(self):
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
 
@@ -2692,12 +2717,14 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            dd_data, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sns")
+        self.assertEqual(args[1], "arn:aws:sns:us-east-1:123456789012:test-topic")
+        carrier_get = args[2]
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_context_propagated_binary_value(self, mock_dsm_set_checkpoint):
+    def test_sns_context_propagated_binary_value(self):
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
         encoded_data = base64.b64encode(dd_json_data.encode()).decode()
@@ -2721,12 +2748,14 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            dd_data, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sns")
+        self.assertEqual(args[1], "arn:aws:sns:us-east-1:123456789012:test-topic")
+        carrier_get = args[2]
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_no_datadog_message_attribute(self, mock_dsm_set_checkpoint):
+    def test_sns_no_datadog_message_attribute(self):
         event = {
             "Records": [
                 {
@@ -2742,40 +2771,15 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sns")
+        self.assertEqual(args[1], "arn:aws:sns:us-east-1:123456789012:test-topic")
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_incorrect_datadog_message_attribute(self, mock_dsm_set_checkpoint):
-        event = {
-            "Records": [
-                {
-                    "Sns": {
-                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
-                        "MessageAttributes": {
-                            "_datadog": {
-                                "Type": "Number",
-                                "numberValue": 123,
-                            }  # Unsupported type
-                        },
-                    },
-                    "eventSource": "aws:sns",
-                }
-            ]
-        }
-
-        extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context, parse_event_source(event)
-        )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
-        )
-
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_empty_datadog_message_attribute(self, mock_dsm_set_checkpoint):
+    def test_sns_empty_datadog_message_attribute(self):
         event = {
             "Records": [
                 {
@@ -2796,13 +2800,15 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sns")
+        self.assertEqual(args[1], "arn:aws:sns:us-east-1:123456789012:test-topic")
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_no_DSM_context_in_message_attribute(self, mock_dsm_set_checkpoint):
+    def test_sns_no_DSM_context_in_message_attribute(self):
         dd_data = {"NOT-DSM-KEY": "12345"}
         dd_json_data = json.dumps(dd_data)
 
@@ -2825,53 +2831,94 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            dd_data, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sns")
+        self.assertEqual(args[1], "arn:aws:sns:us-east-1:123456789012:test-topic")
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
-        # DSM context is not propagated
-        context_json = mock_dsm_set_checkpoint.call_args[0][0]
-        carrier_get = lambda k: context_json and context_json.get(k)  # noqa: E731
-        assert carrier_get("dd-pathway-ctx-base64") is None
-
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
     @patch("datadog_lambda.tracing.logger")
-    def test_sns_invalid_datadog_message_attribute_raises_exception(
-        self, mock_logger, mock_dsm_set_checkpoint
-    ):
-        event = {
-            "Records": [
-                {
-                    "Sns": {
-                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
-                        "MessageAttributes": {
-                            "_datadog": {
-                                "Type": "Binary",
-                                "Value": "invalid-base64",
-                            }
-                        },
-                    },
-                    "eventSource": "aws:sns",
-                }
-            ]
-        }
+    def test_sns_invalid_datadog_message_attribute(self, mock_logger):
+        test_cases = [
+            {
+                "name": "invalid_base64",
+                "event": {
+                    "Records": [
+                        {
+                            "Sns": {
+                                "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                                "MessageAttributes": {
+                                    "_datadog": {
+                                        "Type": "Binary",
+                                        "Value": "invalid-base64",
+                                    }
+                                },
+                            },
+                            "eventSource": "aws:sns",
+                        }
+                    ]
+                },
+                "expected_log": "The trace extractor returned with error %s",
+            },
+            {
+                "name": "unsupported_datatype",
+                "event": {
+                    "Records": [
+                        {
+                            "Sns": {
+                                "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                                "MessageAttributes": {
+                                    "_datadog": {
+                                        "Type": "Number",
+                                        "numberValue": 123,
+                                    }  # Unsupported type
+                                },
+                            },
+                            "eventSource": "aws:sns",
+                        }
+                    ]
+                },
+                "expected_log": "Datadog Lambda Python only supports extracting trace"
+                "context from String or Binary SQS/SNS message attributes",
+            },
+        ]
 
-        extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context, parse_event_source(event)
-        )
-        # Exception triggers logger
-        mock_logger.debug.assert_any_call(
-            "The trace extractor returned with error %s",
-            ANY,
-        )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
-        )
+        for test_case in test_cases:
+            with self.subTest(test_case=test_case["name"]):
+                mock_logger.reset_mock()
+                self.mock_checkpoint.reset_mock()
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_source_arn_not_found(self, mock_dsm_set_checkpoint):
-        """Test SNS with empty source ARN"""
+                extract_context_from_sqs_or_sns_event_or_context(
+                    test_case["event"],
+                    self.lambda_context,
+                    parse_event_source(test_case["event"]),
+                )
+
+                # Exception triggers logger
+                if (
+                    test_case["expected_log"]
+                    == "The trace extractor returned with error %s"
+                ):
+                    mock_logger.debug.assert_any_call(
+                        test_case["expected_log"],
+                        ANY,
+                    )
+                else:
+                    mock_logger.debug.assert_any_call(test_case["expected_log"])
+
+                self.assertEqual(self.mock_checkpoint.call_count, 1)
+                args, _ = self.mock_checkpoint.call_args
+                self.assertEqual(args[0], "sns")
+                self.assertEqual(
+                    args[1], "arn:aws:sns:us-east-1:123456789012:test-topic"
+                )
+                carrier_get = args[2]
+                # None indicates no DSM context propagation
+                self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
+
+    def test_sns_source_arn_not_found(self):
         event = {
             "Records": [
                 {
@@ -2880,6 +2927,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                         "MessageAttributes": {},
                     },
                     "eventSource": "aws:sns",
+                    "eventSourceARN": "",
                 }
             ]
         }
@@ -2888,7 +2936,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
-        mock_dsm_set_checkpoint.assert_called_once_with(None, "sns", "")
         self.mock_checkpoint.assert_not_called()
 
     @patch("datadog_lambda.config.Config.data_streams_enabled", False)
@@ -2903,8 +2950,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
     # SNS -> SQS TESTS
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_context_propagated_string_value(self, mock_dsm_set_checkpoint):
+    def test_sns_to_sqs_context_propagated_string_value(self):
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
 
@@ -2931,13 +2977,15 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
         # Should use SQS ARN, not SNS ARN
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get = args[2]
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_context_propagated_binary_value(self, mock_dsm_set_checkpoint):
+    def test_sns_to_sqs_context_propagated_binary_value(self):
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         dd_json_data = json.dumps(dd_data)
         encoded_data = base64.b64encode(dd_json_data.encode()).decode()
@@ -2964,13 +3012,15 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
         # Should use SQS ARN, not SNS ARN
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get = args[2]
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_no_datadog_message_attribute(self, mock_dsm_set_checkpoint):
+    def test_sns_to_sqs_no_datadog_message_attribute(self):
         sns_notification = {
             "Type": "Notification",
             "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
@@ -2991,44 +3041,16 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
+        # Should use SQS ARN, not SNS ARN
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_incorrect_datadog_message_attribute(
-        self, mock_dsm_set_checkpoint
-    ):
-        sns_notification = {
-            "Type": "Notification",
-            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
-            "MessageAttributes": {
-                "_datadog": {"Type": "String", "numberValue": 123}  # Unsupported type
-            },
-            "Message": "test message",
-        }
-
-        event = {
-            "Records": [
-                {
-                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
-                    "body": json.dumps(sns_notification),
-                    "eventSource": "aws:sqs",
-                }
-            ]
-        }
-
-        extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context, parse_event_source(event)
-        )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
-
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_empty_datadog_message_attribute(self, mock_dsm_set_checkpoint):
+    def test_sns_to_sqs_empty_datadog_message_attribute(self):
         sns_notification = {
             "Type": "Notification",
             "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
@@ -3054,15 +3076,16 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
+        # Should use SQS ARN, not SNS ARN
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_no_DSM_context_in_message_attribute(
-        self, mock_dsm_set_checkpoint
-    ):
+    def test_sns_to_sqs_no_DSM_context_in_message_attribute(self):
         dd_data = {"NOT-DSM-KEY": "12345"}
         dd_json_data = json.dumps(dd_data)
         encoded_data = base64.b64encode(dd_json_data.encode()).decode()
@@ -3090,54 +3113,91 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             event, self.lambda_context, parse_event_source(event)
         )
 
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            dd_data, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
+        # Should use SQS ARN, not SNS ARN
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
-        # DSM context is not propagated
-        context_json = mock_dsm_set_checkpoint.call_args[0][0]
-        carrier_get = lambda k: context_json and context_json.get(k)  # noqa: E731
-        assert carrier_get("dd-pathway-ctx-base64") is None
-
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
     @patch("datadog_lambda.tracing.logger")
-    def test_sns_to_sqs_invalid_datadog_message_attribute_raises_exception(
-        self, mock_logger, mock_dsm_set_checkpoint
-    ):
-        sns_notification = {
-            "Type": "Notification",
-            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
-            "MessageAttributes": {
-                "_datadog": {"Type": "Binary", "Value": "not-base64"}
+    def test_sns_to_sqs_invalid_datadog_message_attribute(self, mock_logger):
+        test_cases = [
+            {
+                "name": "invalid_base64",
+                "sns_notification": {
+                    "Type": "Notification",
+                    "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                    "MessageAttributes": {
+                        "_datadog": {"Type": "Binary", "Value": "not-base64"}
+                    },
+                    "Message": "test message",
+                },
+                "expected_log": "The trace extractor returned with error %s",
             },
-            "Message": "test message",
-        }
+            {
+                "name": "unsupported_datatype",
+                "sns_notification": {
+                    "Type": "Notification",
+                    "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                    "MessageAttributes": {
+                        "_datadog": {
+                            "Type": "Number",
+                            "numberValue": 123,
+                        }  # Unsupported type
+                    },
+                    "Message": "test message",
+                },
+                "expected_log": "Datadog Lambda Python only supports extracting trace"
+                "context from String or Binary SQS/SNS message attributes",
+            },
+        ]
 
-        event = {
-            "Records": [
-                {
-                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
-                    "body": json.dumps(sns_notification),
-                    "eventSource": "aws:sqs",
+        for test_case in test_cases:
+            with self.subTest(test_case=test_case["name"]):
+                mock_logger.reset_mock()
+                self.mock_checkpoint.reset_mock()
+
+                event = {
+                    "Records": [
+                        {
+                            "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                            "body": json.dumps(test_case["sns_notification"]),
+                            "eventSource": "aws:sqs",
+                        }
+                    ]
                 }
-            ]
-        }
 
-        extract_context_from_sqs_or_sns_event_or_context(
-            event, self.lambda_context, parse_event_source(event)
-        )
-        # Exception triggers logger
-        mock_logger.debug.assert_any_call(
-            "The trace extractor returned with error %s",
-            ANY,
-        )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+                extract_context_from_sqs_or_sns_event_or_context(
+                    event, self.lambda_context, parse_event_source(event)
+                )
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_sns_to_sqs_source_arn_not_found(self, mock_dsm_set_checkpoint):
+                # Exception triggers logger
+                if (
+                    test_case["expected_log"]
+                    == "The trace extractor returned with error %s"
+                ):
+                    mock_logger.debug.assert_any_call(
+                        test_case["expected_log"],
+                        ANY,
+                    )
+                else:
+                    mock_logger.debug.assert_any_call(test_case["expected_log"])
+
+                self.assertEqual(self.mock_checkpoint.call_count, 1)
+                args, _ = self.mock_checkpoint.call_args
+                self.assertEqual(args[0], "sqs")
+                # Should use SQS ARN, not SNS ARN
+                self.assertEqual(
+                    args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue"
+                )
+                carrier_get = args[2]
+                # None indicates no DSM context propagation
+                self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
+
+    def test_sns_to_sqs_source_arn_not_found(self):
         sns_notification = {
             "Type": "Notification",
             "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
@@ -3150,7 +3210,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                 {
                     "eventSourceARN": "",  # Empty SQS ARN
                     "body": json.dumps(sns_notification),
-                    "messageAttributes": {},
                     "eventSource": "aws:sqs",
                 }
             ]
@@ -3159,8 +3218,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(None, "sqs", "")
+
         self.mock_checkpoint.assert_not_called()
 
     @patch("datadog_lambda.config.Config.data_streams_enabled", False)
@@ -3175,8 +3233,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
     # KINESIS TESTS
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_kinesis_context_propagated_binary_value(self, mock_dsm_set_checkpoint):
+    def test_kinesis_context_propagated_binary_value(self):
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         kinesis_data = {"_datadog": dd_data, "message": "test"}
         kinesis_data_str = json.dumps(kinesis_data)
@@ -3193,14 +3250,16 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
         extract_context_from_kinesis_event(event, self.lambda_context)
 
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            dd_data,
-            "kinesis",
-            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "kinesis")
+        self.assertEqual(
+            args[1], "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
         )
+        carrier_get = args[2]
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_kinesis_no_datadog_message_attribute(self, mock_dsm_set_checkpoint):
+    def test_kinesis_no_datadog_message_attribute(self):
         kinesis_data = {"message": "test"}  # No _datadog key
         kinesis_data_str = json.dumps(kinesis_data)
         encoded_data = base64.b64encode(kinesis_data_str.encode()).decode()
@@ -3215,34 +3274,18 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         }
 
         extract_context_from_kinesis_event(event, self.lambda_context)
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "kinesis", "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "kinesis")
+        self.assertEqual(
+            args[1], "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
         )
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_kinesis_incorrect_message_attribute(self, mock_dsm_set_checkpoint):
-        event = {
-            "Records": [
-                {
-                    "eventSourceARN": (
-                        "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
-                    ),
-                    "kinesis": {"not_data": "test"},  # No "data" field
-                }
-            ]
-        }
-
-        extract_context_from_kinesis_event(event, self.lambda_context)
-        # None indicates no DSM context propagation due to missing data
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None,
-            "kinesis",
-            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
-        )
-
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_kinesis_empty_message_attribute(self, mock_dsm_set_checkpoint):
+    def test_kinesis_empty_message_attribute(self):
         kinesis_data = {"_datadog": None, "message": "test"}  # _datadog is None
         kinesis_data_str = json.dumps(kinesis_data)
         encoded_data = base64.b64encode(kinesis_data_str.encode()).decode()
@@ -3257,40 +3300,17 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         }
 
         extract_context_from_kinesis_event(event, self.lambda_context)
-        # None indicates no DSM context propagation due to missing data
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None,
-            "kinesis",
-            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "kinesis")
+        self.assertEqual(
+            args[1], "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
         )
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    @patch("datadog_lambda.tracing.logger")
-    def test_kinesis_invalid_datadog_message_attribute_raises_exception(
-        self, mock_logger, mock_dsm_set_checkpoint
-    ):
-        event = {
-            "Records": [
-                {
-                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
-                    "kinesis": {"data": "invalid-base64"},
-                }
-            ]
-        }
-
-        extract_context_from_kinesis_event(event, self.lambda_context)
-        # Exception triggers logger
-        mock_logger.debug.assert_any_call(
-            "The trace extractor returned with error %s",
-            ANY,
-        )
-        # None indiciates no DSM context propagation
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            None, "kinesis", "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
-        )
-
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_kinesis_no_DSM_context_in_message_attribute(self, mock_dsm_set_checkpoint):
+    def test_kinesis_no_DSM_context_in_message_attribute(self):
         dd_data = {"NOT-DSM-KEY": "12345"}
         kinesis_data = {"_datadog": dd_data, "message": "test"}
         kinesis_data_str = json.dumps(kinesis_data)
@@ -3307,19 +3327,44 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
         extract_context_from_kinesis_event(event, self.lambda_context)
 
-        mock_dsm_set_checkpoint.assert_called_once_with(
-            dd_data,
-            "kinesis",
-            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "kinesis")
+        self.assertEqual(
+            args[1], "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
         )
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
-        # DSM context is not propagated
-        context_json = mock_dsm_set_checkpoint.call_args[0][0]
-        carrier_get = lambda k: context_json and context_json.get(k)  # noqa: E731
-        assert carrier_get("dd-pathway-ctx-base64") is None
+    @patch("datadog_lambda.tracing.logger")
+    def test_kinesis_invalid_datadog_message_attribute(self, mock_logger):
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {"data": "invalid-base64"},
+                }
+            ]
+        }
 
-    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
-    def test_kinesis_source_arn_not_found(self, mock_dsm_set_checkpoint):
+        extract_context_from_kinesis_event(event, self.lambda_context)
+        # Exception triggers logger
+        mock_logger.debug.assert_any_call(
+            "The trace extractor returned with error %s",
+            ANY,
+        )
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "kinesis")
+        self.assertEqual(
+            args[1], "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+        )
+        carrier_get = args[2]
+        # None indicates no DSM context propagation
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
+
+    def test_kinesis_source_arn_not_found(self):
         kinesis_data = {"message": "test"}
         kinesis_data_str = json.dumps(kinesis_data)
         encoded_data = base64.b64encode(kinesis_data_str.encode()).decode()
@@ -3335,7 +3380,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
         extract_context_from_kinesis_event(event, self.lambda_context)
 
-        mock_dsm_set_checkpoint.assert_called_once_with(None, "kinesis", "")
         self.mock_checkpoint.assert_not_called()
 
     @patch("datadog_lambda.config.Config.data_streams_enabled", False)
