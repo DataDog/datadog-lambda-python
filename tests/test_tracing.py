@@ -2520,7 +2520,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sqs", "arn:aws:sqs:us-east-1:123456789012:test-queue"
         )
@@ -2852,7 +2852,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-
+        # None indiciates no DSM context propagation
         mock_dsm_set_checkpoint.assert_called_once_with(
             None, "sns", "arn:aws:sns:us-east-1:123456789012:test-topic"
         )
@@ -2864,7 +2864,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             "Records": [
                 {
                     "Sns": {
-                        "TopicArn": "",  # Empty ARN
+                        "TopicArn": "",
                         "MessageAttributes": {},
                     },
                     "eventSource": "aws:sns",
@@ -2910,7 +2910,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                 {
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
                     "body": json.dumps(sns_notification),
-                    "messageAttributes": {},
                     "eventSource": "aws:sqs",
                 }
             ]
@@ -2931,9 +2930,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         dd_json_data = json.dumps(dd_data)
         encoded_data = base64.b64encode(dd_json_data.encode()).decode()
 
-        dd_data = {"dd-pathway-ctx-base64": "12345"}
-        dd_json_data = json.dumps(dd_data)
-
         sns_notification = {
             "Type": "Notification",
             "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
@@ -2948,7 +2944,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                 {
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
                     "body": json.dumps(sns_notification),
-                    "messageAttributes": {},
                     "eventSource": "aws:sqs",
                 }
             ]
@@ -2976,7 +2971,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                 {
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
                     "body": json.dumps(sns_notification),
-                    "messageAttributes": {},
                     "eventSource": "aws:sqs",
                 }
             ]
@@ -2998,8 +2992,8 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             "Type": "Notification",
             "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
             "MessageAttributes": {
-                "_datadog": {"Type": "String", "numberValue": 123}
-            },  # Unsupported type
+                "_datadog": {"Type": "String", "numberValue": 123}  # Unsupported type
+            },
             "Message": "test message",
         }
 
@@ -3008,7 +3002,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                 {
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
                     "body": json.dumps(sns_notification),
-                    "messageAttributes": {},
                     "eventSource": "aws:sqs",
                 }
             ]
@@ -3041,7 +3034,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                 {
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
                     "body": json.dumps(sns_notification),
-                    "messageAttributes": {},
                     "eventSource": "aws:sqs",
                 }
             ]
@@ -3061,13 +3053,22 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
     ):
         dd_data = {"NOT-DSM-KEY": "12345"}
         dd_json_data = json.dumps(dd_data)
+        encoded_data = base64.b64encode(dd_json_data.encode()).decode()
+
+        sns_notification = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {
+                "_datadog": {"Type": "Binary", "Value": encoded_data}
+            },
+            "Message": "test message",
+        }
+
         event = {
             "Records": [
                 {
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
-                    "messageAttributes": {
-                        "_datadog": {"dataType": "String", "stringValue": dd_json_data}
-                    },
+                    "body": json.dumps(sns_notification),
                     "eventSource": "aws:sqs",
                 }
             ]
@@ -3094,7 +3095,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             "Type": "Notification",
             "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
             "MessageAttributes": {
-                "_datadog": {"Type": "Binary", "Value": "not-base64"}  # invalid base64
+                "_datadog": {"Type": "Binary", "Value": "not-base64"}
             },
             "Message": "test message",
         }
@@ -3104,7 +3105,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                 {
                     "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
                     "body": json.dumps(sns_notification),
-                    "messageAttributes": {},
                     "eventSource": "aws:sqs",
                 }
             ]
@@ -3159,7 +3159,6 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
     def test_kinesis_context_propagated_binary_value(self, mock_dsm_set_checkpoint):
-        """Test Kinesis with valid datadog context"""
         dd_data = {"dd-pathway-ctx-base64": "12345"}
         kinesis_data = {"_datadog": dd_data, "message": "test"}
         kinesis_data_str = json.dumps(kinesis_data)
@@ -3204,6 +3203,50 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         )
 
     @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_kinesis_incorrect_message_attribute(self, mock_dsm_set_checkpoint):
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": (
+                        "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+                    ),
+                    "kinesis": {"not_data": "test"},  # No "data" field
+                }
+            ]
+        }
+
+        extract_context_from_kinesis_event(event, self.lambda_context)
+        # None indicates no DSM context propagation due to missing data
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            None,
+            "kinesis",
+            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+        )
+
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
+    def test_kinesis_empty_message_attribute(self, mock_dsm_set_checkpoint):
+        kinesis_data = {"_datadog": None, "message": "test"}  # _datadog is None
+        kinesis_data_str = json.dumps(kinesis_data)
+        encoded_data = base64.b64encode(kinesis_data_str.encode()).decode()
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {"data": encoded_data},
+                }
+            ]
+        }
+
+        extract_context_from_kinesis_event(event, self.lambda_context)
+        # None indicates no DSM context propagation due to missing data
+        mock_dsm_set_checkpoint.assert_called_once_with(
+            None,
+            "kinesis",
+            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+        )
+
+    @patch("datadog_lambda.tracing._dsm_set_checkpoint")
     def test_kinesis_invalid_datadog_message_attribute_raises_exception(
         self, mock_dsm_set_checkpoint
     ):
@@ -3211,7 +3254,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
             "Records": [
                 {
                     "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
-                    "kinesis": {"data": "invalid-base64"},  # invalid base64
+                    "kinesis": {"data": "invalid-base64"},
                 }
             ]
         }
@@ -3260,7 +3303,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         event = {
             "Records": [
                 {
-                    "eventSourceARN": "",  # Empty ARN
+                    "eventSourceARN": "",
                     "kinesis": {"data": encoded_data},
                 }
             ]
