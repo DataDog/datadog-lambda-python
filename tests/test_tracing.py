@@ -2609,7 +2609,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                         }
                     ]
                 },
-                "expected_log": "The trace extractor returned with error %s",
+                "expected_log": ("The trace extractor returned with error %s", ANY),
             },
             {
                 "name": "unsupported_datatype",
@@ -2627,8 +2627,10 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                         }
                     ]
                 },
-                "expected_log": "Datadog Lambda Python only supports extracting trace"
-                "context from String or Binary SQS/SNS message attributes",
+                "expected_log": (
+                    "Datadog Lambda Python only supports extracting trace"
+                    "context from String or Binary SQS/SNS message attributes",
+                ),
             },
         ]
 
@@ -2644,16 +2646,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                 )
 
                 # Exception triggers logger
-                if (
-                    test_case["expected_log"]
-                    == "The trace extractor returned with error %s"
-                ):
-                    mock_logger.debug.assert_any_call(
-                        test_case["expected_log"],
-                        ANY,
-                    )
-                else:
-                    mock_logger.debug.assert_any_call(test_case["expected_log"])
+                mock_logger.debug.assert_any_call(*test_case["expected_log"])
 
                 self.assertEqual(self.mock_checkpoint.call_count, 1)
                 args, _ = self.mock_checkpoint.call_args
@@ -2860,7 +2853,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                         }
                     ]
                 },
-                "expected_log": "The trace extractor returned with error %s",
+                "expected_log": ("The trace extractor returned with error %s", ANY),
             },
             {
                 "name": "unsupported_datatype",
@@ -2880,8 +2873,10 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                         }
                     ]
                 },
-                "expected_log": "Datadog Lambda Python only supports extracting trace"
-                "context from String or Binary SQS/SNS message attributes",
+                "expected_log": (
+                    "Datadog Lambda Python only supports extracting trace"
+                    "context from String or Binary SQS/SNS message attributes",
+                ),
             },
         ]
 
@@ -2897,16 +2892,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                 )
 
                 # Exception triggers logger
-                if (
-                    test_case["expected_log"]
-                    == "The trace extractor returned with error %s"
-                ):
-                    mock_logger.debug.assert_any_call(
-                        test_case["expected_log"],
-                        ANY,
-                    )
-                else:
-                    mock_logger.debug.assert_any_call(test_case["expected_log"])
+                mock_logger.debug.assert_any_call(*test_case["expected_log"])
 
                 self.assertEqual(self.mock_checkpoint.call_count, 1)
                 args, _ = self.mock_checkpoint.call_args
@@ -3135,7 +3121,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                     },
                     "Message": "test message",
                 },
-                "expected_log": "The trace extractor returned with error %s",
+                "expected_log": ("The trace extractor returned with error %s", ANY),
             },
             {
                 "name": "unsupported_datatype",
@@ -3150,8 +3136,10 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                     },
                     "Message": "test message",
                 },
-                "expected_log": "Datadog Lambda Python only supports extracting trace"
-                "context from String or Binary SQS/SNS message attributes",
+                "expected_log": (
+                    "Datadog Lambda Python only supports extracting trace"
+                    "context from String or Binary SQS/SNS message attributes",
+                ),
             },
         ]
 
@@ -3175,16 +3163,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                 )
 
                 # Exception triggers logger
-                if (
-                    test_case["expected_log"]
-                    == "The trace extractor returned with error %s"
-                ):
-                    mock_logger.debug.assert_any_call(
-                        test_case["expected_log"],
-                        ANY,
-                    )
-                else:
-                    mock_logger.debug.assert_any_call(test_case["expected_log"])
+                mock_logger.debug.assert_any_call(*test_case["expected_log"])
 
                 self.assertEqual(self.mock_checkpoint.call_count, 1)
                 args, _ = self.mock_checkpoint.call_args
