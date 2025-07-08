@@ -2627,7 +2627,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-        # Exception handled by logger
+        # Exception triggers logger
         mock_logger.debug.assert_any_call(
             "The trace extractor returned with error %s",
             ANY,
@@ -2859,7 +2859,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-        # Exception handled by logger
+        # Exception triggers logger
         mock_logger.debug.assert_any_call(
             "The trace extractor returned with error %s",
             ANY,
@@ -3126,7 +3126,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         extract_context_from_sqs_or_sns_event_or_context(
             event, self.lambda_context, parse_event_source(event)
         )
-        # Exception handled by logger
+        # Exception triggers logger
         mock_logger.debug.assert_any_call(
             "The trace extractor returned with error %s",
             ANY,
@@ -3279,7 +3279,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         }
 
         extract_context_from_kinesis_event(event, self.lambda_context)
-        # Exception handled by logger
+        # Exception triggers logger
         mock_logger.debug.assert_any_call(
             "The trace extractor returned with error %s",
             ANY,
