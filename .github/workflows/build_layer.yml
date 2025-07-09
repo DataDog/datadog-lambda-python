@@ -1,0 +1,35 @@
+name: Build Layers for system-Tests
+
+on:
+  push:
+    branches:
+      - "main"
+
+jobs:
+  build:
+    runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+
+    strategy:
+      matrix:
+        arch: [arm64, amd64]
+        python_version: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Patch pyproject.toml
+        run: |
+          echo "Patching pyproject.toml to use main branch of dd-trace-py"
+          sed -i 's|^ddtrace =.*$|ddtrace = { git = "https://github.com/DataDog/dd-trace-py.git" }|' pyproject.toml
+
+      - name: Build layer for Python ${{ matrix.python_version }} on ${{ matrix.arch }}
+        run: |
+          echo "Building layer for Python ${{ matrix.python_version }} on ${{ matrix.arch }}"
+          ARCH=${{ matrix.arch }} PYTHON_VERSION=${{ matrix.python_version }} ./scripts/build_layers.sh
+
+      - name: Upload layer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          path: .layers/datadog_lambda_py-${{ matrix.arch }}-${{ matrix.python_version }}.zip
+          name: datadog-lambda-python-${{ matrix.python_version }}-${{ matrix.arch }}
