@@ -10,7 +10,6 @@ from importlib import import_module
 from time import time_ns
 
 from datadog_lambda.asm import asm_set_context, asm_start_response, asm_start_request
-from datadog_lambda.dsm import set_dsm_context
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import (
     set_cold_start,
@@ -237,8 +236,6 @@ class _LambdaDecorator(object):
                     self.inferred_span = create_inferred_span(
                         event, context, event_source, config.decode_authorizer_context
                     )
-                if config.data_streams_enabled:
-                    set_dsm_context(event, event_source)
 
                 if config.appsec_enabled:
                     asm_set_context(event_source)
