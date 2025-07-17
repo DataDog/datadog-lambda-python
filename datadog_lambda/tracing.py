@@ -857,15 +857,14 @@ def create_service_mapping(val):
     return new_service_mapping
 
 
-def determine_service_name(service_mapping,
-                           specific_key,
-                           generic_key,
-                           default_value,
-                           fallback=None):
+def determine_service_name(
+    service_mapping, specific_key, generic_key, default_value, fallback=None
+):
     service_name = service_mapping.get(specific_key)
     if service_name is None:
-        service_name = service_mapping.get(generic_key,
-                                           default_value if default_value is not None else fallback)
+        service_name = service_mapping.get(
+            generic_key, default_value if default_value is not None else fallback,
+        )
     return service_name
 
 
