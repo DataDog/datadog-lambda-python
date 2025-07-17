@@ -1478,7 +1478,7 @@ class TestServiceMapping(unittest.TestCase):
         ] = "arn:aws:sqs:eu-west-1:123456789012:different-sqs-url"
         span2 = create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.sqs")
-        self.assertEqual(span2.service, "sqs")
+        self.assertEqual(span2.service, "different-sqs-url")
 
     def test_remaps_all_inferred_span_service_names_from_sns_event(self):
         self.set_service_mapping({"lambda_sns": "new-name"})
@@ -1524,7 +1524,7 @@ class TestServiceMapping(unittest.TestCase):
         ] = "arn:aws:sns:us-west-2:123456789012:different-sns-topic"
         span2 = create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.sns")
-        self.assertEqual(span2.service, "sns")
+        self.assertEqual(span2.service, "different-sns-topic")
 
     def test_remaps_all_inferred_span_service_names_from_kinesis_event(self):
         self.set_service_mapping({"lambda_kinesis": "new-name"})
@@ -1561,7 +1561,7 @@ class TestServiceMapping(unittest.TestCase):
 
         span1 = create_inferred_span(original_event, ctx)
         self.assertEqual(span1.get_tag("operation_name"), "aws.kinesis")
-        self.assertEqual(span1.service, "kinesis")
+        self.assertEqual(span1.service, "kinesisStream")
 
         # Testing the second event
         event2 = copy.deepcopy(original_event)
@@ -1570,7 +1570,7 @@ class TestServiceMapping(unittest.TestCase):
         ] = "arn:aws:kinesis:eu-west-1:601427279990:stream/DifferentKinesisStream"
         span2 = create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.kinesis")
-        self.assertEqual(span2.service, "kinesis")
+        self.assertEqual(span2.service, "DifferentKinesisStream")
 
     def test_remaps_all_inferred_span_service_names_from_s3_event(self):
         self.set_service_mapping({"lambda_s3": "new-name"})
@@ -1614,7 +1614,7 @@ class TestServiceMapping(unittest.TestCase):
         event2["Records"][0]["s3"]["bucket"]["name"] = "different-example-bucket"
         span2 = create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.s3")
-        self.assertEqual(span2.service, "s3")
+        self.assertEqual(span2.service, "different-example-bucket")
 
     def test_remaps_all_inferred_span_service_names_from_dynamodb_event(self):
         self.set_service_mapping({"lambda_dynamodb": "new-name"})
@@ -1660,7 +1660,7 @@ class TestServiceMapping(unittest.TestCase):
         ] = "arn:aws:dynamodb:us-east-1:123456789012:table/DifferentExampleTableWithStream/stream/2015-06-27T00:48:05.899"
         span2 = create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.dynamodb")
-        self.assertEqual(span2.service, "dynamodb")
+        self.assertEqual(span2.service, "DifferentExampleTableWithStream")
 
     def test_remaps_all_inferred_span_service_names_from_eventbridge_event(self):
         self.set_service_mapping({"lambda_eventbridge": "new-name"})
@@ -1704,7 +1704,7 @@ class TestServiceMapping(unittest.TestCase):
         event2["source"] = "different.eventbridge.custom.event.sender"
         span2 = create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.eventbridge")
-        self.assertEqual(span2.service, "eventbridge")
+        self.assertEqual(span2.service, "different.eventbridge.custom.event.sender")
 
 
 class _Span(object):
@@ -1927,7 +1927,7 @@ _test_create_inferred_span = (
     (
         "sqs-string-msg-attribute",
         _Span(
-            service="sqs",
+            service="InferredSpansQueueNode",
             start=1634662094.538,
             span_type="web",
             tags={
@@ -1945,7 +1945,7 @@ _test_create_inferred_span = (
     (
         "sns-string-msg-attribute",
         _Span(
-            service="sns",
+            service="serverlessTracingTopicPy",
             start=1643638421.637,
             span_type="web",
             tags={
@@ -1964,7 +1964,7 @@ _test_create_inferred_span = (
     (
         "sns-b64-msg-attribute",
         _Span(
-            service="sns",
+            service="serverlessTracingTopicPy",
             start=1643638421.637,
             span_type="web",
             tags={
@@ -1981,9 +1981,9 @@ _test_create_inferred_span = (
         ),
     ),
     (
-        "kinesis",
+        "kinesisStream",
         _Span(
-            service="kinesis",
+            service="kinesisStream",
             start=1643638425.163,
             span_type="web",
             tags={
@@ -2000,16 +2000,16 @@ _test_create_inferred_span = (
                 "operation_name": "aws.kinesis",
                 "partition_key": "partitionkey",
                 "request_id": None,
-                "resource_names": "stream/kinesisStream",
+                "resource_names": "kinesisStream",
                 "shardid": "shardId-000000000002",
-                "streamname": "stream/kinesisStream",
+                "streamname": "kinesisStream",
             },
         ),
     ),
     (
         "dynamodb",
         _Span(
-            service="dynamodb",
+            service="ExampleTableWithStream",
             start=1428537600.0,
             span_type="web",
             tags={
@@ -2035,7 +2035,7 @@ _test_create_inferred_span = (
     (
         "s3",
         _Span(
-            service="s3",
+            service="example-bucket",
             start=0.0,
             span_type="web",
             tags={
@@ -2060,7 +2060,7 @@ _test_create_inferred_span = (
     (
         "eventbridge-custom",
         _Span(
-            service="eventbridge",
+            service="eventbridge.custom.event.sender",
             start=1635989865.0,
             span_type="web",
             tags={
@@ -2079,7 +2079,7 @@ _test_create_inferred_span = (
     (
         "eventbridge-sqs",
         _Span(
-            service="sqs",
+            service="eventbridge-sqs-queue",
             start=1691102943.638,
             span_type="web",
             parent_name="aws.eventbridge",
