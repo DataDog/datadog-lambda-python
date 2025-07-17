@@ -863,7 +863,8 @@ def determine_service_name(
     service_name = service_mapping.get(specific_key)
     if service_name is None:
         service_name = service_mapping.get(
-            generic_key, default_value if default_value is not None else fallback,
+            generic_key,
+            default_value if default_value is not None else fallback,
         )
     return service_name
 
