@@ -2,8 +2,9 @@ import base64
 import json
 import os
 import unittest
+import importlib
 
-from unittest.mock import patch, call, ANY
+from unittest.mock import MagicMock, patch, call, ANY
 from datadog_lambda.constants import TraceHeader
 
 import datadog_lambda.wrapper as wrapper
@@ -660,3 +661,117 @@ class TestLambdaWrapperFlushExtension(unittest.TestCase):
         lambda_handler(lambda_event, lambda_context)
 
         self.assertEqual(len(flushes), 0)
+
+
+class TestLambdaWrapperAppsecBlocking(unittest.TestCase):
+    def setUp(self):
+        os.environ["DD_APPSEC_ENABLED"] = "true"
+        os.environ["DD_TRACE_ENABLED"] = "true"
+
+        importlib.reload(wrapper)
+
+        self.addCleanup(os.environ.pop, "DD_APPSEC_ENABLED", None)
+        self.addCleanup(os.environ.pop, "DD_TRACE_ENABLED", None)
+        self.addCleanup(lambda: importlib.reload(wrapper))
+
+        patcher = patch("datadog_lambda.wrapper.asm_set_context")
+        self.mock_asm_set_context = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("datadog_lambda.wrapper.asm_start_request")
+        self.mock_asm_start_request = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("datadog_lambda.wrapper.asm_start_response")
+        self.mock_asm_start_response = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("datadog_lambda.wrapper.get_asm_blocked_response")
+        self.mock_get_asm_blocking_response = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        self.fake_blocking_response = {
+            "statusCode": "403",
+            "headers": {
+                "Content-Type": "application/json",
+            },
+            "body": '{"message": "Blocked by AppSec"}',
+            "isBase64Encoded": False,
+        }
+
+    def test_blocking_before(self):
+        self.mock_get_asm_blocking_response.return_value = self.fake_blocking_response
+
+        mock_handler = MagicMock()
+
+        lambda_handler = wrapper.datadog_lambda_wrapper(mock_handler)
+
+        response = lambda_handler({}, get_mock_context())
+        self.assertEqual(response, self.fake_blocking_response)
+
+        mock_handler.assert_not_called()
+
+        self.mock_asm_set_context.assert_called_once()
+        self.mock_asm_start_request.assert_called_once()
+        self.mock_asm_start_response.assert_not_called()
+
+    def test_blocking_during(self):
+        self.mock_get_asm_blocking_response.return_value = None
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            self.mock_get_asm_blocking_response.return_value = (
+                self.fake_blocking_response
+            )
+            raise wrapper.BlockingException()
+
+        response = lambda_handler({}, get_mock_context())
+        self.assertEqual(response, self.fake_blocking_response)
+
+        self.mock_asm_set_context.assert_called_once()
+        self.mock_asm_start_request.assert_called_once()
+        self.mock_asm_start_response.assert_not_called()
+
+    def test_blocking_after(self):
+        self.mock_get_asm_blocking_response.return_value = None
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            self.mock_get_asm_blocking_response.return_value = (
+                self.fake_blocking_response
+            )
+            return {
+                "statusCode": 200,
+                "body": "This should not be returned",
+            }
+
+        response = lambda_handler({}, get_mock_context())
+        self.assertEqual(response, self.fake_blocking_response)
+
+        self.mock_asm_set_context.assert_called_once()
+        self.mock_asm_start_request.assert_called_once()
+        self.mock_asm_start_response.assert_called_once()
+
+    def test_no_blocking_appsec_disabled(self):
+        os.environ["DD_APPSEC_ENABLED"] = "false"
+
+        importlib.reload(wrapper)
+
+        self.mock_get_asm_blocking_response.return_value = self.fake_blocking_response
+
+        expected_response = {
+            "statusCode": 200,
+            "body": "This should be returned",
+        }
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return expected_response
+
+        response = lambda_handler({}, get_mock_context())
+        self.assertEqual(response, expected_response)
+
+        self.mock_get_asm_blocking_response.assert_not_called()
+        self.mock_asm_set_context.assert_not_called()
+        self.mock_asm_start_request.assert_not_called()
+        self.mock_asm_start_response.assert_not_called()
