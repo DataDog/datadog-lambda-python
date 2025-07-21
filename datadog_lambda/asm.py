@@ -1,9 +1,12 @@
-from copy import deepcopy
 import logging
+import urllib.parse
+from copy import deepcopy
 from typing import Any, Dict, List, Optional, Union
 
 from ddtrace.contrib.internal.trace_utils import _get_request_header_client_ip
 from ddtrace.internal import core
+from ddtrace.internal.utils import get_blocked
+from ddtrace.internal.utils import http as http_utils
 from ddtrace.trace import Span
 
 from datadog_lambda.trigger import (
@@ -50,6 +53,7 @@ def asm_set_context(event_source: _EventSource):
     This allows the AppSecSpanProcessor to know information about the event
     at the moment the span is created and skip it when not relevant.
     """
+
     if event_source.event_type not in _http_event_types:
         core.set_item("appsec_skip_next_lambda_event", True)
 
@@ -126,6 +130,14 @@ def asm_start_request(
         span.set_tag_str("http.client_ip", request_ip)
         span.set_tag_str("network.client.ip", request_ip)
 
+    # Encode the parsed query and append it to reconstruct the original raw URI expected by AppSec.
+    if parsed_query:
+        try:
+            encoded_query = urllib.parse.urlencode(parsed_query, doseq=True)
+            raw_uri += "?" + encoded_query  # type: ignore
+        except Exception:
+            pass
+
     core.dispatch(
         # The matching listener is registered in ddtrace.appsec._handlers
         "aws_lambda.start_request",
@@ -182,3 +194,36 @@ def asm_start_response(
             response_headers,
         ),
     )
+
+
+def get_asm_blocked_response(
+    event_source: _EventSource,
+) -> Optional[Dict[str, Any]]:
+    """Get the blocked response for the given event source."""
+    if event_source.event_type not in _http_event_types:
+        return None
+
+    blocked = get_blocked()
+    if not blocked:
+        return None
+
+    desired_type = blocked.get("type", "auto")
+    if desired_type == "none":
+        content_type = "text/plain; charset=utf-8"
+        content = ""
+    else:
+        content_type = blocked.get("content-type", "application/json")
+        content = http_utils._get_blocked_template(content_type)
+
+    response_headers = {
+        "content-type": content_type,
+    }
+    if "location" in blocked:
+        response_headers["location"] = blocked["location"]
+
+    return {
+        "statusCode": blocked.get("status_code", 403),
+        "headers": response_headers,
+        "body": content,
+        "isBase64Encoded": False,
+    }
