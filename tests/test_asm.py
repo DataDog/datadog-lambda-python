@@ -106,6 +106,7 @@ ASM_START_RESPONSE_TEST_CASES = [
         },
         "200",
         {"Content-Type": "text/html"},
+        None,
         True,
     ),
     (
@@ -123,6 +124,7 @@ ASM_START_RESPONSE_TEST_CASES = [
             "Content-Type": "text/plain",
             "X-Error": "Not Found",
         },
+        None,
         True,
     ),
     (
@@ -140,6 +142,7 @@ ASM_START_RESPONSE_TEST_CASES = [
             "Location": "/user/123",
             "Content-Type": "application/json",
         },
+        None,
         True,
     ),
     (
@@ -158,6 +161,7 @@ ASM_START_RESPONSE_TEST_CASES = [
             "Content-Type": "application/json",
             "X-Custom-Header": "test-value",
         },
+        '{"message": "success"}',
         True,
     ),
     (
@@ -169,6 +173,7 @@ ASM_START_RESPONSE_TEST_CASES = [
         },
         "200",
         {"Content-Type": "application/json"},
+        None,
         True,
     ),
     (
@@ -180,6 +185,7 @@ ASM_START_RESPONSE_TEST_CASES = [
         },
         "200",
         {"Content-Type": "text/plain"},
+        None,
         True,
     ),
     (
@@ -188,6 +194,7 @@ ASM_START_RESPONSE_TEST_CASES = [
         {"statusCode": 200},
         "200",
         {},
+        None,
         False,  # Should not dispatch for non-HTTP events
     ),
     (
@@ -196,6 +203,7 @@ ASM_START_RESPONSE_TEST_CASES = [
         "Hello, World!",
         "200",
         {"content-type": "application/json"},
+        "Hello, World!",
         True,
     ),
     (
@@ -204,6 +212,7 @@ ASM_START_RESPONSE_TEST_CASES = [
         {"message": "Hello, World!"},
         "200",
         {"content-type": "application/json"},
+        {"message": "Hello, World!"},
         True,
     ),
 ]
@@ -326,7 +335,7 @@ def test_asm_start_request_parametrized(
 
 
 @pytest.mark.parametrize(
-    "name,event_file,response,status_code,expected_headers,should_dispatch",
+    "name,event_file,response,status_code,expected_headers,expected_body,should_dispatch",
     ASM_START_RESPONSE_TEST_CASES,
 )
 @patch("datadog_lambda.asm.core")
@@ -337,6 +346,7 @@ def test_asm_start_response_parametrized(
     response,
     status_code,
     expected_headers,
+    expected_body,
     should_dispatch,
 ):
     """Test ASM start response for various HTTP event types using parametrization"""
@@ -355,18 +365,17 @@ def test_asm_start_response_parametrized(
     asm_start_response(mock_span, status_code, event_source, response)
 
     if should_dispatch:
-        # Verify core.dispatch was called
-        mock_core.dispatch.assert_called_once()
-        call_args = mock_core.dispatch.call_args
-        assert call_args[0][0] == "aws_lambda.start_response"
+        assert mock_core.dispatch.call_count == 2
 
-        # Extract the dispatched arguments
-        dispatch_args = call_args[0][1]
-        span, response_status_code, response_headers = dispatch_args
+        assert mock_core.dispatch.call_args_list[0].args == (
+            "aws_lambda.start_response",
+            (mock_span, status_code, expected_headers),
+        )
 
-        assert span == mock_span
-        assert response_status_code == status_code
-        assert response_headers == expected_headers
+        assert mock_core.dispatch.call_args_list[1].args == (
+            "aws_lambda.parse_body",
+            (expected_body,),
+        )
     else:
         # Verify core.dispatch was not called for non-HTTP events
         mock_core.dispatch.assert_not_called()
