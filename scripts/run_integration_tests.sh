@@ -212,6 +212,8 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed -E "s/(datadog_lambda:v)([0-9]+\.[0-9]+\.[0-9]+)/\1XX/g" |
                 sed -E "s/(datadogpy\/)([0-9]+\.[0-9]+\.[0-9]+)/\1XX/g" |
                 sed -E "s/(python )([0-9]\.[0-9]+\.[0-9]+)/\1XX/g" |
+                # Remove .devN versioning from logs
+                sed -E "s/\.dev[0-9]+//g" |
                 # Strip out run ID (from function name, resource, etc.)
                 sed -E "s/${!run_id}/XXXX/g" |
                 # Normalize python-requests version
