@@ -4,6 +4,7 @@
 # Copyright 2019 Datadog, Inc.
 import logging
 import os
+import re
 import traceback
 import ujson as json
 from datetime import datetime, timezone
@@ -856,15 +857,31 @@ def create_service_mapping(val):
     return new_service_mapping
 
 
-def determine_service_name(service_mapping, specific_key, generic_key, default_value):
-    service_name = service_mapping.get(specific_key)
-    if service_name is None:
-        service_name = service_mapping.get(generic_key, default_value)
-    return service_name
+def determine_service_name(
+    service_mapping, specific_key, generic_key, extracted_key, fallback=None
+):
+    # Check for mapped service (specific key first, then generic key)
+    mapped_service = service_mapping.get(specific_key) or service_mapping.get(
+        generic_key
+    )
+    if mapped_service:
+        return mapped_service
+
+    # Check if AWS service representation is disabled
+    aws_service_representation = os.environ.get(
+        "DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", ""
+    ).lower()
+    if aws_service_representation in ("false", "0"):
+        return fallback
+
+    # Use extracted_key if it exists and is not empty, otherwise use fallback
+    return (
+        extracted_key.strip() if extracted_key and extracted_key.strip() else fallback
+    )
 
 
 # Initialization code
-service_mapping_str = os.getenv("DD_SERVICE_MAPPING", "")
+service_mapping_str = os.environ.get("DD_SERVICE_MAPPING", "")
 service_mapping = create_service_mapping(service_mapping_str)
 
 _dd_origin = {"_dd.origin": "lambda"}
@@ -988,6 +1005,7 @@ def create_inferred_span_from_api_gateway_websocket_event(
         "http.url": http_url,
         "endpoint": endpoint,
         "resource_names": endpoint,
+        "span.kind": "server",
         "apiid": api_id,
         "apiname": api_id,
         "stage": request_context.get("stage"),
@@ -1046,6 +1064,7 @@ def create_inferred_span_from_api_gateway_event(
         "endpoint": path,
         "http.method": method,
         "resource_names": resource,
+        "span.kind": "server",
         "apiid": api_id,
         "apiname": api_id,
         "stage": request_context.get("stage"),
@@ -1150,12 +1169,13 @@ def create_inferred_span_from_sqs_event(event, context):
     event_source_arn = event_record.get("eventSourceARN")
     queue_name = event_source_arn.split(":")[-1]
     service_name = determine_service_name(
-        service_mapping, queue_name, "lambda_sqs", "sqs"
+        service_mapping, queue_name, "lambda_sqs", queue_name, "sqs"
     )
     attrs = event_record.get("attributes") or {}
     tags = {
         "operation_name": "aws.sqs",
         "resource_names": queue_name,
+        "span.kind": "server",
         "queuename": queue_name,
         "event_source_arn": event_source_arn,
         "receipt_handle": event_record.get("receiptHandle"),
@@ -1217,11 +1237,12 @@ def create_inferred_span_from_sns_event(event, context):
     topic_arn = sns_message.get("TopicArn")
     topic_name = topic_arn.split(":")[-1]
     service_name = determine_service_name(
-        service_mapping, topic_name, "lambda_sns", "sns"
+        service_mapping, topic_name, "lambda_sns", topic_name, "sns"
     )
     tags = {
         "operation_name": "aws.sns",
         "resource_names": topic_name,
+        "span.kind": "server",
         "topicname": topic_name,
         "topic_arn": topic_arn,
         "message_id": sns_message.get("MessageId"),
@@ -1252,15 +1273,16 @@ def create_inferred_span_from_kinesis_event(event, context):
     event_record = get_first_record(event)
     event_source_arn = event_record.get("eventSourceARN")
     event_id = event_record.get("eventID")
-    stream_name = event_source_arn.split(":")[-1]
+    stream_name = re.sub(r"^stream/", "", (event_source_arn or "").split(":")[-1])
     shard_id = event_id.split(":")[0]
     service_name = determine_service_name(
-        service_mapping, stream_name, "lambda_kinesis", "kinesis"
+        service_mapping, stream_name, "lambda_kinesis", stream_name, "kinesis"
     )
     kinesis = event_record.get("kinesis") or {}
     tags = {
         "operation_name": "aws.kinesis",
         "resource_names": stream_name,
+        "span.kind": "server",
         "streamname": stream_name,
         "shardid": shard_id,
         "event_source_arn": event_source_arn,
@@ -1287,12 +1309,13 @@ def create_inferred_span_from_dynamodb_event(event, context):
     event_source_arn = event_record.get("eventSourceARN")
     table_name = event_source_arn.split("/")[1]
     service_name = determine_service_name(
-        service_mapping, table_name, "lambda_dynamodb", "dynamodb"
+        service_mapping, table_name, "lambda_dynamodb", table_name, "dynamodb"
     )
     dynamodb_message = event_record.get("dynamodb") or {}
     tags = {
         "operation_name": "aws.dynamodb",
         "resource_names": table_name,
+        "span.kind": "server",
         "tablename": table_name,
         "event_source_arn": event_source_arn,
         "event_id": event_record.get("eventID"),
@@ -1321,11 +1344,12 @@ def create_inferred_span_from_s3_event(event, context):
     obj = s3.get("object") or {}
     bucket_name = bucket.get("name")
     service_name = determine_service_name(
-        service_mapping, bucket_name, "lambda_s3", "s3"
+        service_mapping, bucket_name, "lambda_s3", bucket_name, "s3"
     )
     tags = {
         "operation_name": "aws.s3",
         "resource_names": bucket_name,
+        "span.kind": "server",
         "event_name": event_record.get("eventName"),
         "bucketname": bucket_name,
         "bucket_arn": bucket.get("arn"),
@@ -1351,11 +1375,12 @@ def create_inferred_span_from_s3_event(event, context):
 def create_inferred_span_from_eventbridge_event(event, context):
     source = event.get("source")
     service_name = determine_service_name(
-        service_mapping, source, "lambda_eventbridge", "eventbridge"
+        service_mapping, source, "lambda_eventbridge", source, "eventbridge"
     )
     tags = {
         "operation_name": "aws.eventbridge",
         "resource_names": source,
+        "span.kind": "server",
         "detail_type": event.get("detail-type"),
     }
     InferredSpanInfo.set_tags(
@@ -1429,9 +1454,21 @@ def create_function_execution_span(
         tags["_dd.parent_source"] = trace_context_source
     tags.update(trigger_tags)
     tracer.set_tags(_dd_origin)
+    # Determine service name based on config and env var
+    if config.service:
+        service_name = config.service
+    else:
+        aws_service_representation = os.environ.get(
+            "DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", ""
+        ).lower()
+        if aws_service_representation in ("false", "0"):
+            service_name = "aws.lambda"
+        else:
+            service_name = function_name if function_name else "aws.lambda"
+
     span = tracer.trace(
         "aws.lambda",
-        service="aws.lambda",
+        service=service_name,
         resource=function_name,
         span_type="serverless",
     )
