@@ -858,19 +858,24 @@ def create_service_mapping(val):
 
 
 def determine_service_name(
-    service_mapping, specific_key, generic_key, default_value, fallback=None
+    service_mapping, specific_key, generic_key, extracted_key, fallback=None
 ):
-    service_name = service_mapping.get(specific_key)
-    if service_name is None:
-        service_name = service_mapping.get(
-            generic_key,
-            default_value if default_value is not None else fallback,
-        )
-    return service_name
+    # Check for mapped service (specific key first, then generic key)
+    mapped_service = service_mapping.get(specific_key) or service_mapping.get(generic_key)
+    if mapped_service:
+        return mapped_service
+    
+    # Check if AWS service representation is disabled
+    aws_service_representation = os.environ.get("DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", "").lower()
+    if aws_service_representation in ("false", "0"):
+        return fallback
+    
+    # Use extracted_key if it exists and is not empty, otherwise use fallback
+    return extracted_key.strip() if extracted_key and extracted_key.strip() else fallback
 
 
 # Initialization code
-service_mapping_str = os.getenv("DD_SERVICE_MAPPING", "")
+service_mapping_str = os.environ.get("DD_SERVICE_MAPPING", "")
 service_mapping = create_service_mapping(service_mapping_str)
 
 _dd_origin = {"_dd.origin": "lambda"}
@@ -1443,9 +1448,19 @@ def create_function_execution_span(
         tags["_dd.parent_source"] = trace_context_source
     tags.update(trigger_tags)
     tracer.set_tags(_dd_origin)
+    # Determine service name based on config and env var
+    if config.service:
+        service_name = config.service
+    else:
+        aws_service_representation = os.environ.get("DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", "").lower()
+        if aws_service_representation in ("false", "0"):
+            service_name = "aws.lambda"
+        else:
+            service_name = function_name if function_name else "aws.lambda"
+    
     span = tracer.trace(
         "aws.lambda",
-        service=config.service if config.service else function_name,
+        service=service_name,
         resource=function_name,
         span_type="serverless",
     )

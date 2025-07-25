@@ -1283,6 +1283,42 @@ class TestServiceMapping(unittest.TestCase):
             ),
             "default",
         )
+        
+        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED set to false
+        os.environ["DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED"] = "false"
+        self.assertEqual(
+            determine_service_name(
+                self.get_service_mapping(), "api4", "api4", "extracted", "fallback"
+            ),
+            "fallback",
+        )
+        
+        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED set to 0
+        os.environ["DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED"] = "0"
+        self.assertEqual(
+            determine_service_name(
+                self.get_service_mapping(), "api4", "api4", "extracted", "fallback"
+            ),
+            "fallback",
+        )
+        
+        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED not set (default behavior)
+        if "DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED" in os.environ:
+            del os.environ["DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED"]
+        self.assertEqual(
+            determine_service_name(
+                self.get_service_mapping(), "api4", "api4", "extracted", "fallback"
+            ),
+            "extracted",
+        )
+        
+        # Test with empty extracted key
+        self.assertEqual(
+            determine_service_name(
+                self.get_service_mapping(), "api4", "api4", "  ", "fallback"
+            ),
+            "fallback",
+        )
 
         del os.environ["DD_SERVICE_MAPPING"]
 
