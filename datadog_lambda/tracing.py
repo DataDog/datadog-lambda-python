@@ -861,17 +861,23 @@ def determine_service_name(
     service_mapping, specific_key, generic_key, extracted_key, fallback=None
 ):
     # Check for mapped service (specific key first, then generic key)
-    mapped_service = service_mapping.get(specific_key) or service_mapping.get(generic_key)
+    mapped_service = service_mapping.get(specific_key) or service_mapping.get(
+        generic_key
+    )
     if mapped_service:
         return mapped_service
-    
+
     # Check if AWS service representation is disabled
-    aws_service_representation = os.environ.get("DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", "").lower()
+    aws_service_representation = os.environ.get(
+        "DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", ""
+    ).lower()
     if aws_service_representation in ("false", "0"):
         return fallback
-    
+
     # Use extracted_key if it exists and is not empty, otherwise use fallback
-    return extracted_key.strip() if extracted_key and extracted_key.strip() else fallback
+    return (
+        extracted_key.strip() if extracted_key and extracted_key.strip() else fallback
+    )
 
 
 # Initialization code
@@ -1452,12 +1458,14 @@ def create_function_execution_span(
     if config.service:
         service_name = config.service
     else:
-        aws_service_representation = os.environ.get("DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", "").lower()
+        aws_service_representation = os.environ.get(
+            "DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", ""
+        ).lower()
         if aws_service_representation in ("false", "0"):
             service_name = "aws.lambda"
         else:
             service_name = function_name if function_name else "aws.lambda"
-    
+
     span = tracer.trace(
         "aws.lambda",
         service=service_name,
