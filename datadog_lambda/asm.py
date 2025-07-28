@@ -195,6 +195,17 @@ def asm_start_response(
         ),
     )
 
+    if isinstance(response, dict) and "statusCode" in response:
+        body = response.get("body")
+    else:
+        body = response
+
+    core.dispatch(
+        # The matching listener is registered in ddtrace.appsec._handlers
+        "aws_lambda.parse_body",
+        (body,),
+    )
+
 
 def get_asm_blocked_response(
     event_source: _EventSource,
