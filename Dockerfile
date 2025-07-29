@@ -25,8 +25,11 @@ RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_taint_tracki
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_stacktrace*.so
 # _stack_v2 may not exist for some versions of ddtrace (e.g. under python 3.13)
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/stack_v2/_stack_v2.*.so
-# remove *.dist-info directories except any entry_points.txt files
-RUN find ./python/lib/$runtime/site-packages/*.dist-info -not -name "entry_points.txt" -type f -delete
+# remove *.dist-info directories except any entry_points.txt files and METADATA files required for Appsec Software Composition Analysis
+RUN find ./python/lib/$runtime/site-packages/*.dist-info \
+        -type f \
+        ! \( -name 'entry_points.txt' -o -name 'METADATA' \) \
+        -delete
 RUN find ./python/lib/$runtime/site-packages -type d -empty -delete
 
 # Remove requests and dependencies
