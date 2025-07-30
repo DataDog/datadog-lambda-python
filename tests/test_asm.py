@@ -2,8 +2,17 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 
-from datadog_lambda.asm import asm_start_request, asm_start_response
-from datadog_lambda.trigger import parse_event_source, extract_trigger_tags
+from datadog_lambda.asm import (
+    asm_start_request,
+    asm_start_response,
+    get_asm_blocked_response,
+)
+from datadog_lambda.trigger import (
+    EventTypes,
+    _EventSource,
+    extract_trigger_tags,
+    parse_event_source,
+)
 from tests.utils import get_mock_context
 
 event_samples = "tests/event_samples/"
@@ -15,7 +24,7 @@ ASM_START_REQUEST_TEST_CASES = [
         "application_load_balancer",
         "application-load-balancer.json",
         "72.12.164.125",
-        "/lambda",
+        "/lambda?query=1234ABCD",
         "GET",
         "",
         False,
@@ -27,7 +36,7 @@ ASM_START_REQUEST_TEST_CASES = [
         "application_load_balancer_multivalue_headers",
         "application-load-balancer-mutivalue-headers.json",
         "72.12.164.125",
-        "/lambda",
+        "/lambda?query=1234ABCD",
         "GET",
         "",
         False,
@@ -51,7 +60,7 @@ ASM_START_REQUEST_TEST_CASES = [
         "api_gateway",
         "api-gateway.json",
         "127.0.0.1",
-        "/path/to/resource",
+        "/path/to/resource?foo=bar",
         "POST",
         "eyJ0ZXN0IjoiYm9keSJ9",
         True,
@@ -97,6 +106,7 @@ ASM_START_RESPONSE_TEST_CASES = [
         },
         "200",
         {"Content-Type": "text/html"},
+        None,
         True,
     ),
     (
@@ -114,6 +124,7 @@ ASM_START_RESPONSE_TEST_CASES = [
             "Content-Type": "text/plain",
             "X-Error": "Not Found",
         },
+        None,
         True,
     ),
     (
@@ -131,6 +142,7 @@ ASM_START_RESPONSE_TEST_CASES = [
             "Location": "/user/123",
             "Content-Type": "application/json",
         },
+        None,
         True,
     ),
     (
@@ -149,6 +161,7 @@ ASM_START_RESPONSE_TEST_CASES = [
             "Content-Type": "application/json",
             "X-Custom-Header": "test-value",
         },
+        '{"message": "success"}',
         True,
     ),
     (
@@ -160,6 +173,7 @@ ASM_START_RESPONSE_TEST_CASES = [
         },
         "200",
         {"Content-Type": "application/json"},
+        None,
         True,
     ),
     (
@@ -171,6 +185,7 @@ ASM_START_RESPONSE_TEST_CASES = [
         },
         "200",
         {"Content-Type": "text/plain"},
+        None,
         True,
     ),
     (
@@ -179,6 +194,7 @@ ASM_START_RESPONSE_TEST_CASES = [
         {"statusCode": 200},
         "200",
         {},
+        None,
         False,  # Should not dispatch for non-HTTP events
     ),
     (
@@ -187,6 +203,7 @@ ASM_START_RESPONSE_TEST_CASES = [
         "Hello, World!",
         "200",
         {"content-type": "application/json"},
+        "Hello, World!",
         True,
     ),
     (
@@ -195,7 +212,42 @@ ASM_START_RESPONSE_TEST_CASES = [
         {"message": "Hello, World!"},
         "200",
         {"content-type": "application/json"},
+        {"message": "Hello, World!"},
         True,
+    ),
+]
+
+ASM_BLOCKED_RESPONSE_TEST_CASES = [
+    # JSON blocking response
+    (
+        {"status_code": 403, "type": "auto", "content-type": "application/json"},
+        403,
+        {"content-type": "application/json"},
+    ),
+    # HTML blocking response
+    (
+        {
+            "status_code": 401,
+            "type": "html",
+            "content-type": "text/html",
+        },
+        401,
+        {"content-type": "text/html"},
+    ),
+    # Plain text redirect response
+    (
+        {"status_code": 301, "type": "none", "location": "https://example.com/blocked"},
+        301,
+        {
+            "content-type": "text/plain; charset=utf-8",
+            "location": "https://example.com/blocked",
+        },
+    ),
+    # Default to content-type application/json and status code 403 when not provided
+    (
+        {"type": "auto"},
+        403,
+        {"content-type": "application/json"},
     ),
 ]
 
@@ -283,7 +335,7 @@ def test_asm_start_request_parametrized(
 
 
 @pytest.mark.parametrize(
-    "name,event_file,response,status_code,expected_headers,should_dispatch",
+    "name,event_file,response,status_code,expected_headers,expected_body,should_dispatch",
     ASM_START_RESPONSE_TEST_CASES,
 )
 @patch("datadog_lambda.asm.core")
@@ -294,6 +346,7 @@ def test_asm_start_response_parametrized(
     response,
     status_code,
     expected_headers,
+    expected_body,
     should_dispatch,
 ):
     """Test ASM start response for various HTTP event types using parametrization"""
@@ -312,18 +365,45 @@ def test_asm_start_response_parametrized(
     asm_start_response(mock_span, status_code, event_source, response)
 
     if should_dispatch:
-        # Verify core.dispatch was called
-        mock_core.dispatch.assert_called_once()
-        call_args = mock_core.dispatch.call_args
-        assert call_args[0][0] == "aws_lambda.start_response"
+        assert mock_core.dispatch.call_count == 2
 
-        # Extract the dispatched arguments
-        dispatch_args = call_args[0][1]
-        span, response_status_code, response_headers = dispatch_args
+        assert mock_core.dispatch.call_args_list[0].args == (
+            "aws_lambda.start_response",
+            (mock_span, status_code, expected_headers),
+        )
 
-        assert span == mock_span
-        assert response_status_code == status_code
-        assert response_headers == expected_headers
+        assert mock_core.dispatch.call_args_list[1].args == (
+            "aws_lambda.parse_body",
+            (expected_body,),
+        )
     else:
         # Verify core.dispatch was not called for non-HTTP events
         mock_core.dispatch.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "blocked_config, expected_status, expected_headers",
+    ASM_BLOCKED_RESPONSE_TEST_CASES,
+)
+@patch("datadog_lambda.asm.get_blocked")
+def test_get_asm_blocked_response_blocked(
+    mock_get_blocked,
+    blocked_config,
+    expected_status,
+    expected_headers,
+):
+    mock_get_blocked.return_value = blocked_config
+    event_source = _EventSource(event_type=EventTypes.API_GATEWAY)
+    response = get_asm_blocked_response(event_source)
+    assert response["statusCode"] == expected_status
+    assert response["headers"] == expected_headers
+
+
+@patch("datadog_lambda.asm.get_blocked")
+def test_get_asm_blocked_response_not_blocked(
+    mock_get_blocked,
+):
+    mock_get_blocked.return_value = None
+    event_source = _EventSource(event_type=EventTypes.API_GATEWAY)
+    response = get_asm_blocked_response(event_source)
+    assert response is None

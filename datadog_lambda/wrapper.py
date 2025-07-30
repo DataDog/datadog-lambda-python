@@ -11,6 +11,7 @@ from time import time_ns
 
 from datadog_lambda.asm import asm_set_context, asm_start_response, asm_start_request
 from datadog_lambda.dsm import set_dsm_context
+from ddtrace.internal._exceptions import BlockingException
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import (
     set_cold_start,
@@ -46,6 +47,14 @@ from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
 )
+
+if config.appsec_enabled:
+    from datadog_lambda.asm import (
+        asm_set_context,
+        asm_start_response,
+        asm_start_request,
+        get_asm_blocked_response,
+    )
 
 if config.profiling_enabled:
     from ddtrace.profiling import profiler
@@ -121,6 +130,7 @@ class _LambdaDecorator(object):
             self.span = None
             self.inferred_span = None
             self.response = None
+            self.blocking_response = None
 
             if config.profiling_enabled:
                 self.prof = profiler.Profiler(env=config.env, service=config.service)
@@ -160,8 +170,12 @@ class _LambdaDecorator(object):
         """Executes when the wrapped function gets called"""
         self._before(event, context)
         try:
+            if self.blocking_response:
+                return self.blocking_response
             self.response = self.func(event, context, **kwargs)
             return self.response
+        except BlockingException:
+            self.blocking_response = get_asm_blocked_response(self.event_source)
         except Exception:
             from datadog_lambda.metric import submit_errors_metric
 
@@ -172,6 +186,8 @@ class _LambdaDecorator(object):
             raise
         finally:
             self._after(event, context)
+            if self.blocking_response:
+                return self.blocking_response
 
     def _inject_authorizer_span_headers(self, request_id):
         reference_span = self.inferred_span if self.inferred_span else self.span
@@ -204,6 +220,7 @@ class _LambdaDecorator(object):
     def _before(self, event, context):
         try:
             self.response = None
+            self.blocking_response = None
             set_cold_start(init_timestamp_ns)
 
             if not should_use_extension:
@@ -257,6 +274,7 @@ class _LambdaDecorator(object):
                 )
                 if config.appsec_enabled:
                     asm_start_request(self.span, event, event_source, self.trigger_tags)
+                    self.blocking_response = get_asm_blocked_response(self.event_source)
             else:
                 set_correlation_ids()
             if config.profiling_enabled and is_new_sandbox():
@@ -290,19 +308,23 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
 
-                if config.appsec_enabled:
+                if config.appsec_enabled and not self.blocking_response:
                     asm_start_response(
                         self.span,
                         status_code,
                         self.event_source,
                         response=self.response,
                     )
+                    self.blocking_response = get_asm_blocked_response(self.event_source)
 
                 self.span.finish()
 
             if self.inferred_span:
                 if status_code:
                     self.inferred_span.set_tag("http.status_code", status_code)
+
+                if self.trigger_tags and (route := self.trigger_tags.get("http.route")):
+                    self.inferred_span.set_tag("http.route", route)
 
                 if config.service:
                     self.inferred_span.set_tag("peer.service", config.service)

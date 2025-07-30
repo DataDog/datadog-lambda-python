@@ -59,6 +59,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "endpoint": "/",
           "http.method": "GET",
           "resource_names": "GET /",
+          "span.kind": "server",
           "apiid": "XXXX",
           "apiname": "XXXX",
           "stage": "Prod",
@@ -66,9 +67,9 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_inferred_span.synchronicity": "sync",
           "_inferred_span.tag_source": "self",
           "http.status_code": "200",
+          "http.route": "/",
           "peer.service": "integration-tests-python",
           "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -84,7 +85,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "aws.lambda",
+        "service": "integration-tests-python",
         "resource": "integration-tests-python-XXXX-async-metrics_python311",
         "name": "aws.lambda",
         "error": 0,
@@ -107,8 +108,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url_details.path": "/Prod/",
           "http.method": "GET",
           "http.route": "/",
-          "http.status_code": "200",
-          "_dd.base_service": "integration-tests-python"
+          "http.status_code": "200"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -133,8 +133,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://datadoghq.com/",
           "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1,
@@ -161,8 +160,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://www.datadoghq.com/",
           "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1
@@ -228,7 +226,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "dynamodb",
+        "service": "ExampleTableWithStream",
         "resource": "ExampleTableWithStream",
         "name": "aws.dynamodb",
         "error": 0,
@@ -239,6 +237,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_dd.origin": "lambda",
           "operation_name": "aws.dynamodb",
           "resource_names": "ExampleTableWithStream",
+          "span.kind": "server",
           "tablename": "ExampleTableWithStream",
           "event_source_arn": "arn:aws:dynamodb:us-east-1:XXXX:us-east-1/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
           "event_id": "XXXX",
@@ -250,7 +249,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -298,7 +296,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "aws.lambda",
+        "service": "integration-tests-python",
         "resource": "integration-tests-python-XXXX-async-metrics_python311",
         "name": "aws.lambda",
         "error": 0,
@@ -316,8 +314,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
           "function_trigger.event_source": "dynamodb",
-          "function_trigger.event_source_arn": "XXXX",
-          "_dd.base_service": "integration-tests-python"
+          "function_trigger.event_source_arn": "XXXX"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -342,8 +339,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://datadoghq.com/",
           "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1,
@@ -370,8 +366,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://www.datadoghq.com/",
           "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1
@@ -428,7 +423,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "eventbridge",
+        "service": "eventbridge.custom.event.sender",
         "resource": "eventbridge.custom.event.sender",
         "name": "aws.eventbridge",
         "error": 0,
@@ -439,12 +434,12 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_dd.origin": "lambda",
           "operation_name": "aws.eventbridge",
           "resource_names": "eventbridge.custom.event.sender",
+          "span.kind": "server",
           "detail_type": "testdetail",
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -460,7 +455,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "aws.lambda",
+        "service": "integration-tests-python",
         "resource": "integration-tests-python-XXXX-async-metrics_python311",
         "name": "aws.lambda",
         "error": 0,
@@ -477,8 +472,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
-          "function_trigger.event_source": "eventbridge",
-          "_dd.base_service": "integration-tests-python"
+          "function_trigger.event_source": "eventbridge"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -503,8 +497,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://datadoghq.com/",
           "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1,
@@ -531,8 +524,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://www.datadoghq.com/",
           "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1
@@ -613,9 +605,9 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_inferred_span.synchronicity": "sync",
           "_inferred_span.tag_source": "self",
           "http.status_code": "200",
+          "http.route": "/httpapi/get",
           "peer.service": "integration-tests-python",
           "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -631,7 +623,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "aws.lambda",
+        "service": "integration-tests-python",
         "resource": "integration-tests-python-XXXX-async-metrics_python311",
         "name": "aws.lambda",
         "error": 0,
@@ -654,8 +646,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url_details.path": "/httpapi/get",
           "http.method": "GET",
           "http.route": "/httpapi/get",
-          "http.status_code": "200",
-          "_dd.base_service": "integration-tests-python"
+          "http.status_code": "200"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -680,8 +671,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://datadoghq.com/",
           "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1,
@@ -708,8 +698,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://www.datadoghq.com/",
           "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1
@@ -766,7 +755,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "kinesis",
+        "service": "EXAMPLE",
         "resource": "EXAMPLE",
         "name": "aws.kinesis",
         "error": 0,
@@ -777,6 +766,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_dd.origin": "lambda",
           "operation_name": "aws.kinesis",
           "resource_names": "EXAMPLE",
+          "span.kind": "server",
           "streamname": "EXAMPLE",
           "shardid": "shardId-XXXX",
           "event_source_arn": "arn:aws:kinesis:EXAMPLE",
@@ -788,7 +778,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -804,7 +793,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "aws.lambda",
+        "service": "integration-tests-python",
         "resource": "integration-tests-python-XXXX-async-metrics_python311",
         "name": "aws.lambda",
         "error": 0,
@@ -822,8 +811,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
           "function_trigger.event_source": "kinesis",
-          "function_trigger.event_source_arn": "XXXX",
-          "_dd.base_service": "integration-tests-python"
+          "function_trigger.event_source_arn": "XXXX"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -848,8 +836,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://datadoghq.com/",
           "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1,
@@ -876,8 +863,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://www.datadoghq.com/",
           "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1
@@ -934,7 +920,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "s3",
+        "service": "example-bucket",
         "resource": "example-bucket",
         "name": "aws.s3",
         "error": 0,
@@ -943,6 +929,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_dd.origin": "lambda",
           "operation_name": "aws.s3",
           "resource_names": "example-bucket",
+          "span.kind": "server",
           "event_name": "ObjectCreated:Put",
           "bucketname": "example-bucket",
           "bucket_arn": "arn:aws:s3:::example-bucket",
@@ -953,7 +940,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -981,7 +967,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "aws.lambda",
+        "service": "integration-tests-python",
         "resource": "integration-tests-python-XXXX-async-metrics_python311",
         "name": "aws.lambda",
         "error": 0,
@@ -999,8 +985,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
           "function_trigger.event_source": "s3",
-          "function_trigger.event_source_arn": "XXXX",
-          "_dd.base_service": "integration-tests-python"
+          "function_trigger.event_source_arn": "XXXX"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -1025,8 +1010,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://datadoghq.com/",
           "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1,
@@ -1053,8 +1037,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://www.datadoghq.com/",
           "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1
@@ -1111,7 +1094,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "sns",
+        "service": "sns-lambda",
         "resource": "sns-lambda",
         "name": "aws.sns",
         "error": 0,
@@ -1122,6 +1105,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_dd.origin": "lambda",
           "operation_name": "aws.sns",
           "resource_names": "sns-lambda",
+          "span.kind": "server",
           "topicname": "sns-lambda",
           "topic_arn": "arn:aws:sns:us-east-2:XXXX:us-east-2-lambda",
           "message_id": "XXXX",
@@ -1131,7 +1115,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -1147,7 +1130,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "aws.lambda",
+        "service": "integration-tests-python",
         "resource": "integration-tests-python-XXXX-async-metrics_python311",
         "name": "aws.lambda",
         "error": 0,
@@ -1165,8 +1148,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
           "function_trigger.event_source": "sns",
-          "function_trigger.event_source_arn": "XXXX",
-          "_dd.base_service": "integration-tests-python"
+          "function_trigger.event_source_arn": "XXXX"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -1191,8 +1173,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://datadoghq.com/",
           "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1,
@@ -1219,8 +1200,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://www.datadoghq.com/",
           "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1
@@ -1277,7 +1257,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "sqs",
+        "service": "my-queue",
         "resource": "my-queue",
         "name": "aws.sqs",
         "error": 0,
@@ -1288,6 +1268,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_dd.origin": "lambda",
           "operation_name": "aws.sqs",
           "resource_names": "my-queue",
+          "span.kind": "server",
           "queuename": "my-queue",
           "event_source_arn": "arn:aws:sqs:us-east-2:XXXX:us-east-2-queue",
           "receipt_handle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
@@ -1296,7 +1277,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "_inferred_span.tag_source": "self",
           "peer.service": "integration-tests-python",
           "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -1312,7 +1292,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "aws.lambda",
+        "service": "integration-tests-python",
         "resource": "integration-tests-python-XXXX-async-metrics_python311",
         "name": "aws.lambda",
         "error": 0,
@@ -1330,8 +1310,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
           "function_trigger.event_source": "sqs",
-          "function_trigger.event_source_arn": "XXXX",
-          "_dd.base_service": "integration-tests-python"
+          "function_trigger.event_source_arn": "XXXX"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -1356,8 +1335,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://datadoghq.com/",
           "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1,
@@ -1384,8 +1362,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://www.datadoghq.com/",
           "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1
@@ -1455,6 +1432,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com$default",
           "endpoint": "$default",
           "resource_names": "$default",
+          "span.kind": "server",
           "apiid": "XXXX",
           "apiname": "XXXX",
           "stage": "dev",
@@ -1467,7 +1445,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.status_code": "200",
           "peer.service": "integration-tests-python",
           "_dd.peer.service.source": "peer.service",
-          "_dd.base_service": "integration-tests-python",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
           "language": "python"
@@ -1483,7 +1460,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "trace_id": "XXXX",
         "parent_id": "XXXX",
         "span_id": "XXXX",
-        "service": "aws.lambda",
+        "service": "integration-tests-python",
         "resource": "integration-tests-python-XXXX-async-metrics_python311",
         "name": "aws.lambda",
         "error": 0,
@@ -1503,8 +1480,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "function_trigger.event_source": "api-gateway",
           "function_trigger.event_source_arn": "XXXX",
           "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com",
-          "http.status_code": "200",
-          "_dd.base_service": "integration-tests-python"
+          "http.status_code": "200"
         },
         "metrics": {
           "_dd.top_level": 1
@@ -1529,8 +1505,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://datadoghq.com/",
           "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1,
@@ -1557,8 +1532,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "http.url": "https://www.datadoghq.com/",
           "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X",
-          "_dd.base_service": "integration-tests-python"
+          "http.useragent": "python-requests/X.X.X"
         },
         "metrics": {
           "_dd.measured": 1
