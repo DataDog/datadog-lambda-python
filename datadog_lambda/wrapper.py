@@ -45,6 +45,7 @@ from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
 )
+from datadog_lambda.dsm import set_dsm_context
 
 if config.appsec_enabled:
     from datadog_lambda.asm import (
@@ -257,8 +258,6 @@ class _LambdaDecorator(object):
                     asm_set_context(event_source)
 
                 if config.data_streams_enabled:
-                    from datadog_lambda.dsm import set_dsm_context
-
                     set_dsm_context(event, event_source)
 
                 self.span = create_function_execution_span(
