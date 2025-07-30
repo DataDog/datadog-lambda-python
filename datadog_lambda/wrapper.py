@@ -258,6 +258,7 @@ class _LambdaDecorator(object):
 
                 if config.data_streams_enabled:
                     from datadog_lambda.dsm import set_dsm_context
+
                     set_dsm_context(event, event_source)
 
                 self.span = create_function_execution_span(
