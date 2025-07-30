@@ -166,9 +166,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         self.assertEqual(self.mock_checkpoint.call_count, 1)
         args, _ = self.mock_checkpoint.call_args
         self.assertEqual(args[0], "sqs")
-        self.assertEqual(
-            args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
         carrier_get = args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
@@ -193,9 +191,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         self.assertEqual(self.mock_checkpoint.call_count, 1)
         args, _ = self.mock_checkpoint.call_args
         self.assertEqual(args[0], "sqs")
-        self.assertEqual(
-            args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
         carrier_get = args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
@@ -253,14 +249,18 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         # Check first call
         first_call_args = self.mock_checkpoint.call_args_list[0][0]
         self.assertEqual(first_call_args[0], "sqs")
-        self.assertEqual(first_call_args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        self.assertEqual(
+            first_call_args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        )
         carrier_get = first_call_args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
         # Check second call
         second_call_args = self.mock_checkpoint.call_args_list[1][0]
         self.assertEqual(second_call_args[0], "sqs")
-        self.assertEqual(second_call_args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue-2")
+        self.assertEqual(
+            second_call_args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue-2"
+        )
         carrier_get = second_call_args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
@@ -425,9 +425,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         self.assertEqual(self.mock_checkpoint.call_count, 1)
         args, _ = self.mock_checkpoint.call_args
         self.assertEqual(args[0], "sns")
-        self.assertEqual(
-            args[1], "arn:aws:sns:us-east-1:123456789012:test-topic"
-        )
+        self.assertEqual(args[1], "arn:aws:sns:us-east-1:123456789012:test-topic")
         carrier_get = args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
@@ -455,9 +453,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         self.assertEqual(self.mock_checkpoint.call_count, 1)
         args, _ = self.mock_checkpoint.call_args
         self.assertEqual(args[0], "sns")
-        self.assertEqual(
-            args[1], "arn:aws:sns:us-east-1:123456789012:test-topic"
-        )
+        self.assertEqual(args[1], "arn:aws:sns:us-east-1:123456789012:test-topic")
         carrier_get = args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
@@ -524,14 +520,18 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         # Check first call
         first_call_args = self.mock_checkpoint.call_args_list[0][0]
         self.assertEqual(first_call_args[0], "sns")
-        self.assertEqual(first_call_args[1], "arn:aws:sns:us-east-1:123456789012:test-topic")
+        self.assertEqual(
+            first_call_args[1], "arn:aws:sns:us-east-1:123456789012:test-topic"
+        )
         carrier_get = first_call_args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
         # Check second call
         second_call_args = self.mock_checkpoint.call_args_list[1][0]
         self.assertEqual(second_call_args[0], "sns")
-        self.assertEqual(second_call_args[1], "arn:aws:sns:us-east-1:123456789012:test-topic-2")
+        self.assertEqual(
+            second_call_args[1], "arn:aws:sns:us-east-1:123456789012:test-topic-2"
+        )
         carrier_get = second_call_args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
@@ -725,9 +725,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         self.assertEqual(self.mock_checkpoint.call_count, 1)
         args, _ = self.mock_checkpoint.call_args
         self.assertEqual(args[0], "sqs")
-        self.assertEqual(
-            args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
         carrier_get = args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
@@ -760,9 +758,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         self.assertEqual(self.mock_checkpoint.call_count, 1)
         args, _ = self.mock_checkpoint.call_args
         self.assertEqual(args[0], "sqs")
-        self.assertEqual(
-            args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue"
-        )
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
         carrier_get = args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
@@ -832,14 +828,18 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         # Check first call
         first_call_args = self.mock_checkpoint.call_args_list[0][0]
         self.assertEqual(first_call_args[0], "sqs")
-        self.assertEqual(first_call_args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        self.assertEqual(
+            first_call_args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue"
+        )
         carrier_get = first_call_args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
         # Check second call
         second_call_args = self.mock_checkpoint.call_args_list[1][0]
         self.assertEqual(second_call_args[0], "sqs")
-        self.assertEqual(second_call_args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue-2")
+        self.assertEqual(
+            second_call_args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue-2"
+        )
         carrier_get = second_call_args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
 
@@ -1023,7 +1023,8 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         first_call_args = self.mock_checkpoint.call_args_list[0][0]
         self.assertEqual(first_call_args[0], "kinesis")
         self.assertEqual(
-            first_call_args[1], "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+            first_call_args[1],
+            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
         )
         carrier_get = first_call_args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
@@ -1031,7 +1032,8 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         second_call_args = self.mock_checkpoint.call_args_list[1][0]
         self.assertEqual(second_call_args[0], "kinesis")
         self.assertEqual(
-            second_call_args[1], "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream-2"
+            second_call_args[1],
+            "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream-2",
         )
         carrier_get = second_call_args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
