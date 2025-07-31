@@ -14,6 +14,9 @@ def set_dsm_context(event, event_source: _EventSource):
         and not event_source.equals(EventTypes.SNS)
         and not event_source.equals(EventTypes.SQS)
     ):
+        logger.debug(
+            f"DSM:{event_source.to_string()} not supported, not setting checkpoint"
+        )
         return
 
     for record in event.get("Records", []):
