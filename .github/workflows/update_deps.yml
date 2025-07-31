@@ -25,18 +25,17 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.7
+          python-version: 3.13
 
       - name: Update Dependencies
         run: |
-          curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
-          source $HOME/.poetry/env
-          poetry build
+          pip install poetry
           poetry update
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v3
         with:
+          token: ${{ steps.generate_token.outputs.token }}
           commit-message: update dependencies
           title: Update Dependencies
           body: |
