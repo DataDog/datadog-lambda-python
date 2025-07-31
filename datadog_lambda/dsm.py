@@ -38,7 +38,7 @@ def set_dsm_context(event, event_source: _EventSource):
             context_json = None
             try:
                 context_json = (
-                    extract_context_from_kinesis_record(record.get("kinesis", {}))
+                    extract_context_from_kinesis_record(record.get("kinesis"))
                     if event_source.equals(EventTypes.KINESIS)
                     else extract_context_from_sqs_or_sns_record(record)
                 )
