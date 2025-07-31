@@ -227,7 +227,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
 
     try:
         first_record = event.get("Records")[0]
-        dd_data = extract_datadog_context_from_sqs_or_sns_event(first_record)
+        dd_data = extract_context_from_sqs_or_sns_record(first_record)
         if dd_data:
             if is_step_function_event(dd_data):
                 try:
@@ -266,7 +266,7 @@ def extract_context_from_sqs_or_sns_event_or_context(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
-def extract_datadog_context_from_sqs_or_sns_event(record):
+def extract_context_from_sqs_or_sns_record(record):
     if "body" in record:
         body_str = record.get("body")
         try:
@@ -368,7 +368,7 @@ def extract_context_from_kinesis_event(event, lambda_context):
         kinesis = record.get("kinesis")
         if not kinesis:
             return extract_context_from_lambda_context(lambda_context)
-        dd_ctx = extract_datadog_context_from_kinesis_event(kinesis)
+        dd_ctx = extract_context_from_kinesis_record(kinesis)
         if dd_ctx:
             return propagator.extract(dd_ctx)
     except Exception as e:
@@ -376,7 +376,7 @@ def extract_context_from_kinesis_event(event, lambda_context):
     return extract_context_from_lambda_context(lambda_context)
 
 
-def extract_datadog_context_from_kinesis_event(record_kinesis_field):
+def extract_context_from_kinesis_record(record_kinesis_field):
     data = record_kinesis_field.get("data")
     if data:
         import base64
