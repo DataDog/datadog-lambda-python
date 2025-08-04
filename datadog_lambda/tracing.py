@@ -254,8 +254,7 @@ def extract_context_from_sqs_or_sns_event_or_context(
         if config.data_streams_enabled
         else [event.get("Records")[0]]
     )
-    is_first_record = True
-    for record in records:
+    for idx, record in enumerate(records):
         try:
             source_arn = record.get("eventSourceARN", "")
             dsm_data = None
@@ -310,7 +309,7 @@ def extract_context_from_sqs_or_sns_event_or_context(
                             logger.debug(
                                 "Failed to extract Step Functions context from SQS/SNS event."
                             )
-                    if is_first_record:
+                    if idx == 0:
                         context = propagator.extract(dd_data)
                     dsm_data = dd_data
             else:
@@ -330,7 +329,7 @@ def extract_context_from_sqs_or_sns_event_or_context(
                             logger.debug(
                                 "Found dd-trace injected trace context from AWSTraceHeader"
                             )
-                            if is_first_record:
+                            if idx == 0:
                                 context = Context(
                                     trace_id=int(trace_id_parts[2][8:], 16),
                                     span_id=int(x_ray_context["parent_id"], 16),
@@ -341,7 +340,6 @@ def extract_context_from_sqs_or_sns_event_or_context(
 
         # Set DSM checkpoint once per record
         _dsm_set_checkpoint(dsm_data, event_type, source_arn)
-        is_first_record = False
 
     return context if context else extract_context_from_lambda_context(lambda_context)
 
@@ -410,8 +408,7 @@ def extract_context_from_kinesis_event(event, lambda_context):
         else event.get("Records")
     )
     context = None
-    is_first_record = True
-    for record in records:
+    for idx, record in enumerate(records):
         dsm_data = None
         try:
             source_arn = record.get("eventSourceARN", "")
@@ -419,10 +416,10 @@ def extract_context_from_kinesis_event(event, lambda_context):
             if not kinesis:
                 context = (
                     extract_context_from_lambda_context(lambda_context)
-                    if is_first_record
+                    if idx == 0
                     else context
                 )
-                is_first_record = False
+                _dsm_set_checkpoint(None, "kinesis", source_arn)
                 continue
             data = kinesis.get("data")
             if data:
@@ -434,13 +431,12 @@ def extract_context_from_kinesis_event(event, lambda_context):
                 data_obj = json.loads(data_str)
                 dd_ctx = data_obj.get("_datadog")
                 if dd_ctx:
-                    if is_first_record:
+                    if idx == 0:
                         context = propagator.extract(dd_ctx)
                     dsm_data = dd_ctx
         except Exception as e:
             logger.debug("The trace extractor returned with error %s", e)
         _dsm_set_checkpoint(dsm_data, "kinesis", source_arn)
-        is_first_record = False
     return context if context else extract_context_from_lambda_context(lambda_context)
 
 
