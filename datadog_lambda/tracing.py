@@ -317,7 +317,7 @@ def extract_context_from_sqs_or_sns_event_or_context(
                     dsm_data = dd_data
             else:
                 # Handle case where trace context is injected into attributes.AWSTraceHeader
-                # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
+                # example:Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
                 attrs = event.get("Records")[0].get("attributes")
                 if attrs:
                     x_ray_header = attrs.get("AWSTraceHeader")
