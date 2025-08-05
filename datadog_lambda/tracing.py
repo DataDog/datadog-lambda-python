@@ -297,14 +297,16 @@ def extract_context_from_sqs_or_sns_event_or_context(
                 if dd_json_data:
                     dd_data = json.loads(dd_json_data)
 
-                    if is_step_function_event(dd_data):
-                        try:
-                            return extract_context_from_step_functions(dd_data, None)
-                        except Exception:
-                            logger.debug(
-                                "Failed to extract Step Functions context from SQS/SNS event."
-                            )
                     if idx == 0:
+                        if is_step_function_event(dd_data):
+                            try:
+                                return extract_context_from_step_functions(
+                                    dd_data, None
+                                )
+                            except Exception:
+                                logger.debug(
+                                    "Failed to extract Step Functions context from SQS/SNS event."
+                                )
                         context = propagator.extract(dd_data)
                         if not config.data_streams_enabled:
                             break
