@@ -249,15 +249,10 @@ def extract_context_from_sqs_or_sns_event_or_context(
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
     context = None
-    records = (
-        event.get("Records", [])
-        if config.data_streams_enabled
-        else [event.get("Records")[0]]
-    )
-    for idx, record in enumerate(records):
+    for idx, record in enumerate(event.get("Records", [])):
         try:
             source_arn = record.get("eventSourceARN", "")
-            dsm_data = None
+            dd_ctx = None
 
             # logic to deal with SNS => SQS event
             if "body" in record:
@@ -311,8 +306,10 @@ def extract_context_from_sqs_or_sns_event_or_context(
                             )
                     if idx == 0:
                         context = propagator.extract(dd_data)
-                    dsm_data = dd_data
-            else:
+                        if not config.data_streams_enabled:
+                            break
+                    dd_ctx = dd_data
+            elif idx == 0:
                 # Handle case where trace context is injected into attributes.AWSTraceHeader
                 # example:Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
                 attrs = event.get("Records")[0].get("attributes")
@@ -329,17 +326,18 @@ def extract_context_from_sqs_or_sns_event_or_context(
                             logger.debug(
                                 "Found dd-trace injected trace context from AWSTraceHeader"
                             )
-                            if idx == 0:
-                                context = Context(
-                                    trace_id=int(trace_id_parts[2][8:], 16),
-                                    span_id=int(x_ray_context["parent_id"], 16),
-                                    sampling_priority=float(x_ray_context["sampled"]),
-                                )
+                            context = Context(
+                                trace_id=int(trace_id_parts[2][8:], 16),
+                                span_id=int(x_ray_context["parent_id"], 16),
+                                sampling_priority=float(x_ray_context["sampled"]),
+                            )
+                            if not config.data_streams_enabled:
+                                break
         except Exception as e:
             logger.debug("The trace extractor returned with error %s", e)
 
         # Set DSM checkpoint once per record
-        _dsm_set_checkpoint(dsm_data, event_type, source_arn)
+        _dsm_set_checkpoint(dd_ctx, event_type, source_arn)
 
     return context if context else extract_context_from_lambda_context(lambda_context)
 
@@ -402,25 +400,15 @@ def extract_context_from_kinesis_event(event, lambda_context):
     Set a DSM checkpoint if DSM is enabled and the method for context propagation is supported.
     """
     source_arn = ""
-    records = (
-        [get_first_record(event)]
-        if not config.data_streams_enabled
-        else event.get("Records")
-    )
+
     context = None
-    for idx, record in enumerate(records):
-        dsm_data = None
+    for idx, record in enumerate(event.get("Records", [])):
+        dd_ctx = None
         try:
             source_arn = record.get("eventSourceARN", "")
             kinesis = record.get("kinesis")
             if not kinesis:
-                context = (
-                    extract_context_from_lambda_context(lambda_context)
-                    if idx == 0
-                    else context
-                )
-                _dsm_set_checkpoint(None, "kinesis", source_arn)
-                continue
+                return extract_context_from_lambda_context(lambda_context)
             data = kinesis.get("data")
             if data:
                 import base64
@@ -433,10 +421,11 @@ def extract_context_from_kinesis_event(event, lambda_context):
                 if dd_ctx:
                     if idx == 0:
                         context = propagator.extract(dd_ctx)
-                    dsm_data = dd_ctx
+                        if not config.data_streams_enabled:
+                            break
         except Exception as e:
             logger.debug("The trace extractor returned with error %s", e)
-        _dsm_set_checkpoint(dsm_data, "kinesis", source_arn)
+        _dsm_set_checkpoint(dd_ctx, "kinesis", source_arn)
     return context if context else extract_context_from_lambda_context(lambda_context)
 
 
