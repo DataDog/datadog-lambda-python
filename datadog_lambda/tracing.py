@@ -408,7 +408,9 @@ def extract_context_from_kinesis_event(event, lambda_context):
             source_arn = record.get("eventSourceARN", "")
             kinesis = record.get("kinesis")
             if not kinesis:
-                return extract_context_from_lambda_context(lambda_context)
+                if idx == 0:
+                    return extract_context_from_lambda_context(lambda_context)
+                continue
             data = kinesis.get("data")
             if data:
                 import base64
