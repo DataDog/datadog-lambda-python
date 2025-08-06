@@ -237,7 +237,6 @@ def extract_context_from_sqs_or_sns_event_or_context(
     Falls back to lambda context if no trace data is found in the SQS message attributes.
     Set a DSM checkpoint if DSM is enabled and the method for context propagation is supported.
     """
-    source_arn = ""
     event_type = "sqs" if event_source.equals(EventTypes.SQS) else "sns"
 
     # EventBridge => SQS
@@ -248,100 +247,107 @@ def extract_context_from_sqs_or_sns_event_or_context(
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
-    context = None
+    apm_context = None
     for idx, record in enumerate(event.get("Records", [])):
+        source_arn = (
+            record.get("eventSourceARN")
+            if event_type == "sqs"
+            else record.get("Sns", {}).get("TopicArn")
+        )
+        dd_data = None
         try:
-            source_arn = record.get("eventSourceARN", "")
-            dd_ctx = None
-
-            # logic to deal with SNS => SQS event
-            if "body" in record:
-                body_str = record.get("body")
-                try:
-                    body = json.loads(body_str)
-                    if body.get("Type", "") == "Notification" and "TopicArn" in body:
-                        logger.debug("Found SNS message inside SQS event")
-                        record = get_first_record(create_sns_event(body))
-                except Exception:
-                    pass
-
-            msg_attributes = record.get("messageAttributes")
-            if msg_attributes is None:
-                sns_record = record.get("Sns") or {}
-                # SNS->SQS event would extract SNS arn without this check
-                if event_source.equals(EventTypes.SNS):
-                    source_arn = sns_record.get("TopicArn", "")
-                msg_attributes = sns_record.get("MessageAttributes") or {}
-            dd_payload = msg_attributes.get("_datadog")
-            if dd_payload:
-                # SQS uses dataType and binaryValue/stringValue
-                # SNS uses Type and Value
-                # fmt: off
-                dd_json_data = None
-                dd_json_data_type = dd_payload.get("Type") or dd_payload.get("dataType")
-                if dd_json_data_type == "Binary":
-                    import base64
-
-                    dd_json_data = dd_payload.get("binaryValue") or dd_payload.get("Value")
-                    if dd_json_data:
-                        dd_json_data = base64.b64decode(dd_json_data)
-                elif dd_json_data_type == "String":
-                    dd_json_data = dd_payload.get("stringValue") or dd_payload.get("Value")
-                # fmt: on
+            dd_data = _extract_context_from_sqs_or_sns_record(record)
+            if idx == 0:
+                if dd_data and is_step_function_event(dd_data):
+                    try:
+                        return extract_context_from_step_functions(dd_data, None)
+                    except Exception:
+                        logger.debug(
+                            "Failed to extract Step Functions context from SQS/SNS event."
+                        )
+                elif not dd_data:
+                    apm_context = _extract_context_from_xray(record)
                 else:
-                    logger.debug(
-                        "Datadog Lambda Python only supports extracting trace"
-                        "context from String or Binary SQS/SNS message attributes"
-                    )
-
-                if dd_json_data:
-                    dd_data = json.loads(dd_json_data)
-
-                    if idx == 0:
-                        if is_step_function_event(dd_data):
-                            try:
-                                return extract_context_from_step_functions(
-                                    dd_data, None
-                                )
-                            except Exception:
-                                logger.debug(
-                                    "Failed to extract Step Functions context from SQS/SNS event."
-                                )
-                        context = propagator.extract(dd_data)
-                        if not config.data_streams_enabled:
-                            break
-                    dd_ctx = dd_data
-            elif idx == 0:
-                # Handle case where trace context is injected into attributes.AWSTraceHeader
-                # example:Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
-                attrs = event.get("Records")[0].get("attributes")
-                if attrs:
-                    x_ray_header = attrs.get("AWSTraceHeader")
-                    if x_ray_header:
-                        x_ray_context = parse_xray_header(x_ray_header)
-                        trace_id_parts = x_ray_context.get("trace_id", "").split("-")
-                        if len(trace_id_parts) > 2 and trace_id_parts[2].startswith(
-                            DD_TRACE_JAVA_TRACE_ID_PADDING
-                        ):
-                            # If it starts with eight 0's padding,
-                            # then this AWSTraceHeader contains Datadog injected trace context
-                            logger.debug(
-                                "Found dd-trace injected trace context from AWSTraceHeader"
-                            )
-                            context = Context(
-                                trace_id=int(trace_id_parts[2][8:], 16),
-                                span_id=int(x_ray_context["parent_id"], 16),
-                                sampling_priority=float(x_ray_context["sampled"]),
-                            )
-                            if not config.data_streams_enabled:
-                                break
+                    apm_context = propagator.extract(dd_data)
         except Exception as e:
             logger.debug("The trace extractor returned with error %s", e)
+        if config.data_streams_enabled:
+            _dsm_set_checkpoint(dd_data, event_type, source_arn)
+        if not config.data_streams_enabled:
+            break
 
-        # Set DSM checkpoint once per record
-        _dsm_set_checkpoint(dd_ctx, event_type, source_arn)
+    return (
+        apm_context
+        if apm_context
+        else extract_context_from_lambda_context(lambda_context)
+    )
 
-    return context if context else extract_context_from_lambda_context(lambda_context)
+
+def _extract_context_from_sqs_or_sns_record(record):
+    # logic to deal with SNS => SQS event
+    if "body" in record:
+        body_str = record.get("body")
+        try:
+            body = json.loads(body_str)
+            if body.get("Type", "") == "Notification" and "TopicArn" in body:
+                logger.debug("Found SNS message inside SQS event")
+                record = get_first_record(create_sns_event(body))
+        except Exception:
+            pass
+
+    msg_attributes = record.get("messageAttributes")
+    if msg_attributes is None:
+        sns_record = record.get("Sns") or {}
+        msg_attributes = sns_record.get("MessageAttributes") or {}
+    dd_payload = msg_attributes.get("_datadog")
+    if dd_payload:
+        # SQS uses dataType and binaryValue/stringValue
+        # SNS uses Type and Value
+        # fmt: off
+        dd_json_data = None
+        dd_json_data_type = dd_payload.get("Type") or dd_payload.get("dataType")
+        if dd_json_data_type == "Binary":
+            import base64
+
+            dd_json_data = dd_payload.get("binaryValue") or dd_payload.get("Value")
+            if dd_json_data:
+                dd_json_data = base64.b64decode(dd_json_data)
+        elif dd_json_data_type == "String":
+            dd_json_data = dd_payload.get("stringValue") or dd_payload.get("Value")
+        # fmt: on
+        else:
+            logger.debug(
+                "Datadog Lambda Python only supports extracting trace"
+                "context from String or Binary SQS/SNS message attributes"
+            )
+
+        if dd_json_data:
+            dd_data = json.loads(dd_json_data)
+            return dd_data
+    return None
+
+
+def _extract_context_from_xray(record):
+    attrs = record.get("attributes")
+    if attrs:
+        x_ray_header = attrs.get("AWSTraceHeader")
+        if x_ray_header:
+            x_ray_context = parse_xray_header(x_ray_header)
+            trace_id_parts = x_ray_context.get("trace_id", "").split("-")
+            if len(trace_id_parts) > 2 and trace_id_parts[2].startswith(
+                DD_TRACE_JAVA_TRACE_ID_PADDING
+            ):
+                # If it starts with eight 0's padding,
+                # then this AWSTraceHeader contains Datadog injected trace context
+                logger.debug(
+                    "Found dd-trace injected trace context from AWSTraceHeader"
+                )
+                return Context(
+                    trace_id=int(trace_id_parts[2][8:], 16),
+                    span_id=int(x_ray_context["parent_id"], 16),
+                    sampling_priority=float(x_ray_context["sampled"]),
+                )
+    return None
 
 
 def _extract_context_from_eventbridge_sqs_event(event):
