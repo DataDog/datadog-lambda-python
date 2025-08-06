@@ -328,11 +328,13 @@ def extract_context_from_sqs_or_sns_event_or_context(
                             logger.debug(
                                 "Found dd-trace injected trace context from AWSTraceHeader"
                             )
-                            return Context(
+                            context = Context(
                                 trace_id=int(trace_id_parts[2][8:], 16),
                                 span_id=int(x_ray_context["parent_id"], 16),
                                 sampling_priority=float(x_ray_context["sampled"]),
                             )
+                            if not config.data_streams_enabled:
+                                break
         except Exception as e:
             logger.debug("The trace extractor returned with error %s", e)
 
