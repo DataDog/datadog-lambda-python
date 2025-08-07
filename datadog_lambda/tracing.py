@@ -247,32 +247,33 @@ def extract_context_from_sqs_or_sns_event_or_context(
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
-    apm_context = None
-    for idx, record in enumerate(event.get("Records", [])):
+    apm_context: Context = None
+    for record in event.get("Records", []):
         source_arn = (
             record.get("eventSourceARN")
             if event_type == "sqs"
             else record.get("Sns", {}).get("TopicArn")
         )
-        dd_data = None
+        dd_ctx = None
         try:
-            dd_data = _extract_context_from_sqs_or_sns_record(record)
-            if idx == 0:
-                if dd_data and is_step_function_event(dd_data):
+            dd_ctx = _extract_context_from_sqs_or_sns_record(record)
+            if apm_context is None:
+                if not dd_ctx:
+                    apm_context = _extract_context_from_xray(record)
+
+                elif dd_ctx and is_step_function_event(dd_ctx):
                     try:
-                        return extract_context_from_step_functions(dd_data, None)
+                        return extract_context_from_step_functions(dd_ctx, None)
                     except Exception:
                         logger.debug(
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
-                elif not dd_data:
-                    apm_context = _extract_context_from_xray(record)
                 else:
-                    apm_context = propagator.extract(dd_data)
+                    apm_context = propagator.extract(dd_ctx)
         except Exception as e:
             logger.debug("The trace extractor returned with error %s", e)
         if config.data_streams_enabled:
-            _dsm_set_checkpoint(dd_data, event_type, source_arn)
+            _dsm_set_checkpoint(dd_ctx, event_type, source_arn)
         if not config.data_streams_enabled:
             break
 
@@ -303,7 +304,6 @@ def _extract_context_from_sqs_or_sns_record(record):
     if dd_payload:
         # SQS uses dataType and binaryValue/stringValue
         # SNS uses Type and Value
-        # fmt: off
         dd_json_data = None
         dd_json_data_type = dd_payload.get("Type") or dd_payload.get("dataType")
         if dd_json_data_type == "Binary":
@@ -314,7 +314,6 @@ def _extract_context_from_sqs_or_sns_record(record):
                 dd_json_data = base64.b64decode(dd_json_data)
         elif dd_json_data_type == "String":
             dd_json_data = dd_payload.get("stringValue") or dd_payload.get("Value")
-        # fmt: on
         else:
             logger.debug(
                 "Datadog Lambda Python only supports extracting trace"
