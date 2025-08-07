@@ -258,16 +258,15 @@ def extract_context_from_sqs_or_sns_event_or_context(
         try:
             dd_ctx = _extract_context_from_sqs_or_sns_record(record)
             if apm_context is None:
-                if not dd_ctx:
-                    apm_context = _extract_context_from_xray(record)
-
-                elif dd_ctx and is_step_function_event(dd_ctx):
+                if dd_ctx and is_step_function_event(dd_ctx):
                     try:
                         return extract_context_from_step_functions(dd_ctx, None)
                     except Exception:
                         logger.debug(
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
+                elif not dd_ctx:
+                    apm_context = _extract_context_from_xray(record)
                 else:
                     apm_context = propagator.extract(dd_ctx)
         except Exception as e:
