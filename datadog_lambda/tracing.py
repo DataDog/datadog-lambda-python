@@ -406,18 +406,15 @@ def extract_context_from_kinesis_event(event, lambda_context):
     Extract datadog trace context from a Kinesis Stream's base64 encoded data string
     Set a DSM checkpoint if DSM is enabled and the method for context propagation is supported.
     """
-    source_arn = ""
 
-    context = None
-    for idx, record in enumerate(event.get("Records", [])):
+    apm_context: Context = None
+    for record in event.get("Records", []):
         dd_ctx = None
         try:
             source_arn = record.get("eventSourceARN", "")
             kinesis = record.get("kinesis")
             if not kinesis:
-                if idx == 0:
-                    return extract_context_from_lambda_context(lambda_context)
-                continue
+                return extract_context_from_lambda_context(lambda_context)
             data = kinesis.get("data")
             if data:
                 import base64
@@ -427,14 +424,19 @@ def extract_context_from_kinesis_event(event, lambda_context):
                 data_str = str_bytes.decode("ascii")
                 data_obj = json.loads(data_str)
                 dd_ctx = data_obj.get("_datadog")
-                if dd_ctx and idx == 0:
-                    context = propagator.extract(dd_ctx)
-                    if not config.data_streams_enabled:
-                        break
+                if dd_ctx and apm_context is None:
+                    apm_context = propagator.extract(dd_ctx)
         except Exception as e:
             logger.debug("The trace extractor returned with error %s", e)
-        _dsm_set_checkpoint(dd_ctx, "kinesis", source_arn)
-    return context if context else extract_context_from_lambda_context(lambda_context)
+        if config.data_streams_enabled:
+            _dsm_set_checkpoint(dd_ctx, "kinesis", source_arn)
+        if not config.data_streams_enabled:
+            break
+    return (
+        apm_context
+        if apm_context
+        else extract_context_from_lambda_context(lambda_context)
+    )
 
 
 def _deterministic_sha256_hash(s: str, part: str) -> int:
