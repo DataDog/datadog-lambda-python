@@ -258,17 +258,7 @@ def extract_context_from_sqs_or_sns_event_or_context(
         try:
             dd_ctx = _extract_context_from_sqs_or_sns_record(record)
             if apm_context is None:
-                if dd_ctx and is_step_function_event(dd_ctx):
-                    try:
-                        return extract_context_from_step_functions(dd_ctx, None)
-                    except Exception:
-                        logger.debug(
-                            "Failed to extract Step Functions context from SQS/SNS event."
-                        )
-                elif not dd_ctx:
-                    apm_context = _extract_context_from_xray(record)
-                else:
-                    apm_context = propagator.extract(dd_ctx)
+                apm_context = _extract_apm_context(dd_ctx, record)
         except Exception as e:
             logger.debug("The trace extractor returned with error %s", e)
         if config.data_streams_enabled:
@@ -325,26 +315,39 @@ def _extract_context_from_sqs_or_sns_record(record):
     return None
 
 
-def _extract_context_from_xray(record):
-    attrs = record.get("attributes")
-    if attrs:
-        x_ray_header = attrs.get("AWSTraceHeader")
-        if x_ray_header:
-            x_ray_context = parse_xray_header(x_ray_header)
-            trace_id_parts = x_ray_context.get("trace_id", "").split("-")
-            if len(trace_id_parts) > 2 and trace_id_parts[2].startswith(
-                DD_TRACE_JAVA_TRACE_ID_PADDING
-            ):
-                # If it starts with eight 0's padding,
-                # then this AWSTraceHeader contains Datadog injected trace context
+def _extract_apm_context(dd_ctx, record):
+    if dd_ctx:
+        if is_step_function_event(dd_ctx):
+            try:
+                return extract_context_from_step_functions(dd_ctx, None)
+            except Exception:
                 logger.debug(
-                    "Found dd-trace injected trace context from AWSTraceHeader"
+                    "Failed to extract Step Functions context from SQS/SNS event."
                 )
-                return Context(
-                    trace_id=int(trace_id_parts[2][8:], 16),
-                    span_id=int(x_ray_context["parent_id"], 16),
-                    sampling_priority=float(x_ray_context["sampled"]),
-                )
+        else:
+            return propagator.extract(dd_ctx)
+    else:
+        # Handle case where trace context is injected into attributes.AWSTraceHeader
+        # example: Root=1-654321ab-000000001234567890abcdef;Parent=0123456789abcdef;Sampled=1
+        attrs = record.get("attributes")
+        if attrs:
+            x_ray_header = attrs.get("AWSTraceHeader")
+            if x_ray_header:
+                x_ray_context = parse_xray_header(x_ray_header)
+                trace_id_parts = x_ray_context.get("trace_id", "").split("-")
+                if len(trace_id_parts) > 2 and trace_id_parts[2].startswith(
+                    DD_TRACE_JAVA_TRACE_ID_PADDING
+                ):
+                    # If it starts with eight 0's padding,
+                    # then this AWSTraceHeader contains Datadog injected trace context
+                    logger.debug(
+                        "Found dd-trace injected trace context from AWSTraceHeader"
+                    )
+                    return Context(
+                        trace_id=int(trace_id_parts[2][8:], 16),
+                        span_id=int(x_ray_context["parent_id"], 16),
+                        sampling_priority=float(x_ray_context["sampled"]),
+                    )
     return None
 
 
