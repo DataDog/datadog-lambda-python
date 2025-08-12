@@ -263,27 +263,10 @@ e2e-test:
     {{- end }}
 
 e2e-test-status:
-  stage: e2e
+  stage: test
   image: registry.ddbuild.io/images/docker:20.10-py3
   tags: ["arch:amd64"]
-  needs:
-    - e2e-test
   script:
-    - apk add --no-cache curl jq
-    - |
-      GITLAB_API_TOKEN=$(aws ssm get-parameter --region us-east-1 --name "ci.${CI_PROJECT_NAME}.serverless-e2e-gitlab-token" --with-decryption --query "Parameter.Value" --out text)
-      URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/bridges"
-      echo "Fetching E2E job status from: $URL"
-      RESPONSE=$(curl -s --header "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" "$URL")
-      E2E_JOB_STATUS=$(echo "$RESPONSE" | jq -r '.[] | select(.name=="e2e-test") | .pipeline.status')
-      echo "E2E job status: $E2E_JOB_STATUS"
-      if [ "$E2E_JOB_STATUS" == "success" ]; then
-        echo "✅ E2E tests completed successfully"
-        exit 0
-      elif [ "$E2E_JOB_STATUS" == "failed" ]; then
-        echo "❌ E2E tests failed"
-        exit 1
-      else
-        echo "❓ Unknown E2E test status: $E2E_JOB_STATUS"
-        exit 1
-      fi
+    - git clone -b rey.abolofia/status-check --single-branch https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/serverless-e2e-tests
+    - cd ./serverless-e2e-tests
+    - ./scripts/check_e2e_status.sh
