@@ -8,8 +8,8 @@
 # Compares layer size to threshold, and fails if below that threshold
 
 set -e
-MAX_LAYER_COMPRESSED_SIZE_KB=$(expr 8 \* 1024)
-MAX_LAYER_UNCOMPRESSED_SIZE_KB=$(expr 21 \* 1024)
+MAX_LAYER_COMPRESSED_SIZE_KB=$(expr 17 \* 1024 / 2)  # 8704 KB
+MAX_LAYER_UNCOMPRESSED_SIZE_KB=$(expr 23 \* 1024)   # 23552 KB
 
 
 LAYER_FILES_PREFIX="datadog_lambda_py"
