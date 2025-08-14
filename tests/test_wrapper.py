@@ -277,8 +277,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         mock_extract_trigger_tags.return_value = {
             "function_trigger.event_source": "api-gateway",
             "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod",
-            "http.url": "https://70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
-            "http.url_details.path": "/prod/path/to/resource",
+            "http.url": "https://70ixmpl4fl.execute-api.us-east-2.amazonaws.com/prod/path/to/resource",
             "http.method": "GET",
         }
 
