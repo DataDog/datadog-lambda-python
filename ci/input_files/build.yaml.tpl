@@ -263,7 +263,7 @@ e2e-test:
     {{- end }}
 
 e2e-test-status:
-  stage: test
+  stage: e2e
   image: registry.ddbuild.io/images/docker:20.10-py3
   tags: ["arch:amd64"]
   timeout: 3h
@@ -273,9 +273,8 @@ e2e-test-status:
       echo "Fetching E2E job status from: $URL"
       while true; do
         RESPONSE=$(curl -s --header "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" "$URL")
-        echo "Response from GitLab API: $RESPONSE"
         E2E_JOB_STATUS=$(echo "$RESPONSE" | jq -r '.[] | select(.name=="e2e-test") | .pipeline.status')
-        echo "E2E job status: $E2E_JOB_STATUS"
+        echo -n "E2E job status: $E2E_JOB_STATUS, "
         if [ "$E2E_JOB_STATUS" == "success" ]; then
           echo "✅ E2E tests completed successfully"
           exit 0
@@ -283,9 +282,7 @@ e2e-test-status:
           echo "❌ E2E tests failed"
           exit 1
         elif [ "$E2E_JOB_STATUS" == "running" ]; then
-          echo -n "⏳ E2E tests are still running"
-          echo "Retrying in 1 minute..."
-          sleep 60
+          echo "⏳ E2E tests are still running, retrying in 1 minute..."
         elif [ "$E2E_JOB_STATUS" == "canceled" ]; then
           echo "🚫 E2E tests were canceled"
           exit 1
@@ -293,8 +290,7 @@ e2e-test-status:
           echo "⏭️ E2E tests were skipped"
           exit 0
         else
-          echo -n "❓ Unknown E2E test status: $E2E_JOB_STATUS"
-          echo "Retrying in 1 minute..."
-          sleep 60
+          echo "❓ Unknown E2E test status: $E2E_JOB_STATUS, retrying in 1 minute..."
         fi
+        sleep 60
       done
