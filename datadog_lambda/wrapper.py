@@ -2,6 +2,9 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
+
+print("Entered wrapper.py")
+
 import os
 import logging
 import traceback
@@ -377,3 +380,5 @@ def format_err_with_traceback(e):
 
 
 datadog_lambda_wrapper = _LambdaDecorator
+
+print("Exiting wrapper.py")

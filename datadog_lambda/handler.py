@@ -3,6 +3,8 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2020 Datadog, Inc.
 
+print("Entered handler.py")
+
 from importlib import import_module
 
 import os
@@ -43,3 +45,5 @@ except Exception as e:
     raise
 
 handler = datadog_lambda_wrapper(handler_func)
+
+print("Exiting handler.py")
