@@ -315,8 +315,8 @@ def extract_http_tags(event):
             path = apigateway_v2_http.get("path")
             method = apigateway_v2_http.get("method")
 
-    if path:
-        http_tags["http.url_details.path"] = path
+    if path and http_tags.get("http.url"):
+        http_tags["http.url"] += path
     if method:
         http_tags["http.method"] = method
 
