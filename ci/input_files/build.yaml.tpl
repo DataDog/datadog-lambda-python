@@ -266,15 +266,14 @@ e2e-test-status:
   stage: e2e
   image: registry.ddbuild.io/images/docker:20.10-py3
   tags: ["arch:amd64"]
-  needs:
+  dependencies:
     - e2e-test
-  script:
-    - apk add --no-cache curl jq
-    - |
+  script: |
       GITLAB_API_TOKEN=$(aws ssm get-parameter --region us-east-1 --name "ci.${CI_PROJECT_NAME}.serverless-e2e-gitlab-token" --with-decryption --query "Parameter.Value" --out text)
       URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/bridges"
       echo "Fetching E2E job status from: $URL"
       RESPONSE=$(curl -s --header "PRIVATE-TOKEN: ${GITLAB_API_TOKEN}" "$URL")
+      echo "Response from GitLab API: $RESPONSE"
       E2E_JOB_STATUS=$(echo "$RESPONSE" | jq -r '.[] | select(.name=="e2e-test") | .pipeline.status')
       echo "E2E job status: $E2E_JOB_STATUS"
       if [ "$E2E_JOB_STATUS" == "success" ]; then
