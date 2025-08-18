@@ -53,6 +53,9 @@ if config.appsec_enabled:
         asm_start_request,
         get_asm_blocked_response,
     )
+    from ddtrace.internal.appsec.product import start
+
+    start()
 
 if config.profiling_enabled:
     from ddtrace.profiling import profiler
