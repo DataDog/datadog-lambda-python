@@ -61,7 +61,7 @@ function docker_build_zip {
     # between different python runtimes.
     temp_dir=$(mktemp -d)
     docker buildx build -t datadog-lambda-python-${arch}:$1 . --no-cache \
-        --build-arg image=public.ecr.aws/docker/library/python:$1 \
+        --build-arg image=public.ecr.aws/lambda/python:$1 \
         --build-arg runtime=python$1 \
         --platform linux/${arch} \
         --progress=plain \
