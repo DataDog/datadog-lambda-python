@@ -7,15 +7,14 @@ ARG runtime
 RUN mkdir -p /build/python/lib/$runtime/site-packages
 WORKDIR /build
 
-# Install GCC
+# Install newer version of GCC on AL2
 RUN set -eux; \
-    if command -v dnf >/dev/null 2>&1; then \
-      dnf -y install git gcc-c++; \
-    else \
+    if command -v yum >/dev/null 2>&1; then \
       yum -y install git gcc10 gcc10-c++; \
-      ln -s /usr/bin/gcc10-gcc /usr/bin/gcc; \
-      ln -s /usr/bin/gcc10-g++ /usr/bin/g++; \
-      ln -s /usr/bin/gcc10-cc /usr/bin/cc; \
+      cd /usr/bin; \
+      rm gcc && ln -s gcc10-gcc gcc; \
+      rm g++ && ln -s gcc10-g++ g++; \
+      rm cc && ln -s gcc10-cc cc; \
     fi
 
 # Add Rust compiler which is needed to build dd-trace-py from source
