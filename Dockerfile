@@ -22,10 +22,10 @@ RUN curl https://sh.rustup.rs -sSf | \
     sh -s -- --default-toolchain stable -y
 ENV PATH=/root/.cargo/bin:$PATH
 
-# Compile mode is explicitly set here to strip the debug symbols from the
-# native extensions in dd-trace-py. Otherwise, they will have debug symbols
-# by default when built from sources. PyPI packages are stripped off of debug
-# symbols. This is mainly to reduce the layer size at the cost of debuggability
+# Compile mode is explicitly set here to not build native extensions with
+# debug symbols. Otherwise, they will have debug symbols by default when built
+# from sources. PyPI packages are stripped off of debug symbols, using strip -g.
+# This is mainly to reduce the layer size at the cost of debuggability.
 ENV DD_COMPILE_MODE=Release
 
 # Install datadog_lambda and dependencies from local
@@ -78,7 +78,10 @@ RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.h -delete
 RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.hpp -delete
 RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.pyx -delete
 
-# Strip debug symbols using strip -g for all .so files in ddtrace
+# Strip debug symbols using strip -g for all .so files in ddtrace. This is to
+# reduce the size when ddtrace is built from sources. The release wheels are
+# already stripped of debug symbols. We should revisit this when serverless
+# benchmark uses pre-built wheels instead of building from sources.
 RUN find ./python/lib/$runtime/site-packages/ddtrace -name "*.so" -exec strip -g {} \;
 
 FROM scratch
