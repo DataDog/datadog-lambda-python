@@ -22,12 +22,6 @@ RUN curl https://sh.rustup.rs -sSf | \
     sh -s -- --default-toolchain stable -y
 ENV PATH=/root/.cargo/bin:$PATH
 
-# Compile mode is explicitly set here to not build native extensions with
-# debug symbols. Otherwise, they will have debug symbols by default when built
-# from sources. PyPI packages are stripped off of debug symbols, using strip -g.
-# This is mainly to reduce the layer size at the cost of debuggability.
-ENV DD_COMPILE_MODE=Release
-
 # Install datadog_lambda and dependencies from local
 COPY . .
 RUN pip install --no-cache-dir . -t ./python/lib/$runtime/site-packages
