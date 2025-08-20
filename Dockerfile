@@ -26,7 +26,7 @@ ENV DD_COMPILE_MODE=Release
 
 # Install datadog_lambda and dependencies from local
 COPY . .
-RUN DD_COMPILE_MODE=Release pip install --no-cache-dir . -t ./python/lib/$runtime/site-packages
+RUN pip install --no-cache-dir . -t ./python/lib/$runtime/site-packages
 
 # Remove botocore (40MB) to reduce package size. aws-xray-sdk
 # installs it, while it's already provided by the Lambda Runtime.
