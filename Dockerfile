@@ -78,5 +78,8 @@ RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.h -delete
 RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.hpp -delete
 RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.pyx -delete
 
+# Strip debug symbols using strip -g for all .so files in ddtrace
+RUN find ./python/lib/$runtime/site-packages/ddtrace -name "*.so" -exec strip -g {} \;
+
 FROM scratch
 COPY --from=builder /build/python /
