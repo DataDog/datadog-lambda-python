@@ -22,6 +22,10 @@ RUN curl https://sh.rustup.rs -sSf | \
     sh -s -- --default-toolchain stable -y
 ENV PATH=/root/.cargo/bin:$PATH
 
+# Compile mode is explicitly set here to strip the debug symbols from the
+# native extensions in dd-trace-py. Otherwise, they will have debug symbols
+# by default when built from sources. PyPI packages are stripped off of debug
+# symbols. This is mainly to reduce the layer size at the cost of debuggability
 ENV DD_COMPILE_MODE=Release
 
 # Install datadog_lambda and dependencies from local
