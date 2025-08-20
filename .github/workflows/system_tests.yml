@@ -1,0 +1,38 @@
+name: System Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - "**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build layer
+        run: |
+          ARCH=amd64 PYTHON_VERSION=3.13 ./scripts/build_layers.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          path: .layers/datadog_lambda_py-amd64-3.13.zip
+          name: binaries
+
+  system-tests:
+    needs:
+      - build
+    uses: DataDog/system-tests/.github/workflows/system-tests.yml@main
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+    with:
+      library: python_lambda
+      binaries_artifact: binaries
+      scenarios_groups: appsec
+      skip_empty_scenarios: true
