@@ -22,6 +22,8 @@ RUN curl https://sh.rustup.rs -sSf | \
     sh -s -- --default-toolchain stable -y
 ENV PATH=/root/.cargo/bin:$PATH
 
+ENV DD_COMPILE_MODE=Release
+
 # Install datadog_lambda and dependencies from local
 COPY . .
 RUN DD_COMPILE_MODE=Release pip install --no-cache-dir . -t ./python/lib/$runtime/site-packages
