@@ -72,5 +72,11 @@ RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.h -delete
 RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.hpp -delete
 RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.pyx -delete
 
+# Strip debug symbols using strip -g for all .so files in ddtrace. This is to
+# reduce the size when ddtrace is built from sources. The release wheels are
+# already stripped of debug symbols. We should revisit this when serverless
+# benchmark uses pre-built wheels instead of building from sources.
+RUN find ./python/lib/$runtime/site-packages/ddtrace -name "*.so" -exec strip -g {} \;
+
 FROM scratch
 COPY --from=builder /build/python /
