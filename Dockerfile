@@ -22,12 +22,9 @@ RUN curl https://sh.rustup.rs -sSf | \
     sh -s -- --default-toolchain stable -y
 ENV PATH=/root/.cargo/bin:$PATH
 
-ENV DD_COMPILE_MODE=Release
-RUN echo "DD_COMPILE_MODE=$DD_COMPILE_MODE"
-
 # Install datadog_lambda and dependencies from local
 COPY . .
-RUN pip install --no-cache-dir . -t ./python/lib/$runtime/site-packages
+RUN DD_COMPILE_MODE=Release pip install --no-cache-dir . -t ./python/lib/$runtime/site-packages
 
 # Remove botocore (40MB) to reduce package size. aws-xray-sdk
 # installs it, while it's already provided by the Lambda Runtime.
