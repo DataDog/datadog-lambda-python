@@ -23,6 +23,7 @@ RUN curl https://sh.rustup.rs -sSf | \
 ENV PATH=/root/.cargo/bin:$PATH
 
 ENV DD_COMPILE_MODE=Release
+RUN echo "DD_COMPILE_MODE=$DD_COMPILE_MODE"
 
 # Install datadog_lambda and dependencies from local
 COPY . .
