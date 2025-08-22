@@ -1466,10 +1466,17 @@ def create_function_execution_span(
         else:
             service_name = function_name if function_name else "aws.lambda"
 
+    if (method := trigger_tags.get("http.method")) and (
+        route := trigger_tags.get("http.route")
+    ):
+        resource = f"{method} {route}"
+    else:
+        resource = function_name
+
     span = tracer.trace(
         "aws.lambda",
         service=service_name,
-        resource=function_name,
+        resource=resource,
         span_type="serverless",
     )
     if span:

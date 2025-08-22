@@ -84,8 +84,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "span.name": "aws.lambda",
           "function_trigger.event_source": "api-gateway",
           "function_trigger.event_source_arn": "XXXX",
-          "http.url": "https://XXXX.execute-api.us-east-2.amazonaws.com",
-          "http.url_details.path": "/Prod/",
+          "http.url": "https://XXXX.execute-api.us-east-2.amazonaws.com/Prod/",
           "http.method": "GET",
           "http.route": "/",
           "http.status_code": "200"
@@ -679,8 +678,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "span.name": "aws.lambda",
           "function_trigger.event_source": "api-gateway",
           "function_trigger.event_source_arn": "XXXX$default",
-          "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com",
-          "http.url_details.path": "/httpapi/get",
+          "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com/httpapi/get",
           "http.method": "GET",
           "http.route": "/httpapi/get",
           "http.status_code": "200"
