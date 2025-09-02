@@ -288,7 +288,7 @@ def extract_http_tags(event):
     """
     Extracts HTTP facet tags from the triggering event
     """
-    http_tags = {}
+    http_tags = {"span.kind": "server"}
 
     # Safely get request_context and ensure it's a dictionary
     request_context = event.get("requestContext")
