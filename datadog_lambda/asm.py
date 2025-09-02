@@ -73,17 +73,16 @@ def asm_start_request(
     route: Optional[str] = None
 
     if event_source.event_type == EventTypes.ALB:
-        headers = event.get("headers")
-        multi_value_request_headers = event.get("multiValueHeaders")
-        if multi_value_request_headers:
-            request_headers = _to_single_value_headers(multi_value_request_headers)
-        else:
-            request_headers = headers or {}
-
         raw_uri = event.get("path")
-        parsed_query = event.get("multiValueQueryStringParameters") or event.get(
-            "queryStringParameters"
-        )
+
+        if event_source.subtype == EventSubtypes.ALB:
+            request_headers = event.get("headers", {})
+            parsed_query = event.get("queryStringParameters")
+        if event_source.subtype == EventSubtypes.ALB_MULTI_VALUE_HEADERS:
+            request_headers = _to_single_value_headers(
+                event.get("multiValueHeaders", {})
+            )
+            parsed_query = event.get("multiValueQueryStringParameters")
 
     elif event_source.event_type == EventTypes.LAMBDA_FUNCTION_URL:
         request_headers = event.get("headers", {})
@@ -226,15 +225,27 @@ def get_asm_blocked_response(
         content_type = blocked.get("content-type", "application/json")
         content = http_utils._get_blocked_template(content_type)
 
-    response_headers = {
-        "content-type": content_type,
-    }
-    if "location" in blocked:
-        response_headers["location"] = blocked["location"]
-
-    return {
+    response = {
         "statusCode": blocked.get("status_code", 403),
-        "headers": response_headers,
         "body": content,
         "isBase64Encoded": False,
     }
+
+    needs_multi_value_headers = event_source.equals(
+        EventTypes.ALB, EventSubtypes.ALB_MULTI_VALUE_HEADERS
+    )
+
+    if needs_multi_value_headers:
+        response["multiValueHeaders"] = {
+            "content-type": [content_type],
+        }
+        if "location" in blocked:
+            response["multiValueHeaders"]["location"] = [blocked["location"]]
+    else:
+        response["headers"] = {
+            "content-type": content_type,
+        }
+        if "location" in blocked:
+            response["headers"]["location"] = blocked["location"]
+
+    return response

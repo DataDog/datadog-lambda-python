@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 from datadog_lambda.trigger import (
     EventSubtypes,
+    EventTypes,
     parse_event_source,
     get_event_source_arn,
     extract_trigger_tags,
@@ -117,6 +118,22 @@ class TestGetEventSourceAndARN(unittest.TestCase):
         event_source = parse_event_source(event)
         event_source_arn = get_event_source_arn(event_source, event, ctx)
         self.assertEqual(event_source.to_string(), event_sample_source)
+        self.assertEqual(event_source.subtype, EventSubtypes.ALB)
+        self.assertEqual(
+            event_source_arn,
+            "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
+        )
+
+    def test_event_source_application_load_balancer_multi_value_headers(self):
+        event_sample_source = "application-load-balancer-multivalue-headers"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        ctx = get_mock_context()
+        event_source = parse_event_source(event)
+        event_source_arn = get_event_source_arn(event_source, event, ctx)
+        self.assertEqual(event_source.event_type, EventTypes.ALB)
+        self.assertEqual(event_source.subtype, EventSubtypes.ALB_MULTI_VALUE_HEADERS)
         self.assertEqual(
             event_source_arn,
             "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
