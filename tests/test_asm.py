@@ -34,7 +34,7 @@ ASM_START_REQUEST_TEST_CASES = [
     ),
     (
         "application_load_balancer_multivalue_headers",
-        "application-load-balancer-mutivalue-headers.json",
+        "application-load-balancer-multivalue-headers.json",
         "72.12.164.125",
         "/lambda?query=1234ABCD",
         "GET",
@@ -111,7 +111,7 @@ ASM_START_RESPONSE_TEST_CASES = [
     ),
     (
         "application_load_balancer_multivalue_headers",
-        "application-load-balancer-mutivalue-headers.json",
+        "application-load-balancer-multivalue-headers.json",
         {
             "statusCode": 404,
             "multiValueHeaders": {
