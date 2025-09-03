@@ -8,8 +8,6 @@ if os.environ.get("DD_INSTRUMENTATION_TELEMETRY_ENABLED") is None:
         "DD_APPSEC_ENABLED", "false"
     )
 
-if os.environ.get("DD_API_SECURITY_ENABLED") is None:
-    os.environ["DD_API_SECURITY_ENABLED"] = "False"
 
 initialize_cold_start_tracing()
 
