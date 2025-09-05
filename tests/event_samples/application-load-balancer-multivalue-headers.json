@@ -6,7 +6,7 @@
     },
     "httpMethod": "GET",
     "path": "/lambda",
-    "queryStringParameters": {
+    "multiValueQueryStringParameters": {
         "query": "1234ABCD"
     },
     "multiValueHeaders": {
