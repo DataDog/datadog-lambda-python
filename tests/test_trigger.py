@@ -305,6 +305,7 @@ class GetTriggerTags(unittest.TestCase):
                 "http.url_details.path": "/prod/path/to/resource",
                 "http.method": "POST",
                 "http.route": "/{proxy+}",
+                "span.kind": "server",
             },
         )
 
@@ -324,6 +325,7 @@ class GetTriggerTags(unittest.TestCase):
                 "http.url_details.path": "/dev/http/get",
                 "http.method": "GET",
                 "http.route": "/http/get",
+                "span.kind": "server",
             },
         )
 
@@ -340,6 +342,7 @@ class GetTriggerTags(unittest.TestCase):
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/p62c47itsb/stages/dev",
                 "http.url": "https://p62c47itsb.execute-api.eu-west-1.amazonaws.com",
+                "span.kind": "server",
             },
         )
 
@@ -356,6 +359,7 @@ class GetTriggerTags(unittest.TestCase):
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/p62c47itsb/stages/dev",
                 "http.url": "https://p62c47itsb.execute-api.eu-west-1.amazonaws.com",
+                "span.kind": "server",
             },
         )
 
@@ -372,6 +376,7 @@ class GetTriggerTags(unittest.TestCase):
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/p62c47itsb/stages/dev",
                 "http.url": "https://p62c47itsb.execute-api.eu-west-1.amazonaws.com",
+                "span.kind": "server",
             },
         )
 
@@ -390,6 +395,7 @@ class GetTriggerTags(unittest.TestCase):
                 "http.url": "https://x02yirxc7a.execute-api.eu-west-1.amazonaws.com",
                 "http.url_details.path": "/httpapi/get",
                 "http.method": "GET",
+                "span.kind": "server",
                 "http.route": "/httpapi/get",
             },
         )
@@ -408,6 +414,7 @@ class GetTriggerTags(unittest.TestCase):
                 "function_trigger.event_source_arn": "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
                 "http.url_details.path": "/lambda",
                 "http.method": "GET",
+                "span.kind": "server",
             },
         )
 
@@ -569,7 +576,12 @@ class GetTriggerTags(unittest.TestCase):
         http_tags = extract_http_tags(event)
         # Should still extract valid tags from the event
         self.assertEqual(
-            http_tags, {"http.url_details.path": "/test", "http.method": "GET"}
+            http_tags,
+            {
+                "span.kind": "server",
+                "http.url_details.path": "/test",
+                "http.method": "GET",
+            },
         )
 
     def test_extract_http_tags_with_invalid_apigateway_http(self):
@@ -582,7 +594,7 @@ class GetTriggerTags(unittest.TestCase):
         }
         http_tags = extract_http_tags(event)
         # Should not raise an exception
-        self.assertEqual(http_tags, {})
+        self.assertEqual(http_tags, {"span.kind": "server"})
 
     def test_extract_http_tags_with_invalid_headers(self):
         from datadog_lambda.trigger import extract_http_tags
@@ -591,7 +603,7 @@ class GetTriggerTags(unittest.TestCase):
         event = {"headers": "not_a_dict"}
         http_tags = extract_http_tags(event)
         # Should not raise an exception
-        self.assertEqual(http_tags, {})
+        self.assertEqual(http_tags, {"span.kind": "server"})
 
     def test_extract_http_tags_with_invalid_route(self):
         from datadog_lambda.trigger import extract_http_tags
@@ -600,7 +612,7 @@ class GetTriggerTags(unittest.TestCase):
         event = {"routeKey": 12345}  # Not a string
         http_tags = extract_http_tags(event)
         # Should not raise an exception
-        self.assertEqual(http_tags, {})
+        self.assertEqual(http_tags, {"span.kind": "server"})
 
 
 class ExtractHTTPStatusCodeTag(unittest.TestCase):
