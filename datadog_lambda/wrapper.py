@@ -284,6 +284,34 @@ class _LambdaDecorator(object):
     def _after(self, event, context):
         try:
             status_code = extract_http_status_code_tag(self.trigger_tags, self.response)
+
+            if self.span:
+                if config.appsec_enabled and not self.blocking_response:
+                    asm_start_response(
+                        self.span,
+                        status_code,
+                        self.event_source,
+                        response=self.response,
+                    )
+                    self.blocking_response = get_asm_blocked_response(self.event_source)
+
+                if self.blocking_response:
+                    status_code = str(self.blocking_response.get("statusCode"))
+                    if config.capture_payload_enabled and self.response:
+                        tag_object(
+                            self.span, "function.blocked_response", self.response
+                        )
+                    self.response = self.blocking_response
+
+                if config.capture_payload_enabled:
+                    tag_object(self.span, "function.request", event)
+                    tag_object(self.span, "function.response", self.response)
+
+                if status_code:
+                    self.span.set_tag("http.status_code", status_code)
+
+                self.span.finish()
+
             if status_code:
                 self.trigger_tags["http.status_code"] = status_code
                 mark_trace_as_error_for_5xx_responses(context, status_code, self.span)
@@ -297,25 +325,6 @@ class _LambdaDecorator(object):
             should_trace_cold_start = config.cold_start_tracing and is_new_sandbox()
             if should_trace_cold_start:
                 trace_ctx = tracer.current_trace_context()
-
-            if self.span:
-                if config.capture_payload_enabled:
-                    tag_object(self.span, "function.request", event)
-                    tag_object(self.span, "function.response", self.response)
-
-                if status_code:
-                    self.span.set_tag("http.status_code", status_code)
-
-                if config.appsec_enabled and not self.blocking_response:
-                    asm_start_response(
-                        self.span,
-                        status_code,
-                        self.event_source,
-                        response=self.response,
-                    )
-                    self.blocking_response = get_asm_blocked_response(self.event_source)
-
-                self.span.finish()
 
             if self.inferred_span:
                 if status_code:
