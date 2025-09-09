@@ -8,6 +8,7 @@ from datadog_lambda.asm import (
     get_asm_blocked_response,
 )
 from datadog_lambda.trigger import (
+    EventSubtypes,
     EventTypes,
     _EventSource,
     extract_trigger_tags,
@@ -34,7 +35,7 @@ ASM_START_REQUEST_TEST_CASES = [
     ),
     (
         "application_load_balancer_multivalue_headers",
-        "application-load-balancer-mutivalue-headers.json",
+        "application-load-balancer-multivalue-headers.json",
         "72.12.164.125",
         "/lambda?query=1234ABCD",
         "GET",
@@ -111,7 +112,7 @@ ASM_START_RESPONSE_TEST_CASES = [
     ),
     (
         "application_load_balancer_multivalue_headers",
-        "application-load-balancer-mutivalue-headers.json",
+        "application-load-balancer-multivalue-headers.json",
         {
             "statusCode": 404,
             "multiValueHeaders": {
@@ -397,6 +398,25 @@ def test_get_asm_blocked_response_blocked(
     response = get_asm_blocked_response(event_source)
     assert response["statusCode"] == expected_status
     assert response["headers"] == expected_headers
+    assert "multiValueHeaders" not in response
+
+
+@patch("datadog_lambda.asm.get_blocked")
+def test_get_asm_blocked_response_blocked_multi_value_headers(
+    mock_get_blocked,
+):
+    # HTML blocking response
+    mock_get_blocked.return_value = {
+        "status_code": 401,
+        "type": "html",
+        "content-type": "text/html",
+    }
+
+    event_source = _EventSource(EventTypes.ALB, EventSubtypes.ALB_MULTI_VALUE_HEADERS)
+    response = get_asm_blocked_response(event_source)
+    assert response["statusCode"] == 401
+    assert response["multiValueHeaders"] == {"content-type": ["text/html"]}
+    assert "headers" not in response
 
 
 @patch("datadog_lambda.asm.get_blocked")
