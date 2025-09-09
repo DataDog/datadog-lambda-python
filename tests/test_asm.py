@@ -406,12 +406,6 @@ def test_get_asm_blocked_response_blocked_multi_value_headers(
     mock_get_blocked,
 ):
     # HTML blocking response
-    (
-        (
-            401,
-            {"content-type": "text/html"},
-        ),
-    )
     mock_get_blocked.return_value = {
         "status_code": 401,
         "type": "html",
