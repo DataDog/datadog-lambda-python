@@ -690,6 +690,9 @@ class TestLambdaWrapperAppsecBlocking(unittest.TestCase):
         self.mock_get_asm_blocking_response = patcher.start()
         self.addCleanup(patcher.stop)
 
+        with open("tests/event_samples/api-gateway.json") as f:
+            self.api_gateway_request = json.loads(f.read())
+
         self.fake_blocking_response = {
             "statusCode": "403",
             "headers": {
@@ -706,7 +709,7 @@ class TestLambdaWrapperAppsecBlocking(unittest.TestCase):
 
         lambda_handler = wrapper.datadog_lambda_wrapper(mock_handler)
 
-        response = lambda_handler({}, get_mock_context())
+        response = lambda_handler(self.api_gateway_request, get_mock_context())
         self.assertEqual(response, self.fake_blocking_response)
 
         mock_handler.assert_not_called()
@@ -715,27 +718,31 @@ class TestLambdaWrapperAppsecBlocking(unittest.TestCase):
         self.mock_asm_start_request.assert_called_once()
         self.mock_asm_start_response.assert_not_called()
 
+        assert lambda_handler.span.get_tag("http.status_code") == "403"
+
     def test_blocking_during(self):
         self.mock_get_asm_blocking_response.return_value = None
 
-        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             self.mock_get_asm_blocking_response.return_value = (
                 self.fake_blocking_response
             )
             raise wrapper.BlockingException()
 
-        response = lambda_handler({}, get_mock_context())
+        lambda_handler = wrapper.datadog_lambda_wrapper(lambda_handler)
+
+        response = lambda_handler(self.api_gateway_request, get_mock_context())
         self.assertEqual(response, self.fake_blocking_response)
 
         self.mock_asm_set_context.assert_called_once()
         self.mock_asm_start_request.assert_called_once()
         self.mock_asm_start_response.assert_not_called()
 
+        assert lambda_handler.span.get_tag("http.status_code") == "403"
+
     def test_blocking_after(self):
         self.mock_get_asm_blocking_response.return_value = None
 
-        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             self.mock_get_asm_blocking_response.return_value = (
                 self.fake_blocking_response
@@ -745,12 +752,16 @@ class TestLambdaWrapperAppsecBlocking(unittest.TestCase):
                 "body": "This should not be returned",
             }
 
-        response = lambda_handler({}, get_mock_context())
+        lambda_handler = wrapper.datadog_lambda_wrapper(lambda_handler)
+
+        response = lambda_handler(self.api_gateway_request, get_mock_context())
         self.assertEqual(response, self.fake_blocking_response)
 
         self.mock_asm_set_context.assert_called_once()
         self.mock_asm_start_request.assert_called_once()
         self.mock_asm_start_response.assert_called_once()
+
+        assert lambda_handler.span.get_tag("http.status_code") == "403"
 
     def test_no_blocking_appsec_disabled(self):
         os.environ["DD_APPSEC_ENABLED"] = "false"
@@ -764,14 +775,17 @@ class TestLambdaWrapperAppsecBlocking(unittest.TestCase):
             "body": "This should be returned",
         }
 
-        @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             return expected_response
 
-        response = lambda_handler({}, get_mock_context())
+        lambda_handler = wrapper.datadog_lambda_wrapper(lambda_handler)
+
+        response = lambda_handler(self.api_gateway_request, get_mock_context())
         self.assertEqual(response, expected_response)
 
         self.mock_get_asm_blocking_response.assert_not_called()
         self.mock_asm_set_context.assert_not_called()
         self.mock_asm_start_request.assert_not_called()
         self.mock_asm_start_response.assert_not_called()
+
+        assert lambda_handler.span.get_tag("http.status_code") == "200"
