@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "datadog_lambda"
-version = "8.114.0.dev0"
+version = "8.114.0"
 description = "The Datadog AWS Lambda Library"
 authors = ["Datadog, Inc. <dev@datadoghq.com>"]
 license = "Apache-2.0"
