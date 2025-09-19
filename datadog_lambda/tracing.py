@@ -542,10 +542,10 @@ def extract_context_from_request_header(event, lambda_context):
     Attempt to extract Datadog trace context from an event payload where Datadog information
     is under the event["request"]["header"] section. Intended to replace some of the
     need for customers to provide custom extractor functions in their code for workflows such as
-    RUM -> AppSync -> Datadog.
+    RUM -> AppSync -> Lambda.
     """
     try:
-        nested_json = event.get("request", {}).get("headers", {})
+        nested_json = event.get("request").get("headers")
         context = propagator.extract(nested_json)
 
         if not _is_context_complete(context):
