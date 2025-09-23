@@ -537,25 +537,6 @@ def extract_context_from_step_functions(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
-def extract_context_from_request_header(event, lambda_context):
-    """
-    Attempt to extract Datadog trace context from an event payload where Datadog information
-    is under the event["request"]["header"] section. Intended to replace some of the
-    need for customers to provide custom extractor functions in their code for workflows such as
-    RUM -> AppSync -> Lambda.
-    """
-    try:
-        nested_json = event.get("request").get("headers")
-        context = propagator.extract(nested_json)
-
-        if not _is_context_complete(context):
-            context = extract_context_from_lambda_context(lambda_context)
-    except Exception:
-        context = extract_context_from_lambda_context(lambda_context)
-
-    return context
-
-
 def extract_context_custom_extractor(extractor, event, lambda_context):
     """
     Extract Datadog trace context using a custom trace extractor function
@@ -646,6 +627,14 @@ def extract_dd_trace_context(
 
     if extractor is not None:
         context = extract_context_custom_extractor(extractor, event, lambda_context)
+    elif isinstance(event, (set, dict)) and "request" in event:
+        if "headers" in event.get("request"):
+            context = extract_context_from_http_event_or_context(
+                event.get("request"),
+                lambda_context,
+                event_source,
+                decode_authorizer_context=False,
+            )
     elif isinstance(event, (set, dict)) and "headers" in event:
         context = extract_context_from_http_event_or_context(
             event, lambda_context, event_source, decode_authorizer_context
@@ -661,7 +650,7 @@ def extract_dd_trace_context(
     elif event_source.equals(EventTypes.STEPFUNCTIONS):
         context = extract_context_from_step_functions(event, lambda_context)
     else:
-        context = extract_context_from_request_header(event, lambda_context)
+        context = extract_context_from_lambda_context(lambda_context)
 
     if _is_context_complete(context):
         logger.debug("Extracted Datadog trace context from event or context")
