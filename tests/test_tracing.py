@@ -180,12 +180,12 @@ _test_extract_dd_trace_context = (
     ),
     ("lambda-url", None),
     (
-        "rum-appsync", 
+        "rum-appsync",
         Context(
             trace_id=12345,
             span_id=67890,
             sampling_priority=1,
-        )
+        ),
     ),
     ("s3", None),
     (
