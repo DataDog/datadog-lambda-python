@@ -628,9 +628,10 @@ def extract_dd_trace_context(
     if extractor is not None:
         context = extract_context_custom_extractor(extractor, event, lambda_context)
     elif isinstance(event, (set, dict)) and "request" in event:
-        if "headers" in event.get("request"):
+        request = event.get("request")
+        if "headers" in request:
             context = extract_context_from_http_event_or_context(
-                event.get("request"),
+                request,
                 lambda_context,
                 event_source,
                 decode_authorizer_context=False,
