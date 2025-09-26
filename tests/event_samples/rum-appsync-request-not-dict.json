@@ -1,0 +1,12 @@
+{
+    "identity": "None",
+    "info": {
+        "fieldName": "getItems",
+        "parentTypeName": "Query",
+        "selectionSetGraphQL": "{\n  id\n}",
+        "selectionSetList":["id"]
+    }, 
+    "prev": "None",
+    "request": "hello",
+    "source": "None"
+}

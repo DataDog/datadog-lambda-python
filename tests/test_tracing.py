@@ -187,6 +187,8 @@ _test_extract_dd_trace_context = (
             sampling_priority=1,
         ),
     ),
+    ("rum-appsync-no-headers", None),
+    ("rum-appsync-request-not-dict", None), 
     ("s3", None),
     (
         "sns-b64-msg-attribute",
