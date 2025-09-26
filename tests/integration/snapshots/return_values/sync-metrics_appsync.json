@@ -1,0 +1,8 @@
+{
+    "statusCode": 200,
+    "body": {
+        "message": "hello, dog!",
+        "request_id": null,
+        "event_record_ids": []
+    }
+}

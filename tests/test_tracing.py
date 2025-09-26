@@ -179,6 +179,16 @@ _test_extract_dd_trace_context = (
         ),
     ),
     ("lambda-url", None),
+    (
+        "rum-appsync",
+        Context(
+            trace_id=12345,
+            span_id=67890,
+            sampling_priority=1,
+        ),
+    ),
+    ("rum-appsync-no-headers", None),
+    ("rum-appsync-request-not-dict", None),
     ("s3", None),
     (
         "sns-b64-msg-attribute",

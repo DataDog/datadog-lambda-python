@@ -1,0 +1,49 @@
+{
+    "identity": "None",
+    "info": {
+        "fieldName": "getItems",
+        "parentTypeName": "Query",
+        "selectionSetGraphQL": "{\n  id\n}",
+        "selectionSetList":["id"]
+    }, 
+    "prev": "None",
+    "request": { 
+        "domainName": "None",
+        "headers": {
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "en-US,en;q=0.9",
+            "cloudfront-forwarded-proto": "https",
+            "cloudfront-is-desktop-viewer": "True",
+            "cloudfront-is-mobile-viewer": "False",
+            "cloudfront-is-smarttv-viewer":"False", 
+            "cloudfront-is-tablet-viewer":" False",
+            "cloudfront-viewer-asn": "6461",
+            "cloudfront-viewer-country": "US",
+            "content-length": "47",
+            "content-type": "application/graphql",
+            "host": "4aowrg2uhvbw5mn7osu6searqi.appsync-api.us-east-1.amazonaws.com",
+            "origin": "http://localhost:5173", 
+            "priority": "u=1, i",
+            "referer": "http://localhost:5173/",
+            "sec-ch-ua": "\"Chromium\";v=\"140\", \"Not=A?Brand\";v=\"24\", \"Google Chrome\";v=\"140\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "macOS",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "traceparent": "00-0000000000000000d9f454c80b9a529a-73ac6ca3427073a3-01",
+            "tracestate": "dd=s:1;o:rum",
+            "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36","via":"2.0 62f9f3967e93a923f21c8acb20cf10b6.cloudfront.net (CloudFront)",
+            "x-amz-cf-id": "Femhicb_Vbva-J8qWjdI4hKMmqusCeQSp207UGyY3u8VOUrdE8BBvg==",
+            "x-amzn-appsync-is-vpce-request": "False",
+            "x-amzn-remote-ip": "64.124.12.19",
+            "x-amzn-requestid": "1ee1669a-eda3-4d4f-911c-35f74ebef31d",
+            "x-amzn-trace-id": "Root=1-68cdb7e9-438bf88259d7ce3535723bdd",
+            "x-forwarded-for": "64.124.12.19,15.158.225.229",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https"
+        }
+    },
+    "source": "None"
+}
