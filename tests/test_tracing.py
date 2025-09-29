@@ -45,8 +45,6 @@ from datadog_lambda.tracing import (
     _dsm_set_checkpoint,
     extract_context_from_kinesis_event,
     extract_context_from_sqs_or_sns_event_or_context,
-    extract_context_from_request_header_or_context,
-    extract_context_from_http_event_or_context
 )
 
 from datadog_lambda.trigger import parse_event_source
@@ -950,16 +948,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self._test_step_function_trace_data_common(
             sns_sqs_event, 5708348677301000120, 18223515719478572006, "45457f5f3fde3fa1"
         )
-    
-    # def test_not_decode_authorizer_for_request_header(self, monkeypatch):
-    #     calls = []
-    #     def patched_extract_context_from_http_event_or_context(event, lambda_context, event_source, decode_authorizer_context=True):
-    #         calls.append(decode_authorizer_context)
-    #     monkeypatch.setattr('extract_context_from_http_event_or_context', patched_extract_context_from_http_event_or_context)
-
-    #     extract_context_from_request_header_or_context()
-
-    #     assert calls == [False]
 
 
 class TestXRayContextConversion(unittest.TestCase):
