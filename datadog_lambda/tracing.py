@@ -209,20 +209,6 @@ def extract_context_from_http_event_or_context(
     return context
 
 
-# def extract_context_from_request_header_or_context(event, lambda_context, event_source):
-#     request = event.get("request")
-#     if isinstance(request, (set, dict)) and "headers" in request:
-#         context = extract_context_from_http_event_or_context(
-#             request,
-#             lambda_context,
-#             event_source,
-#             decode_authorizer_context=False,
-#         )
-#     else:
-#         context = extract_context_from_lambda_context(lambda_context)
-#     return context
-
-
 def create_sns_event(message):
     return {
         "Records": [
@@ -642,9 +628,6 @@ def extract_dd_trace_context(
     if extractor is not None:
         context = extract_context_custom_extractor(extractor, event, lambda_context)
     elif isinstance(event, (set, dict)) and "request" in event:
-        # context = extract_context_from_request_header_or_context(
-        #     event, lambda_context, event_source
-        # )
         request = event.get("request")
         if isinstance(request, (set, dict)) and "headers" in request:
             context = extract_context_from_http_event_or_context(
