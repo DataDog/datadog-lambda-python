@@ -844,7 +844,7 @@ def test_profiling_enabled(monkeypatch):
         Profiler_start_calls.append((args, kwargs))
         return original_Profiler_start(*args, **kwargs)
 
-    monkeypatch.setattr('datadog_lambda.wrapper.is_new_sandbox', lambda: True)
+    monkeypatch.setattr("datadog_lambda.wrapper.is_new_sandbox", lambda: True)
     monkeypatch.setattr(
         "datadog_lambda.wrapper.profiler.Profiler.start", Profiler_start
     )
@@ -882,7 +882,7 @@ def test_llmobs_enabled(monkeypatch):
         LLMObs_flush_calls.append((args, kwargs))
         return original_LLMObs_flush(*args, **kwargs)
 
-    monkeypatch.setattr('datadog_lambda.wrapper.is_new_sandbox', lambda: True)
+    monkeypatch.setattr("datadog_lambda.wrapper.is_new_sandbox", lambda: True)
     monkeypatch.setattr("datadog_lambda.wrapper.LLMObs.enable", LLMObs_enable)
     monkeypatch.setattr("datadog_lambda.wrapper.LLMObs.flush", LLMObs_flush)
 
