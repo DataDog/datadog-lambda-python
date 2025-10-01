@@ -862,3 +862,41 @@ def test_profiling_enabled(monkeypatch):
 
     assert response == expected_response
     assert len(Profiler_start_calls) == 1
+
+
+@patch("datadog_lambda.config.Config.llmobs_enabled", True)
+def test_llmobs_enabled(monkeypatch):
+    importlib.reload(wrapper)
+
+    original_LLMObs_enable = wrapper.LLMObs.enable
+    LLMObs_enable_calls = []
+
+    def LLMObs_enable(*args, **kwargs):
+        LLMObs_enable_calls.append((args, kwargs))
+        return original_LLMObs_enable(*args, **kwargs)
+
+    original_LLMObs_flush = wrapper.LLMObs.flush
+    LLMObs_flush_calls = []
+
+    def LLMObs_flush(*args, **kwargs):
+        LLMObs_flush_calls.append((args, kwargs))
+        return original_LLMObs_flush(*args, **kwargs)
+
+    monkeypatch.setattr('datadog_lambda.wrapper.is_new_sandbox', lambda: True)
+    monkeypatch.setattr("datadog_lambda.wrapper.LLMObs.enable", LLMObs_enable)
+    monkeypatch.setattr("datadog_lambda.wrapper.LLMObs.flush", LLMObs_flush)
+
+    expected_response = {
+        "statusCode": 200,
+        "body": "This should be returned",
+    }
+
+    @wrapper.datadog_lambda_wrapper
+    def lambda_handler(event, context):
+        return expected_response
+
+    response = lambda_handler({}, get_mock_context())
+
+    assert response == expected_response
+    assert len(LLMObs_enable_calls) == 1
+    assert len(LLMObs_flush_calls) == 1
