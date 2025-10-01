@@ -831,3 +831,34 @@ def test_exception_replay_enabled(monkeypatch):
     assert response == expected_response
     assert len(SpanExceptionHandler_enable_calls) == 1
     assert len(SignalUploader_periodic_calls) == 1
+
+
+@patch("datadog_lambda.config.Config.profiling_enabled", True)
+def test_profiling_enabled(monkeypatch):
+    importlib.reload(wrapper)
+
+    original_Profiler_start = wrapper.profiler.Profiler.start
+    Profiler_start_calls = []
+
+    def Profiler_start(*args, **kwargs):
+        Profiler_start_calls.append((args, kwargs))
+        return original_Profiler_start(*args, **kwargs)
+
+    monkeypatch.setattr('datadog_lambda.wrapper.is_new_sandbox', lambda: True)
+    monkeypatch.setattr(
+        "datadog_lambda.wrapper.profiler.Profiler.start", Profiler_start
+    )
+
+    expected_response = {
+        "statusCode": 200,
+        "body": "This should be returned",
+    }
+
+    @wrapper.datadog_lambda_wrapper
+    def lambda_handler(event, context):
+        return expected_response
+
+    response = lambda_handler({}, get_mock_context())
+
+    assert response == expected_response
+    assert len(Profiler_start_calls) == 1
