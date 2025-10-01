@@ -789,3 +789,45 @@ class TestLambdaWrapperAppsecBlocking(unittest.TestCase):
         self.mock_asm_start_response.assert_not_called()
 
         assert lambda_handler.span.get_tag("http.status_code") == "200"
+
+
+@patch("datadog_lambda.config.Config.exception_replay_enabled", True)
+def test_exception_replay_enabled(monkeypatch):
+    importlib.reload(wrapper)
+
+    original_SpanExceptionHandler_enable = wrapper.SpanExceptionHandler.enable
+    SpanExceptionHandler_enable_calls = []
+
+    def SpanExceptionHandler_enable(*args, **kwargs):
+        SpanExceptionHandler_enable_calls.append((args, kwargs))
+        return original_SpanExceptionHandler_enable(*args, **kwargs)
+
+    original_SignalUploader_periodic = wrapper.SignalUploader.periodic
+    SignalUploader_periodic_calls = []
+
+    def SignalUploader_periodic(*args, **kwargs):
+        SignalUploader_periodic_calls.append((args, kwargs))
+        return original_SignalUploader_periodic(*args, **kwargs)
+
+    monkeypatch.setattr(
+        "datadog_lambda.wrapper.SpanExceptionHandler.enable",
+        SpanExceptionHandler_enable,
+    )
+    monkeypatch.setattr(
+        "datadog_lambda.wrapper.SignalUploader.periodic", SignalUploader_periodic
+    )
+
+    expected_response = {
+        "statusCode": 200,
+        "body": "This should be returned",
+    }
+
+    @wrapper.datadog_lambda_wrapper
+    def lambda_handler(event, context):
+        return expected_response
+
+    response = lambda_handler({}, get_mock_context())
+
+    assert response == expected_response
+    assert len(SpanExceptionHandler_enable_calls) == 1
+    assert len(SignalUploader_periodic_calls) == 1
