@@ -46,6 +46,10 @@ from datadog_lambda.trigger import (
     extract_http_status_code_tag,
 )
 
+# ddtrace imports are also tested in
+# dd-trace-py/tests/internal/test_serverless.py please update those tests when
+# making changes to any ddtrace import.
+
 if config.appsec_enabled:
     from datadog_lambda.asm import (
         asm_set_context,
