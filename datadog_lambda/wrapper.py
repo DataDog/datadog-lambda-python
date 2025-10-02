@@ -65,7 +65,11 @@ if config.llmobs_enabled:
 
 if config.exception_replay_enabled:
     from ddtrace.debugging._exception.replay import SpanExceptionHandler
-    from ddtrace.debugging._uploader import LogsIntakeUploaderV1
+
+    try:
+        from ddtrace.debugging._uploader import SignalUploader
+    except ImportError:
+        from ddtrace.debugging._uploader import LogsIntakeUploaderV1 as SignalUploader
 
 logger = logging.getLogger(__name__)
 
@@ -370,7 +374,7 @@ class _LambdaDecorator(object):
 
             # Flush exception replay
             if config.exception_replay_enabled:
-                LogsIntakeUploaderV1._instance.periodic()
+                SignalUploader._instance.periodic()
 
             if config.encode_authorizer_context and is_authorizer_response(
                 self.response
