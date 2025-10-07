@@ -48,7 +48,7 @@ from datadog_lambda.tracing import (
 )
 
 from datadog_lambda.trigger import parse_event_source
-from tests.utils import get_mock_context
+from tests.utils import get_mock_context, ClientContext
 
 
 function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
@@ -620,6 +620,40 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
                 ),
             ]
         )
+
+    def test_request_header_malformed(self):
+        """Testing that if a RUM AppSync event is malformed, the tracer will attempt
+        to get the trace context from the lambda context in the 
+        extract_context_from_request_header_or_context function."""
+        lambda_ctx = get_mock_context()
+        lambda_ctx.client_context = ClientContext(custom={
+            "_datadog": {
+                "x-datadog-parent-id": "67890",
+                "x-datadog-sampling-priority": "1",
+                "x-datadog-trace-id": "12345",
+            }})
+        request_header_event = {
+            "identity": "None",
+            "info": {
+                "fieldName": "getItems",
+                "parentTypeName": "Query",
+                "selectionSetGraphQL": "{\n  id\n}",
+                "selectionSetList":["id"]
+            }, 
+            "prev": "None",
+            "request": "hello",
+            "source": "None"
+        }
+        ctx, source, _ = extract_dd_trace_context(request_header_event, lambda_ctx)
+        expected_context = Context(
+            trace_id = 12345,
+            span_id = 67890,
+            sampling_priority = 1,
+        )
+
+        self.assertEqual(ctx, expected_context)
+        self.assertEqual(source, "event")
+
 
     def _test_step_function_trace_data_common(
         self, event, expected_trace_id, expected_span_id, expected_tid
