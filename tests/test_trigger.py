@@ -318,8 +318,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/1234567890/stages/prod",
-                "http.url": "https://70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
-                "http.url_details.path": "/prod/path/to/resource",
+                "http.url": "https://70ixmpl4fl.execute-api.us-east-2.amazonaws.com/prod/path/to/resource",
                 "http.method": "POST",
                 "http.route": "/{proxy+}",
                 "span.kind": "server",
@@ -338,8 +337,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/lgxbo6a518/stages/dev",
-                "http.url": "https://lgxbo6a518.execute-api.eu-west-1.amazonaws.com",
-                "http.url_details.path": "/dev/http/get",
+                "http.url": "https://lgxbo6a518.execute-api.eu-west-1.amazonaws.com/dev/http/get",
                 "http.method": "GET",
                 "http.route": "/http/get",
                 "span.kind": "server",
@@ -409,8 +407,7 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "api-gateway",
                 "function_trigger.event_source_arn": "arn:aws:apigateway:us-west-1::/restapis/x02yirxc7a/stages/$default",
-                "http.url": "https://x02yirxc7a.execute-api.eu-west-1.amazonaws.com",
-                "http.url_details.path": "/httpapi/get",
+                "http.url": "https://x02yirxc7a.execute-api.eu-west-1.amazonaws.com/httpapi/get",
                 "http.method": "GET",
                 "span.kind": "server",
                 "http.route": "/httpapi/get",
@@ -429,7 +426,6 @@ class GetTriggerTags(unittest.TestCase):
             {
                 "function_trigger.event_source": "application-load-balancer",
                 "function_trigger.event_source_arn": "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
-                "http.url_details.path": "/lambda",
                 "http.method": "GET",
                 "span.kind": "server",
             },
@@ -596,7 +592,6 @@ class GetTriggerTags(unittest.TestCase):
             http_tags,
             {
                 "span.kind": "server",
-                "http.url_details.path": "/test",
                 "http.method": "GET",
             },
         )
