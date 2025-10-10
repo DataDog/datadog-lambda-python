@@ -12,6 +12,7 @@ from datadog_lambda.metric import (
     _select_metrics_handler,
     flush_stats,
     lambda_metric,
+    submit_batch_item_failures_metric,
 )
 from datadog_lambda.tags import dd_lambda_layer_tag
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
@@ -324,3 +325,80 @@ class TestDecryptKMSApiKey(unittest.TestCase):
             mock_kms_client, MOCK_ENCRYPTED_API_KEY_BASE64
         )
         self.assertEqual(decrypted_key, EXPECTED_DECRYPTED_API_KEY)
+
+
+class TestBatchItemFailuresMetric(unittest.TestCase):
+    def setUp(self):
+        patcher = patch("datadog_lambda.metric.lambda_metric")
+        self.mock_lambda_metric = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("datadog_lambda.config.Config.enhanced_metrics_enabled", True)
+        self.mock_enhanced_metrics_enabled = patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_submit_batch_item_failures_with_failures(self):
+        response = {
+            "batchItemFailures": [
+                {"itemIdentifier": "msg-1"},
+                {"itemIdentifier": "msg-2"},
+                {"itemIdentifier": "msg-3"},
+            ]
+        }
+        context = unittest.mock.Mock()
+
+        with patch("datadog_lambda.metric.get_enhanced_metrics_tags") as mock_get_tags:
+            mock_get_tags.return_value = ["tag1:value1"]
+            submit_batch_item_failures_metric(response, context)
+
+            self.mock_lambda_metric.assert_called_once_with(
+                "aws.lambda.enhanced.batch_item_failures",
+                3,
+                timestamp=None,
+                tags=["tag1:value1"],
+                force_async=True,
+            )
+
+    def test_submit_batch_item_failures_with_no_failures(self):
+        response = {"batchItemFailures": []}
+        context = unittest.mock.Mock()
+
+        with patch("datadog_lambda.metric.get_enhanced_metrics_tags") as mock_get_tags:
+            mock_get_tags.return_value = ["tag1:value1"]
+            submit_batch_item_failures_metric(response, context)
+            self.mock_lambda_metric.assert_called_once_with(
+                "aws.lambda.enhanced.batch_item_failures",
+                0,
+                timestamp=None,
+                tags=["tag1:value1"],
+                force_async=True,
+            )
+
+    def test_submit_batch_item_failures_with_no_field(self):
+        response = {"statusCode": 200}
+        context = unittest.mock.Mock()
+        submit_batch_item_failures_metric(response, context)
+        self.mock_lambda_metric.assert_not_called()
+
+    def test_submit_batch_item_failures_with_none_response(self):
+        response = None
+        context = unittest.mock.Mock()
+        submit_batch_item_failures_metric(response, context)
+        self.mock_lambda_metric.assert_not_called()
+
+    def test_submit_batch_item_failures_with_non_list_value(self):
+        response = {"batchItemFailures": "invalid"}
+        context = unittest.mock.Mock()
+        submit_batch_item_failures_metric(response, context)
+        self.mock_lambda_metric.assert_not_called()
+
+    @patch("datadog_lambda.config.Config.enhanced_metrics_enabled", False)
+    def test_submit_batch_item_failures_enhanced_metrics_disabled(self):
+        response = {
+            "batchItemFailures": [
+                {"itemIdentifier": "msg-1"},
+            ]
+        }
+        context = unittest.mock.Mock()
+        submit_batch_item_failures_metric(response, context)
+        self.mock_lambda_metric.assert_not_called()

@@ -899,3 +899,61 @@ def test_llmobs_enabled(monkeypatch):
     assert response == expected_response
     assert len(LLMObs_enable_calls) == 1
     assert len(LLMObs_flush_calls) == 1
+
+
+@patch("datadog_lambda.config.Config.trace_enabled", False)
+def test_batch_item_failures_metric():
+    with patch(
+        "datadog_lambda.metric.submit_batch_item_failures_metric"
+    ) as mock_submit:
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return {
+                "batchItemFailures": [
+                    {"itemIdentifier": "msg-1"},
+                    {"itemIdentifier": "msg-2"},
+                ]
+            }
+
+        lambda_handler({}, get_mock_context())
+        mock_submit.assert_called_once()
+        call_args = mock_submit.call_args[0]
+        assert call_args[0] == {
+            "batchItemFailures": [
+                {"itemIdentifier": "msg-1"},
+                {"itemIdentifier": "msg-2"},
+            ]
+        }
+
+
+@patch("datadog_lambda.config.Config.trace_enabled", False)
+def test_batch_item_failures_metric_no_failures():
+    with patch(
+        "datadog_lambda.metric.submit_batch_item_failures_metric"
+    ) as mock_submit:
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return {"batchItemFailures": []}
+
+        lambda_handler({}, get_mock_context())
+        mock_submit.assert_called_once()
+        call_args = mock_submit.call_args[0]
+        assert call_args[0] == {"batchItemFailures": []}
+
+
+@patch("datadog_lambda.config.Config.trace_enabled", False)
+def test_batch_item_failures_metric_no_response():
+    with patch(
+        "datadog_lambda.metric.submit_batch_item_failures_metric"
+    ) as mock_submit:
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return None
+
+        lambda_handler({}, get_mock_context())
+        mock_submit.assert_called_once()
+        call_args = mock_submit.call_args[0]
+        assert call_args[0] is None
