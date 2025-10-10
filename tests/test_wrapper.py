@@ -903,7 +903,10 @@ def test_llmobs_enabled(monkeypatch):
 
 @patch("datadog_lambda.config.Config.trace_enabled", False)
 def test_batch_item_failures_metric():
-    with patch("datadog_lambda.metric.submit_batch_item_failures_metric") as mock_submit:
+    with patch(
+        "datadog_lambda.metric.submit_batch_item_failures_metric"
+    ) as mock_submit:
+
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             return {
@@ -926,7 +929,10 @@ def test_batch_item_failures_metric():
 
 @patch("datadog_lambda.config.Config.trace_enabled", False)
 def test_batch_item_failures_metric_no_failures():
-    with patch("datadog_lambda.metric.submit_batch_item_failures_metric") as mock_submit:
+    with patch(
+        "datadog_lambda.metric.submit_batch_item_failures_metric"
+    ) as mock_submit:
+
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             return {"batchItemFailures": []}
@@ -939,7 +945,10 @@ def test_batch_item_failures_metric_no_failures():
 
 @patch("datadog_lambda.config.Config.trace_enabled", False)
 def test_batch_item_failures_metric_no_response():
-    with patch("datadog_lambda.metric.submit_batch_item_failures_metric") as mock_submit:
+    with patch(
+        "datadog_lambda.metric.submit_batch_item_failures_metric"
+    ) as mock_submit:
+
         @wrapper.datadog_lambda_wrapper
         def lambda_handler(event, context):
             return None

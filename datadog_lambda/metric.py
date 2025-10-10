@@ -232,7 +232,13 @@ def submit_batch_item_failures_metric(response, lambda_context):
 
     batch_item_failures = response.get("batchItemFailures")
     if batch_item_failures is not None and isinstance(batch_item_failures, list):
-        lambda_metric("aws.lambda.enhanced.batch_item_failures", len(batch_item_failures), timestamp=None, tags=get_enhanced_metrics_tags(lambda_context), force_async=True)
+        lambda_metric(
+            "aws.lambda.enhanced.batch_item_failures",
+            len(batch_item_failures),
+            timestamp=None,
+            tags=get_enhanced_metrics_tags(lambda_context),
+            force_async=True,
+        )
 
 
 def submit_dynamodb_stream_type_metric(event):

@@ -356,7 +356,7 @@ class TestBatchItemFailuresMetric(unittest.TestCase):
                 3,
                 timestamp=None,
                 tags=["tag1:value1"],
-                force_async=True
+                force_async=True,
             )
 
     def test_submit_batch_item_failures_with_no_failures(self):
@@ -371,7 +371,7 @@ class TestBatchItemFailuresMetric(unittest.TestCase):
                 0,
                 timestamp=None,
                 tags=["tag1:value1"],
-                force_async=True
+                force_async=True,
             )
 
     def test_submit_batch_item_failures_with_no_field(self):
