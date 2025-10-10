@@ -214,6 +214,27 @@ def submit_errors_metric(lambda_context):
     submit_enhanced_metric("errors", lambda_context)
 
 
+def submit_batch_item_failures_metric(response, lambda_context):
+    """Submit aws.lambda.enhanced.batch_item_failures metric with the count of batch item failures
+
+    Args:
+        response (dict): Lambda function response object
+        lambda_context (object): Lambda context dict passed to the function by AWS
+    """
+    if not config.enhanced_metrics_enabled:
+        logger.debug(
+            "Not submitting batch_item_failures metric because enhanced metrics are disabled"
+        )
+        return
+
+    if not isinstance(response, dict):
+        return
+
+    batch_item_failures = response.get("batchItemFailures")
+    if batch_item_failures is not None and isinstance(batch_item_failures, list):
+        lambda_metric("aws.lambda.enhanced.batch_item_failures", len(batch_item_failures), timestamp=None, tags=get_enhanced_metrics_tags(lambda_context), force_async=True)
+
+
 def submit_dynamodb_stream_type_metric(event):
     stream_view_type = (
         event.get("Records", [{}])[0].get("dynamodb", {}).get("StreamViewType")

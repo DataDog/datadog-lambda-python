@@ -291,6 +291,10 @@ class _LambdaDecorator(object):
 
     def _after(self, event, context):
         try:
+            from datadog_lambda.metric import submit_batch_item_failures_metric
+
+            submit_batch_item_failures_metric(self.response, context)
+
             status_code = extract_http_status_code_tag(self.trigger_tags, self.response)
 
             if self.span:
