@@ -126,8 +126,8 @@ def asm_start_request(
 
     request_ip = _get_request_header_client_ip(request_headers, peer_ip, True)
     if request_ip is not None:
-        span.set_tag_str("http.client_ip", request_ip)
-        span.set_tag_str("network.client.ip", request_ip)
+        span.set_tag("http.client_ip", request_ip)
+        span.set_tag("network.client.ip", request_ip)
 
     # Encode the parsed query and append it to reconstruct the original raw URI expected by AppSec.
     if parsed_query:
