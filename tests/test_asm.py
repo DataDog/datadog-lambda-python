@@ -331,8 +331,8 @@ def test_asm_start_request_parametrized(
 
     # Check IP tags were set if IP is present
     if expected_ip:
-        mock_span.set_tag_str.assert_any_call("http.client_ip", expected_ip)
-        mock_span.set_tag_str.assert_any_call("network.client.ip", expected_ip)
+        mock_span.set_tag.assert_any_call("http.client_ip", expected_ip)
+        mock_span.set_tag.assert_any_call("network.client.ip", expected_ip)
 
 
 @pytest.mark.parametrize(
