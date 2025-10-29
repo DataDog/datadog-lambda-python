@@ -82,12 +82,6 @@ class Config:
     logs_injection = _get_env("DD_LOGS_INJECTION", "true", as_bool)
     merge_xray_traces = _get_env("DD_MERGE_XRAY_TRACES", "false", as_bool)
 
-    telemetry_enabled = _get_env(
-        "DD_INSTRUMENTATION_TELEMETRY_ENABLED",
-        "false",
-        as_bool,
-        depends_on_tracing=True,
-    )
     otel_enabled = _get_env("DD_TRACE_OTEL_ENABLED", "false", as_bool)
     profiling_enabled = _get_env("DD_PROFILING_ENABLED", "false", as_bool)
     llmobs_enabled = _get_env("DD_LLMOBS_ENABLED", "false", as_bool)
@@ -96,6 +90,7 @@ class Config:
         "DD_DATA_STREAMS_ENABLED", "false", as_bool, depends_on_tracing=True
     )
     appsec_enabled = _get_env("DD_APPSEC_ENABLED", "false", as_bool)
+    sca_enabled = _get_env("DD_APPSEC_SCA_ENABLED", "false", as_bool)
 
     is_gov_region = _get_env("AWS_REGION", "", lambda x: x.startswith("us-gov-"))
 
@@ -144,3 +139,11 @@ if config.is_gov_region or config.fips_mode_enabled:
         "Python Lambda Layer FIPS mode is %s.",
         "enabled" if config.fips_mode_enabled else "not enabled",
     )
+
+
+if (
+    "DD_INSTRUMENTATION_TELEMETRY_ENABLED" not in os.environ
+    and not config.sca_enabled
+    and not config.appsec_enabled
+):
+    os.environ["DD_INSTRUMENTATION_TELEMETRY_ENABLED"] = "false"
