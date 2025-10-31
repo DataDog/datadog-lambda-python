@@ -1,3 +1,6 @@
+import importlib
+import sys
+
 import pytest
 
 from datadog_lambda.config import config, _get_env, Config
@@ -12,6 +15,29 @@ def setenv(monkeypatch):
             monkeypatch.setenv(key, value)
 
     return set_env
+
+
+def test_config_import_does_not_import_ddtrace(monkeypatch):
+    import datadog_lambda
+
+    with monkeypatch.context() as mp:
+        for name in list(sys.modules):
+            if name == "ddtrace" or name.startswith("ddtrace."):
+                mp.delitem(sys.modules, name, raising=False)
+
+        class _BlockDdtrace(importlib.abc.MetaPathFinder):
+            def find_spec(self, fullname, path=None, target=None):
+                if fullname == "ddtrace" or fullname.startswith("ddtrace."):
+                    raise ImportError("ddtrace must not be imported during this test")
+                return None
+
+        blocker = _BlockDdtrace()
+        mp.setattr(sys, "meta_path", [blocker] + sys.meta_path, raising=False)
+
+        mp.delattr(datadog_lambda, "config", raising=False)
+        mp.delitem(sys.modules, "datadog_lambda.config", raising=False)
+        importlib.invalidate_caches()
+        importlib.import_module("datadog_lambda.config")
 
 
 def _test_as_bool(env_key, conf_key, default):
@@ -72,9 +98,6 @@ _test_config_from_environ = (
     *_test_as_bool("DD_INTEGRATION_TEST", "integration_test", default=False),
     *_test_as_bool("DD_BOTOCORE_ADD_SPAN_POINTERS", "add_span_pointers", default=True),
     *_test_as_bool("DD_TRACE_OTEL_ENABLED", "otel_enabled", default=False),
-    *_test_as_bool(
-        "DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", default=False
-    ),
     *_test_as_bool("DD_MERGE_XRAY_TRACES", "merge_xray_traces", default=False),
     *_test_as_bool("DD_PROFILING_ENABLED", "profiling_enabled", default=False),
     *_test_as_bool("DD_LLMOBS_ENABLED", "llmobs_enabled", default=False),
@@ -86,6 +109,8 @@ _test_config_from_environ = (
     ),
     *_test_as_bool("DD_LOCAL_TEST", "local_test", default=False),
     *_test_as_bool("DD_DATA_STREAMS_ENABLED", "data_streams_enabled", default=False),
+    *_test_as_bool("DD_APPSEC_ENABLED", "appsec_enabled", default=False),
+    *_test_as_bool("DD_APPSEC_SCA_ENABLED", "sca_enabled", default=False),
     *_test_int(
         "DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", default=10
     ),
@@ -143,9 +168,6 @@ _test_config_from_environ_depends_on_tracing = (
         "DD_DECODE_AUTHORIZER_CONTEXT", "decode_authorizer_context", default=True
     ),
     *_test_as_bool("DD_DATA_STREAMS_ENABLED", "data_streams_enabled", default=False),
-    *_test_as_bool(
-        "DD_INSTRUMENTATION_TELEMETRY_ENABLED", "telemetry_enabled", default=False
-    ),
 )
 
 

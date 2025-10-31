@@ -55,11 +55,6 @@ if config.otel_enabled:
 logger = logging.getLogger(__name__)
 
 dd_trace_context = None
-if config.telemetry_enabled:
-    # Enable the telemetry client if the user has opted in
-    from ddtrace.internal.telemetry import telemetry_writer
-
-    telemetry_writer.enable()
 
 propagator = HTTPPropagator()
 
