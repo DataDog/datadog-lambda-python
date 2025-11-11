@@ -34,8 +34,6 @@ RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_ast/iastpatch*.so
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_taint_tracking/*.so
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_stacktrace*.so
-# _stack_v2 may not exist for some versions of ddtrace (e.g. under python 3.13)
-RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/internal/datadog/profiling/stack_v2/_stack_v2.*.so
 # remove *.dist-info directories except any entry_points.txt files and METADATA files required for Appsec Software Composition Analysis
 RUN find ./python/lib/$runtime/site-packages/*.dist-info \
         -type f \
