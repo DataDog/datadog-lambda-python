@@ -1,6 +1,10 @@
 name: Build Layers for system-Tests
 
 on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - "**"
   push:
     branches:
       - "main"
@@ -11,8 +15,10 @@ jobs:
 
     strategy:
       matrix:
-        arch: [arm64, amd64]
-        python_version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        # arch: [arm64, amd64]
+        # python_version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        arch: [amd64]
+        python_version: ["3.13"]
 
     steps:
       - name: Checkout
