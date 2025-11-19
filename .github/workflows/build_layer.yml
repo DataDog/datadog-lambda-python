@@ -1,6 +1,7 @@
 name: Build Layers for system-Tests
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - "main"
@@ -10,6 +11,7 @@ jobs:
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
 
     strategy:
+      fail-fast: false
       matrix:
         arch: [arm64, amd64]
         python_version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
