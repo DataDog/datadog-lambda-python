@@ -2,9 +2,6 @@ name: Build Layers for system-Tests
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - "**"
   push:
     branches:
       - "main"
