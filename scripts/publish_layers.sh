@@ -42,18 +42,18 @@ LAYER_PATHS=(
     ".layers/datadog_lambda_py-arm64-3.13.zip"
 )
 AVAILABLE_LAYERS=(
-    "Datadog-Python38"
-    "Datadog-Python38-ARM"
-    "Datadog-Python39"
-    "Datadog-Python39-ARM"
-    "Datadog-Python310"
-    "Datadog-Python310-ARM"
-    "Datadog-Python311"
-    "Datadog-Python311-ARM"
-    "Datadog-Python312"
-    "Datadog-Python312-ARM"
-    "Datadog-Python313"
-    "Datadog-Python313-ARM"
+    "John-Datadog-Python38"
+    "John-Datadog-Python38-ARM"
+    "John-Datadog-Python39"
+    "John-Datadog-Python39-ARM"
+    "John-Datadog-Python310"
+    "John-Datadog-Python310-ARM"
+    "John-Datadog-Python311"
+    "John-Datadog-Python311-ARM"
+    "John-Datadog-Python312"
+    "John-Datadog-Python312-ARM"
+    "John-Datadog-Python313"
+    "John-Datadog-Python313-ARM"
 )
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 
@@ -62,15 +62,6 @@ PIDS=()
 
 # Makes sure any subprocesses will be terminated with this process
 trap "pkill -P $$; exit 1;" INT
-
-# Check that the layer files exist
-for layer_file in "${LAYER_PATHS[@]}"
-do
-    if [ ! -f $layer_file  ]; then
-        echo "Could not find $layer_file."
-        exit 1
-    fi
-done
 
 # Determine the target regions
 if [ -z "$REGIONS" ]; then
@@ -110,11 +101,7 @@ else
     echo "Layer version specified: $VERSION"
 fi
 
-read -p "Ready to publish version $VERSION of layers ${LAYERS[*]} to regions ${REGIONS[*]} (y/n)?" CONT
-if [ "$CONT" != "y" ]; then
-    echo "Exiting"
-    exit 1
-fi
+echo "Publishing version $VERSION of layers ${LAYERS[*]} to regions ${REGIONS[*]}"
 
 index_of_layer() {
     layer_name=$1

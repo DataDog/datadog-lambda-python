@@ -177,11 +177,13 @@ class _LambdaDecorator(object):
 
     def __call__(self, event, context, **kwargs):
         """Executes when the wrapped function gets called"""
-        self._before(event, context)
+        actual_event, custom_probes = self._extract_di_request(event)
+        self._before(actual_event, context, custom_probes)
         try:
             if self.blocking_response:
                 return self.blocking_response
-            self.response = self.func(event, context, **kwargs)
+            # Pass unwrapped event to user's handler
+            self.response = self.func(actual_event, context, **kwargs)
             return self.response
         except BlockingException:
             self.blocking_response = get_asm_blocked_response(self.event_source)
@@ -194,9 +196,108 @@ class _LambdaDecorator(object):
                 self.span.set_traceback()
             raise
         finally:
-            self._after(event, context)
+            self._after(actual_event, context, custom_probes)
             if self.blocking_response:
                 return self.blocking_response
+
+    def _enable_dynamic_instrumentation(self):
+        from ddtrace.debugging import DynamicInstrumentation
+        DynamicInstrumentation.enable()
+        logger.debug("DI framework enabled for this invocation")
+
+    def _disable_dynamic_instrumentation(self):
+        try:
+            from ddtrace.debugging import DynamicInstrumentation
+            DynamicInstrumentation.disable()
+            logger.debug("DI framework disabled after invocation")
+        except Exception as e:
+            logger.error(f"Failed to disable DI framework: {e}")
+
+    def _inject_probes(self, probe_definitions):
+        if not probe_definitions:
+            return
+
+        try:
+            from ddtrace.debugging._debugger import Debugger
+            from ddtrace.debugging._probe.remoteconfig import build_probe, ProbePollerEvent
+
+            # Get the debugger instance
+            debugger = Debugger._instance
+            if debugger is None:
+                logger.error("Debugger instance not available, cannot inject probes")
+                return
+
+            # Convert probe definitions to Probe objects
+            probes = [build_probe(p) for p in probe_definitions]
+
+            # Track probe IDs for cleanup
+            for probe in probes:
+                self._active_probe_ids.append(probe.probe_id)
+
+            # Inject probes using the debugger's configuration method
+            debugger._on_configuration(ProbePollerEvent.NEW_PROBES, probes)
+            logger.debug(f"Injected {len(probes)} probes: {[p.probe_id for p in probes]}")
+
+        except Exception as e:
+            logger.error(f"Failed to inject custom probes: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+    def _remove_probes(self):
+        try:
+            from ddtrace.debugging._debugger import Debugger
+            from ddtrace.debugging._probe.remoteconfig import ProbePollerEvent
+
+            debugger = Debugger._instance
+            if debugger is None:
+                logger.debug("Debugger instance not available, cannot remove probes")
+                return
+
+            probes_to_remove = []
+            for probe_id in self._active_probe_ids:
+                probe = debugger._probe_registry.get(probe_id)
+                if probe is not None:
+                    probes_to_remove.append(probe)
+                    logger.debug(f"Marking probe for removal: {probe_id}")
+                else:
+                    logger.debug(f"Probe {probe_id} not found in registry")
+            if probes_to_remove:
+                debugger._on_configuration(ProbePollerEvent.DELETED_PROBES, probes_to_remove)
+                logger.debug(f"Removed {len(probes_to_remove)} probes")
+
+            self._active_probe_ids = []
+
+        except Exception as e:
+            logger.error(f"Failed to remove probes: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
+
+    def _extract_di_request(self, event):
+        """
+        Check if event requests Dynamic Instrumentation and extract actual payload and probes.
+
+        Supported formats:
+        1. Regular payload: {"key1": "value1"}
+           -> (event, False, None)
+           DI is NOT enabled
+
+        2. DI with custom probes: {"probes": [...], "payload": {...}}
+           -> (unwrapped_payload, True, [probe_definitions])
+           DI is enabled with custom probes, both disabled/removed after
+           Note: Presence of "probes" implies enableDI=true
+
+        Returns: (actual_payload, probes)
+        """
+        if isinstance(event, dict):
+            has_probes = "probes" in event
+
+            if has_probes:
+                probes = event.get("probes", None)
+                actual_payload = event.get("payload", event)
+                logger.debug(f"DI request detected: custom_probes={probes is not None}, probe_count={len(probes) if probes else 0}")
+                return actual_payload, probes
+
+        return event, []
 
     def _inject_authorizer_span_headers(self, request_id):
         reference_span = self.inferred_span if self.inferred_span else self.span
@@ -226,11 +327,17 @@ class _LambdaDecorator(object):
         self.response.setdefault("context", {})
         self.response["context"]["_datadog"] = datadog_data
 
-    def _before(self, event, context):
+    def _before(self, event, context, custom_probes=None):
         try:
             self.response = None
             self.blocking_response = None
+            self._active_probe_ids = []
             set_cold_start(init_timestamp_ns)
+
+            if custom_probes:
+                logger.debug(f"Injecting {len(custom_probes)} custom probes for this invocation")
+                self._enable_dynamic_instrumentation()
+                self._inject_probes(custom_probes)
 
             if not should_use_extension:
                 from datadog_lambda.metric import submit_invocations_metric
@@ -289,8 +396,12 @@ class _LambdaDecorator(object):
         except Exception as e:
             logger.error(format_err_with_traceback(e))
 
-    def _after(self, event, context):
+    def _after(self, event, context, custom_probes=None):
         try:
+            if custom_probes:
+                self._remove_probes()
+                self._disable_dynamic_instrumentation()
+
             from datadog_lambda.metric import submit_batch_item_failures_metric
 
             submit_batch_item_failures_metric(self.response, context)
