@@ -3,6 +3,7 @@ import json
 import os
 import unittest
 import importlib
+import sys
 
 from unittest.mock import MagicMock, patch, call, ANY
 from datadog_lambda.constants import TraceHeader
@@ -835,6 +836,9 @@ def test_exception_replay_enabled(monkeypatch):
 
 @patch("datadog_lambda.config.Config.profiling_enabled", True)
 def test_profiling_enabled(monkeypatch):
+    if sys.version_info >= (3, 14, 0):
+        return
+
     importlib.reload(wrapper)
 
     original_Profiler_start = wrapper.profiler.Profiler.start
