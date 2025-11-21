@@ -225,7 +225,9 @@ def get_asm_blocked_response(
     else:
         content_type = blocked.get("content-type", "application/json")
         blocked_config = Block_config()
-        content = http_utils._get_blocked_template(content_type, blocked_config.block_id)
+        content = http_utils._get_blocked_template(
+            content_type, blocked_config.block_id
+        )
 
     response = {
         "statusCode": blocked.get("status_code", 403),
