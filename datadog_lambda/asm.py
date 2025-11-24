@@ -3,7 +3,6 @@ import urllib.parse
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Union
 
-from ddtrace.appsec._utils import Block_config
 from ddtrace.contrib.internal.trace_utils import _get_request_header_client_ip
 from ddtrace.internal import core
 from ddtrace.internal.utils import get_blocked
@@ -224,9 +223,8 @@ def get_asm_blocked_response(
         content = ""
     else:
         content_type = blocked.get("content-type", "application/json")
-        blocked_config = Block_config()
         content = http_utils._get_blocked_template(
-            content_type, blocked_config.block_id
+            content_type, blocked.get("block_id", "default")
         )
 
     response = {
