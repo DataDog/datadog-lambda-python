@@ -62,6 +62,6 @@ def _should_try_string(obj):
 
 def _redact_val(k, v):
     split_key = k.split(".").pop() or k
-    if split_key in redactable_keys:
+    if split_key.lower() in redactable_keys:
         return "redacted"
     return v
