@@ -33,9 +33,9 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         mock_boto3_client.return_value = mock_client
 
         os.environ["AWS_REGION"] = "us-gov-east-1"
-        os.environ[
-            "DD_API_KEY_SECRET_ARN"
-        ] = "arn:aws:secretsmanager:us-gov-east-1:1234567890:secret:key-name-123ABC"
+        os.environ["DD_API_KEY_SECRET_ARN"] = (
+            "arn:aws:secretsmanager:us-gov-east-1:1234567890:secret:key-name-123ABC"
+        )
 
         api_key = api.get_api_key()
 
@@ -53,9 +53,9 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         mock_boto3_client.return_value = mock_client
 
         os.environ["AWS_REGION"] = "us-east-1"
-        os.environ[
-            "DD_API_KEY_SECRET_ARN"
-        ] = "arn:aws:secretsmanager:us-west-1:1234567890:secret:key-name-123ABC"
+        os.environ["DD_API_KEY_SECRET_ARN"] = (
+            "arn:aws:secretsmanager:us-west-1:1234567890:secret:key-name-123ABC"
+        )
 
         api_key = api.get_api_key()
 
@@ -74,9 +74,9 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         mock_boto3_client.return_value = mock_client
 
         os.environ["AWS_REGION"] = "us-east-1"
-        os.environ[
-            "DD_API_KEY_SECRET_ARN"
-        ] = "arn:aws:secretsmanager:us-west-1:1234567890:secret:key-name-123ABC"
+        os.environ["DD_API_KEY_SECRET_ARN"] = (
+            "arn:aws:secretsmanager:us-west-1:1234567890:secret:key-name-123ABC"
+        )
 
         api_key = api.get_api_key()
 
@@ -132,9 +132,9 @@ class TestDatadogLambdaAPI(unittest.TestCase):
 
         os.environ.clear()
         os.environ["AWS_REGION"] = "us-west-2"
-        os.environ[
-            "DD_API_KEY_SECRET_ARN"
-        ] = "arn:aws:secretsmanager:us-west-2:1234567890:secret:key-name-123ABC"
+        os.environ["DD_API_KEY_SECRET_ARN"] = (
+            "arn:aws:secretsmanager:us-west-2:1234567890:secret:key-name-123ABC"
+        )
 
         api.get_api_key()
 
