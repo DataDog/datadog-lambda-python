@@ -113,9 +113,7 @@ class TestTagObject(unittest.TestCase):
         }
         spanMock = MagicMock()
         tag_object(spanMock, "function.request", payload)
-        spanMock.set_tag.assert_any_call(
-            "function.request.Authorization", "redacted"
-        )
+        spanMock.set_tag.assert_any_call("function.request.Authorization", "redacted")
         spanMock.set_tag.assert_any_call(
             "function.request.headers.X-AUTHORIZATION", "redacted"
         )
