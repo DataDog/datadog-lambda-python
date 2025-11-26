@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "main"
+      - "christophe-papazian/system-tests-for-incident-46261"
   pull_request:
   schedule:
     - cron: '0 0,12 * * *' # Runs every day at midnight and noon utc
