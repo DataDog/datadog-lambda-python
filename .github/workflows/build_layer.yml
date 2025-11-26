@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - "main"
+      - "christophe-papazian/system-tests-for-incident-46261"
 
 jobs:
   build:
