@@ -15,6 +15,7 @@ RUN set -eux; \
       rm gcc && ln -s gcc10-gcc gcc; \
       rm g++ && ln -s gcc10-g++ g++; \
       rm cc && ln -s gcc10-cc cc; \
+      rm c++ && ln -s gcc10-c++ c++; \
     fi
 
 # Add Rust compiler which is needed to build dd-trace-py from source
