@@ -121,9 +121,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
 
         api_key = api.get_api_key()
 
-        mock_boto3_client.assert_called_with(
-            "ssm", endpoint_url=None
-        )
+        mock_boto3_client.assert_called_with("ssm", endpoint_url=None)
         self.assertEqual(api_key, "test-api-key")
 
     @patch("datadog_lambda.config.Config.fips_mode_enabled", True)
