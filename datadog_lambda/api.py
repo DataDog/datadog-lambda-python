@@ -94,7 +94,7 @@ def get_api_key() -> str:
         # SSM endpoints: https://docs.aws.amazon.com/general/latest/gr/ssm.html
         fips_endpoint = (
             f"https://ssm-fips.{LAMBDA_REGION}.amazonaws.com"
-            if config.fips_mode_enabled
+            if config.fips_mode_enabled and not config.is_gov_region
             else None
         )
         ssm_client = _boto3_client("ssm", endpoint_url=fips_endpoint)
