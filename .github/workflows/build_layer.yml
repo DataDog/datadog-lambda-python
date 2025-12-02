@@ -2,6 +2,12 @@ name: Build Layers for system-Tests
 
 on:
   workflow_dispatch:
+    inputs:
+      dd_trace_py_ref:
+        description: "Target Branch for dd-trace-py (leave empty for main)"
+        required: false
+        default: "main"
+        type: string
   pull_request:
   push:
     branches:
@@ -21,7 +27,7 @@ jobs:
           RUN_ID=$(gh run list \
             --repo DataDog/dd-trace-py \
             --workflow build_deploy.yml \
-            --branch main \
+            --branch ${{ inputs.dd_trace_py_ref || 'main' }} \
             --status success \
             --limit 1 \
             --json databaseId \
