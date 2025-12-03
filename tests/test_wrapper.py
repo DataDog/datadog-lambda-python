@@ -962,3 +962,13 @@ def test_batch_item_failures_metric_no_response():
         mock_submit.assert_called_once()
         call_args = mock_submit.call_args[0]
         assert call_args[0] is None
+
+
+@patch("datadog_lambda.config.Config.profiling_enabled", True)
+def test_profiling_import_errors_caught(monkeypatch):
+    # when importing profiler fails, disable profiling instead of crashing app
+    monkeypatch.setitem(
+        sys.modules, "ddtrace.profiling", None
+    )  # force ModuleNotFoundError
+    importlib.reload(wrapper)
+    assert not hasattr(wrapper.datadog_lambda_wrapper, "prof")
