@@ -967,6 +967,8 @@ def test_batch_item_failures_metric_no_response():
 @patch("datadog_lambda.config.Config.profiling_enabled", True)
 def test_profiling_import_errors_caught(monkeypatch):
     # when importing profiler fails, disable profiling instead of crashing app
-    monkeypatch.setitem(sys.modules, "ddtrace.profiling", None)  # force ModuleNotFoundError
+    monkeypatch.setitem(
+        sys.modules, "ddtrace.profiling", None
+    )  # force ModuleNotFoundError
     importlib.reload(wrapper)
     assert not hasattr(wrapper.datadog_lambda_wrapper, "prof")

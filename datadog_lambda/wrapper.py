@@ -68,7 +68,7 @@ if config.profiling_enabled:
     try:
         from ddtrace.profiling import profiler
     except Exception as e:
-        logger.error(f'Failed to initialize profiler: [{e.__class__.__name__})] {e}')
+        logger.error(f"Failed to initialize profiler: [{e.__class__.__name__})] {e}")
 
 if config.llmobs_enabled:
     from ddtrace.llmobs import LLMObs
