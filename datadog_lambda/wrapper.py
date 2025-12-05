@@ -346,8 +346,16 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.inferred_span.set_tag("http.status_code", status_code)
 
-                if self.trigger_tags and (route := self.trigger_tags.get("http.route")):
-                    self.inferred_span.set_tag("http.route", route)
+                if self.trigger_tags:
+                    route = self.trigger_tags.get("http.route")
+                    if route:
+                        self.inferred_span.set_tag("http.route", route)
+
+                    event_source_arn = self.trigger_tags.get(
+                        "function_trigger.event_source_arn"
+                    )
+                    if event_source_arn:
+                        self.inferred_span.set_tag("dd_resource_key", event_source_arn)
 
                 if config.service:
                     self.inferred_span.set_tag("peer.service", config.service)

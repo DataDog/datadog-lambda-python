@@ -927,6 +927,7 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
     InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     if span:
         span.set_tags(tags)
+        span.set_metric(InferredSpanInfo.METRIC, 1.0)
         span.start_ns = int(request_time_epoch * 1e6)
     return span
 
@@ -1047,6 +1048,7 @@ def create_inferred_span_from_api_gateway_websocket_event(
     span = tracer.trace("aws.apigateway.websocket", **args)
     if span:
         span.set_tags(tags)
+        span.set_metric(InferredSpanInfo.METRIC, 1.0)
         span.start_ns = int(
             finish_time_ns
             if finish_time_ns is not None
@@ -1061,6 +1063,8 @@ def create_inferred_span_from_api_gateway_event(
     event, context, decode_authorizer_context: bool = True
 ):
     request_context = event.get("requestContext")
+    identity = request_context.get("identity")
+
     domain = request_context.get("domainName", "")
     api_id = request_context.get("apiId")
     service_name = determine_service_name(
@@ -1072,11 +1076,11 @@ def create_inferred_span_from_api_gateway_event(
     resource_path = _get_resource_path(event, request_context)
     resource = f"{method} {resource_path}"
     tags = {
-        "operation_name": "aws.apigateway.rest",
         "http.url": http_url,
         "endpoint": path,
         "http.method": method,
         "resource_names": resource,
+        "http.useragent": identity.get("userAgent"),
         "span.kind": "server",
         "apiid": api_id,
         "apiname": api_id,
@@ -1091,7 +1095,7 @@ def create_inferred_span_from_api_gateway_event(
     args = {
         "service": service_name,
         "resource": resource,
-        "span_type": "http",
+        "span_type": "web",
     }
     tracer.set_tags(_dd_origin)
     upstream_authorizer_span = None
@@ -1103,6 +1107,7 @@ def create_inferred_span_from_api_gateway_event(
     span = tracer.trace("aws.apigateway", **args)
     if span:
         span.set_tags(tags)
+        span.set_metric(InferredSpanInfo.METRIC, 1.0)
         # start time pushed by the inserted authorizer span
         span.start_ns = int(
             finish_time_ns
@@ -1140,13 +1145,12 @@ def create_inferred_span_from_http_api_event(
     resource_path = _get_resource_path(event, request_context)
     resource = f"{method} {resource_path}"
     tags = {
-        "operation_name": "aws.httpapi",
         "endpoint": path,
         "http.url": http_url,
         "http.method": http.get("method"),
         "http.protocol": http.get("protocol"),
         "http.source_ip": http.get("sourceIp"),
-        "http.user_agent": http.get("userAgent"),
+        "http.useragent": http.get("userAgent"),
         "resource_names": resource,
         "request_id": context.aws_request_id,
         "apiid": api_id,
@@ -1167,10 +1171,11 @@ def create_inferred_span_from_http_api_event(
                 Headers.Parent_Span_Finish_Time
             )
     span = tracer.trace(
-        "aws.httpapi", service=service_name, resource=resource, span_type="http"
+        "aws.httpapi", service=service_name, resource=resource, span_type="web"
     )
     if span:
         span.set_tags(tags)
+        span.set_metric(InferredSpanInfo.METRIC, 1.0)
         span.start_ns = int(inferred_span_start_ns)
     return span
 
@@ -1237,6 +1242,7 @@ def create_inferred_span_from_sqs_event(event, context):
     )
     if span:
         span.set_tags(tags)
+        span.set_metric(InferredSpanInfo.METRIC, 1.0)
     span.start = start_time
     if upstream_span:
         span.parent_id = upstream_span.span_id
@@ -1278,6 +1284,7 @@ def create_inferred_span_from_sns_event(event, context):
     )
     if span:
         span.set_tags(tags)
+        span.set_metric(InferredSpanInfo.METRIC, 1.0)
     span.start = dt.replace(tzinfo=timezone.utc).timestamp()
     return span
 
@@ -1313,6 +1320,7 @@ def create_inferred_span_from_kinesis_event(event, context):
     )
     if span:
         span.set_tags(tags)
+        span.set_metric(InferredSpanInfo.METRIC, 1.0)
     span.start = request_time_epoch
     return span
 
@@ -1345,6 +1353,7 @@ def create_inferred_span_from_dynamodb_event(event, context):
     )
     if span:
         span.set_tags(tags)
+        span.set_metric(InferredSpanInfo.METRIC, 1.0)
 
     span.start = int(request_time_epoch)
     return span
@@ -1381,6 +1390,7 @@ def create_inferred_span_from_s3_event(event, context):
     )
     if span:
         span.set_tags(tags)
+        span.set_metric(InferredSpanInfo.METRIC, 1.0)
     span.start = dt.replace(tzinfo=timezone.utc).timestamp()
     return span
 
@@ -1421,10 +1431,11 @@ def create_inferred_span_from_eventbridge_event(event, context):
     )
     if span:
         span.set_tags(tags)
+        span.set_metric(InferredSpanInfo.METRIC, 1.0)
     span.start = dt.replace(tzinfo=timezone.utc).timestamp()
 
     # Since inferred span will later parent Lambda, preserve Lambda's current parent
-    if dd_trace_context.span_id:
+    if dd_trace_context and getattr(dd_trace_context, "span_id", None):
         span.parent_id = dd_trace_context.span_id
 
     return span
@@ -1512,6 +1523,7 @@ class InferredSpanInfo(object):
     BASE_NAME = "_inferred_span"
     SYNCHRONICITY = f"{BASE_NAME}.synchronicity"
     TAG_SOURCE = f"{BASE_NAME}.tag_source"
+    METRIC = f"_dd.{BASE_NAME}"
 
     @staticmethod
     def set_tags(
