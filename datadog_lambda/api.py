@@ -101,15 +101,17 @@ def get_api_key() -> str:
     elif DD_API_KEY_SSM_NAME:
         # SSM endpoints: https://docs.aws.amazon.com/general/latest/gr/ssm.html
         fips_endpoint = None
-        if config.fips_mode_enabled and LAMBDA_REGION in SSM_FIPS_SUPPORTED_REGIONS:
-            fips_endpoint = f"https://ssm-fips.{LAMBDA_REGION}.amazonaws.com"
-        else:
-            if not config.is_gov_region:
-                # Log warning if FIPS is enabled for a commercial region that does not support SSM FIPS endpoints
-                logger.warning(
-                    "FIPS mode is enabled but region '%s' does not support SSM FIPS endpoints. Using standard SSM endpoint.",
-                    LAMBDA_REGION,
-                )
+        if config.fips_mode_enabled:
+            if LAMBDA_REGION in SSM_FIPS_SUPPORTED_REGIONS:
+                fips_endpoint = f"https://ssm-fips.{LAMBDA_REGION}.amazonaws.com"
+            else:
+                # Log warning if SSM FIPS endpoint is not supported for commercial region
+                if not config.is_gov_region:
+                    logger.warning(
+                        "FIPS mode is enabled, but '%s' does not support SSM FIPS endpoints. "
+                        "Using standard SSM endpoint.",
+                        LAMBDA_REGION,
+                    )
         ssm_client = _boto3_client("ssm", endpoint_url=fips_endpoint)
         api_key = ssm_client.get_parameter(
             Name=DD_API_KEY_SSM_NAME, WithDecryption=True
