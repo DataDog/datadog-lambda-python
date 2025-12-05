@@ -1380,7 +1380,6 @@ class TestServiceMapping(unittest.TestCase):
         ctx.aws_request_id = "123"
 
         span1 = create_inferred_span(original_event, ctx)
-        self.assertEqual(span1.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(span1.service, "new-name")
 
         # Testing the second event
@@ -1389,7 +1388,6 @@ class TestServiceMapping(unittest.TestCase):
             "domainName"
         ] = "different.execute-api.us-east-2.amazonaws.com"
         span2 = create_inferred_span(event2, ctx)
-        self.assertEqual(span2.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(span2.service, "new-name")
 
     def test_remaps_specific_inferred_span_service_names_from_api_gateway_event(
@@ -1406,14 +1404,12 @@ class TestServiceMapping(unittest.TestCase):
         ctx.aws_request_id = "123"
 
         span1 = create_inferred_span(original_event, ctx)
-        self.assertEqual(span1.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(span1.service, "new-name")
 
         # Testing the second event
         event2 = copy.deepcopy(original_event)
         event2["requestContext"]["apiId"] = "different"
         span2 = create_inferred_span(event2, ctx)
-        self.assertEqual(span2.get_tag("operation_name"), "aws.apigateway.rest")
         self.assertEqual(
             span2.service, "70ixmpl4fl.execute-api.us-east-2.amazonaws.com"
         )
@@ -1456,14 +1452,12 @@ class TestServiceMapping(unittest.TestCase):
         ctx.aws_request_id = "123"
 
         span1 = create_inferred_span(original_event, ctx)
-        self.assertEqual(span1.get_tag("operation_name"), "aws.httpapi")
         self.assertEqual(span1.service, "new-name")
 
         # Testing the second event
         event2 = copy.deepcopy(original_event)
         event2["requestContext"]["apiId"] = "different"
         span2 = create_inferred_span(event2, ctx)
-        self.assertEqual(span2.get_tag("operation_name"), "aws.httpapi")
         self.assertEqual(
             span2.service, "x02yirxc7a.execute-api.eu-west-1.amazonaws.com"
         )
@@ -1804,7 +1798,7 @@ _test_create_inferred_span = (
         _Span(
             service="70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
             start=1428582896.0,
-            span_type="http",
+            span_type="web",
             tags={
                 "_dd.origin": "lambda",
                 "_inferred_span.synchronicity": "sync",
@@ -1814,7 +1808,7 @@ _test_create_inferred_span = (
                 "endpoint": "/path/to/resource",
                 "http.method": "POST",
                 "http.url": "https://70ixmpl4fl.execute-api.us-east-2.amazonaws.com/path/to/resource",
-                "operation_name": "aws.apigateway.rest",
+                "http.useragent": "Custom User Agent String",
                 "request_id": "123",
                 "resource_names": "POST /{proxy+}",
                 "stage": "prod",
@@ -1826,7 +1820,7 @@ _test_create_inferred_span = (
         _Span(
             service="lgxbo6a518.execute-api.eu-west-1.amazonaws.com",
             start=1631210915.2510002,
-            span_type="http",
+            span_type="web",
             tags={
                 "_dd.origin": "lambda",
                 "_inferred_span.synchronicity": "async",
@@ -1836,7 +1830,7 @@ _test_create_inferred_span = (
                 "endpoint": "/http/get",
                 "http.method": "GET",
                 "http.url": "https://lgxbo6a518.execute-api.eu-west-1.amazonaws.com/http/get",
-                "operation_name": "aws.apigateway.rest",
+                "http.useragent": "curl/7.64.1",
                 "request_id": "123",
                 "resource_names": "GET /http/get",
                 "stage": "dev",
@@ -1848,7 +1842,7 @@ _test_create_inferred_span = (
         _Span(
             service="lgxbo6a518.execute-api.eu-west-1.amazonaws.com",
             start=1631210915.2510002,
-            span_type="http",
+            span_type="web",
             tags={
                 "_dd.origin": "lambda",
                 "_inferred_span.synchronicity": "sync",
@@ -1858,7 +1852,7 @@ _test_create_inferred_span = (
                 "endpoint": "/http/get",
                 "http.method": "GET",
                 "http.url": "https://lgxbo6a518.execute-api.eu-west-1.amazonaws.com/http/get",
-                "operation_name": "aws.apigateway.rest",
+                "http.useragent": "curl/7.64.1",
                 "request_id": "123",
                 "resource_names": "GET /http/get",
                 "stage": "dev",
@@ -1870,7 +1864,7 @@ _test_create_inferred_span = (
         _Span(
             service="x02yirxc7a.execute-api.eu-west-1.amazonaws.com",
             start=1631212283.738,
-            span_type="http",
+            span_type="web",
             tags={
                 "_dd.origin": "lambda",
                 "_inferred_span.synchronicity": "sync",
@@ -1882,8 +1876,7 @@ _test_create_inferred_span = (
                 "http.protocol": "HTTP/1.1",
                 "http.source_ip": "38.122.226.210",
                 "http.url": "https://x02yirxc7a.execute-api.eu-west-1.amazonaws.com/httpapi/get",
-                "http.user_agent": "curl/7.64.1",
-                "operation_name": "aws.httpapi",
+                "http.useragent": "curl/7.64.1",
                 "request_id": "123",
                 "resource_names": "GET /httpapi/get",
                 "stage": "$default",
@@ -1895,7 +1888,7 @@ _test_create_inferred_span = (
         _Span(
             service="mcwkra0ya4.execute-api.sa-east-1.amazonaws.com",
             start=1710529824.52,
-            span_type="http",
+            span_type="web",
             tags={
                 "_dd.origin": "lambda",
                 "_inferred_span.synchronicity": "sync",
@@ -1905,7 +1898,7 @@ _test_create_inferred_span = (
                 "endpoint": "/user/42",
                 "http.method": "GET",
                 "http.url": "https://mcwkra0ya4.execute-api.sa-east-1.amazonaws.com/user/42",
-                "operation_name": "aws.apigateway.rest",
+                "http.useragent": "curl/8.1.2",
                 "request_id": "123",
                 "resource_names": "GET /user/{id}",
                 "stage": "dev",
@@ -1917,7 +1910,7 @@ _test_create_inferred_span = (
         _Span(
             service="9vj54we5ih.execute-api.sa-east-1.amazonaws.com",
             start=1710529905.066,
-            span_type="http",
+            span_type="web",
             tags={
                 "_dd.origin": "lambda",
                 "_inferred_span.synchronicity": "sync",
@@ -1927,7 +1920,7 @@ _test_create_inferred_span = (
                 "endpoint": "/user/42",
                 "http.method": "GET",
                 "http.url": "https://9vj54we5ih.execute-api.sa-east-1.amazonaws.com/user/42",
-                "operation_name": "aws.httpapi",
+                "http.useragent": "curl/8.1.2",
                 "request_id": "123",
                 "resource_names": "GET /user/{id}",
                 "stage": "$default",
@@ -2186,7 +2179,7 @@ _test_create_inferred_span = (
         _Span(
             service="70ixmpl4fl.execute-api.us-east-2.amazonaws.com",
             start=1428582896.0,
-            span_type="http",
+            span_type="web",
             tags={
                 "_dd.origin": "lambda",
                 "_inferred_span.synchronicity": "sync",
@@ -2196,7 +2189,7 @@ _test_create_inferred_span = (
                 "endpoint": "/path/to/resource",
                 "http.method": "POST",
                 "http.url": "https://70ixmpl4fl.execute-api.us-east-2.amazonaws.com/path/to/resource",
-                "operation_name": "aws.apigateway.rest",
+                "http.useragent": "Custom User Agent String",
                 "request_id": "123",
                 "resource_names": "POST /{proxy+}",
                 "stage": "prod",
@@ -2208,7 +2201,7 @@ _test_create_inferred_span = (
         _Span(
             service="amddr1rix9.execute-api.eu-west-1.amazonaws.com",
             start=1663295021.832,
-            span_type="http",
+            span_type="web",
             parent_name="aws.apigateway.authorizer",
             tags={
                 "_dd.origin": "lambda",
@@ -2219,7 +2212,7 @@ _test_create_inferred_span = (
                 "endpoint": "/hello",
                 "http.method": "GET",
                 "http.url": "https://amddr1rix9.execute-api.eu-west-1.amazonaws.com/hello",
-                "operation_name": "aws.apigateway.rest",
+                "http.useragent": "PostmanRuntime/7.29.2",
                 "request_id": "123",
                 "resource_names": "GET /hello",
                 "stage": "dev",
@@ -2231,7 +2224,7 @@ _test_create_inferred_span = (
         _Span(
             service="amddr1rix9.execute-api.eu-west-1.amazonaws.com",
             start=1666714653.636,
-            span_type="http",
+            span_type="web",
             tags={
                 "_dd.origin": "lambda",
                 "_inferred_span.synchronicity": "sync",
@@ -2241,7 +2234,7 @@ _test_create_inferred_span = (
                 "endpoint": "/hello",
                 "http.method": "GET",
                 "http.url": "https://amddr1rix9.execute-api.eu-west-1.amazonaws.com/hello",
-                "operation_name": "aws.apigateway.rest",
+                "http.useragent": "PostmanRuntime/7.29.2",
                 "request_id": "123",
                 "resource_names": "GET /hello",
                 "stage": "dev",
@@ -2253,7 +2246,7 @@ _test_create_inferred_span = (
         _Span(
             service="amddr1rix9.execute-api.eu-west-1.amazonaws.com",
             start=1663295021.832,
-            span_type="http",
+            span_type="web",
             parent_name="aws.apigateway.authorizer",
             tags={
                 "_dd.origin": "lambda",
@@ -2264,7 +2257,7 @@ _test_create_inferred_span = (
                 "endpoint": "/hello",
                 "http.method": "GET",
                 "http.url": "https://amddr1rix9.execute-api.eu-west-1.amazonaws.com/hello",
-                "operation_name": "aws.apigateway.rest",
+                "http.useragent": "PostmanRuntime/7.29.2",
                 "request_id": "123",
                 "resource_names": "GET /hello",
                 "stage": "dev",
@@ -2276,7 +2269,7 @@ _test_create_inferred_span = (
         _Span(
             service="amddr1rix9.execute-api.eu-west-1.amazonaws.com",
             start=1666803622.99,
-            span_type="http",
+            span_type="web",
             tags={
                 "_dd.origin": "lambda",
                 "_inferred_span.synchronicity": "sync",
@@ -2286,7 +2279,7 @@ _test_create_inferred_span = (
                 "endpoint": "/hello",
                 "http.method": "GET",
                 "http.url": "https://amddr1rix9.execute-api.eu-west-1.amazonaws.com/hello",
-                "operation_name": "aws.apigateway.rest",
+                "http.useragent": "PostmanRuntime/7.29.2",
                 "request_id": "123",
                 "resource_names": "GET /hello",
                 "stage": "dev",
@@ -2298,7 +2291,7 @@ _test_create_inferred_span = (
         _Span(
             service="amddr1rix9.execute-api.eu-west-1.amazonaws.com",
             start=1664228639.5337753,
-            span_type="http",
+            span_type="web",
             tags={
                 "_dd.origin": "lambda",
                 "_inferred_span.synchronicity": "sync",
@@ -2308,7 +2301,7 @@ _test_create_inferred_span = (
                 "endpoint": "/hello",
                 "http.method": "GET",
                 "http.url": "https://amddr1rix9.execute-api.eu-west-1.amazonaws.com/hello",
-                "operation_name": "aws.httpapi",
+                "http.useragent": "curl/7.64.1",
                 "request_id": "123",
                 "resource_names": "GET /hello",
                 "stage": "dev",
@@ -2320,7 +2313,7 @@ _test_create_inferred_span = (
         _Span(
             service="amddr1rix9.execute-api.eu-west-1.amazonaws.com",
             start=1666715429.349,
-            span_type="http",
+            span_type="web",
             tags={
                 "_dd.origin": "lambda",
                 "_inferred_span.synchronicity": "sync",
@@ -2330,7 +2323,7 @@ _test_create_inferred_span = (
                 "endpoint": "/hello",
                 "http.method": "GET",
                 "http.url": "https://amddr1rix9.execute-api.eu-west-1.amazonaws.com/hello",
-                "operation_name": "aws.httpapi",
+                "http.useragent": "PostmanRuntime/7.29.2",
                 "request_id": "123",
                 "resource_names": "GET /hello",
                 "stage": "dev",
