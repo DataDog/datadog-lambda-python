@@ -46,6 +46,8 @@ from datadog_lambda.trigger import (
     extract_http_status_code_tag,
 )
 
+logger = logging.getLogger(__name__)
+
 # ddtrace imports are also tested in
 # dd-trace-py/tests/internal/test_serverless.py please update those tests when
 # making changes to any ddtrace import.
@@ -61,8 +63,12 @@ if config.appsec_enabled:
 
     start()
 
+profiler = None
 if config.profiling_enabled:
-    from ddtrace.profiling import profiler
+    try:
+        from ddtrace.profiling import profiler
+    except Exception as e:
+        logger.error(f"Failed to initialize profiler: [{e.__class__.__name__})] {e}")
 
 if config.llmobs_enabled:
     from ddtrace.llmobs import LLMObs
@@ -74,8 +80,6 @@ if config.exception_replay_enabled:
         from ddtrace.debugging._uploader import SignalUploader
     except ImportError:
         from ddtrace.debugging._uploader import LogsIntakeUploaderV1 as SignalUploader
-
-logger = logging.getLogger(__name__)
 
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
@@ -141,7 +145,7 @@ class _LambdaDecorator(object):
             self.response = None
             self.blocking_response = None
 
-            if config.profiling_enabled:
+            if config.profiling_enabled and profiler:
                 self.prof = profiler.Profiler(env=config.env, service=config.service)
 
             if config.trace_extractor:
@@ -283,7 +287,7 @@ class _LambdaDecorator(object):
                     self.blocking_response = get_asm_blocked_response(self.event_source)
             else:
                 set_correlation_ids()
-            if config.profiling_enabled and is_new_sandbox():
+            if config.profiling_enabled and profiler and is_new_sandbox():
                 self.prof.start(stop_on_exit=False, profile_children=True)
             logger.debug("datadog_lambda_wrapper _before() done")
         except Exception as e:
