@@ -33,6 +33,7 @@ RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
 RUN rm -rf ./python/lib/$runtime/site-packages/setuptools
 RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_ast/iastpatch*.so
+RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_taint_tracking/_vendor
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_taint_tracking/*.so
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_stacktrace*.so
 # remove *.dist-info directories except any entry_points.txt files and METADATA files required for Appsec Software Composition Analysis
