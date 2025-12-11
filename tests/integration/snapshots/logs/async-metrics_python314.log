@@ -36,8 +36,8 @@ START
     "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -208,8 +208,8 @@ START
     "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -345,8 +345,8 @@ START
     "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -542,8 +542,8 @@ START
     "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -700,8 +700,8 @@ START
     "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -874,8 +874,8 @@ START
     "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1039,8 +1039,8 @@ START
     "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1213,8 +1213,8 @@ START
     "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1376,8 +1376,8 @@ START
     "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1538,8 +1538,8 @@ START
     "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
