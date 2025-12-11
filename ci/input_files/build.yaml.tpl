@@ -111,6 +111,8 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
+    - if: $UPSTREAM_COMMIT_BRANCH
+      when: never
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
       when: manual
   needs:
@@ -142,6 +144,8 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
+    - if: $UPSTREAM_COMMIT_BRANCH
+      when: never
     - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "{{ $e2e_region }}" && "{{ $runtime.arch }}" == "amd64"'
       when: on_success
     - if: '"{{ $environment_name }}" == "sandbox"'
@@ -188,6 +192,8 @@ publish-pypi-package:
   before_script: *python-before-script
   cache: []
   rules:
+    - if: $UPSTREAM_COMMIT_BRANCH
+      when: never
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   when: manual
   needs: {{ range $runtime := (ds "runtimes").runtimes }}
@@ -200,6 +206,9 @@ layer bundle:
   stage: build
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
+  rules:
+    - if: $UPSTREAM_COMMIT_BRANCH
+      when: never
   needs:
     {{ range (ds "runtimes").runtimes }}
     - build-layer ({{ .name }}-{{ .arch }})
@@ -223,6 +232,8 @@ signed layer bundle:
   image: registry.ddbuild.io/images/docker:20.10-py3
   tags: ["arch:amd64"]
   rules:
+    - if: $UPSTREAM_COMMIT_BRANCH
+      when: never
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   needs:
     {{ range (ds "runtimes").runtimes }}
@@ -247,6 +258,9 @@ e2e-test:
   trigger:
     project: DataDog/serverless-e2e-tests
     strategy: depend
+  rules:
+    - if: $UPSTREAM_COMMIT_BRANCH
+      when: never
   variables:
       LANGUAGES_SUBSET: python
       # These env vars are inherited from the dotenv reports of the publish-layer jobs
@@ -265,6 +279,9 @@ e2e-test:
 e2e-test-status:
   stage: e2e
   image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: $UPSTREAM_COMMIT_BRANCH
+      when: never
   tags: ["arch:amd64"]
   timeout: 3h
   script: |
