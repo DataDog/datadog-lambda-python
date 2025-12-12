@@ -25,5 +25,7 @@ build-layers:
       - artifact: ci/build-pipeline.yaml
         job: generator
     strategy: depend
+    forward:
+      pipeline_variables: true
   rules:
     - when: on_success
