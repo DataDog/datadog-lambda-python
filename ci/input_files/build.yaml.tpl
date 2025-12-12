@@ -261,6 +261,9 @@ e2e-test:
   trigger:
     project: DataDog/serverless-e2e-tests
     strategy: depend
+  rules:
+    - if $UPSTREAM_PROJECT_NAME == "dd-trace-py"
+      when: never
   variables:
       LANGUAGES_SUBSET: python
       # These env vars are inherited from the dotenv reports of the publish-layer jobs
@@ -281,8 +284,10 @@ e2e-test-status:
   image: registry.ddbuild.io/images/docker:20.10-py3
   tags: ["arch:amd64"]
   timeout: 3h
+  rules:
+    - if $UPSTREAM_PROJECT_NAME == "dd-trace-py"
+      when: never
   script: |
-      echo $UPSTREAM_COMMIT_BRANCH
       GITLAB_API_TOKEN=$(aws ssm get-parameter --region us-east-1 --name "ci.${CI_PROJECT_NAME}.serverless-e2e-gitlab-token" --with-decryption --query "Parameter.Value" --out text)
       URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/bridges"
       echo "Fetching E2E job status from: $URL"
