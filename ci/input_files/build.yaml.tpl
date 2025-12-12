@@ -264,6 +264,7 @@ e2e-test:
   rules:
     - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
       when: never
+    - when: on_success
   variables:
       LANGUAGES_SUBSET: python
       # These env vars are inherited from the dotenv reports of the publish-layer jobs
@@ -287,6 +288,7 @@ e2e-test-status:
   rules:
     - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
       when: never
+    - when: on_success
   script: |
       GITLAB_API_TOKEN=$(aws ssm get-parameter --region us-east-1 --name "ci.${CI_PROJECT_NAME}.serverless-e2e-gitlab-token" --with-decryption --query "Parameter.Value" --out text)
       URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/bridges"
