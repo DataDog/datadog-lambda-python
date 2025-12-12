@@ -262,7 +262,7 @@ e2e-test:
     project: DataDog/serverless-e2e-tests
     strategy: depend
   rules:
-    - if $UPSTREAM_PROJECT_NAME == "dd-trace-py"
+    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
       when: never
   variables:
       LANGUAGES_SUBSET: python
@@ -285,7 +285,7 @@ e2e-test-status:
   tags: ["arch:amd64"]
   timeout: 3h
   rules:
-    - if $UPSTREAM_PROJECT_NAME == "dd-trace-py"
+    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
       when: never
   script: |
       GITLAB_API_TOKEN=$(aws ssm get-parameter --region us-east-1 --name "ci.${CI_PROJECT_NAME}.serverless-e2e-gitlab-token" --with-decryption --query "Parameter.Value" --out text)
