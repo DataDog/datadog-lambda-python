@@ -53,7 +53,6 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   variables:
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   script:
-    - echo $UPSTREAM_COMMIT_BRANCH
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/build_layers.sh
 
 check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
@@ -112,7 +111,7 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
-    - if: $UPSTREAM_COMMIT_BRANCH
+    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
       when: never
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
       when: manual
@@ -145,7 +144,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
-    - if: $UPSTREAM_COMMIT_BRANCH
+    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
       when: never
     - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "{{ $e2e_region }}" && "{{ $runtime.arch }}" == "amd64"'
       when: on_success
@@ -180,7 +179,6 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   before_script:
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
   script:
-    - echo $UPSTREAM_COMMIT_BRANCH
     - STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} DOTENV={{ $dotenv }} ./ci/publish_layers.sh
 
 {{- end }}
@@ -194,7 +192,7 @@ publish-pypi-package:
   before_script: *python-before-script
   cache: []
   rules:
-    - if: $UPSTREAM_COMMIT_BRANCH
+    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
       when: never
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   when: manual
@@ -202,7 +200,6 @@ publish-pypi-package:
     - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
   {{- end }}
   script:
-    - echo $UPSTREAM_COMMIT_BRANCH
     - ./ci/publish_pypi.sh
 
 layer bundle:
@@ -210,7 +207,7 @@ layer bundle:
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
   rules:
-    - if: $UPSTREAM_COMMIT_BRANCH
+    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
       when: never
   needs:
     {{ range (ds "runtimes").runtimes }}
@@ -235,7 +232,7 @@ signed layer bundle:
   image: registry.ddbuild.io/images/docker:20.10-py3
   tags: ["arch:amd64"]
   rules:
-    - if: $UPSTREAM_COMMIT_BRANCH
+    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
       when: never
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   needs:
