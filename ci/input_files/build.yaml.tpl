@@ -261,9 +261,6 @@ e2e-test:
   trigger:
     project: DataDog/serverless-e2e-tests
     strategy: depend
-  rules:
-    - if: $UPSTREAM_COMMIT_BRANCH
-      when: never
   variables:
       LANGUAGES_SUBSET: python
       # These env vars are inherited from the dotenv reports of the publish-layer jobs
@@ -282,9 +279,6 @@ e2e-test:
 e2e-test-status:
   stage: e2e
   image: registry.ddbuild.io/images/docker:20.10-py3
-  rules:
-    - if: $UPSTREAM_COMMIT_BRANCH
-      when: never
   tags: ["arch:amd64"]
   timeout: 3h
   script: |
