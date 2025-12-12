@@ -180,6 +180,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   before_script:
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
   script:
+    - echo $UPSTREAM_COMMIT_BRANCH
     - STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} DOTENV={{ $dotenv }} ./ci/publish_layers.sh
 
 {{- end }}
@@ -201,6 +202,7 @@ publish-pypi-package:
     - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
   {{- end }}
   script:
+    - echo $UPSTREAM_COMMIT_BRANCH
     - ./ci/publish_pypi.sh
 
 layer bundle:
