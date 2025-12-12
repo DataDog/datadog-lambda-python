@@ -5,6 +5,14 @@ from datadog_lambda.config import config
 
 logger = logging.getLogger(__name__)
 KMS_ENCRYPTION_CONTEXT_KEY = "LambdaFunctionName"
+SSM_FIPS_SUPPORTED_REGIONS = {
+    "us-east-1",
+    "us-east-2",
+    "us-west-1",
+    "us-west-2",
+    "ca-central-1",
+    "ca-west-1",
+}
 api_key = None
 
 
@@ -92,11 +100,18 @@ def get_api_key() -> str:
         )["SecretString"]
     elif DD_API_KEY_SSM_NAME:
         # SSM endpoints: https://docs.aws.amazon.com/general/latest/gr/ssm.html
-        fips_endpoint = (
-            f"https://ssm-fips.{LAMBDA_REGION}.amazonaws.com"
-            if config.fips_mode_enabled
-            else None
-        )
+        fips_endpoint = None
+        if config.fips_mode_enabled:
+            if LAMBDA_REGION in SSM_FIPS_SUPPORTED_REGIONS:
+                fips_endpoint = f"https://ssm-fips.{LAMBDA_REGION}.amazonaws.com"
+            else:
+                # Log warning if SSM FIPS endpoint is not supported for commercial region
+                if not config.is_gov_region:
+                    logger.warning(
+                        "FIPS mode is enabled, but '%s' does not support SSM FIPS endpoints. "
+                        "Using standard SSM endpoint.",
+                        LAMBDA_REGION,
+                    )
         ssm_client = _boto3_client("ssm", endpoint_url=fips_endpoint)
         api_key = ssm_client.get_parameter(
             Name=DD_API_KEY_SSM_NAME, WithDecryption=True

@@ -1,4 +1,4 @@
-INIT_START Runtime Version: python:3.13.vX	Runtime Version ARN: arn:aws:lambda:eu-west-1:XXXX:eu-west-1
+INIT_START Runtime Version: python:3.14.vX	Runtime Version ARN: arn:aws:lambda:eu-west-1:XXXX:eu-west-1
 START
 {
   "m": "aws.lambda.enhanced.invocations",
@@ -7,17 +7,17 @@ START
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
-    "functionname:integration-tests-python-XXXX-sync-metrics_python313",
-    "resource:integration-tests-python-XXXX-sync-metrics_python313",
+    "functionname:integration-tests-python-XXXX-sync-metrics_python314",
+    "resource:integration-tests-python-XXXX-sync-metrics_python314",
     "memorysize:1024",
     "cold_start:true",
-    "runtime:python3.13",
+    "runtime:python3.14",
     "datadog_lambda:vXX",
-    "dd_lambda_layer:datadog-python313_X.X.X"
+    "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -68,7 +68,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "parent_id": "XXXX",
         "span_id": "XXXX",
         "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-sync-metrics_python313",
+        "resource": "integration-tests-python-XXXX-sync-metrics_python314",
         "name": "aws.lambda",
         "error": 0,
         "start": "XXXX",
@@ -76,11 +76,11 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "true",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python313",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
           "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-sync-metrics_python313",
-          "functionname": "integration-tests-python-XXXX-sync-metrics_python313",
+          "resource_names": "integration-tests-python-XXXX-sync-metrics_python314",
+          "functionname": "integration-tests-python-XXXX-sync-metrics_python314",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
@@ -152,7 +152,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -200,17 +200,17 @@ START
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
-    "functionname:integration-tests-python-XXXX-sync-metrics_python313",
-    "resource:integration-tests-python-XXXX-sync-metrics_python313",
+    "functionname:integration-tests-python-XXXX-sync-metrics_python314",
+    "resource:integration-tests-python-XXXX-sync-metrics_python314",
     "memorysize:1024",
     "cold_start:false",
-    "runtime:python3.13",
+    "runtime:python3.14",
     "datadog_lambda:vXX",
-    "dd_lambda_layer:datadog-python313_X.X.X"
+    "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -219,7 +219,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "parent_id": "XXXX",
         "span_id": "XXXX",
         "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-sync-metrics_python313",
+        "resource": "integration-tests-python-XXXX-sync-metrics_python314",
         "name": "aws.lambda",
         "error": 0,
         "start": "XXXX",
@@ -228,11 +228,11 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "runtime-id": "XXXX",
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python313",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
           "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-sync-metrics_python313",
-          "functionname": "integration-tests-python-XXXX-sync-metrics_python313",
+          "resource_names": "integration-tests-python-XXXX-sync-metrics_python314",
+          "functionname": "integration-tests-python-XXXX-sync-metrics_python314",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
@@ -299,7 +299,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -347,13 +347,13 @@ START
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
-    "functionname:integration-tests-python-XXXX-sync-metrics_python313",
-    "resource:integration-tests-python-XXXX-sync-metrics_python313",
+    "functionname:integration-tests-python-XXXX-sync-metrics_python314",
+    "resource:integration-tests-python-XXXX-sync-metrics_python314",
     "memorysize:1024",
     "cold_start:false",
-    "runtime:python3.13",
+    "runtime:python3.14",
     "datadog_lambda:vXX",
-    "dd_lambda_layer:datadog-python313_X.X.X"
+    "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
 {
@@ -362,11 +362,11 @@ START
   "e": XXXX,
   "t": [
     "streamtype:NEW_AND_OLD_IMAGES",
-    "dd_lambda_layer:datadog-python313_X.X.X"
+    "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -447,7 +447,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "parent_id": "XXXX",
         "span_id": "XXXX",
         "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-sync-metrics_python313",
+        "resource": "integration-tests-python-XXXX-sync-metrics_python314",
         "name": "aws.lambda",
         "error": 0,
         "start": "XXXX",
@@ -455,11 +455,11 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python313",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
           "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-sync-metrics_python313",
-          "functionname": "integration-tests-python-XXXX-sync-metrics_python313",
+          "resource_names": "integration-tests-python-XXXX-sync-metrics_python314",
+          "functionname": "integration-tests-python-XXXX-sync-metrics_python314",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
@@ -526,7 +526,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -574,17 +574,17 @@ START
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
-    "functionname:integration-tests-python-XXXX-sync-metrics_python313",
-    "resource:integration-tests-python-XXXX-sync-metrics_python313",
+    "functionname:integration-tests-python-XXXX-sync-metrics_python314",
+    "resource:integration-tests-python-XXXX-sync-metrics_python314",
     "memorysize:1024",
     "cold_start:false",
-    "runtime:python3.13",
+    "runtime:python3.14",
     "datadog_lambda:vXX",
-    "dd_lambda_layer:datadog-python313_X.X.X"
+    "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -626,7 +626,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "parent_id": "XXXX",
         "span_id": "XXXX",
         "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-sync-metrics_python313",
+        "resource": "integration-tests-python-XXXX-sync-metrics_python314",
         "name": "aws.lambda",
         "error": 0,
         "start": "XXXX",
@@ -634,11 +634,11 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python313",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
           "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-sync-metrics_python313",
-          "functionname": "integration-tests-python-XXXX-sync-metrics_python313",
+          "resource_names": "integration-tests-python-XXXX-sync-metrics_python314",
+          "functionname": "integration-tests-python-XXXX-sync-metrics_python314",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
@@ -704,7 +704,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -752,17 +752,17 @@ START
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
-    "functionname:integration-tests-python-XXXX-sync-metrics_python313",
-    "resource:integration-tests-python-XXXX-sync-metrics_python313",
+    "functionname:integration-tests-python-XXXX-sync-metrics_python314",
+    "resource:integration-tests-python-XXXX-sync-metrics_python314",
     "memorysize:1024",
     "cold_start:false",
-    "runtime:python3.13",
+    "runtime:python3.14",
     "datadog_lambda:vXX",
-    "dd_lambda_layer:datadog-python313_X.X.X"
+    "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -814,7 +814,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "parent_id": "XXXX",
         "span_id": "XXXX",
         "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-sync-metrics_python313",
+        "resource": "integration-tests-python-XXXX-sync-metrics_python314",
         "name": "aws.lambda",
         "error": 0,
         "start": "XXXX",
@@ -822,11 +822,11 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python313",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
           "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-sync-metrics_python313",
-          "functionname": "integration-tests-python-XXXX-sync-metrics_python313",
+          "resource_names": "integration-tests-python-XXXX-sync-metrics_python314",
+          "functionname": "integration-tests-python-XXXX-sync-metrics_python314",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
@@ -898,7 +898,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -946,17 +946,17 @@ START
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
-    "functionname:integration-tests-python-XXXX-sync-metrics_python313",
-    "resource:integration-tests-python-XXXX-sync-metrics_python313",
+    "functionname:integration-tests-python-XXXX-sync-metrics_python314",
+    "resource:integration-tests-python-XXXX-sync-metrics_python314",
     "memorysize:1024",
     "cold_start:false",
-    "runtime:python3.13",
+    "runtime:python3.14",
     "datadog_lambda:vXX",
-    "dd_lambda_layer:datadog-python313_X.X.X"
+    "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1005,7 +1005,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "parent_id": "XXXX",
         "span_id": "XXXX",
         "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-sync-metrics_python313",
+        "resource": "integration-tests-python-XXXX-sync-metrics_python314",
         "name": "aws.lambda",
         "error": 0,
         "start": "XXXX",
@@ -1013,11 +1013,11 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python313",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
           "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-sync-metrics_python313",
-          "functionname": "integration-tests-python-XXXX-sync-metrics_python313",
+          "resource_names": "integration-tests-python-XXXX-sync-metrics_python314",
+          "functionname": "integration-tests-python-XXXX-sync-metrics_python314",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
@@ -1084,7 +1084,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1132,17 +1132,17 @@ START
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
-    "functionname:integration-tests-python-XXXX-sync-metrics_python313",
-    "resource:integration-tests-python-XXXX-sync-metrics_python313",
+    "functionname:integration-tests-python-XXXX-sync-metrics_python314",
+    "resource:integration-tests-python-XXXX-sync-metrics_python314",
     "memorysize:1024",
     "cold_start:false",
-    "runtime:python3.13",
+    "runtime:python3.14",
     "datadog_lambda:vXX",
-    "dd_lambda_layer:datadog-python313_X.X.X"
+    "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1200,7 +1200,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "parent_id": "XXXX",
         "span_id": "XXXX",
         "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-sync-metrics_python313",
+        "resource": "integration-tests-python-XXXX-sync-metrics_python314",
         "name": "aws.lambda",
         "error": 0,
         "start": "XXXX",
@@ -1208,11 +1208,11 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python313",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
           "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-sync-metrics_python313",
-          "functionname": "integration-tests-python-XXXX-sync-metrics_python313",
+          "resource_names": "integration-tests-python-XXXX-sync-metrics_python314",
+          "functionname": "integration-tests-python-XXXX-sync-metrics_python314",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
@@ -1279,7 +1279,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1327,17 +1327,17 @@ START
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
-    "functionname:integration-tests-python-XXXX-sync-metrics_python313",
-    "resource:integration-tests-python-XXXX-sync-metrics_python313",
+    "functionname:integration-tests-python-XXXX-sync-metrics_python314",
+    "resource:integration-tests-python-XXXX-sync-metrics_python314",
     "memorysize:1024",
     "cold_start:false",
-    "runtime:python3.13",
+    "runtime:python3.14",
     "datadog_lambda:vXX",
-    "dd_lambda_layer:datadog-python313_X.X.X"
+    "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1384,7 +1384,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "parent_id": "XXXX",
         "span_id": "XXXX",
         "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-sync-metrics_python313",
+        "resource": "integration-tests-python-XXXX-sync-metrics_python314",
         "name": "aws.lambda",
         "error": 0,
         "start": "XXXX",
@@ -1392,11 +1392,11 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python313",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
           "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-sync-metrics_python313",
-          "functionname": "integration-tests-python-XXXX-sync-metrics_python313",
+          "resource_names": "integration-tests-python-XXXX-sync-metrics_python314",
+          "functionname": "integration-tests-python-XXXX-sync-metrics_python314",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
@@ -1463,7 +1463,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1511,17 +1511,17 @@ START
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
-    "functionname:integration-tests-python-XXXX-sync-metrics_python313",
-    "resource:integration-tests-python-XXXX-sync-metrics_python313",
+    "functionname:integration-tests-python-XXXX-sync-metrics_python314",
+    "resource:integration-tests-python-XXXX-sync-metrics_python314",
     "memorysize:1024",
     "cold_start:false",
-    "runtime:python3.13",
+    "runtime:python3.14",
     "datadog_lambda:vXX",
-    "dd_lambda_layer:datadog-python313_X.X.X"
+    "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1567,7 +1567,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "parent_id": "XXXX",
         "span_id": "XXXX",
         "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-sync-metrics_python313",
+        "resource": "integration-tests-python-XXXX-sync-metrics_python314",
         "name": "aws.lambda",
         "error": 0,
         "start": "XXXX",
@@ -1575,11 +1575,11 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python313",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
           "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-sync-metrics_python313",
-          "functionname": "integration-tests-python-XXXX-sync-metrics_python313",
+          "resource_names": "integration-tests-python-XXXX-sync-metrics_python314",
+          "functionname": "integration-tests-python-XXXX-sync-metrics_python314",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
@@ -1646,7 +1646,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1694,17 +1694,17 @@ START
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
-    "functionname:integration-tests-python-XXXX-sync-metrics_python313",
-    "resource:integration-tests-python-XXXX-sync-metrics_python313",
+    "functionname:integration-tests-python-XXXX-sync-metrics_python314",
+    "resource:integration-tests-python-XXXX-sync-metrics_python314",
     "memorysize:1024",
     "cold_start:false",
-    "runtime:python3.13",
+    "runtime:python3.14",
     "datadog_lambda:vXX",
-    "dd_lambda_layer:datadog-python313_X.X.X"
+    "dd_lambda_layer:datadog-python314_X.X.X"
   ]
 }
-HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
-HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
+HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [
@@ -1756,7 +1756,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "parent_id": "XXXX",
         "span_id": "XXXX",
         "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-sync-metrics_python313",
+        "resource": "integration-tests-python-XXXX-sync-metrics_python314",
         "name": "aws.lambda",
         "error": 0,
         "start": "XXXX",
@@ -1764,11 +1764,11 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python313",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
           "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-sync-metrics_python313",
-          "functionname": "integration-tests-python-XXXX-sync-metrics_python313",
+          "resource_names": "integration-tests-python-XXXX-sync-metrics_python314",
+          "functionname": "integration-tests-python-XXXX-sync-metrics_python314",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
@@ -1838,7 +1838,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
     ]
   ]
 }
-HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
+HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept-Encoding:gzip, deflate, zstd","Accept:*/*","Connection:keep-alive","Content-Encoding:deflate","Content-Length:XXXX","Content-Type:application/json","DD-API-KEY:XXXX","User-Agent:datadogpy/XX (python XX; os linux; arch XXXX)","traceparent:XXX","tracestate:XXX
 {
   "traces": [
     [

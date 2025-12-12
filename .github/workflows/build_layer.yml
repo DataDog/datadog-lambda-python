@@ -2,28 +2,80 @@ name: Build Layers for system-Tests
 
 on:
   workflow_dispatch:
+  pull_request:
   push:
     branches:
       - "main"
 
 jobs:
+  get-ddtrace-run-id:
+    runs-on: ubuntu-latest
+    outputs:
+      run-id: ${{ steps.get-ddtrace-run-id.outputs.run_id }}
+    steps:
+      - name: Resolve Run ID of latest dd-trace-py build
+        id: get-ddtrace-run-id
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID=$(gh run list \
+            --repo DataDog/dd-trace-py \
+            --workflow build_deploy.yml \
+            --branch main \
+            --status success \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId')
+
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+
   build:
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
+
+    needs: get-ddtrace-run-id
 
     strategy:
       fail-fast: false
       matrix:
         arch: [arm64, amd64]
-        python_version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python_version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Build artifact name
+        id: build-artifact-name
+        run: |
+          if [ "${{ matrix.arch }}" == "amd64" ]; then
+            ARCH="x86_64"
+          else
+            ARCH="aarch64"
+          fi
+
+          VER="${{ matrix.python_version }}"
+          PY_VERSION_NO_DOT="${VER//./}"
+
+          echo "artifact_name=wheels-cp${PY_VERSION_NO_DOT}-manylinux_${ARCH}" >> $GITHUB_OUTPUT
+
+      - name: Download ddtrace Wheel
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ steps.build-artifact-name.outputs.artifact_name }}
+          repository: DataDog/dd-trace-py
+          run-id: ${{ needs.get-ddtrace-run-id.outputs.run-id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: ./artifacts
+
+      - name: Find ddtrace Wheel
+        id: find-ddtrace-wheel
+        run: |
+          echo "wheel_path=$(find ./artifacts -name "*.whl" | head -n 1)" >> $GITHUB_OUTPUT
+
       - name: Patch pyproject.toml
         run: |
-          echo "Patching pyproject.toml to use main branch of dd-trace-py"
-          sed -i 's|^ddtrace =.*$|ddtrace = { git = "https://github.com/DataDog/dd-trace-py.git" }|' pyproject.toml
+          echo "Patching pyproject.toml to use latest build of dd-trace-py"
+          sed -i 's|^ddtrace =.*$|ddtrace = { file = "${{ steps.find-ddtrace-wheel.outputs.wheel_path }}" }|' pyproject.toml
 
       - name: Build layer for Python ${{ matrix.python_version }} on ${{ matrix.arch }}
         run: |

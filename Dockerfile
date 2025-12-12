@@ -15,6 +15,7 @@ RUN set -eux; \
       rm gcc && ln -s gcc10-gcc gcc; \
       rm g++ && ln -s gcc10-g++ g++; \
       rm cc && ln -s gcc10-cc cc; \
+      rm c++ && ln -s gcc10-c++ c++; \
     fi
 
 # Add Rust compiler which is needed to build dd-trace-py from source
@@ -32,6 +33,7 @@ RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
 RUN rm -rf ./python/lib/$runtime/site-packages/setuptools
 RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_ast/iastpatch*.so
+RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_taint_tracking/_vendor
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_taint_tracking/*.so
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_stacktrace*.so
 # remove *.dist-info directories except any entry_points.txt files and METADATA files required for Appsec Software Composition Analysis

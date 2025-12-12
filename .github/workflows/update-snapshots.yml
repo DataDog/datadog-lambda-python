@@ -1,8 +1,7 @@
 name: update-snapshots
 
 on:
-  schedule:
-    - cron: "0 15 * * *" # every day 11am EST
+  workflow_dispatch:
 
 jobs:
   check:
@@ -47,8 +46,19 @@ jobs:
         working-directory: tests/integration
         run: yarn install
 
-      - name: Update Snapshots
+      - name: Update Snapshots (amd64)
         env:
+          ARCH: amd64
+          UPDATE_SNAPSHOTS: true
+          BUILD_LAYERS: true
+          DD_API_KEY: ${{ secrets.DD_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        run: ./scripts/run_integration_tests.sh
+
+      - name: Update Snapshots (arm64)
+        env:
+          ARCH: arm64
           UPDATE_SNAPSHOTS: true
           BUILD_LAYERS: true
           DD_API_KEY: ${{ secrets.DD_API_KEY }}

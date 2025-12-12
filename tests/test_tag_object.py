@@ -73,13 +73,14 @@ class TestTagObject(unittest.TestCase):
             "vals": [{"thingOne": 1}, {"thingTwo": 2}],
         }
         spanMock = MagicMock()
+        expected_value = str(payload)
 
         tag_object(spanMock, "function.request", payload)
         spanMock.set_tag.assert_has_calls(
             [
                 call(
                     "function.request",
-                    "{'hello': 'world', 'level1': {'level2_dict': {'level3': 3}, 'level2_list': [None, True, 'nice', {'l3': 'v3'}], 'level2_bool': True, 'level2_int': 2}, 'vals': [{'thingOne': 1}, {'thingTwo': 2}]}",
+                    expected_value,
                 ),
             ],
             True,
@@ -103,6 +104,18 @@ class TestTagObject(unittest.TestCase):
                 call("function.request.anotherThing.nice", "True"),
             ],
             True,
+        )
+
+    def test_redacted_tag_object_case_insensitive(self):
+        payload = {
+            "Authorization": "secret",
+            "headers": {"X-AUTHORIZATION": "another"},
+        }
+        spanMock = MagicMock()
+        tag_object(spanMock, "function.request", payload)
+        spanMock.set_tag.assert_any_call("function.request.Authorization", "redacted")
+        spanMock.set_tag.assert_any_call(
+            "function.request.headers.X-AUTHORIZATION", "redacted"
         )
 
     def test_json_tag_object(self):
