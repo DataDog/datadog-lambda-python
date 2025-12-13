@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 
@@ -95,9 +96,25 @@ def get_api_key() -> str:
         secrets_manager_client = _boto3_client(
             "secretsmanager", endpoint_url=endpoint_url, region_name=secrets_region
         )
-        api_key = secrets_manager_client.get_secret_value(
+        secret_string = secrets_manager_client.get_secret_value(
             SecretId=DD_API_KEY_SECRET_ARN
         )["SecretString"]
+        
+        # First treat as plain text
+        api_key = secret_string
+        
+        # If it looks like JSON, try parsing it
+        if secret_string and secret_string.strip().startswith("{") and secret_string.strip().endswith("}"):
+            try:
+                secret_dict = json.loads(secret_string)
+                # Try to find common key names
+                for key in ["DD_API_KEY", "DATADOG_API_KEY"]:
+                    if key in secret_dict:
+                        api_key = secret_dict[key]
+                        break
+            except (json.JSONDecodeError, ValueError, TypeError):
+                # If JSON parsing fails, keep using plain text
+                pass
     elif DD_API_KEY_SSM_NAME:
         # SSM endpoints: https://docs.aws.amazon.com/general/latest/gr/ssm.html
         fips_endpoint = None

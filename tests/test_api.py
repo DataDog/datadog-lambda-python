@@ -183,3 +183,81 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         mock_boto3_client.assert_called_with(
             "secretsmanager", endpoint_url=None, region_name="us-west-2"
         )
+
+    @patch("botocore.session.Session.create_client")
+    def test_secrets_manager_plain_text(self, mock_boto3_client):
+        """Test Secrets Manager value as plain text"""
+        mock_client = MagicMock()
+        mock_client.get_secret_value.return_value = {"SecretString": "plain-text-api-key"}
+        mock_boto3_client.return_value = mock_client
+
+        os.environ["AWS_REGION"] = "us-east-1"
+        os.environ["DD_API_KEY_SECRET_ARN"] = (
+            "arn:aws:secretsmanager:us-east-1:1234567890:secret:key-name-123ABC"
+        )
+
+        api_key = api.get_api_key()
+
+        self.assertEqual(api_key, "plain-text-api-key")
+
+    @patch("botocore.session.Session.create_client")
+    def test_secrets_manager_json_with_api_key(self, mock_boto3_client):
+        """Test Secrets Manager value with api_key key in JSON format"""
+        import json
+
+        mock_client = MagicMock()
+        mock_client.get_secret_value.return_value = {
+            "SecretString": json.dumps({"api_key": "json-api-key-value"})
+        }
+        mock_boto3_client.return_value = mock_client
+
+        os.environ["AWS_REGION"] = "us-east-1"
+        os.environ["DD_API_KEY_SECRET_ARN"] = (
+            "arn:aws:secretsmanager:us-east-1:1234567890:secret:key-name-123ABC"
+        )
+
+        api_key = api.get_api_key()
+
+        self.assertEqual(api_key, "json-api-key-value")
+
+    @patch("botocore.session.Session.create_client")
+    def test_secrets_manager_json_with_dd_api_key(self, mock_boto3_client):
+        """Test Secrets Manager value with DD_API_KEY key in JSON format"""
+        import json
+
+        mock_client = MagicMock()
+        mock_client.get_secret_value.return_value = {
+            "SecretString": json.dumps({"DD_API_KEY": "dd-api-key-value"})
+        }
+        mock_boto3_client.return_value = mock_client
+
+        os.environ["AWS_REGION"] = "us-east-1"
+        os.environ["DD_API_KEY_SECRET_ARN"] = (
+            "arn:aws:secretsmanager:us-east-1:1234567890:secret:key-name-123ABC"
+        )
+
+        api_key = api.get_api_key()
+
+        self.assertEqual(api_key, "dd-api-key-value")
+
+    @patch("botocore.session.Session.create_client")
+    def test_secrets_manager_json_with_custom_key(self, mock_boto3_client):
+        """Test Secrets Manager value with custom key in JSON format (treated as plain text)"""
+        import json
+
+        mock_client = MagicMock()
+        secret_json = json.dumps({"custom_key": "custom-api-key-value"})
+        mock_client.get_secret_value.return_value = {
+            "SecretString": secret_json
+        }
+        mock_boto3_client.return_value = mock_client
+
+        os.environ["AWS_REGION"] = "us-east-1"
+        os.environ["DD_API_KEY_SECRET_ARN"] = (
+            "arn:aws:secretsmanager:us-east-1:1234567890:secret:key-name-123ABC"
+        )
+
+        api_key = api.get_api_key()
+
+        # When no common key is found, it should be treated as plain text
+        self.assertEqual(api_key, secret_json)
