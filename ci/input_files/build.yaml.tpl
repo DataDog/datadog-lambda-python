@@ -111,8 +111,6 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
-    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
-      when: never
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
       when: manual
   needs:
@@ -144,7 +142,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
-    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
+    - if: $SKIP_E2E_TESTS
       when: never
     - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "{{ $e2e_region }}" && "{{ $runtime.arch }}" == "amd64"'
       when: on_success
@@ -192,7 +190,7 @@ publish-pypi-package:
   before_script: *python-before-script
   cache: []
   rules:
-    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
+    - if: $SKIP_E2E_TESTS
       when: never
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   when: manual
@@ -206,10 +204,6 @@ layer bundle:
   stage: build
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
-  rules:
-    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
-      when: never
-    - when: on_success
   needs:
     {{ range (ds "runtimes").runtimes }}
     - build-layer ({{ .name }}-{{ .arch }})
@@ -233,8 +227,6 @@ signed layer bundle:
   image: registry.ddbuild.io/images/docker:20.10-py3
   tags: ["arch:amd64"]
   rules:
-    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
-      when: never
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   needs:
     {{ range (ds "runtimes").runtimes }}
@@ -260,7 +252,7 @@ e2e-test:
     project: DataDog/serverless-e2e-tests
     strategy: depend
   rules:
-    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
+    - if: $SKIP_E2E_TESTS
       when: never
     - when: on_success
   variables:
@@ -284,7 +276,7 @@ e2e-test-status:
   tags: ["arch:amd64"]
   timeout: 3h
   rules:
-    - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
+    - if: $SKIP_E2E_TESTS
       when: never
     - when: on_success
   script: |

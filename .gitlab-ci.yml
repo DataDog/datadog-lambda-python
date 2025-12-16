@@ -1,3 +1,6 @@
+variables:
+  SKIP_E2E_TESTS: false
+
 stages:
   - pre 
   - build
