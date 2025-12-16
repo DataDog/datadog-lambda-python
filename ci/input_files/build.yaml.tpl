@@ -53,7 +53,6 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   variables:
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   script:
-    - exit 1
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/build_layers.sh
 
 check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
@@ -210,6 +209,7 @@ layer bundle:
   rules:
     - if: $UPSTREAM_PROJECT_NAME == "dd-trace-py"
       when: never
+    - when: on_success
   needs:
     {{ range (ds "runtimes").runtimes }}
     - build-layer ({{ .name }}-{{ .arch }})
