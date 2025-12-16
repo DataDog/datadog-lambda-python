@@ -1,5 +1,5 @@
 variables:
-  SKIP_E2E_TESTS: false
+  SKIP_E2E_TESTS: "false"
 
 stages:
   - pre 
