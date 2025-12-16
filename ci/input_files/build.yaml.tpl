@@ -142,7 +142,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
-    - if: $SKIP_E2E_TESTS
+    - if: '$SKIP_E2E_TESTS == true'
       when: never
     - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "{{ $e2e_region }}" && "{{ $runtime.arch }}" == "amd64"'
       when: on_success
@@ -190,8 +190,6 @@ publish-pypi-package:
   before_script: *python-before-script
   cache: []
   rules:
-    - if: $SKIP_E2E_TESTS
-      when: never
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   when: manual
   needs: {{ range $runtime := (ds "runtimes").runtimes }}
@@ -252,7 +250,7 @@ e2e-test:
     project: DataDog/serverless-e2e-tests
     strategy: depend
   rules:
-    - if: $SKIP_E2E_TESTS
+    - if: '$SKIP_E2E_TESTS == true'
       when: never
     - when: on_success
   variables:
@@ -276,7 +274,7 @@ e2e-test-status:
   tags: ["arch:amd64"]
   timeout: 3h
   rules:
-    - if: $SKIP_E2E_TESTS
+    - if: '$SKIP_E2E_TESTS == true'
       when: never
     - when: on_success
   script: |
