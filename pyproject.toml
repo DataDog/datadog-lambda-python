@@ -5,6 +5,7 @@ description = "The Datadog AWS Lambda Library"
 authors = [{name = "Datadog, Inc.", email = "dev@datadoghq.com"}]
 license = "Apache-2.0"
 readme = "README.md"
+requires-python = ">3.8.0,<4"
 repository = "https://github.com/DataDog/datadog-lambda-python"
 keywords = [
     "datadog",
@@ -25,7 +26,6 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
-    "python>=3.8.0,<4",
     "datadog>=0.51.0,<1.0.0",
     "wrapt>=1.11.2,<2",
     "ddtrace>=3.19.1,<4",
