@@ -1,4 +1,4 @@
-[tool.poetry]
+[project]
 name = "datadog_lambda"
 version = "8.121.0.dev0"
 description = "The Datadog AWS Lambda Library"
@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 
-[tool.poetry.optional-dependencies]
+[project.optional-dependencies]
 dev = [
     "botocore>=1.34.0,<2",
     "requests>=2.22.0,<3",
