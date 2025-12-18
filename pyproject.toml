@@ -11,7 +11,7 @@ description = "The Datadog AWS Lambda Library"
 authors = [{ name = "Datadog, Inc.", email = "dev@datadoghq.com" }]
 license = "Apache-2.0"
 readme = "README.md"
-requires-python = ">3.8.0,<4"
+requires-python = ">=3.8.0,<4"
 repository = "https://github.com/DataDog/datadog-lambda-python"
 keywords = [
     "datadog",
