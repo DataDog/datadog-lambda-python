@@ -7,7 +7,7 @@ authors = ["Datadog, Inc. <dev@datadoghq.com>"]
 [tool.poetry.dependencies]
 datadog = ">=0.51.0,<1.0.0"
 wrapt = "^1.11.2"
-ddtrace = "=3.19.1"
+ddtrace = ">=3.19.1,<4"
 ujson = ">=5.9.0"
 
 [project]
@@ -45,6 +45,15 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 
+
+[tool.poetry.extras]
+dev = [
+    "botocore",
+    "flake8",
+    "pytest",
+    "pytest-benchmark",
+    "requests",
+]
 
 [project.optional-dependencies]
 dev = [
