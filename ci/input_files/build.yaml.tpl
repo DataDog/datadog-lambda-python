@@ -92,6 +92,10 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
