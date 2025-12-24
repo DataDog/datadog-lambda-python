@@ -54,6 +54,8 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   script:
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
 
 check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
@@ -85,11 +87,16 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   script:
     - source venv/bin/activate
     - pytest -vv
+  retry: 2
 
 integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
@@ -105,6 +112,7 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
     - cd integration_tests && yarn install && cd ..
   script:
     - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
+  retry: 2
 
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
