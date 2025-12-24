@@ -54,6 +54,7 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   script:
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/build_layers.sh
+  timeout: 15m
   retry: 2
 
 check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
