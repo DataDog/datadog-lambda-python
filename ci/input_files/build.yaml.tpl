@@ -219,6 +219,7 @@ update-layer-versions-docs:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   needs: {{ range $runtime := (ds "runtimes").runtimes }}
     - publish-layer-prod ({{ $runtime.name }}-{{ $runtime.arch}})
+  {{- end }}
 
 layer bundle:
   stage: build
