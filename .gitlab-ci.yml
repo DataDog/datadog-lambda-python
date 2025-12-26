@@ -1,3 +1,6 @@
+variables:
+  SKIP_E2E_TESTS: "false"
+
 stages:
   - pre 
   - build
@@ -25,5 +28,7 @@ build-layers:
       - artifact: ci/build-pipeline.yaml
         job: generator
     strategy: depend
+    forward:
+      pipeline_variables: true
   rules:
     - when: on_success

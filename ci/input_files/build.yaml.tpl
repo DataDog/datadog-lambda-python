@@ -54,6 +54,8 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   script:
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
 
 check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
@@ -85,11 +87,16 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   script:
     - source venv/bin/activate
     - pytest -vv
+  retry: 2
 
 integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
@@ -105,6 +112,7 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
     - cd integration_tests && yarn install && cd ..
   script:
     - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
+  retry: 2
 
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
@@ -142,6 +150,8 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
     - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "{{ $e2e_region }}" && "{{ $runtime.arch }}" == "amd64"'
       when: on_success
     - if: '"{{ $environment_name }}" == "sandbox"'
@@ -247,6 +257,10 @@ e2e-test:
   trigger:
     project: DataDog/serverless-e2e-tests
     strategy: depend
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
   variables:
       LANGUAGES_SUBSET: python
       # These env vars are inherited from the dotenv reports of the publish-layer jobs
@@ -267,6 +281,10 @@ e2e-test-status:
   image: registry.ddbuild.io/images/docker:20.10-py3
   tags: ["arch:amd64"]
   timeout: 3h
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
   script: |
       GITLAB_API_TOKEN=$(aws ssm get-parameter --region us-east-1 --name "ci.${CI_PROJECT_NAME}.serverless-e2e-gitlab-token" --with-decryption --query "Parameter.Value" --out text)
       URL="${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/pipelines/${CI_PIPELINE_ID}/bridges"
