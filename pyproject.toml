@@ -6,9 +6,6 @@ authors = ["Datadog, Inc. <dev@datadoghq.com>"]
 
 [project]
 name = "datadog_lambda"
-version = "8.121.0.dev0"
-description = "The Datadog AWS Lambda Library"
-authors = [{ name = "Datadog, Inc.", email = "dev@datadoghq.com" }]
 license = "Apache-2.0"
 readme = "README.md"
 requires-python = ">=3.8.0,<4"
@@ -40,6 +37,8 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 
+# can remove tool.poetry.depencies and tool.poetry.extras
+# after deprecation of Python 3.8
 [tool.poetry.dependencies]
 python = ">=3.8.0,<4"
 datadog = ">=0.51.0,<1.0.0"
