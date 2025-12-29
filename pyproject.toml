@@ -3,8 +3,12 @@ name = "datadog_lambda"
 version = "8.121.0.dev0"
 description = "The Datadog AWS Lambda Library"
 authors = ["Datadog, Inc. <dev@datadoghq.com>"]
+
+[project]
+name = "datadog_lambda"
 license = "Apache-2.0"
 readme = "README.md"
+requires-python = ">=3.8.0,<4"
 repository = "https://github.com/DataDog/datadog-lambda-python"
 keywords = [
     "datadog",
@@ -12,10 +16,18 @@ keywords = [
     "lambda",
     "layer",
 ]
+dependencies = [
+    "datadog>=0.51.0,<1.0.0",
+    "wrapt>=1.11.2,<2",
+    "ddtrace>=3.19.1,<4; python_version>='3.9.0' and python_version < '3.10'",
+    "ddtrace>=4.1.1,<5; python_version>='3.10.0'",
+    "ujson>=5.9.0",
+]
 packages = [
     { include = "datadog_lambda" }
 ]
 classifiers = [
+    "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
@@ -25,6 +37,8 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
 ]
 
+# can remove tool.poetry.depencies and tool.poetry.extras
+# after deprecation of Python 3.8
 [tool.poetry.dependencies]
 python = ">=3.8.0,<4"
 datadog = ">=0.51.0,<1.0.0"
@@ -44,6 +58,15 @@ dev = [
     "pytest",
     "pytest-benchmark",
     "requests",
+]
+
+[project.optional-dependencies]
+dev = [
+    "botocore>=1.34.0,<2",
+    "requests>=2.22.0,<3",
+    "pytest>=8.0.0,<9",
+    "pytest-benchmark>=4.0,<5",
+    "flake8>=5.0.4,<6",
 ]
 
 [build-system]
