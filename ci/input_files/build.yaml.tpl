@@ -212,7 +212,9 @@ update-layer-versions-docs:
     project: DataDog/serverless-ci
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
-  needs:
+  needs: {{ range $runtime := (ds "runtimes").runtimes }}
+    - publish-layer-prod ({{ $runtime.name }}-{{ $runtime.arch}})
+  {{- end }}
     - publish-pypi-package
   variables:
     RUN_LAMBDA_LAYER_DOCUMENTATION: "true"
