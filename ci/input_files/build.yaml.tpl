@@ -114,6 +114,19 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
     - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
   retry: 2
 
+test-update-layer-versions-docs:
+  stage: publish
+  trigger:
+    project: DataDog/serverless-ci
+  needs: {{ range $runtime := (ds "runtimes").runtimes }}
+    - integration-test ({{ $runtime.name }}-{{ $runtime.arch}})
+  {{- end }}
+  variables:
+    RUN_LAMBDA_LAYER_DOCUMENTATION: "true"
+    RUN_LAMBDA_DATADOG_CI: "true"
+    RUN_LAMBDA_UI_LAYER_VERSIONS: "true"
+    RUN_LAMBDA_RUNTIMES: "true"
+
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
   tags: ["arch:amd64"]
