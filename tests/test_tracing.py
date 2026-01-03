@@ -2733,6 +2733,122 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                 # None indicates no DSM context propagation
                 self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
+    def test_sqs_batch_processing(self):
+        dd_data_1 = {"dd-pathway-ctx-base64": "record1"}
+        dd_data_2 = {"dd-pathway-ctx-base64": "record2"}
+        dd_json_data_1 = json.dumps(dd_data_1)
+        dd_json_data_2 = json.dumps(dd_data_2)
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "dataType": "String",
+                            "stringValue": dd_json_data_1,
+                        }
+                    },
+                    "eventSource": "aws:sqs",
+                },
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "dataType": "String",
+                            "stringValue": dd_json_data_2,
+                        }
+                    },
+                    "eventSource": "aws:sqs",
+                },
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        self.assertEqual(self.mock_checkpoint.call_count, 2)
+
+        args_1, _ = self.mock_checkpoint.call_args_list[0]
+        self.assertEqual(args_1[0], "sqs")
+        self.assertEqual(args_1[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get_1 = args_1[2]
+        self.assertEqual(carrier_get_1("dd-pathway-ctx-base64"), "record1")
+
+        args_2, _ = self.mock_checkpoint.call_args_list[1]
+        self.assertEqual(args_2[0], "sqs")
+        self.assertEqual(args_2[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get_2 = args_2[2]
+        self.assertEqual(carrier_get_2("dd-pathway-ctx-base64"), "record2")
+
+    def test_sqs_batch_processing_with_invalid_records(self):
+        dd_data_1 = {"dd-pathway-ctx-base64": "valid_record"}
+        dd_json_data_1 = json.dumps(dd_data_1)
+
+        dd_data_3 = {"dd-pathway-ctx-base64": "another_valid_record"}
+        dd_json_data_3 = json.dumps(dd_data_3)
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "dataType": "String",
+                            "stringValue": dd_json_data_1,
+                        }
+                    },
+                    "eventSource": "aws:sqs",
+                },
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "dataType": "Binary",
+                            # This will cause extraction to fail
+                            "binaryValue": "invalid-base64-data",
+                        }
+                    },
+                    "eventSource": "aws:sqs",
+                },
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "dataType": "String",
+                            "stringValue": dd_json_data_3,
+                        }
+                    },
+                    "eventSource": "aws:sqs",
+                },
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        self.assertEqual(self.mock_checkpoint.call_count, 3)
+
+        args_1, _ = self.mock_checkpoint.call_args_list[0]
+        self.assertEqual(args_1[0], "sqs")
+        self.assertEqual(args_1[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get_1 = args_1[2]
+        self.assertEqual(carrier_get_1("dd-pathway-ctx-base64"), "valid_record")
+
+        args_2, _ = self.mock_checkpoint.call_args_list[1]
+        self.assertEqual(args_2[0], "sqs")
+        self.assertEqual(args_2[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get_2 = args_2[2]
+        self.assertEqual(carrier_get_2("dd-pathway-ctx-base64"), None)
+
+        args_3, _ = self.mock_checkpoint.call_args_list[2]
+        self.assertEqual(args_3[0], "sqs")
+        self.assertEqual(args_3[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get_3 = args_3[2]
+        self.assertEqual(carrier_get_3("dd-pathway-ctx-base64"), "another_valid_record")
+
     def test_sqs_source_arn_not_found(self):
         event = {
             "Records": [
@@ -3251,6 +3367,137 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
                 # None indicates no DSM context propagation
                 self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
+    def test_sns_to_sqs_batch_processing(self):
+        dd_data_1 = {"dd-pathway-ctx-base64": "record1"}
+        dd_data_2 = {"dd-pathway-ctx-base64": "record2"}
+        dd_json_data_1 = json.dumps(dd_data_1)
+        dd_json_data_2 = json.dumps(dd_data_2)
+
+        sns_message_1 = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {
+                "_datadog": {"Type": "String", "Value": dd_json_data_1}
+            },
+        }
+        sns_message_2 = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {
+                "_datadog": {"Type": "String", "Value": dd_json_data_2}
+            },
+        }
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "body": json.dumps(sns_message_1),
+                    "eventSource": "aws:sqs",
+                },
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "body": json.dumps(sns_message_2),
+                    "eventSource": "aws:sqs",
+                },
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        self.assertEqual(self.mock_checkpoint.call_count, 2)
+
+        args_1, _ = self.mock_checkpoint.call_args_list[0]
+        self.assertEqual(args_1[0], "sqs")
+        self.assertEqual(args_1[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get_1 = args_1[2]
+        self.assertEqual(carrier_get_1("dd-pathway-ctx-base64"), "record1")
+
+        args_2, _ = self.mock_checkpoint.call_args_list[1]
+        self.assertEqual(args_2[0], "sqs")
+        self.assertEqual(args_2[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get_2 = args_2[2]
+        self.assertEqual(carrier_get_2("dd-pathway-ctx-base64"), "record2")
+
+    def test_sns_to_sqs_batch_processing_with_invalid_records(self):
+        dd_data_1 = {"dd-pathway-ctx-base64": "valid_sns_record"}
+        dd_json_data_1 = json.dumps(dd_data_1)
+
+        sns_message_1 = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {
+                "_datadog": {"Type": "String", "Value": dd_json_data_1}
+            },
+        }
+
+        sns_message_2 = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {
+                "_datadog": {"Type": "Binary", "Value": "invalid-base64-data"}
+            },
+        }
+
+        dd_data_3 = {"dd-pathway-ctx-base64": "another_valid_sns_record"}
+        dd_json_data_3 = json.dumps(dd_data_3)
+
+        sns_message_3 = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+            "MessageAttributes": {
+                "_datadog": {"Type": "String", "Value": dd_json_data_3}
+            },
+        }
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "body": json.dumps(sns_message_1),
+                    "eventSource": "aws:sqs",
+                },
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "body": json.dumps(sns_message_2),
+                    "eventSource": "aws:sqs",
+                },
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "body": json.dumps(sns_message_3),
+                    "eventSource": "aws:sqs",
+                },
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        self.assertEqual(self.mock_checkpoint.call_count, 3)
+
+        args_1, _ = self.mock_checkpoint.call_args_list[0]
+        self.assertEqual(args_1[0], "sqs")
+        self.assertEqual(args_1[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get_1 = args_1[2]
+        self.assertEqual(carrier_get_1("dd-pathway-ctx-base64"), "valid_sns_record")
+
+        args_2, _ = self.mock_checkpoint.call_args_list[1]
+        self.assertEqual(args_2[0], "sqs")
+        self.assertEqual(args_2[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get_2 = args_2[2]
+        self.assertEqual(carrier_get_2("dd-pathway-ctx-base64"), None)
+
+        args_3, _ = self.mock_checkpoint.call_args_list[2]
+        self.assertEqual(args_3[0], "sqs")
+        self.assertEqual(args_3[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        carrier_get_3 = args_3[2]
+        self.assertEqual(
+            carrier_get_3("dd-pathway-ctx-base64"), "another_valid_sns_record"
+        )
+
     def test_sns_to_sqs_source_arn_not_found(self):
         sns_notification = {
             "Type": "Notification",
@@ -3417,6 +3664,109 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         carrier_get = args[2]
         # None indicates no DSM context propagation
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
+
+    def test_kinesis_batch_processing(self):
+        dd_data_1 = {"dd-pathway-ctx-base64": "record1"}
+        dd_data_2 = {"dd-pathway-ctx-base64": "record2"}
+
+        kinesis_data_1 = {"_datadog": dd_data_1, "message": "test1"}
+        kinesis_data_2 = {"_datadog": dd_data_2, "message": "test2"}
+
+        encoded_data_1 = base64.b64encode(json.dumps(kinesis_data_1).encode()).decode()
+        encoded_data_2 = base64.b64encode(json.dumps(kinesis_data_2).encode()).decode()
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {"data": encoded_data_1},
+                },
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {"data": encoded_data_2},
+                },
+            ]
+        }
+
+        extract_context_from_kinesis_event(event, self.lambda_context)
+
+        self.assertEqual(self.mock_checkpoint.call_count, 2)
+
+        # Verify first record call
+        args_1, _ = self.mock_checkpoint.call_args_list[0]
+        self.assertEqual(args_1[0], "kinesis")
+        self.assertEqual(
+            args_1[1], "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+        )
+        carrier_get_1 = args_1[2]
+        self.assertEqual(carrier_get_1("dd-pathway-ctx-base64"), "record1")
+
+        # Verify second record call
+        args_2, _ = self.mock_checkpoint.call_args_list[1]
+        self.assertEqual(args_2[0], "kinesis")
+        self.assertEqual(
+            args_2[1], "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+        )
+        carrier_get_2 = args_2[2]
+        self.assertEqual(carrier_get_2("dd-pathway-ctx-base64"), "record2")
+
+    def test_kinesis_batch_processing_with_invalid_records(self):
+        dd_data_1 = {"dd-pathway-ctx-base64": "valid_kinesis_record"}
+        kinesis_data_1 = {"_datadog": dd_data_1, "message": "test1"}
+        encoded_data_1 = base64.b64encode(json.dumps(kinesis_data_1).encode()).decode()
+
+        dd_data_3 = {"dd-pathway-ctx-base64": "another_valid_kinesis_record"}
+        kinesis_data_3 = {"_datadog": dd_data_3, "message": "test3"}
+        encoded_data_3 = base64.b64encode(json.dumps(kinesis_data_3).encode()).decode()
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {"data": encoded_data_1},
+                },
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {
+                        "data": "invalid-base64-data"
+                    },  # This will cause extraction to fail
+                },
+                {
+                    "eventSourceARN": "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream",
+                    "kinesis": {"data": encoded_data_3},
+                },
+            ]
+        }
+
+        extract_context_from_kinesis_event(event, self.lambda_context)
+
+        self.assertEqual(self.mock_checkpoint.call_count, 3)
+
+        args_1, _ = self.mock_checkpoint.call_args_list[0]
+        self.assertEqual(args_1[0], "kinesis")
+        self.assertEqual(
+            args_1[1], "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+        )
+        carrier_get_1 = args_1[2]
+        self.assertEqual(carrier_get_1("dd-pathway-ctx-base64"), "valid_kinesis_record")
+
+        args_2, _ = self.mock_checkpoint.call_args_list[1]
+        self.assertEqual(args_2[0], "kinesis")
+        self.assertEqual(
+            args_2[1], "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+        )
+        carrier_get_2 = args_2[2]
+        self.assertEqual(carrier_get_2("dd-pathway-ctx-base64"), None)
+
+        args_3, _ = self.mock_checkpoint.call_args_list[2]
+        self.assertEqual(args_3[0], "kinesis")
+        self.assertEqual(
+            args_3[1], "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
+        )
+        carrier_get_3 = args_3[2]
+        self.assertEqual(
+            carrier_get_3("dd-pathway-ctx-base64"), "another_valid_kinesis_record"
+        )
 
     def test_kinesis_source_arn_not_found(self):
         kinesis_data = {"message": "test"}
