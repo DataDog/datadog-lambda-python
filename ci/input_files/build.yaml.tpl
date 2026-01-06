@@ -213,7 +213,7 @@ update-layer-versions-docs:
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   needs: {{ range $runtime := (ds "runtimes").runtimes }}
-    - publish-layer-prod ({{ $runtime.name }}-{{ $runtime.arch}})
+    - publish-layer-prod ({{ $runtime.name }}-{{ $runtime.arch}}): [us-east-1]
   {{- end }}
     - publish-pypi-package
   variables:
