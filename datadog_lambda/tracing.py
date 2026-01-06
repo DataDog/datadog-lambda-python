@@ -630,6 +630,7 @@ def extract_dd_trace_context(
     Write the context to a global `dd_trace_context`, so the trace
     can be continued on the outgoing requests with the context injected.
     """
+    logger.debug("hello")
     global dd_trace_context
     trace_context_source = None
     event_source = parse_event_source(event)
