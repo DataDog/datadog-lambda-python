@@ -8,31 +8,8 @@ on:
       - "main"
 
 jobs:
-  get-ddtrace-run-id:
-    runs-on: ubuntu-latest
-    outputs:
-      run-id: ${{ steps.get-ddtrace-run-id.outputs.run_id }}
-    steps:
-      - name: Resolve Run ID of latest dd-trace-py build
-        id: get-ddtrace-run-id
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          RUN_ID=$(gh run list \
-            --repo DataDog/dd-trace-py \
-            --workflow build_deploy.yml \
-            --branch main \
-            --status success \
-            --limit 1 \
-            --json databaseId \
-            --jq '.[0].databaseId')
-
-          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-
   build:
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
-
-    needs: get-ddtrace-run-id
 
     strategy:
       fail-fast: false
@@ -44,33 +21,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build artifact name
-        id: build-artifact-name
-        run: |
-          if [ "${{ matrix.arch }}" == "amd64" ]; then
-            ARCH="x86_64"
-          else
-            ARCH="aarch64"
-          fi
-
-          VER="${{ matrix.python_version }}"
-          PY_VERSION_NO_DOT="${VER//./}"
-
-          echo "artifact_name=wheels-cp${PY_VERSION_NO_DOT}-manylinux_${ARCH}" >> $GITHUB_OUTPUT
-
       - name: Download ddtrace Wheel
-        uses: actions/download-artifact@v4
-        with:
-          name: ${{ steps.build-artifact-name.outputs.artifact_name }}
-          repository: DataDog/dd-trace-py
-          run-id: ${{ needs.get-ddtrace-run-id.outputs.run-id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          path: ./artifacts
-
-      - name: Find ddtrace Wheel
         id: find-ddtrace-wheel
         run: |
-          echo "wheel_path=$(find ./artifacts -name "*.whl" | head -n 1)" >> $GITHUB_OUTPUT
+          # Convert matrix.arch into pip platform tag
+          if [ "${{ matrix.arch }}" = "amd64" ]; then
+            PLATFORM_TAG="manylinux_2_17_x86_64"
+          else
+            PLATFORM_TAG="manylinux_2_17_aarch64"
+          fi
+
+          pip download --no-index --no-deps --find-links https://dd-trace-py-builds.s3.amazonaws.com/main/index.html --pre --python-version "${{ matrix.python_version}}"  --platform "${PLATFORM_TAG}" ddtrace
+          echo "wheel_path=$(find . -name "*.whl" | head -n 1)" >> $GITHUB_OUTPUT
 
       - name: Patch pyproject.toml
         run: |
