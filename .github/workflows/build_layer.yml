@@ -31,6 +31,7 @@ jobs:
             PLATFORM_TAG="manylinux_2014_aarch64"
           fi
 
+          echo pip download --no-deps --find-links https://dd-trace-py-builds.s3.amazonaws.com/main/index.html --pre --python-version "${{ matrix.python_version}}"  --platform "${PLATFORM_TAG}" ddtrace
           pip download --no-deps --find-links https://dd-trace-py-builds.s3.amazonaws.com/main/index.html --pre --python-version "${{ matrix.python_version}}"  --platform "${PLATFORM_TAG}" ddtrace
           echo "wheel_path=$(find . -name "*.whl" | head -n 1)" >> $GITHUB_OUTPUT
 
