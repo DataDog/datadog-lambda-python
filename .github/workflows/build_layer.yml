@@ -26,12 +26,11 @@ jobs:
         run: |
           # Convert matrix.arch into pip platform tag
           if [ "${{ matrix.arch }}" = "amd64" ]; then
-            PLATFORM_TAG="manylinux_2014_x86_64"
+            PLATFORM_TAG="manylinux_2_17_x86_64"
           else
-            PLATFORM_TAG="manylinux_2014_aarch64"
+            PLATFORM_TAG="manylinux_2_17_aarch64"
           fi
 
-          echo pip download --no-deps --find-links https://dd-trace-py-builds.s3.amazonaws.com/main/index.html --pre --python-version "${{ matrix.python_version}}"  --platform "${PLATFORM_TAG}" ddtrace
           pip download --no-deps --find-links https://dd-trace-py-builds.s3.amazonaws.com/main/index.html --pre --python-version "${{ matrix.python_version}}"  --platform "${PLATFORM_TAG}" ddtrace
           echo "wheel_path=$(find . -name "*.whl" | head -n 1)" >> $GITHUB_OUTPUT
 
