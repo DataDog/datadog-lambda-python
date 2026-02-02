@@ -1,4 +1,3 @@
-import os
 import time
 from typing import List, Hashable
 import logging
@@ -74,9 +73,7 @@ def is_managed_instances_mode():
     Returns:
         bool: True if running in managed instances mode, False otherwise
     """
-    return (
-        os.environ.get("AWS_LAMBDA_INITIALIZATION_TYPE") == "lambda-managed-instances"
-    )
+    return config.aws_lambda_initialization_type == "lambda-managed-instances"
 
 
 class ImportNode(object):
