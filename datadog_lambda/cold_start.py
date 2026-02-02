@@ -1,3 +1,4 @@
+import os
 import time
 from typing import List, Hashable
 import logging
@@ -60,6 +61,21 @@ def get_proactive_init_tag():
         "proactive_initialization:true"
         if _proactive_initialization
         else "proactive_initialization:false"
+    )
+
+
+def is_managed_instances_mode():
+    """
+    Checks if the Lambda function is running in managed instances mode.
+    In managed instances mode, we should not create cold start tracing spans
+    as the gap between the sandbox initialization and the first
+    invocation might not be be a great experience.
+
+    Returns:
+        bool: True if running in managed instances mode, False otherwise
+    """
+    return (
+        os.environ.get("AWS_LAMBDA_INITIALIZATION_TYPE") == "lambda-managed-instances"
     )
 
 
@@ -145,6 +161,10 @@ def wrap_find_spec(original_find_spec):
 
 
 def initialize_cold_start_tracing():
+    # Skip cold start tracing initialization in managed instances mode
+    if is_managed_instances_mode():
+        return
+
     if is_new_sandbox() and config.cold_start_tracing:
         from sys import meta_path
 
