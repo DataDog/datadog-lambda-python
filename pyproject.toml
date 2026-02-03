@@ -10,6 +10,15 @@ dependencies = [
     "ujson>=5.9.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "botocore>=1.34.0,<2",
+  "requests>=2.22.0,<3",
+  "pytest>=8.0.0,<9",
+  "pytest-benchmark>=4.0,<5",
+  "flake8>=5.0.4,<6",
+]
+
 [tool.poetry]
 name = "datadog_lambda"
 version = "8.123.0.dev0"
