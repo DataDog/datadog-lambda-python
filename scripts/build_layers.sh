@@ -46,6 +46,9 @@ else
     PYTHON_VERSIONS=$PYTHON_VERSION
 fi
 
+if [ -z "$SED_EXPRESSION"]; then
+    sed -z -E -i "$SED_EXPRESSION" pyproject.toml
+fi
 
 function make_path_absolute {
     echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
