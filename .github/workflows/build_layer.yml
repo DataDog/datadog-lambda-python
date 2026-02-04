@@ -37,7 +37,7 @@ jobs:
       - name: Build layer for Python ${{ matrix.python_version }} on ${{ matrix.arch }}
         run: |
           echo "Building layer for Python ${{ matrix.python_version }} on ${{ matrix.arch }}"
-          ARCH=${{ matrix.arch }} PYTHON_VERSION=${{ matrix.python_version }} SED_EXPRESSION="s|(ddtrace = )\[[^]]*]|\1{ file = "${{ steps.find-ddtrace-wheel.outputs.wheel_path }}" }|g" ./scripts/build_layers.sh
+          ARCH=${{ matrix.arch }} PYTHON_VERSION=${{ matrix.python_version }} DD_TRACE_WHEEL="${{ steps.find-ddtrace-wheel.outputs.wheel_path }}" ./scripts/build_layers.sh
 
       - name: Upload layer artifact
         uses: actions/upload-artifact@v4

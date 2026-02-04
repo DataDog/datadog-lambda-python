@@ -46,8 +46,12 @@ else
     PYTHON_VERSIONS=$PYTHON_VERSION
 fi
 
-if [ -z "$SED_EXPRESSION"]; then
-    sed -z -E -i "$SED_EXPRESSION" pyproject.toml
+if [ -z "$DD_TRACE_COMMIT_BRANCH" ]; then
+    sed -z -E -i 's|(ddtrace = )\[[^]]*]|\1{ git = "https://github.com/DataDog/dd-trace-py.git", branch = \"'"$DD_TRACE_COMMIT_BRANCH"'\" }|g' pyproject.toml
+else
+    if [ -z "$DD_TRACE_WHEEL" ]; then
+        sed -z -E -i 's|(ddtrace = )\[[^]]*]|\1{ file = "'"$DD_TRACE_WHEEL"'" }|g' pyproject.toml
+    fi
 fi
 
 function make_path_absolute {
