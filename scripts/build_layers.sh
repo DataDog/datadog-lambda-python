@@ -48,11 +48,11 @@ fi
 
 echo "DD_TRACE_COMMIT_BRANCH: $DD_TRACE_COMMIT_BRANCH"
 echo "DD_TRACE_WHEEL: $DD_TRACE_WHEEL"
-if [ -z "$DD_TRACE_COMMIT_BRANCH" ]; then
+if [ -n "$DD_TRACE_COMMIT_BRANCH" ]; then
     echo "commit branch!"
     sed -z -E -i 's|(ddtrace = )\[[^]]*]|\1{ git = "https://github.com/DataDog/dd-trace-py.git", branch = \"'"$DD_TRACE_COMMIT_BRANCH"'\" }|g' pyproject.toml
 else
-    if [ -z "$DD_TRACE_WHEEL" ]; then
+    if [ -n "$DD_TRACE_WHEEL" ]; then
         echo "wheel!"
         sed -z -E -i 's|(ddtrace = )\[[^]]*]|\1{ file = "'"$DD_TRACE_WHEEL"'" }|g' pyproject.toml
         echo "sed -z -E -i 's|(ddtrace = )\[[^]]*]|\1{ file = "'"$DD_TRACE_WHEEL"'" }|g' pyproject.toml"
