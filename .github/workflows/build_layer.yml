@@ -37,7 +37,7 @@ jobs:
       - name: Patch pyproject.toml
         run: |
           echo "Patching pyproject.toml to use latest build of dd-trace-py"
-          sed -zEi 's|^ddtrace =.*$|ddtrace = { file = "${{ steps.find-ddtrace-wheel.outputs.wheel_path }}" }|' pyproject.toml
+          sed -i 's|^ddtrace =.*$|ddtrace = { file = "${{ steps.find-ddtrace-wheel.outputs.wheel_path }}" }|' pyproject.toml
 
       - name: Build layer for Python ${{ matrix.python_version }} on ${{ matrix.arch }}
         run: |
