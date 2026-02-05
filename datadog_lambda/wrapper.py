@@ -16,6 +16,7 @@ from datadog_lambda.cold_start import (
     is_cold_start,
     is_proactive_init,
     is_new_sandbox,
+    is_managed_instances_mode,
     ColdStartTracer,
 )
 from datadog_lambda.config import config
@@ -338,7 +339,13 @@ class _LambdaDecorator(object):
                 create_dd_dummy_metadata_subsegment(
                     self.trigger_tags, XraySubsegment.LAMBDA_FUNCTION_TAGS_KEY
                 )
-            should_trace_cold_start = config.cold_start_tracing and is_new_sandbox()
+            # Skip creating cold start spans in managed instances mode
+            # In managed instances, the tracer library handles cold start independently
+            should_trace_cold_start = (
+                config.cold_start_tracing
+                and is_new_sandbox()
+                and not is_managed_instances_mode()
+            )
             if should_trace_cold_start:
                 trace_ctx = tracer.current_trace_context()
 

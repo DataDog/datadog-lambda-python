@@ -12,6 +12,52 @@ from tests.utils import get_mock_context
 
 
 class TestColdStartTracingSetup(unittest.TestCase):
+    def test_is_managed_instances_mode_when_set(self):
+        os.environ["AWS_LAMBDA_INITIALIZATION_TYPE"] = "lambda-managed-instances"
+        self.assertTrue(cold_start.is_managed_instances_mode())
+        # Clean up
+        if "AWS_LAMBDA_INITIALIZATION_TYPE" in os.environ:
+            del os.environ["AWS_LAMBDA_INITIALIZATION_TYPE"]
+
+    def test_is_not_managed_instances_mode_when_not_set(self):
+        if "AWS_LAMBDA_INITIALIZATION_TYPE" in os.environ:
+            del os.environ["AWS_LAMBDA_INITIALIZATION_TYPE"]
+        self.assertFalse(cold_start.is_managed_instances_mode())
+
+    def test_is_not_managed_instances_mode_with_different_value(self):
+        os.environ["AWS_LAMBDA_INITIALIZATION_TYPE"] = "on-demand"
+        self.assertFalse(cold_start.is_managed_instances_mode())
+        # Clean up
+        if "AWS_LAMBDA_INITIALIZATION_TYPE" in os.environ:
+            del os.environ["AWS_LAMBDA_INITIALIZATION_TYPE"]
+
+    def test_initialize_cold_start_tracing_skips_in_managed_instances(self):
+        # Set managed instances mode
+        os.environ["AWS_LAMBDA_INITIALIZATION_TYPE"] = "lambda-managed-instances"
+        os.environ["DD_COLD_START_TRACING"] = "true"
+        cold_start._cold_start = True
+        cold_start._lambda_container_initialized = False
+
+        # Reset node stacks and wrapped loaders to get clean state
+        cold_start.reset_node_stacks()
+        cold_start.already_wrapped_loaders.clear()
+
+        # Count wrapped loaders before
+        wrapped_loaders_before = len(cold_start.already_wrapped_loaders)
+
+        # Initialize cold start tracing - should skip in managed instances mode
+        cold_start.initialize_cold_start_tracing()
+
+        # Verify no loaders were wrapped
+        wrapped_loaders_after = len(cold_start.already_wrapped_loaders)
+        self.assertEqual(wrapped_loaders_before, wrapped_loaders_after)
+
+        # Clean up
+        if "AWS_LAMBDA_INITIALIZATION_TYPE" in os.environ:
+            del os.environ["AWS_LAMBDA_INITIALIZATION_TYPE"]
+        if "DD_COLD_START_TRACING" in os.environ:
+            del os.environ["DD_COLD_START_TRACING"]
+
     def test_proactive_init(self):
         cold_start._cold_start = True
         cold_start._proactive_initialization = False

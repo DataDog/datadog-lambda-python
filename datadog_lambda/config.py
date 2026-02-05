@@ -98,6 +98,7 @@ class Config:
     integration_test = _get_env("DD_INTEGRATION_TEST", "false", as_bool)
 
     aws_lambda_function_name = _get_env("AWS_LAMBDA_FUNCTION_NAME")
+    aws_lambda_initialization_type = _get_env("AWS_LAMBDA_INITIALIZATION_TYPE")
 
     @property
     def function_name(self):
