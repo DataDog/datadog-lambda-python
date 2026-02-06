@@ -34,15 +34,10 @@ jobs:
           pip download --no-index --no-deps --find-links https://dd-trace-py-builds.s3.amazonaws.com/main/index.html --pre --python-version "${{ matrix.python_version}}"  --platform "${PLATFORM_TAG}" ddtrace
           echo "wheel_path=$(find . -name "*.whl" | head -n 1)" >> $GITHUB_OUTPUT
 
-      - name: Patch pyproject.toml
-        run: |
-          echo "Patching pyproject.toml to use latest build of dd-trace-py"
-          sed -i 's|^ddtrace =.*$|ddtrace = { file = "${{ steps.find-ddtrace-wheel.outputs.wheel_path }}" }|' pyproject.toml
-
       - name: Build layer for Python ${{ matrix.python_version }} on ${{ matrix.arch }}
         run: |
           echo "Building layer for Python ${{ matrix.python_version }} on ${{ matrix.arch }}"
-          ARCH=${{ matrix.arch }} PYTHON_VERSION=${{ matrix.python_version }} ./scripts/build_layers.sh
+          ARCH=${{ matrix.arch }} PYTHON_VERSION=${{ matrix.python_version }} DD_TRACE_WHEEL="${{ steps.find-ddtrace-wheel.outputs.wheel_path }}" ./scripts/build_layers.sh
 
       - name: Upload layer artifact
         uses: actions/upload-artifact@v4

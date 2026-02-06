@@ -46,6 +46,14 @@ else
     PYTHON_VERSIONS=$PYTHON_VERSION
 fi
 
+# Replace ddtrace wheel used if necessary
+if [ -n "$DD_TRACE_COMMIT_BRANCH" ]; then
+    sed -z -E -i 's|(ddtrace = )\[[^]]*]|\1{ git = "https://github.com/DataDog/dd-trace-py.git", branch = \"'"$DD_TRACE_COMMIT_BRANCH"'\" }|g' pyproject.toml
+else
+    if [ -n "$DD_TRACE_WHEEL" ]; then
+        sed -z -E -i 's|(ddtrace = )\[[^]]*]|\1{ file = "'"$DD_TRACE_WHEEL"'" }|g' pyproject.toml
+    fi
+fi
 
 function make_path_absolute {
     echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
