@@ -39,6 +39,7 @@ from datadog_lambda.tracing import (
     create_inferred_span,
     InferredSpanInfo,
     is_authorizer_response,
+    is_durable_execution_replay,
     tracer,
     propagator,
 )
@@ -264,7 +265,9 @@ class _LambdaDecorator(object):
 
             if config.trace_enabled:
                 set_dd_trace_py_root(trace_context_source, config.merge_xray_traces)
-                if config.make_inferred_span:
+                # Skip inferred span for durable execution replays to avoid duplicates
+                # For replays, trace context comes from checkpoint, not from event trigger
+                if config.make_inferred_span and not is_durable_execution_replay(event):
                     self.inferred_span = create_inferred_span(
                         event, context, event_source, config.decode_authorizer_context
                     )
