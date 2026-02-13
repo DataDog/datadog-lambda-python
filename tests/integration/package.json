@@ -1,6 +1,6 @@
 {
   "devDependencies": {
-    "serverless-plugin-datadog": "^2.18.0",
+    "serverless-plugin-datadog": "^2.34.1",
     "serverless-python-requirements": "^6.1.2"
   }
 }
