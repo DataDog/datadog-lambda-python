@@ -28,15 +28,15 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.8.0,<4"
 datadog = ">=0.51.0,<1.0.0"
-wrapt = "^1.11.2"
+wrapt = "^1.17.3"
 ddtrace = [
     {version = ">=3.19.1,<4", python = ">=3.8,<3.10"},
     {version = ">=4.1.1,<5", python = ">=3.10"}
 ]
-ujson = ">=5.9.0"
-botocore = { version = "^1.34.0", optional = true }
-requests = { version ="^2.22.0", optional = true }
-pytest = { version= "^8.0.0", optional = true }
+ujson = ">=5.11.0"
+botocore = { version = "^1.36.26", optional = true }
+requests = { version = "^2.32.5", optional = true }
+pytest = { version = "^8.3.5", optional = true }
 pytest-benchmark = { version = "^4.0", optional = true }
 flake8 = { version = "^5.0.4", optional = true }
 
@@ -48,6 +48,11 @@ dev = [
     "pytest-benchmark",
     "requests",
 ]
+
+[[tool.poetry.source]]
+name = "internal"
+url = "https://depot-read-api-python.us1.ddbuild.io/magicmirror/magicmirror/@current/simple/"
+priority = "primary"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
