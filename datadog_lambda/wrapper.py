@@ -42,6 +42,7 @@ from datadog_lambda.tracing import (
     tracer,
     propagator,
 )
+from datadog_lambda.durable import extract_durable_function_tags
 from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
@@ -243,6 +244,7 @@ class _LambdaDecorator(object):
                 submit_invocations_metric(context)
 
             self.trigger_tags = extract_trigger_tags(event, context)
+            self.durable_function_tags = extract_durable_function_tags(event)
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source, event_source = extract_dd_trace_context(
                 event,
@@ -280,6 +282,7 @@ class _LambdaDecorator(object):
                     trace_context_source=trace_context_source,
                     merge_xray_traces=config.merge_xray_traces,
                     trigger_tags=self.trigger_tags,
+                    durable_function_tags=self.durable_function_tags,
                     parent_span=self.inferred_span,
                     span_pointers=calculate_span_pointers(event_source, event),
                 )
