@@ -38,7 +38,7 @@ def extract_durable_function_tags(event):
 
     parsed = _parse_durable_execution_arn(durable_execution_arn)
     if not parsed:
-        logger.debug(
+        logger.error(
             "Failed to parse DurableExecutionArn: %s", durable_execution_arn
         )
         return {}
