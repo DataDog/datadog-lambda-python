@@ -39,7 +39,9 @@ class TestParseDurableExecutionArn(unittest.TestCase):
     def test_works_with_numeric_version_qualifier(self):
         arn = "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004"
         result = _parse_durable_execution_arn(arn)
-        self.assertEqual(result, ("my-execution", "550e8400-e29b-41d4-a716-446655440004"))
+        self.assertEqual(
+            result, ("my-execution", "550e8400-e29b-41d4-a716-446655440004")
+        )
 
 
 class TestExtractDurableFunctionTags(unittest.TestCase):
