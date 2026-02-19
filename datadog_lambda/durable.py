@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 def _parse_durable_execution_arn(arn):
     """
     Parses a DurableExecutionArn to extract execution name and ID.
-    ARN format: arn:aws:lambda:{region}:{account}:function:{func}:{version}/durable-execution/{name}/{id}
+    ARN format:
+        arn:aws:lambda:{region}:{account}:function:{func}:{version}/durable-execution/{name}/{id}
     Returns (execution_name, execution_id) or None if parsing fails.
     """
     match = re.search(r"/durable-execution/([^/]+)/([^/]+)$", arn)
