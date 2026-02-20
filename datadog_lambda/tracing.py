@@ -12,6 +12,8 @@ from typing import Optional, Dict
 
 from datadog_lambda.metric import submit_errors_metric
 
+# Dummy line
+
 try:
     from typing import Literal
 except ImportError:
