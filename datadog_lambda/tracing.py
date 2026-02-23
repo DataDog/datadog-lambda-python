@@ -1449,6 +1449,7 @@ def create_function_execution_span(
     trace_context_source,
     merge_xray_traces,
     trigger_tags,
+    durable_function_tags=None,
     parent_span=None,
     span_pointers=None,
 ):
@@ -1477,6 +1478,8 @@ def create_function_execution_span(
     if trace_context_source == TraceContextSource.XRAY and merge_xray_traces:
         tags["_dd.parent_source"] = trace_context_source
     tags.update(trigger_tags)
+    if durable_function_tags:
+        tags.update(durable_function_tags)
     tracer.set_tags(_dd_origin)
     # Determine service name based on config and env var
     if config.service:
