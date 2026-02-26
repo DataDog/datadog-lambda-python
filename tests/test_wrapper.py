@@ -836,9 +836,6 @@ def test_exception_replay_enabled(monkeypatch):
 
 
 @patch("datadog_lambda.config.Config.profiling_enabled", True)
-@pytest.mark.skipif(
-    sys.version_info >= (3, 14), reason="profiling not yet supported in python 3.14"
-)
 def test_profiling_enabled(monkeypatch):
     importlib.reload(wrapper)
 
