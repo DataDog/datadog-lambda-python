@@ -25,6 +25,12 @@ ENV PATH=/root/.cargo/bin:$PATH
 
 # Install datadog_lambda and dependencies from local
 COPY . .
+
+# Constrain setuptools<78 for build isolation environments so that
+# pkg_resources is available when building dd-trace-py from source.
+RUN echo 'setuptools<78' > /tmp/build-constraints.txt
+ENV PIP_CONSTRAINT=/tmp/build-constraints.txt
+
 RUN pip install --no-cache-dir . -t ./python/lib/$runtime/site-packages
 
 # Remove botocore (40MB) to reduce package size. aws-xray-sdk

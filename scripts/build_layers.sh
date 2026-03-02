@@ -6,9 +6,27 @@
 # Copyright 2019 Datadog, Inc.
 
 # Builds datadog-lambda-python layers for Lambda functions
-
-# Usage: PYTHON_VERSION=3.11 ./build_layers.sh
-# If PYTHON_VERSION is not specified, all versions will be built.
+#
+# Usage:
+#   PYTHON_VERSION=12 ARCH=arm ./scripts/build_layers.sh
+#
+# Environment variables:
+#   PYTHON_VERSION  Python minor version. Accepts shorthand (e.g. 12) or full (e.g. 3.12).
+#                   If not set, all supported versions are built.
+#   ARCH            Target architecture. Accepts shorthand: arm, amd, x86, aarch64
+#                   or full: arm64, amd64. If not set, both are built.
+#
+# dd-trace-py overrides (mutually exclusive, highest priority first):
+#   DD_TRACE_COMMIT        Specific dd-trace-py commit SHA to build from GitHub.
+#   DD_TRACE_COMMIT_BRANCH dd-trace-py branch name to build from GitHub.
+#   DD_TRACE_WHEEL         Path to a pre-built ddtrace .whl file.
+#
+# Examples:
+#   # Build a single layer for Python 3.12 on arm64
+#   PYTHON_VERSION=12 ARCH=arm ./scripts/build_layers.sh
+#
+#   # Build with a specific dd-trace-py commit (for git bisect)
+#   DD_TRACE_COMMIT=abc123 PYTHON_VERSION=12 ARCH=arm ./scripts/build_layers.sh
 
 set -e
 
@@ -16,6 +34,13 @@ LAYER_DIR=".layers"
 LAYER_FILES_PREFIX="datadog_lambda_py"
 AVAILABLE_PYTHON_VERSIONS=("3.8" "3.9" "3.10" "3.11" "3.12" "3.13" "3.14")
 AVAILABLE_ARCHS=("arm64" "amd64")
+
+if [ -n "$ARCH" ]; then
+    case "$ARCH" in
+        arm|arm64|aarch64) ARCH="arm64" ;;
+        amd|amd64|x86|x86_64) ARCH="amd64" ;;
+    esac
+fi
 
 if [ -z "$ARCH" ]; then
     echo "No architectures specified, building layers for all architectures."
@@ -28,7 +53,14 @@ else
         echo "EXITING SCRIPT."
         exit 1
     fi
-    ARCHS=$ARCH
+    ARCHS=("$ARCH")
+fi
+
+# Normalize Python version shorthand (e.g. 12 -> 3.12, 3.12 -> 3.12)
+if [ -n "$PYTHON_VERSION" ]; then
+    if [[ "$PYTHON_VERSION" =~ ^[0-9]+$ ]]; then
+        PYTHON_VERSION="3.${PYTHON_VERSION}"
+    fi
 fi
 
 # Determine which Python versions to build layers for
@@ -43,16 +75,29 @@ else
         echo "EXITING SCRIPT."
         exit 1
     fi
-    PYTHON_VERSIONS=$PYTHON_VERSION
+    PYTHON_VERSIONS=("$PYTHON_VERSION")
 fi
 
-# Replace ddtrace wheel used if necessary
-if [ -n "$DD_TRACE_COMMIT_BRANCH" ]; then
-    sed -z -E -i 's|(ddtrace = )\[[^]]*]|\1{ git = "https://github.com/DataDog/dd-trace-py.git", branch = \"'"$DD_TRACE_COMMIT_BRANCH"'\" }|g' pyproject.toml
-else
-    if [ -n "$DD_TRACE_WHEEL" ]; then
-        sed -z -E -i 's|(ddtrace = )\[[^]]*]|\1{ file = "'"$DD_TRACE_WHEEL"'" }|g' pyproject.toml
-    fi
+# Backup pyproject.toml so modifications don't persist across runs
+cp pyproject.toml pyproject.toml.bak
+cleanup() {
+    mv pyproject.toml.bak pyproject.toml 2>/dev/null || true
+}
+trap cleanup EXIT
+
+# Helper: replace the multi-line ddtrace dependency in pyproject.toml.
+# Uses perl instead of sed -z for macOS/Linux portability.
+replace_ddtrace_dep() {
+    perl -i -0777 -pe "s|ddtrace = \[[^\]]*\]|$1|gs" pyproject.toml
+}
+
+# Replace ddtrace source if necessary
+if [ -n "$DD_TRACE_COMMIT" ]; then
+    replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", rev = \"$DD_TRACE_COMMIT\" }"
+elif [ -n "$DD_TRACE_COMMIT_BRANCH" ]; then
+    replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", branch = \"$DD_TRACE_COMMIT_BRANCH\" }"
+elif [ -n "$DD_TRACE_WHEEL" ]; then
+    replace_ddtrace_dep "ddtrace = { file = \"$DD_TRACE_WHEEL\" }"
 fi
 
 function make_path_absolute {
