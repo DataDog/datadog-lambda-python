@@ -292,7 +292,7 @@ class _LambdaDecorator(object):
             else:
                 set_correlation_ids()
             if config.profiling_enabled and profiler and is_new_sandbox():
-                self.prof.start(stop_on_exit=False, profile_children=True)
+                self.prof.start()
             logger.debug("datadog_lambda_wrapper _before() done")
         except Exception as e:
             logger.error(format_err_with_traceback(e))
