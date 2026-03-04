@@ -26,9 +26,15 @@ ENV PATH=/root/.cargo/bin:$PATH
 # Install datadog_lambda and dependencies from local
 COPY . .
 
-# Constrain setuptools<78 for build isolation environments so that
-# pkg_resources is available when building dd-trace-py from source.
-RUN echo 'setuptools<78' > /tmp/build-constraints.txt
+# When building dd-trace-py from source (older commits), setuptools<78 is needed
+# in pip's build isolation environment so that pkg_resources is available.
+# An empty constraints file is a no-op for pip.
+ARG pin_setuptools=""
+RUN if [ -n "$pin_setuptools" ]; then \
+        echo 'setuptools<78' > /tmp/build-constraints.txt; \
+    else \
+        touch /tmp/build-constraints.txt; \
+    fi
 ENV PIP_CONSTRAINT=/tmp/build-constraints.txt
 
 RUN pip install --no-cache-dir . -t ./python/lib/$runtime/site-packages
