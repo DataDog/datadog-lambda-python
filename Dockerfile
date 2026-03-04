@@ -25,6 +25,7 @@ ENV PATH=/root/.cargo/bin:$PATH
 
 # Install datadog_lambda and dependencies from local
 COPY . .
+
 RUN pip install --no-cache-dir . -t ./python/lib/$runtime/site-packages
 
 # Remove botocore (40MB) to reduce package size. aws-xray-sdk
