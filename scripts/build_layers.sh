@@ -20,8 +20,6 @@
 #   DD_TRACE_COMMIT        Specific dd-trace-py commit SHA to build from GitHub.
 #   DD_TRACE_COMMIT_BRANCH dd-trace-py branch name to build from GitHub.
 #   DD_TRACE_WHEEL         Path to a pre-built ddtrace .whl file.
-#   PIN_SETUPTOOLS         Set to "true" to constrain setuptools<78 in Docker.
-#                          Only needed for old dd-trace-py commits that import pkg_resources.
 #
 # Examples:
 #   # Build a single layer for Python 3.12 on arm64
@@ -94,7 +92,6 @@ replace_ddtrace_dep() {
 }
 
 # Replace ddtrace source if necessary
-DOCKER_BUILD_ARGS=""
 if [ -n "$DD_TRACE_COMMIT" ]; then
     replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", rev = \"$DD_TRACE_COMMIT\" }"
 elif [ -n "$DD_TRACE_COMMIT_BRANCH" ]; then
@@ -102,13 +99,6 @@ elif [ -n "$DD_TRACE_COMMIT_BRANCH" ]; then
 elif [ -n "$DD_TRACE_WHEEL" ]; then
     replace_ddtrace_dep "ddtrace = { file = \"$DD_TRACE_WHEEL\" }"
 fi
-
-# Older dd-trace-py commits import pkg_resources, which was removed in setuptools>=78.
-# Set PIN_SETUPTOOLS=true to constrain setuptools<78 in pip's build isolation.
-if [ -n "$PIN_SETUPTOOLS" ]; then
-    DOCKER_BUILD_ARGS="--build-arg pin_setuptools=true"
-fi
-
 function make_path_absolute {
     echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
 }
@@ -127,7 +117,6 @@ function docker_build_zip {
         --build-arg runtime=python$1 \
         --platform linux/${arch} \
         --progress=plain \
-        $DOCKER_BUILD_ARGS \
         -o $temp_dir/python
 
     # Zip to destination, and keep directory structure as based in $temp_dir
