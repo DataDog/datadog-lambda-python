@@ -27,7 +27,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.8.0,<4"
-datadog = ">=0.51.0,<1.0.0"
+datadog = ">=0.52.1"
 wrapt = "^1.11.2"
 ddtrace = [
     {version = ">=3.19.1,<4", python = ">=3.8,<3.10"},
@@ -48,6 +48,11 @@ dev = [
     "pytest-benchmark",
     "requests",
 ]
+
+[[tool.poetry.source]]
+name = "internal"
+url = "https://depot-read-api-python.us1.ddbuild.io/magicmirror/magicmirror/@current/simple/"
+priority = "primary"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
