@@ -42,7 +42,10 @@ from datadog_lambda.tracing import (
     tracer,
     propagator,
 )
-from datadog_lambda.durable import extract_durable_function_tags, emit_durable_execution_log
+from datadog_lambda.durable import (
+    extract_durable_function_tags,
+    emit_durable_execution_log,
+)
 from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
