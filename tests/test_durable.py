@@ -109,9 +109,7 @@ class TestEmitDurableExecutionLog(unittest.TestCase):
 
     def test_emits_json_with_all_fields(self):
         output = self._capture_stdout(
-            lambda: emit_durable_execution_log(
-                "req-123", "my-execution", "exec-id-456"
-            )
+            lambda: emit_durable_execution_log("req-123", "my-execution", "exec-id-456")
         )
         data = json.loads(output.strip())
         self.assertEqual(data["request_id"], "req-123")
