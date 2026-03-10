@@ -27,12 +27,15 @@ jobs:
     needs:
       - build
     uses: DataDog/system-tests/.github/workflows/system-tests.yml@main
-    secrets: inherit
+    secrets:
+      DD_API_KEY: ${{ secrets.DD_API_KEY }}
+      TEST_OPTIMIZATION_API_KEY: ${{ secrets.TEST_OPTIMIZATION_API_KEY }}
     permissions:
       contents: read
       packages: write
     with:
       library: python_lambda
       binaries_artifact: binaries
-      scenarios_groups: appsec
+      scenarios_groups: tracer_release
       skip_empty_scenarios: true
+      push_to_test_optimization: true
