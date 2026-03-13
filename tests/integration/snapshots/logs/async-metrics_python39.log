@@ -237,6 +237,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
+          "span.kind": "server",
           "language": "python"
         },
         "metrics": {
@@ -445,6 +446,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
+          "span.kind": "server",
           "function_trigger.event_source": "dynamodb",
           "function_trigger.event_source_arn": "XXXX"
         },
@@ -605,6 +607,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
+          "span.kind": "server",
           "function_trigger.event_source": "eventbridge"
         },
         "metrics": {
@@ -946,6 +949,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
+          "span.kind": "server",
           "function_trigger.event_source": "kinesis",
           "function_trigger.event_source_arn": "XXXX"
         },
@@ -1122,6 +1126,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
+          "span.kind": "server",
           "function_trigger.event_source": "s3",
           "function_trigger.event_source_arn": "XXXX"
         },
@@ -1287,6 +1292,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
+          "span.kind": "server",
           "function_trigger.event_source": "sns",
           "function_trigger.event_source_arn": "XXXX"
         },
@@ -1451,6 +1457,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
+          "span.kind": "server",
           "function_trigger.event_source": "sqs",
           "function_trigger.event_source_arn": "XXXX"
         },
