@@ -3,6 +3,7 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 import unittest
+from unittest.mock import MagicMock
 
 from datadog_lambda.durable import (
     _parse_durable_execution_arn,
@@ -51,12 +52,47 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
             "CheckpointToken": "some-token",
             "InitialExecutionState": {"Operations": []},
         }
-        result = extract_durable_function_tags(event)
+        state = MagicMock()
+        state.is_replaying.return_value = True
+        result = extract_durable_function_tags(event, state)
         self.assertEqual(
             result,
             {
                 "durable_function_execution_name": "my-execution",
                 "durable_function_execution_id": "550e8400-e29b-41d4-a716-446655440004",
+                "durable_function_first_invocation": "false",
+            },
+        )
+
+    def test_sets_first_invocation_true_when_not_replaying(self):
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
+        }
+        state = MagicMock()
+        state.is_replaying.return_value = False
+        result = extract_durable_function_tags(event, state)
+        self.assertEqual(
+            result,
+            {
+                "durable_function_execution_name": "my-execution",
+                "durable_function_execution_id": "550e8400-e29b-41d4-a716-446655440004",
+                "durable_function_first_invocation": "true",
+            },
+        )
+
+    def test_sets_first_invocation_false_when_replaying(self):
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
+        }
+        state = MagicMock()
+        state.is_replaying.return_value = True
+        result = extract_durable_function_tags(event, state)
+        self.assertEqual(
+            result,
+            {
+                "durable_function_execution_name": "my-execution",
+                "durable_function_execution_id": "550e8400-e29b-41d4-a716-446655440004",
+                "durable_function_first_invocation": "false",
             },
         )
 
