@@ -3,9 +3,11 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 import unittest
+from unittest.mock import MagicMock, patch
 
 from datadog_lambda.durable import (
     _parse_durable_execution_arn,
+    durable_execution,
     extract_durable_function_tags,
 )
 
@@ -89,3 +91,76 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
     def test_returns_empty_dict_when_event_is_empty(self):
         result = extract_durable_function_tags({})
         self.assertEqual(result, {})
+
+
+class TestDurableExecution(unittest.TestCase):
+    def _make_durable_context(self, is_replaying):
+        ctx = MagicMock()
+        ctx.state.is_replaying.return_value = is_replaying
+        return ctx
+
+    def test_sets_first_invocation_true_when_not_replaying(self):
+        mock_span = MagicMock()
+        with patch("datadog_lambda.durable.tracer") as mock_tracer:
+            mock_tracer.current_span.return_value = mock_span
+            ctx = self._make_durable_context(is_replaying=False)
+
+            @durable_execution
+            def handler(context):
+                return "result"
+
+            result = handler(ctx)
+
+        self.assertEqual(result, "result")
+        mock_span.set_tag.assert_called_once_with(
+            "durable_function_first_invocation", "true"
+        )
+
+    def test_sets_first_invocation_false_when_replaying(self):
+        mock_span = MagicMock()
+        with patch("datadog_lambda.durable.tracer") as mock_tracer:
+            mock_tracer.current_span.return_value = mock_span
+            ctx = self._make_durable_context(is_replaying=True)
+
+            @durable_execution
+            def handler(context):
+                return "result"
+
+            result = handler(ctx)
+
+        self.assertEqual(result, "result")
+        mock_span.set_tag.assert_called_once_with(
+            "durable_function_first_invocation", "false"
+        )
+
+    def test_does_not_set_tag_when_no_active_span(self):
+        with patch("datadog_lambda.durable.tracer") as mock_tracer:
+            mock_tracer.current_span.return_value = None
+            ctx = self._make_durable_context(is_replaying=False)
+
+            @durable_execution
+            def handler(context):
+                return "result"
+
+            result = handler(ctx)
+
+        self.assertEqual(result, "result")
+
+    def test_does_not_raise_when_context_has_no_state(self):
+        ctx = MagicMock(spec=[])  # no attributes
+        with patch("datadog_lambda.durable.tracer"):
+
+            @durable_execution
+            def handler(context):
+                return "result"
+
+            result = handler(ctx)
+
+        self.assertEqual(result, "result")
+
+    def test_preserves_function_name(self):
+        @durable_execution
+        def my_handler(context):
+            pass
+
+        self.assertEqual(my_handler.__name__, "my_handler")
