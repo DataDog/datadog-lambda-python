@@ -2,11 +2,16 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
+import io
+import json
+import sys
 import unittest
 
 from datadog_lambda.durable import (
     _parse_durable_execution_arn,
     extract_durable_function_tags,
+    emit_durable_execution_log,
+    DURABLE_INVOCATION_LOG_SCHEMA_VERSION,
 )
 
 
@@ -89,3 +94,35 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
     def test_returns_empty_dict_when_event_is_empty(self):
         result = extract_durable_function_tags({})
         self.assertEqual(result, {})
+
+
+class TestEmitDurableExecutionLog(unittest.TestCase):
+    def _capture_stdout(self, fn):
+        captured = io.StringIO()
+        original = sys.stdout
+        sys.stdout = captured
+        try:
+            fn()
+        finally:
+            sys.stdout = original
+        return captured.getvalue()
+
+    def test_emits_json_with_all_fields(self):
+        output = self._capture_stdout(
+            lambda: emit_durable_execution_log("req-123", "my-execution", "exec-id-456")
+        )
+        data = json.loads(output.strip())
+        self.assertEqual(data["request_id"], "req-123")
+        self.assertEqual(data["durable_execution_name"], "my-execution")
+        self.assertEqual(data["durable_execution_id"], "exec-id-456")
+        self.assertEqual(data["schema_version"], DURABLE_INVOCATION_LOG_SCHEMA_VERSION)
+
+    def test_emits_single_json_line(self):
+        output = self._capture_stdout(
+            lambda: emit_durable_execution_log("req-1", "name", "id")
+        )
+        lines = [l for l in output.splitlines() if l.strip()]
+        self.assertEqual(len(lines), 1)
+
+    def test_schema_version_is_correct(self):
+        self.assertEqual(DURABLE_INVOCATION_LOG_SCHEMA_VERSION, "1.0.0")

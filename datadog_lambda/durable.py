@@ -2,10 +2,16 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
+import json
 import logging
 import re
+import sys
 
 logger = logging.getLogger(__name__)
+
+# When changing the schema of the durable invocation log, bump this version so
+# the extension can handle compatibility between old and new schemas.
+DURABLE_INVOCATION_LOG_SCHEMA_VERSION = "1.0.0"
 
 
 def _parse_durable_execution_arn(arn):
@@ -47,3 +53,18 @@ def extract_durable_function_tags(event):
         "durable_function_execution_name": execution_name,
         "durable_function_execution_id": execution_id,
     }
+
+
+def emit_durable_execution_log(request_id, execution_name, execution_id):
+    """
+    Emits a structured JSON log to stdout mapping the Lambda request_id to the
+    durable execution name and ID. This is consumed by the Lambda extension layer
+    to correlate request IDs with durable executions.
+    """
+    log = {
+        "request_id": request_id,
+        "durable_execution_name": execution_name,
+        "durable_execution_id": execution_id,
+        "schema_version": DURABLE_INVOCATION_LOG_SCHEMA_VERSION,
+    }
+    print(json.dumps(log), file=sys.stdout, flush=True)
