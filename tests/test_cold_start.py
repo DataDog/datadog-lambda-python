@@ -310,13 +310,18 @@ def test_lazy_loaded_package_imports(monkeypatch):
     handler.cold_start_tracing = True
     handler({}, lambda_context)
 
-    function_span = import_span = None
+    function_span = import_span = load_span = None
     for span in spans:
         if span.resource == "tabnanny":
             import_span = span
         elif span.name == "aws.lambda":
             function_span = span
+        elif span.name == "aws.lambda.load":
+            load_span = span
 
     assert function_span is not None
     assert import_span is not None
     assert import_span.parent_id == function_span.span_id
+    assert import_span.trace_id == function_span.trace_id
+    assert load_span is not None
+    assert load_span.trace_id == function_span.trace_id
