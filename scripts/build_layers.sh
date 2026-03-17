@@ -129,12 +129,12 @@ function docker_build_zip {
             | grep -o "ddtrace-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl" \
             | head -n 1)
         if [ -z "${WHEEL_FILE}" ]; then
-            echo "Error: no wheel found for ${PY_TAG} ${PLATFORM} in ${S3_BASE}/index-manylinux2014.html" >&2
-            exit 1
+            echo "No S3 wheel found for ${PY_TAG} ${PLATFORM}, using default pyproject.toml version"
+        else
+            curl -sSfL "${S3_BASE}/${WHEEL_FILE}" -o "${WHEEL_FILE}"
+            echo "Using S3 wheel: ${WHEEL_FILE}"
+            replace_ddtrace_dep "ddtrace = { file = \"${WHEEL_FILE}\" }"
         fi
-        curl -sSfL "${S3_BASE}/${WHEEL_FILE}" -o "${WHEEL_FILE}"
-        echo "Using S3 wheel: ${WHEEL_FILE}"
-        replace_ddtrace_dep "ddtrace = { file = \"${WHEEL_FILE}\" }"
     fi
 
     # Install datadogpy in a docker container to avoid the mess from switching
