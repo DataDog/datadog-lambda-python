@@ -20,6 +20,9 @@
 #   DD_TRACE_COMMIT        Specific dd-trace-py commit SHA to build from GitHub.
 #   DD_TRACE_COMMIT_BRANCH dd-trace-py branch name to build from GitHub.
 #   DD_TRACE_WHEEL         Path to a pre-built ddtrace .whl file.
+#   UPSTREAM_PIPELINE_ID   GitLab pipeline ID from dd-trace-py. Downloads the
+#                          matching pre-built manylinux2014 wheel from S3 for
+#                          each python/arch combination.
 #
 # Examples:
 #   # Build a single layer for Python 3.12 on arm64
@@ -91,14 +94,6 @@ replace_ddtrace_dep() {
     perl -i -0777 -pe "s|ddtrace = \[[^\]]*\]|$1|gs" pyproject.toml
 }
 
-# Replace ddtrace source if necessary
-if [ -n "$DD_TRACE_COMMIT" ]; then
-    replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", rev = \"$DD_TRACE_COMMIT\" }"
-elif [ -n "$DD_TRACE_COMMIT_BRANCH" ]; then
-    replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", branch = \"$DD_TRACE_COMMIT_BRANCH\" }"
-elif [ -n "$DD_TRACE_WHEEL" ]; then
-    replace_ddtrace_dep "ddtrace = { file = \"$DD_TRACE_WHEEL\" }"
-fi
 function make_path_absolute {
     echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
 }
@@ -108,6 +103,35 @@ function docker_build_zip {
 
     destination=$(make_path_absolute $2)
     arch=$3
+
+    # Restore pyproject.toml to a clean state for each build iteration
+    cp pyproject.toml.bak pyproject.toml
+
+    # Remove any previously downloaded wheels
+    rm -f ddtrace-*.whl
+
+    # Replace ddtrace source if necessary
+    if [ -n "$DD_TRACE_COMMIT" ]; then
+        replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", rev = \"$DD_TRACE_COMMIT\" }"
+    elif [ -n "$DD_TRACE_COMMIT_BRANCH" ]; then
+        replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", branch = \"$DD_TRACE_COMMIT_BRANCH\" }"
+    elif [ -n "$DD_TRACE_WHEEL" ]; then
+        replace_ddtrace_dep "ddtrace = { file = \"$DD_TRACE_WHEEL\" }"
+    elif [ -n "$UPSTREAM_PIPELINE_ID" ]; then
+        S3_BASE="https://dd-trace-py-builds.s3.amazonaws.com/${UPSTREAM_PIPELINE_ID}"
+        if [ "${arch}" = "amd64" ]; then
+            PLATFORM="manylinux2014_x86_64"
+        else
+            PLATFORM="manylinux2014_aarch64"
+        fi
+        curl -sSfL "${S3_BASE}/download-manylinux2014.sh" | bash -s -- \
+            --dest . \
+            --python-version "$1" \
+            --platform "${PLATFORM}"
+        WHEEL_FILE=$(ls ddtrace-*.whl | head -n 1)
+        echo "Using S3 wheel: ${WHEEL_FILE}"
+        replace_ddtrace_dep "ddtrace = { file = \"${WHEEL_FILE}\" }"
+    fi
 
     # Install datadogpy in a docker container to avoid the mess from switching
     # between different python runtimes.
