@@ -21,8 +21,8 @@
 #   DD_TRACE_COMMIT_BRANCH dd-trace-py branch name to build from GitHub.
 #   DD_TRACE_WHEEL         Path to a pre-built ddtrace .whl file.
 #   UPSTREAM_PIPELINE_ID   GitLab pipeline ID from dd-trace-py. Downloads the
-#                          matching pre-built manylinux2014 wheel from S3 for
-#                          each python/arch combination.
+#                          matching pre-built wheel from S3 (via
+#                          index-manylinux2014.html) for each python/arch.
 #
 # Examples:
 #   # Build a single layer for Python 3.12 on arm64
@@ -124,11 +124,15 @@ function docker_build_zip {
         else
             PLATFORM="manylinux2014_aarch64"
         fi
-        curl -sSfL "${S3_BASE}/download-manylinux2014.sh" | bash -s -- \
-            --dest . \
-            --python-version "$1" \
-            --platform "${PLATFORM}"
-        WHEEL_FILE=$(ls ddtrace-*.whl | head -n 1)
+        PY_TAG="cp$(echo "$1" | tr -d '.')"
+        WHEEL_FILE=$(curl -sSfL "${S3_BASE}/index-manylinux2014.html" \
+            | grep -o "ddtrace-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl" \
+            | head -n 1)
+        if [ -z "${WHEEL_FILE}" ]; then
+            echo "Error: no wheel found for ${PY_TAG} ${PLATFORM} in ${S3_BASE}/index-manylinux2014.html" >&2
+            exit 1
+        fi
+        curl -sSfL "${S3_BASE}/${WHEEL_FILE}" -o "${WHEEL_FILE}"
         echo "Using S3 wheel: ${WHEEL_FILE}"
         replace_ddtrace_dep "ddtrace = { file = \"${WHEEL_FILE}\" }"
     fi
