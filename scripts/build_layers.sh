@@ -107,9 +107,6 @@ function docker_build_zip {
     # Restore pyproject.toml to a clean state for each build iteration
     cp pyproject.toml.bak pyproject.toml
 
-    # Remove any previously downloaded wheels
-    rm -f ddtrace-*.whl
-
     # Replace ddtrace source if necessary
     if [ -n "$DD_TRACE_COMMIT" ]; then
         replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", rev = \"$DD_TRACE_COMMIT\" }"
