@@ -42,7 +42,10 @@ from datadog_lambda.tracing import (
     tracer,
     propagator,
 )
-from datadog_lambda.durable import extract_durable_function_tags
+from datadog_lambda.durable import (
+    extract_durable_function_tags,
+    extract_durable_function_status_tag,
+)
 from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
@@ -339,6 +342,13 @@ class _LambdaDecorator(object):
 
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
+
+                # Extract and set durable function execution status
+                durable_status_tags = extract_durable_function_status_tag(
+                    self.response, event
+                )
+                for tag_name, tag_value in durable_status_tags.items():
+                    self.span.set_tag(tag_name, tag_value)
 
                 self.span.finish()
 
