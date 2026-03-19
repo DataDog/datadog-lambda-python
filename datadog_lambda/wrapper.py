@@ -345,7 +345,9 @@ class _LambdaDecorator(object):
 
                 durable_status = extract_durable_execution_status(self.response, event)
                 if durable_status:
-                    self.span.set_tag("durable_function_execution_status", durable_status)
+                    self.span.set_tag(
+                        "durable_function_execution_status", durable_status
+                    )
 
                 self.span.finish()
 
