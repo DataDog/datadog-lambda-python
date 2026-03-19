@@ -25,6 +25,11 @@ def _parse_durable_execution_arn(arn):
 
 
 def extract_durable_function_tags(event):
+    """
+    Extracts durable function tags from the Lambda event payload.
+    Returns a dict with durable function tags, or an empty dict if the event
+    is not a durable function invocation.
+    """
     if not isinstance(event, dict):
         return {}
 
