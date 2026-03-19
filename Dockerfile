@@ -37,6 +37,15 @@ RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_ast/iastpatc
 RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_taint_tracking/_vendor
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_taint_tracking/*.so
 RUN rm -f ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast/_stacktrace*.so
+RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/internal/test_visibility
+RUN find ./python/lib/$runtime/site-packages -name "CMakeLists.txt" -delete
+RUN find ./python/lib/$runtime/site-packages -name "*.pyi" -delete
+RUN find ./python/lib/$runtime/site-packages -name "*.md" -delete
+RUN find ./python/lib/$runtime/site-packages -name "*.sh" -delete
+# Dogshell
+RUN rm -rf ./python/lib/$runtime/site-packages/datadog/dogshell
+RUN rm -rf ./python/lib/$runtime/site-packages/bin/dog*
+
 # remove *.dist-info directories except any entry_points.txt files and METADATA files required for Appsec Software Composition Analysis
 RUN find ./python/lib/$runtime/site-packages/*.dist-info \
         -type f \
@@ -50,7 +59,8 @@ RUN rm -rf \
         ./python/lib/$runtime/site-packages/urllib3* \
         ./python/lib/$runtime/site-packages/certifi* \
         ./python/lib/$runtime/site-packages/idna* \
-        ./python/lib/$runtime/site-packages/charset_normalizer*
+        ./python/lib/$runtime/site-packages/charset_normalizer* \
+        ./python/lib/$runtime/site-packages/*__mypyc*.so  # from charset_normalizer
 
 # Precompile all .pyc files and remove .py files. This speeds up load time.
 # Compile with optimization level 2 (-OO) and PYTHONNODEBUGRANGES=1 to redtce
