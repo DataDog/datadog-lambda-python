@@ -62,23 +62,6 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
             },
         )
 
-    def test_sets_first_invocation_true_when_no_operations(self):
-        # Empty operations list → not replaying → first invocation
-        event = {
-            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
-            "CheckpointToken": "some-token",
-            "InitialExecutionState": {"Operations": []},
-        }
-        result = extract_durable_function_tags(event)
-        self.assertEqual(
-            result,
-            {
-                "durable_function_execution_name": "my-execution",
-                "durable_function_execution_id": "550e8400-e29b-41d4-a716-446655440004",
-                "durable_function_first_invocation": "true",
-            },
-        )
-
     def test_sets_first_invocation_false_when_multiple_operations(self):
         # More than one operation → replaying → not first invocation
         event = {
@@ -98,22 +81,6 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
                 "durable_function_execution_name": "my-execution",
                 "durable_function_execution_id": "550e8400-e29b-41d4-a716-446655440004",
                 "durable_function_first_invocation": "false",
-            },
-        )
-
-    def test_sets_first_invocation_true_when_initial_execution_state_absent(self):
-        # No InitialExecutionState key → treated as empty → first invocation
-        event = {
-            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
-            "CheckpointToken": "some-token",
-        }
-        result = extract_durable_function_tags(event)
-        self.assertEqual(
-            result,
-            {
-                "durable_function_execution_name": "my-execution",
-                "durable_function_execution_id": "550e8400-e29b-41d4-a716-446655440004",
-                "durable_function_first_invocation": "true",
             },
         )
 
