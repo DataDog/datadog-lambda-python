@@ -25,11 +25,6 @@ def _parse_durable_execution_arn(arn):
 
 
 def extract_durable_function_tags(event):
-    """
-    Extracts durable function tags from the Lambda event payload.
-    Returns a dict with durable function tags, or an empty dict if the event
-    is not a durable function invocation.
-    """
     if not isinstance(event, dict):
         return {}
 
@@ -53,10 +48,6 @@ VALID_DURABLE_STATUSES = {"SUCCEEDED", "FAILED", "PENDING"}
 
 
 def extract_durable_execution_status(response, event):
-    """
-    Extract durable function execution status from handler response.
-    Returns the status string if valid, None otherwise.
-    """
     if not isinstance(event, dict) or "DurableExecutionArn" not in event:
         return None
     if not isinstance(response, dict):
