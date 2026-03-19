@@ -49,7 +49,7 @@ def extract_durable_function_tags(event):
     }
 
 
-VALID_DURABLE_STATUSES = {"SUCCEEDED", "FAILED", "PENDING"}
+VALID_DURABLE_STATUSES = {"SUCCEEDED", "FAILED", "STOPPED", "TIMED_OUT"}
 
 
 def extract_durable_execution_status(response, event):
