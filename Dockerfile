@@ -76,6 +76,7 @@ RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.cc -delete
 RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.h -delete
 RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.hpp -delete
 RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.pyx -delete
+RUN find ./python/lib/$runtime/site-packages/ddtrace -name \*.pyi -delete
 
 # Strip debug symbols and symbols that are not needed for relocation
 # processing  using strip --strip-unneeded for all .so files. This is to
