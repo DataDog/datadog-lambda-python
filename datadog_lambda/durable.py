@@ -52,25 +52,16 @@ def extract_durable_function_tags(event):
 VALID_DURABLE_STATUSES = {"SUCCEEDED", "FAILED", "PENDING"}
 
 
-def extract_durable_function_status_tag(response, event):
+def extract_durable_execution_status(response, event):
     """
     Extract durable function execution status from handler response.
-
-    Returns a dict with the status tag if:
-    - The event indicates a durable function invocation (has DurableExecutionArn)
-    - The response is a dict with a valid Status field
-
-    Returns empty dict otherwise.
+    Returns the status string if valid, None otherwise.
     """
-    # Only add status tag for durable function invocations
     if not isinstance(event, dict) or "DurableExecutionArn" not in event:
-        return {}
-
+        return None
     if not isinstance(response, dict):
-        return {}
-
+        return None
     status = response.get("Status")
     if status not in VALID_DURABLE_STATUSES:
-        return {}
-
-    return {"durable_function_execution_status": status}
+        return None
+    return status

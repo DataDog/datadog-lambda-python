@@ -7,7 +7,7 @@ import unittest
 from datadog_lambda.durable import (
     _parse_durable_execution_arn,
     extract_durable_function_tags,
-    extract_durable_function_status_tag,
+    extract_durable_execution_status,
 )
 
 
@@ -92,63 +92,49 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
         self.assertEqual(result, {})
 
 
-class TestExtractDurableFunctionStatusTag(unittest.TestCase):
-    def test_succeeded_status(self):
-        event = {"DurableExecutionArn": "arn:aws:states:us-east-1:123456789012:..."}
+class TestExtractDurableExecutionStatus(unittest.TestCase):
+    def test_returns_succeeded(self):
+        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
         response = {"Status": "SUCCEEDED", "Result": "some-result"}
-        result = extract_durable_function_status_tag(response, event)
-        self.assertEqual(result, {"durable_function_execution_status": "SUCCEEDED"})
+        self.assertEqual(extract_durable_execution_status(response, event), "SUCCEEDED")
 
-    def test_failed_status(self):
-        event = {"DurableExecutionArn": "arn:aws:states:us-east-1:123456789012:..."}
+    def test_returns_failed(self):
+        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
         response = {"Status": "FAILED", "Error": "some-error"}
-        result = extract_durable_function_status_tag(response, event)
-        self.assertEqual(result, {"durable_function_execution_status": "FAILED"})
+        self.assertEqual(extract_durable_execution_status(response, event), "FAILED")
 
-    def test_pending_status(self):
-        event = {"DurableExecutionArn": "arn:aws:states:us-east-1:123456789012:..."}
+    def test_returns_pending(self):
+        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
         response = {"Status": "PENDING"}
-        result = extract_durable_function_status_tag(response, event)
-        self.assertEqual(result, {"durable_function_execution_status": "PENDING"})
+        self.assertEqual(extract_durable_execution_status(response, event), "PENDING")
 
-    def test_non_durable_event_returns_empty(self):
-        event = {"key": "value"}  # No DurableExecutionArn
+    def test_returns_none_for_non_durable_event(self):
+        event = {"key": "value"}
         response = {"Status": "SUCCEEDED"}
-        result = extract_durable_function_status_tag(response, event)
-        self.assertEqual(result, {})
+        self.assertIsNone(extract_durable_execution_status(response, event))
 
-    def test_non_dict_response_returns_empty(self):
-        event = {"DurableExecutionArn": "arn:aws:states:us-east-1:123456789012:..."}
-        response = "string response"
-        result = extract_durable_function_status_tag(response, event)
-        self.assertEqual(result, {})
+    def test_returns_none_for_non_dict_response(self):
+        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
+        self.assertIsNone(extract_durable_execution_status("string", event))
 
-    def test_missing_status_returns_empty(self):
-        event = {"DurableExecutionArn": "arn:aws:states:us-east-1:123456789012:..."}
-        response = {"Result": "some-result"}  # No Status field
-        result = extract_durable_function_status_tag(response, event)
-        self.assertEqual(result, {})
+    def test_returns_none_for_missing_status(self):
+        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
+        response = {"Result": "some-result"}
+        self.assertIsNone(extract_durable_execution_status(response, event))
 
-    def test_invalid_status_returns_empty(self):
-        event = {"DurableExecutionArn": "arn:aws:states:us-east-1:123456789012:..."}
+    def test_returns_none_for_invalid_status(self):
+        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
         response = {"Status": "INVALID"}
-        result = extract_durable_function_status_tag(response, event)
-        self.assertEqual(result, {})
+        self.assertIsNone(extract_durable_execution_status(response, event))
 
-    def test_non_dict_event_returns_empty(self):
-        event = "not-a-dict"
+    def test_returns_none_for_non_dict_event(self):
         response = {"Status": "SUCCEEDED"}
-        result = extract_durable_function_status_tag(response, event)
-        self.assertEqual(result, {})
+        self.assertIsNone(extract_durable_execution_status(response, "not-a-dict"))
 
-    def test_none_event_returns_empty(self):
-        event = None
+    def test_returns_none_for_none_event(self):
         response = {"Status": "SUCCEEDED"}
-        result = extract_durable_function_status_tag(response, event)
-        self.assertEqual(result, {})
+        self.assertIsNone(extract_durable_execution_status(response, None))
 
-    def test_none_response_returns_empty(self):
-        event = {"DurableExecutionArn": "arn:aws:states:us-east-1:123456789012:..."}
-        response = None
-        result = extract_durable_function_status_tag(response, event)
-        self.assertEqual(result, {})
+    def test_returns_none_for_none_response(self):
+        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
+        self.assertIsNone(extract_durable_execution_status(None, event))
