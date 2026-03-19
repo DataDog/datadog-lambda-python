@@ -39,6 +39,8 @@ RUN find ./python/lib/$runtime/site-packages -name "CMakeLists.txt" -delete
 RUN find ./python/lib/$runtime/site-packages -name "*.pyi" -delete
 RUN find ./python/lib/$runtime/site-packages -name "*.md" -delete
 RUN find ./python/lib/$runtime/site-packages -name "*.sh" -delete
+RUN find ./python/lib/$runtime/site-packages -name "*.cmake" -delete
+RUN find ./python/lib/$runtime/site-packages -name "*.pxd" -delete
 # Dogshell
 RUN rm -rf ./python/lib/$runtime/site-packages/datadog/dogshell
 RUN rm -rf ./python/lib/$runtime/site-packages/bin/dog*
