@@ -33,7 +33,7 @@ RUN pip install --no-cache-dir . -t ./python/lib/$runtime/site-packages
 RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
 RUN rm -rf ./python/lib/$runtime/site-packages/setuptools
 RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
-RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec
+RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast
 RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/internal/test_visibility
 RUN find ./python/lib/$runtime/site-packages -name "CMakeLists.txt" -delete
 RUN find ./python/lib/$runtime/site-packages -name "*.pyi" -delete
