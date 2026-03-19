@@ -156,7 +156,7 @@ class _LambdaDecorator(object):
             if config.trace_extractor:
                 extractor_parts = config.trace_extractor.rsplit(".", 1)
                 if len(extractor_parts) == 2:
-                    (mod_name, extractor_name) = extractor_parts
+                    mod_name, extractor_name = extractor_parts
                     modified_extractor_name = modify_module_name(mod_name)
                     extractor_module = import_module(modified_extractor_name)
                     self.trace_extractor = getattr(extractor_module, extractor_name)

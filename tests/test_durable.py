@@ -94,17 +94,23 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
 
 class TestExtractDurableExecutionStatus(unittest.TestCase):
     def test_returns_succeeded(self):
-        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"
+        }
         response = {"Status": "SUCCEEDED", "Result": "some-result"}
         self.assertEqual(extract_durable_execution_status(response, event), "SUCCEEDED")
 
     def test_returns_failed(self):
-        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"
+        }
         response = {"Status": "FAILED", "Error": "some-error"}
         self.assertEqual(extract_durable_execution_status(response, event), "FAILED")
 
     def test_returns_pending(self):
-        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"
+        }
         response = {"Status": "PENDING"}
         self.assertEqual(extract_durable_execution_status(response, event), "PENDING")
 
@@ -114,16 +120,22 @@ class TestExtractDurableExecutionStatus(unittest.TestCase):
         self.assertIsNone(extract_durable_execution_status(response, event))
 
     def test_returns_none_for_non_dict_response(self):
-        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"
+        }
         self.assertIsNone(extract_durable_execution_status("string", event))
 
     def test_returns_none_for_missing_status(self):
-        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"
+        }
         response = {"Result": "some-result"}
         self.assertIsNone(extract_durable_execution_status(response, event))
 
     def test_returns_none_for_invalid_status(self):
-        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"
+        }
         response = {"Status": "INVALID"}
         self.assertIsNone(extract_durable_execution_status(response, event))
 
@@ -136,5 +148,7 @@ class TestExtractDurableExecutionStatus(unittest.TestCase):
         self.assertIsNone(extract_durable_execution_status(response, None))
 
     def test_returns_none_for_none_response(self):
-        event = {"DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"}
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"
+        }
         self.assertIsNone(extract_durable_execution_status(None, event))
