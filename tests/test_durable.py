@@ -46,7 +46,7 @@ class TestParseDurableExecutionArn(unittest.TestCase):
 
 class TestExtractDurableFunctionTags(unittest.TestCase):
     def test_sets_first_invocation_true_when_only_execution_operation(self):
-        # One operation → not replaying → first invocation
+        # One operation (the current EXECUTION operation itself) → not replaying → first invocation
         event = {
             "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
             "CheckpointToken": "some-token",
@@ -58,7 +58,7 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
             {
                 "durable_function_execution_name": "my-execution",
                 "durable_function_execution_id": "550e8400-e29b-41d4-a716-446655440004",
-                "durable_function_first_invocation": "true",
+                "aws.lambda.durable_function.first_invocation": "true",
             },
         )
 
@@ -80,7 +80,7 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
             {
                 "durable_function_execution_name": "my-execution",
                 "durable_function_execution_id": "550e8400-e29b-41d4-a716-446655440004",
-                "durable_function_first_invocation": "false",
+                "aws.lambda.durable_function.first_invocation": "false",
             },
         )
 
