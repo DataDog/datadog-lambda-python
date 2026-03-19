@@ -141,7 +141,7 @@ if config.is_gov_region or config.fips_mode_enabled:
         "enabled" if config.fips_mode_enabled else "not enabled",
     )
 
-if ("DD_TRACE_COMPUTE_STATS" not in os.environ):
+if "DD_TRACE_COMPUTE_STATS" not in os.environ:
     os.environ["DD_TRACE_COMPUTE_STATS"] = "false"
 
 if (
