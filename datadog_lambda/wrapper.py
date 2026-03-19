@@ -153,7 +153,7 @@ class _LambdaDecorator(object):
             if config.trace_extractor:
                 extractor_parts = config.trace_extractor.rsplit(".", 1)
                 if len(extractor_parts) == 2:
-                    mod_name, extractor_name = extractor_parts
+                    (mod_name, extractor_name) = extractor_parts
                     modified_extractor_name = modify_module_name(mod_name)
                     extractor_module = import_module(modified_extractor_name)
                     self.trace_extractor = getattr(extractor_module, extractor_name)
@@ -244,9 +244,7 @@ class _LambdaDecorator(object):
                 submit_invocations_metric(context)
 
             self.trigger_tags = extract_trigger_tags(event, context)
-            self.durable_function_tags = extract_durable_function_tags(
-                event, context.state
-            )
+            self.durable_function_tags = extract_durable_function_tags(event)
             # Extract Datadog trace context and source from incoming requests
             dd_context, trace_context_source, event_source = extract_dd_trace_context(
                 event,

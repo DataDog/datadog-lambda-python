@@ -24,7 +24,7 @@ def _parse_durable_execution_arn(arn):
     return execution_name, execution_id
 
 
-def extract_durable_function_tags(event, state=None):
+def extract_durable_function_tags(event):
     """
     Extracts durable function tags from the Lambda event payload.
     Returns a dict with durable function tags, or an empty dict if the event
@@ -43,15 +43,10 @@ def extract_durable_function_tags(event, state=None):
         return {}
 
     execution_name, execution_id = parsed
-    try:
-        first_invocation = str(not state.is_replaying()).lower()
-    except Exception:
-        logger.debug("Failed to compute durable_function_first_invocation")
-        first_invocation = None
-    tags = {
+    operations = event.get("InitialExecutionState", {}).get("Operations", [])
+    is_first_invocation = len(operations) <= 1
+    return {
         "durable_function_execution_name": execution_name,
         "durable_function_execution_id": execution_id,
+        "durable_function_first_invocation": str(is_first_invocation).lower(),
     }
-    if first_invocation is not None:
-        tags["durable_function_first_invocation"] = first_invocation
-    return tags

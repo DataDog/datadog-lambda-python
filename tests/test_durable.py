@@ -3,7 +3,6 @@
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
 import unittest
-from unittest.mock import MagicMock
 
 from datadog_lambda.durable import (
     _parse_durable_execution_arn,
@@ -46,31 +45,14 @@ class TestParseDurableExecutionArn(unittest.TestCase):
 
 
 class TestExtractDurableFunctionTags(unittest.TestCase):
-    def test_extracts_tags_from_event_with_durable_execution_arn(self):
+    def test_sets_first_invocation_true_when_only_execution_operation(self):
+        # One operation (the EXECUTION op itself) → not replaying → first invocation
         event = {
             "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
             "CheckpointToken": "some-token",
-            "InitialExecutionState": {"Operations": []},
+            "InitialExecutionState": {"Operations": [{"OperationType": "EXECUTION"}]},
         }
-        state = MagicMock()
-        state.is_replaying.return_value = True
-        result = extract_durable_function_tags(event, state)
-        self.assertEqual(
-            result,
-            {
-                "durable_function_execution_name": "my-execution",
-                "durable_function_execution_id": "550e8400-e29b-41d4-a716-446655440004",
-                "durable_function_first_invocation": "false",
-            },
-        )
-
-    def test_sets_first_invocation_true_when_not_replaying(self):
-        event = {
-            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
-        }
-        state = MagicMock()
-        state.is_replaying.return_value = False
-        result = extract_durable_function_tags(event, state)
+        result = extract_durable_function_tags(event)
         self.assertEqual(
             result,
             {
@@ -80,19 +62,58 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
             },
         )
 
-    def test_sets_first_invocation_false_when_replaying(self):
+    def test_sets_first_invocation_true_when_no_operations(self):
+        # Empty operations list → not replaying → first invocation
         event = {
             "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
+            "CheckpointToken": "some-token",
+            "InitialExecutionState": {"Operations": []},
         }
-        state = MagicMock()
-        state.is_replaying.return_value = True
-        result = extract_durable_function_tags(event, state)
+        result = extract_durable_function_tags(event)
+        self.assertEqual(
+            result,
+            {
+                "durable_function_execution_name": "my-execution",
+                "durable_function_execution_id": "550e8400-e29b-41d4-a716-446655440004",
+                "durable_function_first_invocation": "true",
+            },
+        )
+
+    def test_sets_first_invocation_false_when_multiple_operations(self):
+        # More than one operation → replaying → not first invocation
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
+            "CheckpointToken": "some-token",
+            "InitialExecutionState": {
+                "Operations": [
+                    {"OperationType": "EXECUTION"},
+                    {"OperationType": "STEP"},
+                ]
+            },
+        }
+        result = extract_durable_function_tags(event)
         self.assertEqual(
             result,
             {
                 "durable_function_execution_name": "my-execution",
                 "durable_function_execution_id": "550e8400-e29b-41d4-a716-446655440004",
                 "durable_function_first_invocation": "false",
+            },
+        )
+
+    def test_sets_first_invocation_true_when_initial_execution_state_absent(self):
+        # No InitialExecutionState key → treated as empty → first invocation
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
+            "CheckpointToken": "some-token",
+        }
+        result = extract_durable_function_tags(event)
+        self.assertEqual(
+            result,
+            {
+                "durable_function_execution_name": "my-execution",
+                "durable_function_execution_id": "550e8400-e29b-41d4-a716-446655440004",
+                "durable_function_first_invocation": "true",
             },
         )
 
