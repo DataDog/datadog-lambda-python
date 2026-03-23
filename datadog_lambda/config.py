@@ -149,7 +149,8 @@ if (
     os.environ["DD_TRACE_COMPUTE_STATS"] = "false"
 else:
     logger.warning(
-        "Detected DD_TRACE_COMPUTE_STATS and/or DD_TRACE_STATS_COMPUTATION_ENABLED. These envs should be disabled to avoid double counting Client Side Stats"
+        "Detected DD_TRACE_COMPUTE_STATS and/or DD_TRACE_STATS_COMPUTATION_ENABLED. \
+        These envs should be disabled to avoid double counting Client Side Stats"
     )
 
 if (
