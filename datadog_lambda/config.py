@@ -141,17 +141,12 @@ if config.is_gov_region or config.fips_mode_enabled:
         "enabled" if config.fips_mode_enabled else "not enabled",
     )
 
-# disable css by default to prevent double counting in lambda
-if (
-    "DD_TRACE_COMPUTE_STATS" not in os.environ
-    and "DD_TRACE_STATS_COMPUTATION_ENABLED" not in os.environ
-):
-    os.environ["DD_TRACE_COMPUTE_STATS"] = "false"
-else:
-    logger.warning(
-        "Detected DD_TRACE_COMPUTE_STATS and/or DD_TRACE_STATS_COMPUTATION_ENABLED. \
-        These envs should be disabled to avoid double counting Client Side Stats"
-    )
+# disable css to prevent double counting in lambda
+os.environ["DD_TRACE_STATS_COMPUTATION_ENABLED"] = "false"
+
+# unset css aliases to ensure it is disabled
+if "DD_TRACE_COMPUTE_STATS" in os.environ:
+    del os.environ["DD_TRACE_COMPUTE_STATS"]
 
 if (
     "DD_INSTRUMENTATION_TELEMETRY_ENABLED" not in os.environ
