@@ -49,5 +49,7 @@ def extract_durable_function_tags(event):
     return {
         "durable_function_execution_name": execution_name,
         "durable_function_execution_id": execution_id,
-        "aws.lambda.durable_function.first_invocation": str(is_first_invocation).lower(),
+        "aws.lambda.durable_function.first_invocation": str(
+            is_first_invocation
+        ).lower(),
     }
