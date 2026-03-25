@@ -765,6 +765,23 @@ class TestLambdaWrapperAppsecBlocking(unittest.TestCase):
 
         assert lambda_handler.span.get_tag("http.status_code") == "403"
 
+    def test_handler_exception_propagates_when_appsec_enabled(self):
+        # Regression guard: before the fix, `return` in the `finally` block
+        # would silently swallow handler exceptions when no blocking response
+        # was set, preventing them from reaching the caller.
+        self.mock_get_asm_blocking_response.return_value = None
+
+        class HandlerError(Exception):
+            pass
+
+        def lambda_handler(event, context):
+            raise HandlerError("handler error")
+
+        lambda_handler = wrapper.datadog_lambda_wrapper(lambda_handler)
+
+        with self.assertRaises(HandlerError):
+            lambda_handler(self.api_gateway_request, get_mock_context())
+
     def test_no_blocking_appsec_disabled(self):
         os.environ["DD_APPSEC_ENABLED"] = "false"
 
