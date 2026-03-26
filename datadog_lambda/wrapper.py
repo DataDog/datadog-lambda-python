@@ -42,7 +42,10 @@ from datadog_lambda.tracing import (
     tracer,
     propagator,
 )
-from datadog_lambda.durable import extract_durable_function_tags
+from datadog_lambda.durable import (
+    extract_durable_function_tags,
+    extract_durable_execution_status,
+)
 from datadog_lambda.trigger import (
     extract_trigger_tags,
     extract_http_status_code_tag,
@@ -153,7 +156,7 @@ class _LambdaDecorator(object):
             if config.trace_extractor:
                 extractor_parts = config.trace_extractor.rsplit(".", 1)
                 if len(extractor_parts) == 2:
-                    (mod_name, extractor_name) = extractor_parts
+                    mod_name, extractor_name = extractor_parts
                     modified_extractor_name = modify_module_name(mod_name)
                     extractor_module = import_module(modified_extractor_name)
                     self.trace_extractor = getattr(extractor_module, extractor_name)
@@ -339,6 +342,13 @@ class _LambdaDecorator(object):
 
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
+
+                durable_status = extract_durable_execution_status(self.response, event)
+                if durable_status:
+                    self.span.set_tag(
+                        "aws_lambda.durable_function.execution_status",
+                        durable_status,
+                    )
 
                 self.span.finish()
 
