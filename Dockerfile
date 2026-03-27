@@ -34,6 +34,8 @@ RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
 RUN rm -rf ./python/lib/$runtime/site-packages/setuptools
 RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
 RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast
+RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/sca
+RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/_shared
 RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/internal/test_visibility
 # Dogshell
 RUN rm -rf ./python/lib/$runtime/site-packages/datadog/dogshell
