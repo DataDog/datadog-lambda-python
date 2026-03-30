@@ -63,8 +63,15 @@ RUN rm -rf \
 # https://docs.python.org/3/using/cmdline.html#envvar-PYTHONNODEBUGRANGES
 RUN PYTHONNODEBUGRANGES=1 python -OO -m compileall -b ./python/lib/$runtime/site-packages
 # remove all .py files
-# DEV: previously we kept patch.py files, but this is no longer necessary
-RUN find ./python/lib/$runtime/site-packages -name \*.py | xargs rm -rf
+# DEV: ddtrace>=4.7.0rc4 checks for .pyc files in addition to .py files for instrumentation
+# discovery (DataDog/dd-trace-py#17196), so we can safely remove all .py files.
+# For older versions, we need to keep patch.py files for instrumentation discovery.
+RUN if python -c "from packaging.version import Version; import ddtrace; exit(0 if Version(ddtrace.__version__) >= Version('4.7.0rc4') else 1)"; then \
+        find ./python/lib/$runtime/site-packages -name \*.py | xargs rm -rf; \
+    else \
+        find ./python/lib/$runtime/site-packages -name \*.py | grep -v ddtrace/contrib | xargs rm -rf && \
+        find ./python/lib/$runtime/site-packages/ddtrace/contrib -name \*.py | grep -v patch.py | xargs rm -rf; \
+    fi
 RUN find ./python/lib/$runtime/site-packages -name __pycache__ -type d -exec rm -r {} \+
 
 # When building ddtrace from branch, remove extra source files.  These are
