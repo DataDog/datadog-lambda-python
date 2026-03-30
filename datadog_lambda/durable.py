@@ -47,3 +47,17 @@ def extract_durable_function_tags(event):
         "aws_lambda.durable_function.execution_name": execution_name,
         "aws_lambda.durable_function.execution_id": execution_id,
     }
+
+
+VALID_DURABLE_STATUSES = {"SUCCEEDED", "FAILED", "STOPPED", "TIMED_OUT"}
+
+
+def extract_durable_execution_status(response, event):
+    if not isinstance(event, dict) or "DurableExecutionArn" not in event:
+        return None
+    if not isinstance(response, dict):
+        return None
+    status = response.get("Status")
+    if status not in VALID_DURABLE_STATUSES:
+        return None
+    return status
