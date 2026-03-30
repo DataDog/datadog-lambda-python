@@ -53,3 +53,17 @@ def extract_durable_function_tags(event):
             is_first_invocation
         ).lower(),
     }
+
+
+VALID_DURABLE_STATUSES = {"SUCCEEDED", "FAILED", "STOPPED", "TIMED_OUT"}
+
+
+def extract_durable_execution_status(response, event):
+    if not isinstance(event, dict) or "DurableExecutionArn" not in event:
+        return None
+    if not isinstance(response, dict):
+        return None
+    status = response.get("Status")
+    if status not in VALID_DURABLE_STATUSES:
+        return None
+    return status
