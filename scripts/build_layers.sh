@@ -123,7 +123,7 @@ function docker_build_zip {
         fi
         PY_TAG="cp$(echo "$1" | tr -d '.')"
         WHEEL_FILE=$(curl -sSfL "${S3_BASE}/index-manylinux2014.html" \
-            | grep -o "ddtrace-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl" \
+            | grep -o "ddtraceserverless-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl" \
             | head -n 1)
         if [ -z "${WHEEL_FILE}" ]; then
             echo "No S3 wheel found for ${PY_TAG} ${PLATFORM}, using default pyproject.toml version"
