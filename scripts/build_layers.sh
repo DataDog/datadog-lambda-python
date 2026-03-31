@@ -130,7 +130,7 @@ function docker_build_zip {
         else
             curl -sSfL "${S3_BASE}/${WHEEL_FILE}" -o "${WHEEL_FILE}"
             echo "Using S3 wheel: ${WHEEL_FILE}"
-            replace_ddtrace_dep "ddtrace = { file = \"${WHEEL_FILE}\" }"
+            replace_ddtrace_dep "ddtrace_serverless = { file = \"${WHEEL_FILE}\" }"
         fi
     fi
 
