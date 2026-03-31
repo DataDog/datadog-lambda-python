@@ -34,7 +34,21 @@ RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
 RUN rm -rf ./python/lib/$runtime/site-packages/setuptools
 RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
 RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast
-RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/internal/test_visibility
+# CI Visibility paths/integrations
+RUN rm -rf \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/coverage/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/pytest/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/pytest_bdd/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/pytest_benchmark/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/selenium/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/unittest/ \
+    ./python/lib/$runtime/site-packages/ddtrace/ext/ci_visibility \
+    ./python/lib/$runtime/site-packages/ddtrace/ext/test_visibility \
+    ./python/lib/$runtime/site-packages/ddtrace/internal/ci_visibility \
+    ./python/lib/$runtime/site-packages/ddtrace/internal/coverage \
+    ./python/lib/$runtime/site-packages/ddtrace/internal/test_visibility \
+    ./python/lib/$runtime/site-packages/ddtrace/testing/
+
 # Dogshell
 RUN rm -rf ./python/lib/$runtime/site-packages/datadog/dogshell
 RUN rm -rf ./python/lib/$runtime/site-packages/bin/dog*
