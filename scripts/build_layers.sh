@@ -122,8 +122,10 @@ function docker_build_zip {
             PLATFORM="manylinux2014_aarch64"
         fi
         PY_TAG="cp$(echo "$1" | tr -d '.')"
+        SEARCH_PATTERN="ddtrace_serverless-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl"
+        echo "Searching for wheel ${SEARCH_PATTERN}"
         WHEEL_FILE=$(curl -sSfL "${S3_BASE}/index-serverless.html" \
-            | grep -o "ddtrace_serverless-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl" \
+            | grep -o "$SEARCH_PATTERN" \
             | head -n 1)
         if [ -z "${WHEEL_FILE}" ]; then
             echo "No S3 wheel found for ${PY_TAG} ${PLATFORM}, using default pyproject.toml version"
