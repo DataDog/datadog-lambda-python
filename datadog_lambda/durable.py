@@ -44,8 +44,8 @@ def extract_durable_function_tags(event):
 
     execution_name, execution_id = parsed
     return {
-        "durable_function_execution_name": execution_name,
-        "durable_function_execution_id": execution_id,
+        "aws_lambda.durable_function.execution_name": execution_name,
+        "aws_lambda.durable_function.execution_id": execution_id,
     }
 
 
