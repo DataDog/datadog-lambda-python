@@ -122,7 +122,7 @@ function docker_build_zip {
             PLATFORM="manylinux2014_aarch64"
         fi
         PY_TAG="cp$(echo "$1" | tr -d '.')"
-        WHEEL_FILE=$(curl -sSfL "${S3_BASE}/index-manylinux2014.html" \
+        WHEEL_FILE=$(curl -sSfL "${S3_BASE}/index-serverless.html" \
             | grep -o "ddtrace_serverless-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl" \
             | head -n 1)
         if [ -z "${WHEEL_FILE}" ]; then
