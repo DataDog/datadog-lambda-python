@@ -63,10 +63,12 @@ RUN rm -rf \
 # https://docs.python.org/3/using/cmdline.html#envvar-PYTHONNODEBUGRANGES
 RUN PYTHONNODEBUGRANGES=1 python -OO -m compileall -b ./python/lib/$runtime/site-packages
 # remove all .py files
-# DEV: ddtrace>=4.7.0rc4 checks for .pyc files in addition to .py files for instrumentation
+# DEV: ddtrace>=4.7.0rc3 checks for .pyc files in addition to .py files for instrumentation
 # discovery (DataDog/dd-trace-py#17196), so we can safely remove all .py files.
 # For older versions, we need to keep patch.py files for instrumentation discovery.
-RUN if python -c "from packaging.version import Version; import ddtrace; exit(0 if Version(ddtrace.__version__) >= Version('4.7.0rc3') else 1)"; then \
+RUN pip install --quiet packaging && \
+    DDTRACE_VERSION=$(grep "^Version:" ./python/lib/$runtime/site-packages/ddtrace-*.dist-info/METADATA | awk '{print $2}') && \
+    if python -c "from packaging.version import Version; exit(0 if Version('$DDTRACE_VERSION') >= Version('4.7.0rc3') else 1)"; then \
         find ./python/lib/$runtime/site-packages -name \*.py | xargs rm -rf; \
     else \
         find ./python/lib/$runtime/site-packages -name \*.py | grep -v ddtrace/contrib | xargs rm -rf && \
