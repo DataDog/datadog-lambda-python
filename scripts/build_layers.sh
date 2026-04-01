@@ -105,10 +105,9 @@ function search_wheel {
     INDEX=$2
 
     SEARCH_PATTERN="${WHEEL_BASENAME}-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl"
+    INDEX_URL="${S3_BASE}/index-${INDEX}.html" 
     echo "Searching for wheel ${SEARCH_PATTERN}"
-    export WHEEL_FILE=$(curl -sSfL "${S3_BASE}/index-${INDEX}.html" \
-        | grep -o "$SEARCH_PATTERN" \
-        | head -n 1)
+    export WHEEL_FILE=$(curl -sSfL ${INDEX_URL} | grep -o "$SEARCH_PATTERN" | head -n 1)
     if [ ! -z "${WHEEL_FILE}" ]; then
         curl -sSfL "${S3_BASE}/${WHEEL_FILE}" -o "${WHEEL_FILE}"
         echo "Using S3 wheel: ${WHEEL_FILE}"
