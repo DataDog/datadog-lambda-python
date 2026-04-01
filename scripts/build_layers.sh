@@ -98,6 +98,23 @@ function make_path_absolute {
     echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
 }
 
+function search_wheel {
+    # Args: [wheel base name] [index]
+
+    WHEEL_BASENAME=$1
+    INDEX=$2
+
+    SEARCH_PATTERN="${WHEEL_BASENAME}-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl"
+    INDEX_URL="${S3_BASE}/index-${INDEX}.html" 
+    echo "Searching for wheel ${SEARCH_PATTERN}"
+    export WHEEL_FILE=$(curl -sSfL ${INDEX_URL} | grep -o "$SEARCH_PATTERN" | head -n 1)
+    if [ ! -z "${WHEEL_FILE}" ]; then
+        curl -sSfL "${S3_BASE}/${WHEEL_FILE}" -o "${WHEEL_FILE}"
+        echo "Using S3 wheel: ${WHEEL_FILE}"
+        replace_ddtrace_dep "${WHEEL_BASENAME} = { file = \"${WHEEL_FILE}\" }"
+    fi
+}
+
 function docker_build_zip {
     # Args: [python version] [zip destination]
 
@@ -122,15 +139,12 @@ function docker_build_zip {
             PLATFORM="manylinux2014_aarch64"
         fi
         PY_TAG="cp$(echo "$1" | tr -d '.')"
-        WHEEL_FILE=$(curl -sSfL "${S3_BASE}/index-manylinux2014.html" \
-            | grep -o "ddtrace-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl" \
-            | head -n 1)
+        search_wheel "ddtrace_serverless" "serverless"
+        if [ -z "${WHEEL_FILE}" ]; then
+            search_wheel "ddtrace" "manylinux2014"
+        fi
         if [ -z "${WHEEL_FILE}" ]; then
             echo "No S3 wheel found for ${PY_TAG} ${PLATFORM}, using default pyproject.toml version"
-        else
-            curl -sSfL "${S3_BASE}/${WHEEL_FILE}" -o "${WHEEL_FILE}"
-            echo "Using S3 wheel: ${WHEEL_FILE}"
-            replace_ddtrace_dep "ddtrace = { file = \"${WHEEL_FILE}\" }"
         fi
     fi
 
