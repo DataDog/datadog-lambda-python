@@ -116,21 +116,23 @@ function search_wheel {
 }
 
 function docker_build_zip {
-    # Args: [python version] [zip destination]
+    # Args: [python version] [zip destination] [wheel base name] [index]
 
     destination=$(make_path_absolute $2)
     arch=$3
+    wheel_basename=$4
+    index=$5
 
     # Restore pyproject.toml to a clean state for each build iteration
     cp pyproject.toml.bak pyproject.toml
 
     # Replace ddtrace source if necessary
     if [ -n "$DD_TRACE_COMMIT" ]; then
-        replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", rev = \"$DD_TRACE_COMMIT\" }"
+        replace_ddtrace_dep "${wheel_basename} = { git = \"https://github.com/DataDog/dd-trace-py.git\", rev = \"$DD_TRACE_COMMIT\" }"
     elif [ -n "$DD_TRACE_COMMIT_BRANCH" ]; then
-        replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", branch = \"$DD_TRACE_COMMIT_BRANCH\" }"
+        replace_ddtrace_dep "${wheel_basename} = { git = \"https://github.com/DataDog/dd-trace-py.git\", branch = \"$DD_TRACE_COMMIT_BRANCH\" }"
     elif [ -n "$DD_TRACE_WHEEL" ]; then
-        replace_ddtrace_dep "ddtrace = { file = \"$DD_TRACE_WHEEL\" }"
+        replace_ddtrace_dep "${wheel_basename} = { file = \"$DD_TRACE_WHEEL\" }"
     elif [ -n "$UPSTREAM_PIPELINE_ID" ]; then
         S3_BASE="https://dd-trace-py-builds.s3.amazonaws.com/${UPSTREAM_PIPELINE_ID}"
         if [ "${arch}" = "amd64" ]; then
@@ -139,10 +141,7 @@ function docker_build_zip {
             PLATFORM="manylinux2014_aarch64"
         fi
         PY_TAG="cp$(echo "$1" | tr -d '.')"
-        search_wheel "ddtrace_serverless" "serverless"
-        if [ -z "${WHEEL_FILE}" ]; then
-            search_wheel "ddtrace" "manylinux2014"
-        fi
+        search_wheel ${wheel_basename} ${index}
         if [ -z "${WHEEL_FILE}" ]; then
             echo "No S3 wheel found for ${PY_TAG} ${PLATFORM}, using default pyproject.toml version"
         fi
@@ -163,6 +162,7 @@ function docker_build_zip {
 
     rm -rf $temp_dir
     echo "Done creating archive $destination"
+    rm pyproject.toml.bak
 }
 
 rm -rf $LAYER_DIR
@@ -173,7 +173,10 @@ do
     for architecture in "${ARCHS[@]}"
     do
         echo "Building layer for Python ${python_version} arch=${architecture}"
-        docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-${architecture}-${python_version}.zip ${architecture}
+        docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-${architecture}-${python_version}.zip ${architecture} "ddtrace_serverless" "serverless" || true
+        if [ -f pyproject.toml.bak ]; then  # true means the previous attempt failed
+            docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-${architecture}-${python_version}.zip ${architecture} "ddtrace" "manylinux2014"
+        fi
     done
 done
 
