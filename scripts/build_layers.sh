@@ -101,8 +101,8 @@ function make_path_absolute {
 function search_wheel {
     # Args: [wheel base name] [index]
 
-    BASENAME="cp$(echo "$1" | tr -d '.')"
-    INDEX="cp$(echo "$2" | tr -d '.')"
+    BASENAME=$1
+    INDEX=$2
 
     SEARCH_PATTERN="${BASENAME}-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl"
     echo "Searching for wheel ${SEARCH_PATTERN}"
