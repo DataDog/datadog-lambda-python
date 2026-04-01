@@ -101,10 +101,10 @@ function make_path_absolute {
 function search_wheel {
     # Args: [wheel base name] [index]
 
-    BASENAME=$1
+    WHEEL_BASENAME=$1
     INDEX=$2
 
-    SEARCH_PATTERN="${BASENAME}-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl"
+    SEARCH_PATTERN="${WHEEL_BASENAME}-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl"
     echo "Searching for wheel ${SEARCH_PATTERN}"
     export WHEEL_FILE=$(curl -sSfL "${S3_BASE}/index-${INDEX}.html" \
         | grep -o "$SEARCH_PATTERN" \
@@ -112,7 +112,7 @@ function search_wheel {
     if [ ! -z "${WHEEL_FILE}" ]; then
         curl -sSfL "${S3_BASE}/${WHEEL_FILE}" -o "${WHEEL_FILE}"
         echo "Using S3 wheel: ${WHEEL_FILE}"
-        replace_ddtrace_dep "${WHEEL_BASE_NAME} = { file = \"${WHEEL_FILE}\" }"
+        replace_ddtrace_dep "${WHEEL_BASENAME} = { file = \"${WHEEL_FILE}\" }"
     fi
 }
 
