@@ -199,7 +199,7 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 sed '/^$/d' |
                 # Normalize Lambda runtime REPORT logs
                 sed -E 's/(RequestId|TraceId|SegmentId|Duration|init|Memory Used|"e"): [a-z0-9\.\-]+/\1: XXXX/g' |
-                sed -E 's/(python:3.[0-9]+\.v)[0-9]+/\1X/g' |
+                sed -E 's/(python:3\.[0-9]+\.)[a-zA-Z0-9\.]+/\1vX/g' |
                 # Normalize HTTP headers
                 sed -E "s/(x-datadog-parent-id:|x-datadog-trace-id:|Content-Length:)[0-9]+/\1XXXX/g" |
                 # Remove Account ID
