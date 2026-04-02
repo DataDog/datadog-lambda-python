@@ -146,7 +146,6 @@ function find_and_spec_wheel {
             return 1
         fi
     fi
-
 }
 
 function docker_build_zip {
@@ -179,8 +178,8 @@ do
     for architecture in "${ARCHS[@]}"
     do
         echo "Building layer for Python ${python_version} arch=${architecture}"
-        find_and_spec_wheel ${python_version} ${architecture} "ddtrace_serverless" "serverless"
-        if [ $? != 0 ]; then
+        find_and_spec_wheel ${python_version} ${architecture} "ddtrace_serverless" "serverless"; FAILURE=$?
+        if [ $FAILURE != 0 ]; then
             echo "Attempting layer build again with package ddtrace"
             find_and_spec_wheel ${python_version} ${architecture} "ddtrace" "manylinux2014"
         fi
