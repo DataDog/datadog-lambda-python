@@ -180,8 +180,9 @@ do
         echo "Building layer for Python ${python_version} arch=${architecture}"
         set +e
         find_and_spec_wheel ${python_version} ${architecture} "ddtrace_serverless" "serverless"
+        FAILURE=$?
         set -e
-        if [ $? != 0 ]; then
+        if [ $FAILURE != 0 ]; then
             echo "Attempting layer build again with package ddtrace"
             find_and_spec_wheel ${python_version} ${architecture} "ddtrace" "manylinux2014"
         fi
