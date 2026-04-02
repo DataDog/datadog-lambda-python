@@ -181,11 +181,11 @@ do
         set +e
         find_and_spec_wheel ${python_version} ${architecture} "ddtrace_serverless" "serverless"
         FAILURE=$?
-        set -e
         if [ $FAILURE != 0 ]; then
             echo "Attempting layer build again with package ddtrace"
             find_and_spec_wheel ${python_version} ${architecture} "ddtrace" "manylinux2014"
         fi
+        set -e
         docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-${architecture}-${python_version}.zip ${architecture}
     done
 done
