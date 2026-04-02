@@ -143,6 +143,7 @@ function find_and_spec_wheel {
         search_wheel ${wheel_basename} ${index}
         if [ -z "${WHEEL_FILE}" ]; then
             echo "No S3 wheel found for ${PY_TAG} ${PLATFORM}, using default pyproject.toml version"
+            return 1
         fi
     fi
 
