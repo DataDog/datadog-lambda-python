@@ -162,7 +162,6 @@ function docker_build_zip {
 
     rm -rf $temp_dir
     echo "Done creating archive $destination"
-    rm pyproject.toml.bak
 }
 
 rm -rf $LAYER_DIR
@@ -174,7 +173,8 @@ do
     do
         echo "Building layer for Python ${python_version} arch=${architecture}"
         docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-${architecture}-${python_version}.zip ${architecture} "ddtrace_serverless" "serverless" || true
-        if [ -f pyproject.toml.bak ]; then  # true means the previous attempt failed
+        if [ $? != 0 ]; then
+            echo "Attempting layer build again with package ddtrace"
             docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-${architecture}-${python_version}.zip ${architecture} "ddtrace" "manylinux2014"
         fi
     done
