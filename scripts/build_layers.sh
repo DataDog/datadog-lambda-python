@@ -132,6 +132,7 @@ function find_and_spec_wheel {
     elif [ -n "$DD_TRACE_COMMIT_BRANCH" ]; then
         replace_ddtrace_dep "${wheel_basename} = { git = \"https://github.com/DataDog/dd-trace-py.git\", branch = \"$DD_TRACE_COMMIT_BRANCH\" }"
     elif [ -n "$DD_TRACE_WHEEL" ]; then
+        wheel_basename=${DD_TRACE_WHEEL%%-*}
         replace_ddtrace_dep "${wheel_basename} = { file = \"$DD_TRACE_WHEEL\" }"
     elif [ -n "$UPSTREAM_PIPELINE_ID" ]; then
         S3_BASE="https://dd-trace-py-builds.s3.amazonaws.com/${UPSTREAM_PIPELINE_ID}"
