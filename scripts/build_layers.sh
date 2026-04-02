@@ -91,6 +91,7 @@ trap cleanup EXIT
 # Helper: replace the multi-line ddtrace dependency in pyproject.toml.
 # Uses perl instead of sed -z for macOS/Linux portability.
 replace_ddtrace_dep() {
+    echo "Replacing dep with $1"
     perl -i -0777 -pe "s|ddtrace = \[[^\]]*\]|$1|gs" pyproject.toml
 }
 
