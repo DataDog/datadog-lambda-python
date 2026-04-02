@@ -115,13 +115,12 @@ function search_wheel {
     fi
 }
 
-function docker_build_zip {
-    # Args: [python version] [zip destination] [wheel base name] [index]
+function find_and_spec_wheel {
+    # Args: [python version] [wheel base name] [index]
 
-    destination=$(make_path_absolute $2)
-    arch=$3
-    wheel_basename=$4
-    index=$5
+    arch=$2
+    wheel_basename=$3
+    index=$4
 
     # Restore pyproject.toml to a clean state for each build iteration
     cp pyproject.toml.bak pyproject.toml
@@ -147,6 +146,13 @@ function docker_build_zip {
         fi
     fi
 
+}
+
+function docker_build_zip {
+    # Args: [python version] [zip destination]
+
+    destination=$(make_path_absolute $2)
+    arch=$3
     # Install datadogpy in a docker container to avoid the mess from switching
     # between different python runtimes.
     temp_dir=$(mktemp -d)
@@ -172,11 +178,12 @@ do
     for architecture in "${ARCHS[@]}"
     do
         echo "Building layer for Python ${python_version} arch=${architecture}"
-        docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-${architecture}-${python_version}.zip ${architecture} "ddtrace_serverless" "serverless" || true
+        find_and_spec_wheel ${python_version} ${architecture} "ddtrace_serverless" "serverless"
         if [ $? != 0 ]; then
             echo "Attempting layer build again with package ddtrace"
-            docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-${architecture}-${python_version}.zip ${architecture} "ddtrace" "manylinux2014"
+            find_and_spec_wheel ${python_version} ${architecture} "ddtrace" "manylinux2014"
         fi
+        docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-${architecture}-${python_version}.zip ${architecture}
     done
 done
 
