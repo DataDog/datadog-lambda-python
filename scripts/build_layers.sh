@@ -91,6 +91,7 @@ trap cleanup EXIT
 # Helper: replace the multi-line ddtrace dependency in pyproject.toml.
 # Uses perl instead of sed -z for macOS/Linux portability.
 replace_ddtrace_dep() {
+    echo "Replacing dep with $1"
     perl -i -0777 -pe "s|ddtrace = \[[^\]]*\]|$1|gs" pyproject.toml
 }
 
@@ -98,22 +99,41 @@ function make_path_absolute {
     echo "$(cd "$(dirname "$1")"; pwd)/$(basename "$1")"
 }
 
-function docker_build_zip {
-    # Args: [python version] [zip destination]
+function search_wheel {
+    # Args: [wheel base name] [index]
 
-    destination=$(make_path_absolute $2)
-    arch=$3
+    WHEEL_BASENAME=$1
+    INDEX=$2
+
+    SEARCH_PATTERN="${WHEEL_BASENAME}-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl"
+    INDEX_URL="${S3_BASE}/index-${INDEX}.html" 
+    echo "Searching for wheel ${SEARCH_PATTERN}"
+    export WHEEL_FILE=$(curl -sSfL ${INDEX_URL} | grep -o "$SEARCH_PATTERN" | head -n 1)
+    if [ ! -z "${WHEEL_FILE}" ]; then
+        curl -sSfL "${S3_BASE}/${WHEEL_FILE}" -o "${WHEEL_FILE}"
+        echo "Using S3 wheel: ${WHEEL_FILE}"
+        replace_ddtrace_dep "${WHEEL_BASENAME} = { file = \"${WHEEL_FILE}\" }"
+    fi
+}
+
+function find_and_spec_wheel {
+    # Args: [python version] [wheel base name] [index]
+
+    arch=$2
+    wheel_basename=$3
+    index=$4
 
     # Restore pyproject.toml to a clean state for each build iteration
     cp pyproject.toml.bak pyproject.toml
 
     # Replace ddtrace source if necessary
     if [ -n "$DD_TRACE_COMMIT" ]; then
-        replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", rev = \"$DD_TRACE_COMMIT\" }"
+        replace_ddtrace_dep "${wheel_basename} = { git = \"https://github.com/DataDog/dd-trace-py.git\", rev = \"$DD_TRACE_COMMIT\" }"
     elif [ -n "$DD_TRACE_COMMIT_BRANCH" ]; then
-        replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", branch = \"$DD_TRACE_COMMIT_BRANCH\" }"
+        replace_ddtrace_dep "${wheel_basename} = { git = \"https://github.com/DataDog/dd-trace-py.git\", branch = \"$DD_TRACE_COMMIT_BRANCH\" }"
     elif [ -n "$DD_TRACE_WHEEL" ]; then
-        replace_ddtrace_dep "ddtrace = { file = \"$DD_TRACE_WHEEL\" }"
+        wheel_basename=$(sed 's/^\.\///' <<< ${DD_TRACE_WHEEL%%-*})
+        replace_ddtrace_dep "${wheel_basename} = { file = \"$DD_TRACE_WHEEL\" }"
     elif [ -n "$UPSTREAM_PIPELINE_ID" ]; then
         S3_BASE="https://dd-trace-py-builds.s3.amazonaws.com/${UPSTREAM_PIPELINE_ID}"
         if [ "${arch}" = "amd64" ]; then
@@ -122,18 +142,19 @@ function docker_build_zip {
             PLATFORM="manylinux2014_aarch64"
         fi
         PY_TAG="cp$(echo "$1" | tr -d '.')"
-        WHEEL_FILE=$(curl -sSfL "${S3_BASE}/index-manylinux2014.html" \
-            | grep -o "ddtrace-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl" \
-            | head -n 1)
+        search_wheel ${wheel_basename} ${index}
         if [ -z "${WHEEL_FILE}" ]; then
             echo "No S3 wheel found for ${PY_TAG} ${PLATFORM}, using default pyproject.toml version"
-        else
-            curl -sSfL "${S3_BASE}/${WHEEL_FILE}" -o "${WHEEL_FILE}"
-            echo "Using S3 wheel: ${WHEEL_FILE}"
-            replace_ddtrace_dep "ddtrace = { file = \"${WHEEL_FILE}\" }"
+            return 1
         fi
     fi
+}
 
+function docker_build_zip {
+    # Args: [python version] [zip destination]
+
+    destination=$(make_path_absolute $2)
+    arch=$3
     # Install datadogpy in a docker container to avoid the mess from switching
     # between different python runtimes.
     temp_dir=$(mktemp -d)
@@ -159,6 +180,14 @@ do
     for architecture in "${ARCHS[@]}"
     do
         echo "Building layer for Python ${python_version} arch=${architecture}"
+        set +e
+        find_and_spec_wheel ${python_version} ${architecture} "ddtrace_serverless" "serverless"
+        FAILURE=$?
+        if [ $FAILURE != 0 ]; then
+            echo "Attempting layer build again with package ddtrace"
+            find_and_spec_wheel ${python_version} ${architecture} "ddtrace" "manylinux2014"
+        fi
+        set -e
         docker_build_zip ${python_version} $LAYER_DIR/${LAYER_FILES_PREFIX}-${architecture}-${python_version}.zip ${architecture}
     done
 done
