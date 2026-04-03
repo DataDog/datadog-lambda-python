@@ -191,6 +191,7 @@ class _LambdaDecorator(object):
             if self.blocking_response:
                 return self.blocking_response
             self.response = self.func(event, context, **kwargs)
+            return self.response
         except BlockingException:
             self.blocking_response = get_asm_blocked_response(self.event_source)
         except Exception:
@@ -203,10 +204,8 @@ class _LambdaDecorator(object):
             raise
         finally:
             self._after(event, context)
-
-        if self.blocking_response:
-            return self.blocking_response
-        return self.response
+            if self.blocking_response:
+                return self.blocking_response
 
     def _inject_authorizer_span_headers(self, request_id):
         reference_span = self.inferred_span if self.inferred_span else self.span
