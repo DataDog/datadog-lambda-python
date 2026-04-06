@@ -974,11 +974,15 @@ def process_injected_data(event, request_time_epoch_ms, args, tags):
     injected_authorizer_data = get_injected_authorizer_data(event, False)
     if injected_authorizer_data:
         try:
-            start_time_ns = int(injected_authorizer_data.get(Headers.Parent_Span_Finish_Time))
+            start_time_ns = int(
+                injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
+            )
             integration_latency = int(
                 event["requestContext"]["authorizer"].get("integrationLatency", 0)
             )
-            finish_time_ns = max(start_time_ns, (request_time_epoch_ms + integration_latency) * 1e6)
+            finish_time_ns = max(
+                start_time_ns, (request_time_epoch_ms + integration_latency) * 1e6
+            )
             upstream_authorizer_span = insert_upstream_authorizer_span(
                 args, tags, start_time_ns, finish_time_ns
             )
