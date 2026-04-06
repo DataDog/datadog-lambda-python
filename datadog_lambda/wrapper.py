@@ -185,9 +185,8 @@ class _LambdaDecorator(object):
         """Executes when the wrapped function gets called"""
         self._before(event, context)
         try:
-            if self.blocking_response:
-                return self.blocking_response
-            self.response = self.func(event, context, **kwargs)
+            if not self.blocking_response:
+                self.response = self.func(event, context, **kwargs)
         except BlockingException:
             self.blocking_response = get_asm_blocked_response(self.event_source)
         except Exception:
