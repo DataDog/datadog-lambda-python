@@ -37,6 +37,22 @@ RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast
 RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/sca
 RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/_shared
 RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/internal/test_visibility
+
+# CI Visibility paths/integrations
+RUN rm -rf \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/coverage/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/pytest/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/pytest_bdd/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/pytest_benchmark/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/selenium/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/unittest/ \
+    ./python/lib/$runtime/site-packages/ddtrace/ext/ci_visibility \
+    ./python/lib/$runtime/site-packages/ddtrace/ext/test_visibility \
+    ./python/lib/$runtime/site-packages/ddtrace/internal/ci_visibility \
+    ./python/lib/$runtime/site-packages/ddtrace/internal/coverage \
+    ./python/lib/$runtime/site-packages/ddtrace/internal/test_visibility \
+    ./python/lib/$runtime/site-packages/ddtrace/testing/
+
 # Dogshell
 RUN rm -rf ./python/lib/$runtime/site-packages/datadog/dogshell
 RUN rm -rf ./python/lib/$runtime/site-packages/bin/dog*
@@ -64,10 +80,18 @@ RUN rm -rf \
 # https://docs.python.org/3.11/using/cmdline.html#cmdoption-O
 # https://docs.python.org/3/using/cmdline.html#envvar-PYTHONNODEBUGRANGES
 RUN PYTHONNODEBUGRANGES=1 python -OO -m compileall -b ./python/lib/$runtime/site-packages
-# remove all .py files except ddtrace/contrib/*/patch.py which are necessary
-# for ddtrace.patch to discover instrumationation packages.
-RUN find ./python/lib/$runtime/site-packages -name \*.py | grep -v ddtrace/contrib | xargs rm -rf
-RUN find ./python/lib/$runtime/site-packages/ddtrace/contrib -name \*.py | grep -v patch.py | xargs rm -rf
+# remove all .py files
+# DEV: ddtrace>=4.7.0rc3 checks for .pyc files in addition to .py files for instrumentation
+# discovery (DataDog/dd-trace-py#17196), so we can safely remove all .py files.
+# For older versions, we need to keep patch.py files for instrumentation discovery.
+RUN pip install --quiet packaging && \
+    DDTRACE_VERSION=$(grep "^Version:" ./python/lib/$runtime/site-packages/ddtrace-*.dist-info/METADATA | awk '{print $2}') && \
+    if python -c "from packaging.version import Version; exit(0 if Version('$DDTRACE_VERSION') >= Version('4.7.0rc3') else 1)"; then \
+        find ./python/lib/$runtime/site-packages -name \*.py | xargs rm -rf; \
+    else \
+        find ./python/lib/$runtime/site-packages -name \*.py | grep -v ddtrace/contrib | xargs rm -rf && \
+        find ./python/lib/$runtime/site-packages/ddtrace/contrib -name \*.py | grep -v patch.py | xargs rm -rf; \
+    fi
 RUN find ./python/lib/$runtime/site-packages -name __pycache__ -type d -exec rm -r {} \+
 
 # When building ddtrace from branch, remove extra source files.  These are
