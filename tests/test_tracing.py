@@ -2408,6 +2408,38 @@ def test_create_inferred_span(mock_span_finish, source, expect):
         assert mock_span_finish.call_count == 0
 
 
+@patch("ddtrace.trace.Span.finish", autospec=True)
+def test_authorizer_span_no_negative_duration_when_clock_skew(mock_span_finish):
+    """
+    Simulate the case where requestTimeEpoch + integrationLatency < parentSpanFinishTime
+    (i.e., API Gateway's reported end is before the authorizer lambda's self-reported finish).
+    This 1ms discrepancy would produce a negative duration.
+    """
+    with open(f"{event_samples}authorizer-request-api-gateway-v1.json") as f:
+        event = json.load(f)
+
+    authorizer_ctx = json.loads(
+        base64.b64decode(event["requestContext"]["authorizer"]["_datadog"])
+    )
+    parent_finish_time_ns = authorizer_ctx["x-datadog-parent-span-finish-time"]
+    request_time_epoch_ms = event["requestContext"]["requestTimeEpoch"]
+    # Set integrationLatency 1ms below the parent span's finish time to simulate clock skew.
+    event["requestContext"]["authorizer"]["integrationLatency"] = (
+        parent_finish_time_ns // 1_000_000 - request_time_epoch_ms - 1
+    )
+
+    ctx = get_mock_context(aws_request_id="123")
+    create_inferred_span(event, ctx)
+
+    args = mock_span_finish.call_args_list[0].args
+    authorizer_span, finish_time = args[0], args[1]
+
+    assert finish_time >= authorizer_span.start, (
+        f"Authorizer span has negative duration: "
+        f"finish_time={finish_time} < start={authorizer_span.start}"
+    )
+
+
 class TestInferredSpans(unittest.TestCase):
     @patch("datadog_lambda.tracing.submit_errors_metric")
     def test_mark_trace_as_error_for_5xx_responses_getting_400_response_code(
