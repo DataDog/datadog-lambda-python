@@ -203,7 +203,6 @@ class _LambdaDecorator(object):
             raise
         finally:
             self._after(event, context)
-        
         if self.blocking_response:
             return self.blocking_response
         return self.response
