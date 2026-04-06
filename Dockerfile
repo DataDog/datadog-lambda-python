@@ -33,10 +33,12 @@ RUN pip install --no-cache-dir . -t ./python/lib/$runtime/site-packages
 RUN rm -rf ./python/lib/$runtime/site-packages/botocore*
 RUN rm -rf ./python/lib/$runtime/site-packages/setuptools
 RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
-RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast
-RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/sca
-RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/appsec/_shared
-RUN rm -rf ./python/lib/$runtime/site-packages/ddtrace/internal/test_visibility
+
+# Remove unsupported appsec modules
+RUN rm -rf \
+    ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast \
+    ./python/lib/$runtime/site-packages/ddtrace/appsec/sca \
+    ./python/lib/$runtime/site-packages/ddtrace/appsec/_shared
 
 # CI Visibility paths/integrations
 RUN rm -rf \
