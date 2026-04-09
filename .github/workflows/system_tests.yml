@@ -34,6 +34,7 @@ jobs:
       TEST_OPTIMIZATION_API_KEY: ${{ secrets.TEST_OPTIMIZATION_API_KEY }}
     permissions:
       contents: read
+      id-token: write
       packages: write
     with:
       library: python_lambda
@@ -41,3 +42,4 @@ jobs:
       scenarios_groups: tracer_release
       skip_empty_scenarios: true
       push_to_test_optimization: true
+      dd_sts_policy: datadog-lambda-python
