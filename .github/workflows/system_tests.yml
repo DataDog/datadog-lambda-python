@@ -42,4 +42,3 @@ jobs:
       scenarios_groups: tracer_release
       skip_empty_scenarios: true
       push_to_test_optimization: true
-      dd_sts_policy: datadog-lambda-python
