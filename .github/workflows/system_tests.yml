@@ -34,6 +34,7 @@ jobs:
       id-token: write
     with:
       library: python_lambda
+      ref: 1e5d6b7096279ca43ce4826fda3cc805635b63c1
       binaries_artifact: binaries
       scenarios_groups: tracer_release
       skip_empty_scenarios: true
