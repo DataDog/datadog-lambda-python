@@ -53,7 +53,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "_dd.peer.service.source": "peer.service",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -75,6 +76,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "span.kind": "server",
           "cold_start": "true",
           "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
@@ -86,7 +88,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "span.name": "aws.lambda",
           "function_trigger.event_source": "api-gateway",
           "function_trigger.event_source_arn": "XXXX",
-          "span.kind": "server",
           "http.url": "https://XXXX.execute-api.us-east-2.amazonaws.com/Prod/",
           "http.method": "GET",
           "http.route": "/",
@@ -178,7 +179,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -227,6 +229,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
         "meta": {
           "runtime-id": "XXXX",
           "_dd.origin": "lambda",
+          "span.kind": "server",
           "cold_start": "false",
           "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
@@ -236,8 +239,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
-          "span.kind": "server",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -326,7 +329,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -401,7 +405,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "_dd.peer.service.source": "peer.service",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -455,6 +460,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "span.kind": "server",
           "cold_start": "false",
           "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
@@ -464,7 +470,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
-          "span.kind": "server",
           "function_trigger.event_source": "dynamodb",
           "function_trigger.event_source_arn": "XXXX"
         },
@@ -554,7 +559,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -613,7 +619,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "_dd.peer.service.source": "peer.service",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -635,6 +642,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "span.kind": "server",
           "cold_start": "false",
           "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
@@ -644,7 +652,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
-          "span.kind": "server",
           "function_trigger.event_source": "eventbridge"
         },
         "metrics": {
@@ -733,7 +740,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -802,7 +810,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "_dd.peer.service.source": "peer.service",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -824,6 +833,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "span.kind": "server",
           "cold_start": "false",
           "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
@@ -835,7 +845,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "span.name": "aws.lambda",
           "function_trigger.event_source": "api-gateway",
           "function_trigger.event_source_arn": "XXXX$default",
-          "span.kind": "server",
           "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com/httpapi/get",
           "http.method": "GET",
           "http.route": "/httpapi/get",
@@ -927,7 +936,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -993,7 +1003,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "_dd.peer.service.source": "peer.service",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -1015,6 +1026,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "span.kind": "server",
           "cold_start": "false",
           "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
@@ -1024,7 +1036,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
-          "span.kind": "server",
           "function_trigger.event_source": "kinesis",
           "function_trigger.event_source_arn": "XXXX"
         },
@@ -1114,7 +1125,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -1177,7 +1189,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "_dd.peer.service.source": "peer.service",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -1211,6 +1224,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "span.kind": "server",
           "cold_start": "false",
           "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
@@ -1220,7 +1234,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
-          "span.kind": "server",
           "function_trigger.event_source": "s3",
           "function_trigger.event_source_arn": "XXXX"
         },
@@ -1310,7 +1323,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -1374,7 +1388,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "_dd.peer.service.source": "peer.service",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -1396,6 +1411,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "span.kind": "server",
           "cold_start": "false",
           "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
@@ -1405,7 +1421,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
-          "span.kind": "server",
           "function_trigger.event_source": "sns",
           "function_trigger.event_source_arn": "XXXX"
         },
@@ -1495,7 +1510,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -1558,7 +1574,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "_dd.peer.service.source": "peer.service",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -1580,6 +1597,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "span.kind": "server",
           "cold_start": "false",
           "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
@@ -1589,7 +1607,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
           "span.name": "aws.lambda",
-          "span.kind": "server",
           "function_trigger.event_source": "sqs",
           "function_trigger.event_source_arn": "XXXX"
         },
@@ -1679,7 +1696,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -1748,7 +1766,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "_dd.peer.service.source": "peer.service",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
@@ -1770,6 +1789,7 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
         "duration": "XXXX",
         "meta": {
           "_dd.origin": "lambda",
+          "span.kind": "server",
           "cold_start": "false",
           "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-sync-metrics_python314",
           "function_version": "$LATEST",
@@ -1781,7 +1801,6 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate, zs
           "span.name": "aws.lambda",
           "function_trigger.event_source": "api-gateway",
           "function_trigger.event_source_arn": "XXXX",
-          "span.kind": "server",
           "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com",
           "http.status_code": "200"
         },
@@ -1871,7 +1890,8 @@ HTTP POST https://api.datadoghq.com/api/v1/distribution_points Headers: ["Accept
           "http.useragent": "datadogpy/XX (python XX; os linux; arch XXXX)",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "language": "python",
+          "_dd.tags.process": "entrypoint.basedir:runtime,entrypoint.name:bootstrap,entrypoint.type:script,entrypoint.workdir:task,svc.user:true"
         },
         "metrics": {
           "process_id": XXXX,
