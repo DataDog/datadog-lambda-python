@@ -141,11 +141,6 @@ if config.is_gov_region or config.fips_mode_enabled:
         "enabled" if config.fips_mode_enabled else "not enabled",
     )
 
-# Remote configuration relies on /dev/shm which is unavailable in Lambda.
-# Disable it before ddtrace loads to avoid the shared-memory warning.
-if "DD_REMOTE_CONFIGURATION_ENABLED" not in os.environ:
-    os.environ["DD_REMOTE_CONFIGURATION_ENABLED"] = "false"
-
 # disable css to prevent double counting in lambda
 os.environ["DD_TRACE_STATS_COMPUTATION_ENABLED"] = "false"
 
