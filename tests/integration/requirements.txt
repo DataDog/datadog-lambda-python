@@ -1,4 +1,5 @@
 certifi==2024.12.14
 charset-normalizer==3.4.1
 idna==3.10
-requests==2.32.4
+requests==2.32.4; python_version < "3.10"
+requests==2.33.1; python_version >= "3.10"
