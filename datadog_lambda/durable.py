@@ -41,11 +41,17 @@ def extract_durable_function_tags(event):
     if not parsed:
         logger.error("Failed to parse DurableExecutionArn: %s", durable_execution_arn)
         return {}
-
     execution_name, execution_id = parsed
+    # Use the number of operations to determine if it's the first invocation. This is
+    # what the durable execution SDK does to determine the replay status.
+    operations = event.get("InitialExecutionState", {}).get("Operations", [])
+    is_first_invocation = len(operations) == 1
     return {
         "aws_lambda.durable_function.execution_name": execution_name,
         "aws_lambda.durable_function.execution_id": execution_id,
+        "aws_lambda.durable_function.first_invocation": str(
+            is_first_invocation
+        ).lower(),
     }
 
 

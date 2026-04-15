@@ -55,7 +55,7 @@
   "requestContext": {
     "resourceId": "0et54l",
     "authorizer": {
-      "_datadog": "eyJ4LWRhdGFkb2ctdHJhY2UtaWQiOiAiMTM0Nzg3MDU5OTU3OTcyMjEyMDkiLCAieC1kYXRhZG9nLXBhcmVudC1pZCI6ICI4NDcxMjg4MjYzMzg0MjE2ODk2IiwgIngtZGF0YWRvZy1zYW1wbGluZy1wcmlvcml0eSI6ICIxIiwgIngtZGF0YWRvZy1wYXJlbnQtc3Bhbi1maW5pc2gtdGltZSI6IDE2NjMyOTUwMjE4MjcuNTIxLCAieC1kYXRhZG9nLWF1dGhvcml6aW5nLXJlcXVlc3RpZCI6ICJhYmMxMjMifQ==",
+      "_datadog": "eyJ4LWRhdGFkb2ctdHJhY2UtaWQiOiAiMTM0Nzg3MDU5OTU3OTcyMjEyMDkiLCAieC1kYXRhZG9nLXBhcmVudC1pZCI6ICI4NDcxMjg4MjYzMzg0MjE2ODk2IiwgIngtZGF0YWRvZy1zYW1wbGluZy1wcmlvcml0eSI6ICIxIiwgIngtZGF0YWRvZy1wYXJlbnQtc3Bhbi1maW5pc2gtdGltZSI6IDE2NjMyOTUwMjE4Mjc1MjEwMDAsICJ4LWRhdGFkb2ctYXV0aG9yaXppbmctcmVxdWVzdGlkIjogImFiYzEyMyJ9",
       "scope": "this is just a string",
       "principalId": "foo",
       "integrationLatency": 1897

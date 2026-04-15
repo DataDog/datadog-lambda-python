@@ -46,11 +46,12 @@ class TestParseDurableExecutionArn(unittest.TestCase):
 
 
 class TestExtractDurableFunctionTags(unittest.TestCase):
-    def test_extracts_tags_from_event_with_durable_execution_arn(self):
+    def test_sets_first_invocation_true_when_only_execution_operation(self):
+        # One operation (the current EXECUTION operation itself) → not replaying → first invocation
         event = {
             "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
             "CheckpointToken": "some-token",
-            "InitialExecutionState": {"Operations": []},
+            "InitialExecutionState": {"Operations": [{"OperationType": "EXECUTION"}]},
         }
         result = extract_durable_function_tags(event)
         self.assertEqual(
@@ -58,6 +59,29 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
             {
                 "aws_lambda.durable_function.execution_name": "my-execution",
                 "aws_lambda.durable_function.execution_id": "550e8400-e29b-41d4-a716-446655440004",
+                "aws_lambda.durable_function.first_invocation": "true",
+            },
+        )
+
+    def test_sets_first_invocation_false_when_multiple_operations(self):
+        # More than one operation → replaying → not first invocation
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
+            "CheckpointToken": "some-token",
+            "InitialExecutionState": {
+                "Operations": [
+                    {"OperationType": "EXECUTION"},
+                    {"OperationType": "STEP"},
+                ]
+            },
+        }
+        result = extract_durable_function_tags(event)
+        self.assertEqual(
+            result,
+            {
+                "aws_lambda.durable_function.execution_name": "my-execution",
+                "aws_lambda.durable_function.execution_id": "550e8400-e29b-41d4-a716-446655440004",
+                "aws_lambda.durable_function.first_invocation": "false",
             },
         )
 
