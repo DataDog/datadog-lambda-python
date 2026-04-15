@@ -1125,4 +1125,4 @@ dev = ["botocore", "flake8", "pytest", "pytest", "pytest-benchmark", "requests"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.8.0,<3.15"
-content-hash = "bc9881e306c3690b44ceb939ec8243f20d1406b38bdd7a1aa1811a3759a2c0a7"
+content-hash = "4ce71fc998ef186399bbca33e940afda0e09eb5ddd3876784a5fd56f0961f888"
