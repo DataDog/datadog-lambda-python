@@ -131,19 +131,12 @@ class TestExtractDurableExecutionStatus(unittest.TestCase):
         response = {"Status": "FAILED", "Error": "some-error"}
         self.assertEqual(extract_durable_execution_status(response, event), "FAILED")
 
-    def test_returns_stopped(self):
+    def test_returns_pending(self):
         event = {
             "DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"
         }
-        response = {"Status": "STOPPED"}
-        self.assertEqual(extract_durable_execution_status(response, event), "STOPPED")
-
-    def test_returns_timed_out(self):
-        event = {
-            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123:function:f:1/durable-execution/n/id"
-        }
-        response = {"Status": "TIMED_OUT"}
-        self.assertEqual(extract_durable_execution_status(response, event), "TIMED_OUT")
+        response = {"Status": "PENDING"}
+        self.assertEqual(extract_durable_execution_status(response, event), "PENDING")
 
     def test_returns_none_for_non_durable_event(self):
         event = {"key": "value"}
