@@ -164,6 +164,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   needs:
 {{ if or (eq $environment_name "prod") }}
       - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
+      - e2e-test-status
 {{ else }}
       - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
       - check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }})
