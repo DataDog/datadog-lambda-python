@@ -621,6 +621,180 @@ def get_injected_authorizer_data(event, is_http_api) -> dict:
         logger.debug("Failed to check if invocated by an authorizer. error %s", e)
 
 
+def is_durable_execution_replay(event):
+    """
+    Check if this Lambda invocation is a durable execution replay.
+
+    A replay occurs when there are existing operations in InitialExecutionState,
+    meaning this invocation is resuming from a previous checkpoint rather than
+    starting fresh.
+
+    For replay invocations, we should skip creating inferred spans because:
+    - The trace context is being continued from the checkpoint
+    - Creating an inferred span would create a duplicate
+
+    Returns:
+        True if this is a replay invocation (should skip inferred span)
+        False if this is first invocation or not a durable execution
+    """
+    if not isinstance(event, dict):
+        return False
+
+    if "DurableExecutionArn" not in event:
+        return False
+
+    initial_state = event.get("InitialExecutionState", {})
+    operations = initial_state.get("Operations", [])
+
+    # The SDK always includes the EXECUTION operation itself (1 operation on first invocation).
+    # A replay has >1 operations (the EXECUTION + previously completed operations).
+    # This aligns with the SDK's ReplayStatus logic in execution.py.
+    is_replay = len(operations) > 1
+
+    if is_replay:
+        print(f"[DD-DURABLE] Detected replay invocation with {len(operations)} existing operations")
+    else:
+        print(f"[DD-DURABLE] Detected first invocation ({len(operations)} operations)")
+
+    return is_replay
+
+
+def extract_context_from_durable_execution(event, lambda_context):
+    """
+    Extract Datadog trace context from AWS Lambda Durable Execution event.
+
+    Looks for extra trace context checkpoints created by the dd-trace plugin.
+    These are STEP operations with Name="_dd_trace_context" that store trace
+    headers in their StepDetails.Result payload. Customer operation payloads
+    are never read or modified.
+
+    Scans operations in reverse to find the LAST trace checkpoint, which
+    corresponds to the most recently completed customer operation. This gives
+    proper parent chaining: each invocation's root span is parented to the
+    last operation span from the previous invocation.
+    """
+    try:
+        if not isinstance(event, dict):
+            return None
+
+        if "DurableExecutionArn" not in event or "InitialExecutionState" not in event:
+            return None
+
+        print("[DD-DURABLE] Detected AWS Lambda Durable Execution event")
+
+        initial_state = event.get("InitialExecutionState", {})
+        operations = initial_state.get("Operations", [])
+
+        print(f"[DD-DURABLE] Found {len(operations)} operations in InitialExecutionState")
+
+        # Scan in reverse to find the LAST trace context checkpoint
+        # (corresponds to the most recently completed customer operation)
+        for idx in range(len(operations) - 1, -1, -1):
+            operation = operations[idx]
+            op_name = operation.get("Name")
+
+            if op_name != "_dd_trace_context":
+                continue
+
+            operation_id = operation.get("Id")
+            print(f"[DD-DURABLE] Found trace checkpoint: id={operation_id}, index={idx}")
+
+            # Trace context is in StepDetails.Result (standard STEP format)
+            step_details = operation.get("StepDetails", {})
+            payload_str = step_details.get("Result")
+
+            if not payload_str:
+                print(f"[DD-DURABLE] Trace checkpoint {operation_id} has no Result, skipping")
+                continue
+
+            try:
+                payload = json.loads(payload_str)
+                if not isinstance(payload, dict):
+                    print(f"[DD-DURABLE] Trace checkpoint payload is not a dict: {type(payload)}")
+                    continue
+
+                trace_id = payload.get("x-datadog-trace-id")
+                span_id = payload.get("x-datadog-parent-id")
+
+                if trace_id and span_id:
+                    # Use HTTPPropagator to restore full context including
+                    # baggage, _dd.p.* tags, origin, and sampling priority
+                    context = propagator.extract(payload)
+                    if context and context.trace_id:
+                        print(f"[DD-DURABLE] Extracted trace context from trace checkpoint {operation_id}")
+                        print(f"[DD-DURABLE]   trace_id={trace_id}, span_id={span_id}, headers={list(payload.keys())}")
+                        logger.debug(
+                            "Extracted Datadog trace context from trace checkpoint %s: %s",
+                            operation_id,
+                            context,
+                        )
+                        return context
+            except (json.JSONDecodeError, TypeError, ValueError) as e:
+                print(f"[DD-DURABLE] Failed to parse trace checkpoint payload: {e}")
+                logger.debug("Failed to parse trace checkpoint payload: %s", e)
+                continue
+
+        print("[DD-DURABLE] No trace context checkpoints found in operations")
+    except Exception as e:
+        logger.debug("Failed to extract trace context from durable execution: %s", e)
+
+    return None
+
+
+def create_durable_execution_root_span(event):
+    """
+    Create the durable execution root span on the FIRST invocation only.
+
+    Component 1 & 4 of extracheckpoint trace propagation:
+    - First invocation (no checkpoint context): creates root span, returns it
+    - Subsequent invocations (checkpoint context found): returns None
+      (context already activated by extract_context_from_durable_execution,
+       no need to recreate root span)
+
+    Returns the root span (caller must call span.finish() when invocation ends),
+    or None if not a durable execution or if this is a replay.
+    """
+    print(f"[DD-DURABLE] create_durable_execution_root_span called, event type={type(event).__name__}")
+    try:
+        if not isinstance(event, dict):
+            return None
+
+        execution_arn = event.get("DurableExecutionArn")
+        has_initial_state = "InitialExecutionState" in event
+        if not execution_arn or not has_initial_state:
+            return None
+
+        # Component 4: On replay, context is already activated from checkpoint.
+        # Don't recreate root span — it was already emitted in a prior invocation.
+        if is_durable_execution_replay(event):
+            print("[DD-DURABLE] Replay invocation — skipping root span creation (context from checkpoint)")
+            return None
+
+        # Component 1: First invocation — create new root span
+        service_name = os.environ.get("DD_DURABLE_EXECUTION_SERVICE") or "aws.durable-execution"
+        resource = execution_arn.split(":")[-1] if ":" in execution_arn else execution_arn
+
+        span = tracer.trace(
+            "aws.durable-execution",
+            service=service_name,
+            resource=resource,
+            span_type="serverless",
+        )
+
+        if span:
+            span.set_tag("durable.execution_arn", execution_arn)
+            print(f"[DD-DURABLE] Created root span: trace_id={span.trace_id}, span_id={span.span_id}, resource={resource}")
+        else:
+            print("[DD-DURABLE] tracer.trace() returned None")
+
+        return span
+
+    except Exception as e:
+        logger.debug("Failed to create durable execution root span: %s", e)
+        print(f"[DD-DURABLE] Failed to create root span: {e}")
+        return None
+
+
 def extract_dd_trace_context(
     event, lambda_context, extractor=None, decode_authorizer_context: bool = True
 ):
@@ -633,6 +807,16 @@ def extract_dd_trace_context(
     global dd_trace_context
     trace_context_source = None
     event_source = parse_event_source(event)
+
+    # Check for AWS Lambda Durable Execution events first (before other checks)
+    # This ensures trace context is properly continued across durable invocations
+    durable_context = extract_context_from_durable_execution(event, lambda_context)
+    if _is_context_complete(durable_context):
+        logger.debug("Extracted Datadog trace context from durable execution")
+        dd_trace_context = durable_context
+        trace_context_source = TraceContextSource.EVENT
+        logger.debug("extracted dd trace context from durable execution: %s", dd_trace_context)
+        return dd_trace_context, trace_context_source, event_source
 
     if extractor is not None:
         context = extract_context_custom_extractor(extractor, event, lambda_context)
