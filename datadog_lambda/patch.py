@@ -31,6 +31,14 @@ def patch_all():
 
     if config.trace_enabled:
         patch_all_dd()
+        # Todo: remove this for PR. This is just a testing helper
+        # Manually patch the durable execution integration since it may not
+        # be registered in the PyPI ddtrace's _monkey.py yet.
+        try:
+            from ddtrace import patch as _patch_dd
+            _patch_dd(aws_durable_execution_sdk_python=True)
+        except Exception:
+            pass
     else:
         _patch_http()
         _ensure_patch_requests()
