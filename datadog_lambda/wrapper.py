@@ -39,6 +39,8 @@ from datadog_lambda.tracing import (
     create_inferred_span,
     InferredSpanInfo,
     is_authorizer_response,
+    is_durable_execution_replay,
+    create_durable_execution_root_span,
     tracer,
     propagator,
 )
@@ -149,6 +151,8 @@ class _LambdaDecorator(object):
             self.inferred_span = None
             self.response = None
             self.blocking_response = None
+            self.durable_root_span = None
+            self.is_durable = False
 
             if config.profiling_enabled and profiler:
                 self.prof = profiler.Profiler(env=config.env, service=config.service)
@@ -269,7 +273,9 @@ class _LambdaDecorator(object):
 
             if config.trace_enabled:
                 set_dd_trace_py_root(trace_context_source, config.merge_xray_traces)
-                if config.make_inferred_span:
+                # Skip inferred span for durable execution replays to avoid duplicates
+                # For replays, trace context comes from checkpoint, not from event trigger
+                if config.make_inferred_span and not is_durable_execution_replay(event):
                     self.inferred_span = create_inferred_span(
                         event, context, event_source, config.decode_authorizer_context
                     )
@@ -277,6 +283,40 @@ class _LambdaDecorator(object):
                 if config.appsec_enabled:
                     asm_set_context(event_source)
 
+                # For durable executions: create root span BEFORE aws.lambda span
+                # so aws.lambda becomes a child of the root durable execution span.
+                self.is_durable = isinstance(event, dict) and "DurableExecutionArn" in event
+                if self.is_durable:
+                    # Set _reactivate on the active context so it persists after
+                    # all spans close. This prevents ddtrace from purging the
+                    # context when the last span (aws.lambda or root) finishes.
+                    active_ctx = tracer.context_provider.active()
+                    if active_ctx and hasattr(active_ctx, '_reactivate'):
+                        active_ctx._reactivate = True
+                        print(f"[DD-DURABLE] Set _reactivate=True on active context")
+
+                    # For replay: copy _meta from extracted context for _dd.p.* tag propagation
+                    # set_dd_trace_py_root only copies trace_id/span_id/sampling_priority,
+                    # so propagation tags from the checkpoint would be lost without this.
+                    if dd_context and hasattr(dd_context, '_meta') and active_ctx and hasattr(active_ctx, '_meta'):
+                        for k, v in dd_context._meta.items():
+                            if k not in active_ctx._meta:
+                                active_ctx._meta[k] = v
+
+                    # Component 1: Create root span (first invocation only)
+                    # Component 4: On replays, returns None (context from checkpoint)
+                    self.durable_root_span = create_durable_execution_root_span(event)
+
+                    # Store root span reference for Component 2 (checkpoint save)
+                    if self.durable_root_span:
+                        try:
+                            from ddtrace.contrib.internal.aws_durable_execution_sdk_python.patch import set_durable_root_span
+                            set_durable_root_span(self.durable_root_span)
+                        except Exception:
+                            pass
+
+                # Create aws.lambda span — child of root durable span (first invocation)
+                # or child of checkpoint context (replay), or normal parent otherwise
                 self.span = create_function_execution_span(
                     context=context,
                     function_name=config.function_name,
@@ -289,6 +329,7 @@ class _LambdaDecorator(object):
                     parent_span=self.inferred_span,
                     span_pointers=calculate_span_pointers(event_source, event),
                 )
+
                 if config.appsec_enabled:
                     asm_start_request(self.span, event, event_source, self.trigger_tags)
                     self.blocking_response = get_asm_blocked_response(self.event_source)
@@ -351,6 +392,41 @@ class _LambdaDecorator(object):
                     )
 
                 self.span.finish()
+
+            # Component 3: After aws.lambda closes but BEFORE root span closes,
+            # check if trace context was enriched during this invocation.
+            # The context is still alive because _reactivate=True on the parent context.
+            # This is best-effort for the end-of-invocation case; the piggyback in
+            # _patched_create_checkpoint handles saves during handler execution.
+            if self.is_durable:
+                try:
+                    from ddtrace.contrib.internal.aws_durable_execution_sdk_python.patch import (
+                        _has_context_changed, save_updated_trace_checkpoint,
+                        _get_current_execution_state, _inject_current_context,
+                    )
+                    state = _get_current_execution_state()
+                    if state:
+                        before_headers = getattr(state, "_dd_before_trace_headers", None)
+                        if before_headers is not None and _has_context_changed(before_headers):
+                            print("[DD-DURABLE] Context changed at end of invocation, saving updated checkpoint")
+                            state._dd_saving_trace_checkpoint = True
+                            try:
+                                save_updated_trace_checkpoint(state)
+                            finally:
+                                state._dd_saving_trace_checkpoint = False
+                            current = _inject_current_context()
+                            if current:
+                                state._dd_before_trace_headers = current
+                except Exception as e:
+                    print(f"[DD-DURABLE] Best-effort context change check in _after: {e}")
+
+            # Finish durable execution root span LAST (Component 1)
+            # Component 2 (root checkpoint) is handled in _patched_create_checkpoint
+            # piggybacked on the first operation's checkpoint call.
+            if self.durable_root_span:
+                self.durable_root_span.finish()
+                print(f"[DD-DURABLE] Finished root span: trace_id={self.durable_root_span.trace_id}, span_id={self.durable_root_span.span_id}")
+                self.durable_root_span = None
 
             if status_code:
                 self.trigger_tags["http.status_code"] = status_code
