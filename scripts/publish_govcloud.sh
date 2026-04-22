@@ -9,7 +9,7 @@
 # Download button on the `layer bundle` job. This will be a zip file containing
 # all of the required layers. Run this script as follows:
 #
-# ENVIRONMENT=[us1-staging-fed or us1-fed] [LAYER_NAME_SUFFIX=optional-layer-suffix] [REGIONS=us-gov-west-1] ./scripts/publish_govcloud.sh <layer-bundle.zip>
+# ENVIRONMENT=[us1-staging-fed|us1-fed|us2-fed] [LAYER_NAME_SUFFIX=optional-layer-suffix] [REGIONS=us-gov-west-1] ./scripts/publish_govcloud.sh <layer-bundle.zip>
 #
 # protip: you can drag the zip file from finder into your terminal to insert
 # its path.
@@ -49,9 +49,11 @@ elif [ $ENVIRONMENT = "us1-fed" ]; then
         echo "[ERROR]: Unexpected package name: $PACKAGE_NAME"
         exit 1
     fi
+elif [ $ENVIRONMENT = "us2-fed" ]; then
+    AWS_VAULT_ROLE=sso-govcloud-fed-us2-engineering
 
 else
-    printf "[ERROR]: ENVIRONMENT not supported, must be us1-staging-fed or us1-fed.\n"
+    printf "[ERROR]: ENVIRONMENT not supported, must be us1-staging-fed, us1-fed, or us2.\n"
     exit 1
 fi
 
