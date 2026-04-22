@@ -53,7 +53,7 @@ elif [ $ENVIRONMENT = "us2-fed" ]; then
     AWS_VAULT_ROLE=sso-govcloud-fed-us2-engineering
 
 else
-    printf "[ERROR]: ENVIRONMENT not supported, must be us1-staging-fed, us1-fed, or us2.\n"
+    printf "[ERROR]: ENVIRONMENT not supported, must be us1-staging-fed, us1-fed, or us2-fed.\n"
     exit 1
 fi
 
