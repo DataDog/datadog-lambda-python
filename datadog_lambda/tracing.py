@@ -659,19 +659,19 @@ def is_durable_execution_replay(event):
     return is_replay
 
 
+_TRACE_CHECKPOINT_PREFIX = "_dd_trace_context_"
+
+
 def extract_context_from_durable_execution(event, lambda_context):
     """
     Extract Datadog trace context from AWS Lambda Durable Execution event.
 
-    Looks for extra trace context checkpoints created by the dd-trace plugin.
-    These are STEP operations with Name="_dd_trace_context" that store trace
-    headers in their StepDetails.Result payload. Customer operation payloads
-    are never read or modified.
-
-    Scans operations in reverse to find the LAST trace checkpoint, which
-    corresponds to the most recently completed customer operation. This gives
-    proper parent chaining: each invocation's root span is parented to the
-    last operation span from the previous invocation.
+    Looks for trace-context checkpoints created by the dd-trace-py integration
+    on previous invocations.  Checkpoints are STEP operations named
+    ``_dd_trace_context_{N}`` with trace headers stored as their StepDetails.Result
+    payload.  The one with the highest ``{N}`` wins — it corresponds to the
+    latest trace-context state from the previous invocation.  Customer
+    operation payloads are never read or modified.
     """
     try:
         if not isinstance(event, dict):
@@ -687,54 +687,59 @@ def extract_context_from_durable_execution(event, lambda_context):
 
         print(f"[DD-DURABLE] Found {len(operations)} operations in InitialExecutionState")
 
-        # Scan in reverse to find the LAST trace context checkpoint
-        # (corresponds to the most recently completed customer operation)
-        for idx in range(len(operations) - 1, -1, -1):
-            operation = operations[idx]
+        # Collect all _dd_trace_context_{N} checkpoints, then pick the highest N
+        candidates = []  # list of (number, operation)
+        for operation in operations:
             op_name = operation.get("Name")
-
-            if op_name != "_dd_trace_context":
+            if not op_name or not op_name.startswith(_TRACE_CHECKPOINT_PREFIX):
                 continue
-
-            operation_id = operation.get("Id")
-            print(f"[DD-DURABLE] Found trace checkpoint: id={operation_id}, index={idx}")
-
-            # Trace context is in StepDetails.Result (standard STEP format)
-            step_details = operation.get("StepDetails", {})
-            payload_str = step_details.get("Result")
-
-            if not payload_str:
-                print(f"[DD-DURABLE] Trace checkpoint {operation_id} has no Result, skipping")
-                continue
-
+            suffix = op_name[len(_TRACE_CHECKPOINT_PREFIX):]
             try:
-                payload = json.loads(payload_str)
-                if not isinstance(payload, dict):
-                    print(f"[DD-DURABLE] Trace checkpoint payload is not a dict: {type(payload)}")
-                    continue
-
-                trace_id = payload.get("x-datadog-trace-id")
-                span_id = payload.get("x-datadog-parent-id")
-
-                if trace_id and span_id:
-                    # Use HTTPPropagator to restore full context including
-                    # baggage, _dd.p.* tags, origin, and sampling priority
-                    context = propagator.extract(payload)
-                    if context and context.trace_id:
-                        print(f"[DD-DURABLE] Extracted trace context from trace checkpoint {operation_id}")
-                        print(f"[DD-DURABLE]   trace_id={trace_id}, span_id={span_id}, headers={list(payload.keys())}")
-                        logger.debug(
-                            "Extracted Datadog trace context from trace checkpoint %s: %s",
-                            operation_id,
-                            context,
-                        )
-                        return context
-            except (json.JSONDecodeError, TypeError, ValueError) as e:
-                print(f"[DD-DURABLE] Failed to parse trace checkpoint payload: {e}")
-                logger.debug("Failed to parse trace checkpoint payload: %s", e)
+                number = int(suffix)
+            except ValueError:
                 continue
+            candidates.append((number, operation))
 
-        print("[DD-DURABLE] No trace context checkpoints found in operations")
+        if not candidates:
+            print("[DD-DURABLE] No trace context checkpoints found in operations")
+            return None
+
+        candidates.sort(key=lambda t: t[0])
+        number, operation = candidates[-1]
+        operation_id = operation.get("Id")
+        op_name = operation.get("Name")
+        print(f"[DD-DURABLE] Using latest trace checkpoint: name={op_name}, id={operation_id}")
+
+        step_details = operation.get("StepDetails", {})
+        payload_str = step_details.get("Result")
+        if not payload_str:
+            print(f"[DD-DURABLE] Trace checkpoint {op_name} has no Result, skipping")
+            return None
+
+        try:
+            payload = json.loads(payload_str)
+        except (json.JSONDecodeError, TypeError, ValueError) as e:
+            print(f"[DD-DURABLE] Failed to parse trace checkpoint payload: {e}")
+            logger.debug("Failed to parse trace checkpoint payload: %s", e)
+            return None
+
+        if not isinstance(payload, dict):
+            print(f"[DD-DURABLE] Trace checkpoint payload is not a dict: {type(payload)}")
+            return None
+
+        context = propagator.extract(payload)
+        if context and context.trace_id:
+            print(
+                f"[DD-DURABLE] Extracted trace context from {op_name}: "
+                f"trace_id={context.trace_id}, span_id={context.span_id}, "
+                f"headers={list(payload.keys())}"
+            )
+            logger.debug(
+                "Extracted Datadog trace context from trace checkpoint %s: %s",
+                op_name,
+                context,
+            )
+            return context
     except Exception as e:
         logger.debug("Failed to extract trace context from durable execution: %s", e)
 
@@ -1161,12 +1166,16 @@ def process_injected_data(event, request_time_epoch_ms, args, tags):
             start_time_ns = int(
                 injected_authorizer_data.get(Headers.Parent_Span_Finish_Time)
             )
-            integration_latency = int(
-                event["requestContext"]["authorizer"].get("integrationLatency", 0)
-            )
-            finish_time_ns = max(
-                start_time_ns, (request_time_epoch_ms + integration_latency) * 1e6
-            )
+            finish_time_ns = (
+                request_time_epoch_ms
+                + (
+                    int(
+                        event["requestContext"]["authorizer"].get(
+                            "integrationLatency", 0
+                        )
+                    )
+                )
+            ) * 1e6
             upstream_authorizer_span = insert_upstream_authorizer_span(
                 args, tags, start_time_ns, finish_time_ns
             )
@@ -1629,9 +1638,9 @@ def create_function_execution_span(
     trace_context_source,
     merge_xray_traces,
     trigger_tags,
-    durable_function_tags=None,
     parent_span=None,
     span_pointers=None,
+    durable_function_tags=None,
 ):
     tags = None
     if context:
@@ -1640,7 +1649,6 @@ def create_function_execution_span(
         function_arn = ":".join(tk[0:7]) if len(tk) > 7 else function_arn
         function_version = tk[7] if len(tk) > 7 else "$LATEST"
         tags = {
-            "span.kind": "server",
             "cold_start": str(is_cold_start).lower(),
             "function_arn": function_arn,
             "function_version": function_version,
