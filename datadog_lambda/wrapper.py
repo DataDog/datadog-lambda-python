@@ -153,6 +153,7 @@ class _LambdaDecorator(object):
             self.blocking_response = None
             self.durable_root_span = None
             self.is_durable = False
+            self.durable_status = None
 
             if config.profiling_enabled and profiler:
                 self.prof = profiler.Profiler(env=config.env, service=config.service)
@@ -307,14 +308,6 @@ class _LambdaDecorator(object):
                     # Component 4: On replays, returns None (context from checkpoint)
                     self.durable_root_span = create_durable_execution_root_span(event)
 
-                    # Store root span reference for Component 2 (checkpoint save)
-                    if self.durable_root_span:
-                        try:
-                            from ddtrace.contrib.internal.aws_durable_execution_sdk_python.patch import set_durable_root_span
-                            set_durable_root_span(self.durable_root_span)
-                        except Exception:
-                            pass
-
                 # Create aws.lambda span — child of root durable span (first invocation)
                 # or child of checkpoint context (replay), or normal parent otherwise
                 self.span = create_function_execution_span(
@@ -333,6 +326,7 @@ class _LambdaDecorator(object):
                 if config.appsec_enabled:
                     asm_start_request(self.span, event, event_source, self.trigger_tags)
                     self.blocking_response = get_asm_blocked_response(self.event_source)
+
             else:
                 set_correlation_ids()
             if config.profiling_enabled and profiler and is_new_sandbox():
@@ -359,6 +353,11 @@ class _LambdaDecorator(object):
             if should_trace_cold_start:
                 trace_ctx = tracer.current_trace_context()
 
+            if self.is_durable:
+                self.durable_status = extract_durable_execution_status(
+                    self.response, event
+                )
+
             if self.span:
                 if config.appsec_enabled and not self.blocking_response:
                     asm_start_response(
@@ -384,45 +383,18 @@ class _LambdaDecorator(object):
                 if status_code:
                     self.span.set_tag("http.status_code", status_code)
 
-                durable_status = extract_durable_execution_status(self.response, event)
-                if durable_status:
+                if self.durable_status:
                     self.span.set_tag(
                         "aws_lambda.durable_function.execution_status",
-                        durable_status,
+                        self.durable_status,
                     )
 
                 self.span.finish()
 
-            # Component 3: After aws.lambda closes but BEFORE root span closes,
-            # check if trace context was enriched during this invocation.
-            # The context is still alive because _reactivate=True on the parent context.
-            # This is best-effort for the end-of-invocation case; the piggyback in
-            # _patched_create_checkpoint handles saves during handler execution.
-            if self.is_durable:
-                try:
-                    from ddtrace.contrib.internal.aws_durable_execution_sdk_python.patch import (
-                        _has_context_changed, save_updated_trace_checkpoint,
-                        _get_current_execution_state, _inject_current_context,
-                    )
-                    state = _get_current_execution_state()
-                    if state:
-                        before_headers = getattr(state, "_dd_before_trace_headers", None)
-                        if before_headers is not None and _has_context_changed(before_headers):
-                            print("[DD-DURABLE] Context changed at end of invocation, saving updated checkpoint")
-                            state._dd_saving_trace_checkpoint = True
-                            try:
-                                save_updated_trace_checkpoint(state)
-                            finally:
-                                state._dd_saving_trace_checkpoint = False
-                            current = _inject_current_context()
-                            if current:
-                                state._dd_before_trace_headers = current
-                except Exception as e:
-                    print(f"[DD-DURABLE] Best-effort context change check in _after: {e}")
-
-            # Finish durable execution root span LAST (Component 1)
-            # Component 2 (root checkpoint) is handled in _patched_create_checkpoint
-            # piggybacked on the first operation's checkpoint call.
+            # Finish durable execution root span LAST, after aws.lambda.
+            # The trace-context checkpoint (for cross-invocation continuity)
+            # is saved by dd-trace-py's aws_durable_execution_sdk_python
+            # integration when the aws.durable_execution.execute span closes.
             if self.durable_root_span:
                 self.durable_root_span.finish()
                 print(f"[DD-DURABLE] Finished root span: trace_id={self.durable_root_span.trace_id}, span_id={self.durable_root_span.span_id}")
