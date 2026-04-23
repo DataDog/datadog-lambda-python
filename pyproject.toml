@@ -51,7 +51,7 @@ pytest = [
     { version = "^9.0.3", optional = true, python = ">=3.10" },
 ]
 pytest-benchmark = { version = "^4.0", optional = true }
-flake8 = { version = "^5.0.4", optional = true }
+flake8 = { version = "^7.3.0", optional = true }
 
 [tool.poetry.extras]
 dev = [
