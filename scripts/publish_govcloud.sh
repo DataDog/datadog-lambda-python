@@ -50,8 +50,14 @@ elif [ $ENVIRONMENT = "us1-fed" ]; then
         exit 1
     fi
 elif [ $ENVIRONMENT = "us2-fed" ]; then
-    AWS_VAULT_ROLE=sso-govcloud-fed-us2-engineering
+    AWS_VAULT_ROLE=sso-govcloud-fed-us2-lambda-layer-operator
 
+    export STAGE=gov-prod
+
+    if [[ ! "$PACKAGE_NAME" =~ ^datadog_lambda_py-signed-bundle-[0-9]+$ ]]; then
+        echo "[ERROR]: Unexpected package name: $PACKAGE_NAME"
+        exit 1
+    fi
 else
     printf "[ERROR]: ENVIRONMENT not supported, must be us1-staging-fed, us1-fed, or us2-fed.\n"
     exit 1
