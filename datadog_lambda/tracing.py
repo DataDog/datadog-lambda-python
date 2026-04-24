@@ -1511,7 +1511,7 @@ def create_function_execution_span(
                 extra_attributes=span_pointer_description.extra_attributes,
             )
 
-    if is_cold_start():
+    if is_cold_start:
         telemetry_writer.periodic(force_flush=True)
 
     return span
