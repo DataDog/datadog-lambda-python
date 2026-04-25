@@ -27,7 +27,7 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.8.0,<3.15"
-datadog = ">=0.51.0,<1.0.0"
+datadog = ">=0.52.1"
 wrapt = "^1.11.2"
 ddtrace = [
     {version = ">=3.19.1,<4", python = ">=3.8,<3.10"},
