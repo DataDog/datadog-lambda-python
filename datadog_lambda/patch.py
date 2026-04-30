@@ -31,16 +31,20 @@ def patch_all():
 
     if config.trace_enabled:
         patch_all_dd()
-        # Todo: remove this for PR. This is just a testing helper.
-        # Call the aws_durable_execution_sdk_python integration's patch()
-        # directly because PyPI ddtrace's _monkey.py doesn't know about it yet,
-        # so ddtrace.patch(aws_durable_execution_sdk_python=True) would be a no-op.
+        # AIDEV-NOTE: Until the aws_durable_execution_sdk_python integration
+        # ships in a stable ddtrace release, this branch wires it up directly.
+        # ddtrace.patch(aws_durable_execution_sdk_python=True) becomes a no-op
+        # against PyPI ddtrace because _monkey.py doesn't know the name yet.
+        # Remove once the integration is GA.
         try:
-            from ddtrace.contrib.internal.aws_durable_execution_sdk_python.patch import patch as _patch_ade
+            from ddtrace.contrib.internal.aws_durable_execution_sdk_python.patch import (
+                patch as _patch_ade,
+            )
+
             _patch_ade()
-            print("[DD-DURABLE] aws_durable_execution_sdk_python integration patched")
+            logger.debug("aws_durable_execution_sdk_python integration patched")
         except Exception as e:
-            print(f"[DD-DURABLE] Failed to patch aws_durable_execution_sdk_python: {e}")
+            logger.debug("Failed to patch aws_durable_execution_sdk_python: %s", e)
     else:
         _patch_http()
         _ensure_patch_requests()

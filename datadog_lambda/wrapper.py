@@ -286,20 +286,31 @@ class _LambdaDecorator(object):
 
                 # For durable executions: create root span BEFORE aws.lambda span
                 # so aws.lambda becomes a child of the root durable execution span.
-                self.is_durable = isinstance(event, dict) and "DurableExecutionArn" in event
+                self.is_durable = (
+                    isinstance(event, dict) and "DurableExecutionArn" in event
+                )
                 if self.is_durable:
                     # Set _reactivate on the active context so it persists after
                     # all spans close. This prevents ddtrace from purging the
                     # context when the last span (aws.lambda or root) finishes.
+                    # AIDEV-NOTE: _reactivate=True keeps the active Context alive
+                    # after all spans on it close. Without it, ddtrace purges the
+                    # context when the last span (aws.lambda or the durable root)
+                    # finishes, and any later trace-checkpoint write would lose
+                    # the propagation parent. Python-only fix; no JS analog.
                     active_ctx = tracer.context_provider.active()
-                    if active_ctx and hasattr(active_ctx, '_reactivate'):
+                    if active_ctx and hasattr(active_ctx, "_reactivate"):
                         active_ctx._reactivate = True
-                        print(f"[DD-DURABLE] Set _reactivate=True on active context")
 
                     # For replay: copy _meta from extracted context for _dd.p.* tag propagation
                     # set_dd_trace_py_root only copies trace_id/span_id/sampling_priority,
                     # so propagation tags from the checkpoint would be lost without this.
-                    if dd_context and hasattr(dd_context, '_meta') and active_ctx and hasattr(active_ctx, '_meta'):
+                    if (
+                        dd_context
+                        and hasattr(dd_context, "_meta")
+                        and active_ctx
+                        and hasattr(active_ctx, "_meta")
+                    ):
                         for k, v in dd_context._meta.items():
                             if k not in active_ctx._meta:
                                 active_ctx._meta[k] = v
@@ -397,7 +408,6 @@ class _LambdaDecorator(object):
             # integration when the aws.durable_execution.execute span closes.
             if self.durable_root_span:
                 self.durable_root_span.finish()
-                print(f"[DD-DURABLE] Finished root span: trace_id={self.durable_root_span.trace_id}, span_id={self.durable_root_span.span_id}")
                 self.durable_root_span = None
 
             if status_code:
