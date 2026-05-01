@@ -1074,7 +1074,9 @@ def _expected_span_pointer_span_link(
         "ptr.hash": pointer_hash,
         **extra_attributes,
     }
-    link = SpanLink(trace_id=0, span_id=0)
+    link = object.__new__(SpanLink)
+    link.trace_id = 0
+    link.span_id = 0
     link.attributes = attrs
     return link
 
@@ -1194,6 +1196,8 @@ class TestFunctionSpanTags(unittest.TestCase):
         ]
         self.assertEqual(len(actual_links), len(expected_links))
         for actual, expected in zip(actual_links, expected_links):
+            self.assertEqual(actual.trace_id, expected.trace_id)
+            self.assertEqual(actual.span_id, expected.span_id)
             self.assertEqual(actual.attributes, expected.attributes)
 
 
