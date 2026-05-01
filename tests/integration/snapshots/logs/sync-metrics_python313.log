@@ -449,19 +449,19 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
             "span_id": "XXXX",
             "attributes": {
               "link.kind": "span-pointer",
+              "ptr.dir": "u",
               "ptr.hash": "e2af34d333891f765c7f02d2da80895e",
-              "ptr.kind": "aws.dynamodb.item",
-              "ptr.dir": "u"
+              "ptr.kind": "aws.dynamodb.item"
             }
           },
           {
             "trace_id": "XXXX",
             "span_id": "XXXX",
             "attributes": {
-              "link.kind": "span-pointer",
               "ptr.hash": "e2af34d333891f765c7f02d2da80895e",
-              "ptr.kind": "aws.dynamodb.item",
-              "ptr.dir": "u"
+              "ptr.dir": "u",
+              "link.kind": "span-pointer",
+              "ptr.kind": "aws.dynamodb.item"
             }
           }
         ]
@@ -1258,10 +1258,10 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
             "trace_id": "XXXX",
             "span_id": "XXXX",
             "attributes": {
-              "ptr.kind": "aws.s3.object",
-              "ptr.dir": "u",
               "link.kind": "span-pointer",
-              "ptr.hash": "1dc3e5d00dae48c1f07d95371a747788"
+              "ptr.hash": "1dc3e5d00dae48c1f07d95371a747788",
+              "ptr.kind": "aws.s3.object",
+              "ptr.dir": "u"
             }
           }
         ]
