@@ -12,7 +12,8 @@ from unittest.mock import Mock, patch, call, ANY
 import ddtrace
 
 from ddtrace.trace import Context, tracer
-from ddtrace._trace._span_link import _SpanLink
+from ddtrace._trace.span import Span
+from ddtrace._trace._span_link import SpanLink
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
 
@@ -1152,15 +1153,15 @@ class TestFunctionSpanTags(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            span._links,
+            Span._get_links(span),
             [
-                _SpanLink._SpanPointer(
+                SpanLink(
                     pointer_kind="some.kind",
                     pointer_direction=_SpanPointerDirection.UPSTREAM,
                     pointer_hash="some.hash",
                     extra_attributes={},
                 ),
-                _SpanLink._SpanPointer(
+                SpanLink(
                     pointer_kind="other.kind",
                     pointer_direction=_SpanPointerDirection.DOWNSTREAM,
                     pointer_hash="other.hash",
