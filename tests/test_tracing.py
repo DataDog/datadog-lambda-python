@@ -1054,17 +1054,12 @@ class TestLogsInjection(unittest.TestCase):
         self.assertIsNone(span)
 
 
-# Span-link kind value used by ddtrace for span-pointer links (SpanLinkKind.SPAN_POINTER).
-_SPAN_POINTER_LINK_KIND = "span-pointer"
-
-
 def _expected_span_pointer_link(
     pointer_kind,
     pointer_direction,
     pointer_hash,
     extra_attributes=None,
 ):
-    """Expected trace_id, span_id, and attributes for a span-pointer link on the root span."""
     extra_attributes = extra_attributes or {}
     return SimpleNamespace(
         trace_id=0,
@@ -1073,7 +1068,7 @@ def _expected_span_pointer_link(
             "ptr.kind": pointer_kind,
             "ptr.dir": pointer_direction.value,
             "ptr.hash": pointer_hash,
-            "link.kind": _SPAN_POINTER_LINK_KIND,
+            "link.kind": "span-pointer",
             **extra_attributes,
         },
     )
