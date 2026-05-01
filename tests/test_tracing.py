@@ -1091,7 +1091,10 @@ class TestFunctionSpanTags(unittest.TestCase):
         self.assertEqual(span.get_tag("function_version"), "$LATEST")
         self.assertEqual(span.get_tag("resource_names"), "Function")
         self.assertEqual(span.get_tag("functionname"), "function")
-        self.assertEqual(Span._get_links(span), [])
+        try:
+            self.assertEqual(Span._get_links(span), [])
+        except:
+            self.assertEqual(span._links, [])
 
     def test_function_with_version(self):
         function_version = "1"
@@ -1172,7 +1175,10 @@ class TestFunctionSpanTags(unittest.TestCase):
                 ),
             ],
         )
-        actual_links = Span._get_links(span)
+        try:
+            actual_links = Span._get_links(span)
+        except:
+            actual_links = span._links
         expected_links = [
             _expected_span_pointer_link(
                 "some.kind",
