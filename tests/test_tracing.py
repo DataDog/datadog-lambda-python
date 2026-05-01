@@ -1074,7 +1074,7 @@ def _expected_span_pointer_span_link(
         "ptr.hash": pointer_hash,
         **extra_attributes,
     }
-    link = SpanLink()
+    link = SpanLink(trace_id=0, span_id=0)
     link.attributes = attrs
     return link
 
