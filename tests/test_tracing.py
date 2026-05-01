@@ -14,6 +14,7 @@ import ddtrace
 from ddtrace.trace import Context, tracer
 from ddtrace._trace.span import Span
 from ddtrace._trace._span_link import SpanLink
+from ddtrace._trace._span_link import SpanLinkKind
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
 
@@ -1054,6 +1055,30 @@ class TestLogsInjection(unittest.TestCase):
         self.assertIsNone(span)
 
 
+def _expected_span_pointer_span_link(
+    pointer_kind,
+    pointer_direction,
+    pointer_hash,
+    extra_attributes=None,
+):
+    """
+    Span-link payload for span pointers (same encoding as ddtrace _SpanPointer).
+
+    Span pointers use trace_id and span_id 0; SpanLink.__init__ rejects those
+    values, so we construct instances without running SpanLink.__post_init__.
+    """
+    extra_attributes = extra_attributes or {}
+    attrs = {
+        "ptr.kind": pointer_kind,
+        "ptr.dir": pointer_direction.value,
+        "ptr.hash": pointer_hash,
+        **extra_attributes,
+    }
+    link = SpanLink()
+    link.attributes = attrs
+    return link
+
+
 class TestFunctionSpanTags(unittest.TestCase):
     def test_function(self):
         ctx = get_mock_context()
@@ -1071,7 +1096,7 @@ class TestFunctionSpanTags(unittest.TestCase):
         self.assertEqual(span.get_tag("function_version"), "$LATEST")
         self.assertEqual(span.get_tag("resource_names"), "Function")
         self.assertEqual(span.get_tag("functionname"), "function")
-        self.assertEqual(span._links, [])
+        self.assertEqual(Span._get_links(span), [])
 
     def test_function_with_version(self):
         function_version = "1"
@@ -1152,23 +1177,24 @@ class TestFunctionSpanTags(unittest.TestCase):
                 ),
             ],
         )
-        self.assertEqual(
-            Span._get_links(span),
-            [
-                SpanLink(
-                    pointer_kind="some.kind",
-                    pointer_direction=_SpanPointerDirection.UPSTREAM,
-                    pointer_hash="some.hash",
-                    extra_attributes={},
-                ),
-                SpanLink(
-                    pointer_kind="other.kind",
-                    pointer_direction=_SpanPointerDirection.DOWNSTREAM,
-                    pointer_hash="other.hash",
-                    extra_attributes={"extra": "stuff"},
-                ),
-            ],
-        )
+        actual_links = Span._get_links(span)
+        expected_links = [
+            _expected_span_pointer_span_link(
+                "some.kind",
+                _SpanPointerDirection.UPSTREAM,
+                "some.hash",
+                {},
+            ),
+            _expected_span_pointer_span_link(
+                "other.kind",
+                _SpanPointerDirection.DOWNSTREAM,
+                "other.hash",
+                {"extra": "stuff"},
+            ),
+        ]
+        self.assertEqual(len(actual_links), len(expected_links))
+        for actual, expected in zip(actual_links, expected_links):
+            self.assertEqual(actual.attributes, expected.attributes)
 
 
 class TestSetTraceRootSpan(unittest.TestCase):
