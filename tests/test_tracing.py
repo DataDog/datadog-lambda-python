@@ -6,6 +6,7 @@ import traceback
 import pytest
 import os
 import unittest
+from types import SimpleNamespace
 
 from unittest.mock import Mock, patch, call, ANY
 
@@ -13,8 +14,6 @@ import ddtrace
 
 from ddtrace.trace import Context, tracer
 from ddtrace._trace.span import Span
-from ddtrace._trace._span_link import SpanLink
-from ddtrace._trace._span_link import SpanLinkKind
 from ddtrace._trace._span_pointer import _SpanPointerDirection
 from ddtrace._trace._span_pointer import _SpanPointerDescription
 
@@ -1055,30 +1054,29 @@ class TestLogsInjection(unittest.TestCase):
         self.assertIsNone(span)
 
 
-def _expected_span_pointer_span_link(
+# Span-link kind value used by ddtrace for span-pointer links (SpanLinkKind.SPAN_POINTER).
+_SPAN_POINTER_LINK_KIND = "span-pointer"
+
+
+def _expected_span_pointer_link(
     pointer_kind,
     pointer_direction,
     pointer_hash,
     extra_attributes=None,
 ):
-    """
-    Span-link payload for span pointers (same encoding as ddtrace _SpanPointer).
-
-    Span pointers use trace_id and span_id 0; SpanLink.__init__ rejects those
-    values, so we construct instances without running SpanLink.__post_init__.
-    """
+    """Expected trace_id, span_id, and attributes for a span-pointer link on the root span."""
     extra_attributes = extra_attributes or {}
-    attrs = {
-        "ptr.kind": pointer_kind,
-        "ptr.dir": pointer_direction.value,
-        "ptr.hash": pointer_hash,
-        **extra_attributes,
-    }
-    link = SpanLink.__new__()
-    link.trace_id = 0
-    link.span_id = 0
-    link.attributes = attrs
-    return link
+    return SimpleNamespace(
+        trace_id=0,
+        span_id=0,
+        attributes={
+            "ptr.kind": pointer_kind,
+            "ptr.dir": pointer_direction.value,
+            "ptr.hash": pointer_hash,
+            "link.kind": _SPAN_POINTER_LINK_KIND,
+            **extra_attributes,
+        },
+    )
 
 
 class TestFunctionSpanTags(unittest.TestCase):
@@ -1181,13 +1179,13 @@ class TestFunctionSpanTags(unittest.TestCase):
         )
         actual_links = Span._get_links(span)
         expected_links = [
-            _expected_span_pointer_span_link(
+            _expected_span_pointer_link(
                 "some.kind",
                 _SpanPointerDirection.UPSTREAM,
                 "some.hash",
                 {},
             ),
-            _expected_span_pointer_span_link(
+            _expected_span_pointer_link(
                 "other.kind",
                 _SpanPointerDirection.DOWNSTREAM,
                 "other.hash",
