@@ -39,6 +39,13 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: build
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
+{{- if eq $runtime.python_version "3.8" }}
+  rules:
+    # Skip Python 3.8 layer builds when triggered from an upstream dd-trace pipeline (dd-trace no longer supports 3.8)
+    - if: '$DD_TRACE_COMMIT || $DD_TRACE_COMMIT_BRANCH || $DD_TRACE_WHEEL || $UPSTREAM_PIPELINE_ID'
+      when: never
+    - when: on_success
+{{- end }}
   artifacts:
     expire_in: 1 hr # Unsigned zips expire in 1 hour
     paths:
