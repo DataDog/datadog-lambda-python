@@ -61,6 +61,12 @@ check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
+{{- if eq $runtime.python_version "3.8" }}
+  rules:
+    - if: '$DD_TRACE_COMMIT || $DD_TRACE_COMMIT_BRANCH || $DD_TRACE_WHEEL || $UPSTREAM_PIPELINE_ID'
+      when: never
+    - when: on_success
+{{- end }}
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
@@ -96,6 +102,10 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
+{{- if eq $runtime.python_version "3.8" }}
+    - if: '$DD_TRACE_COMMIT || $DD_TRACE_COMMIT_BRANCH || $DD_TRACE_WHEEL || $UPSTREAM_PIPELINE_ID'
+      when: never
+{{- end }}
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
     - when: on_success
@@ -121,6 +131,10 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
+{{- if eq $runtime.python_version "3.8" }}
+    - if: '$DD_TRACE_COMMIT || $DD_TRACE_COMMIT_BRANCH || $DD_TRACE_WHEEL || $UPSTREAM_PIPELINE_ID'
+      when: never
+{{- end }}
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
       when: manual
   needs:
@@ -152,6 +166,10 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
   rules:
+{{- if eq $runtime.python_version "3.8" }}
+    - if: '$DD_TRACE_COMMIT || $DD_TRACE_COMMIT_BRANCH || $DD_TRACE_WHEEL || $UPSTREAM_PIPELINE_ID'
+      when: never
+{{- end }}
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
     - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "{{ $e2e_region }}" && "{{ $runtime.arch }}" == "amd64"'
@@ -203,9 +221,13 @@ publish-pypi-package:
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   when: manual
-  needs: {{ range $runtime := (ds "runtimes").runtimes }}
-    - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
-  {{- end }}
+  needs:
+    {{- range $rt := (ds "runtimes").runtimes }}
+    - job: sign-layer ({{ $rt.name }}-{{ $rt.arch }})
+      {{- if eq $rt.python_version "3.8" }}
+      optional: true
+      {{- end }}
+    {{- end }}
   script:
     - ./ci/publish_pypi.sh
 
@@ -214,13 +236,13 @@ layer bundle:
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
   needs:
-    {{ range (ds "runtimes").runtimes }}
-    - build-layer ({{ .name }}-{{ .arch }})
-    {{ end }}
-  dependencies:
-    {{ range (ds "runtimes").runtimes }}
-    - build-layer ({{ .name }}-{{ .arch }})
-    {{ end }}
+    {{- range (ds "runtimes").runtimes }}
+    - job: build-layer ({{ .name }}-{{ .arch }})
+      {{- if eq .python_version "3.8" }}
+      optional: true
+      {{- end }}
+    {{- end }}
+  dependencies: []
   artifacts:
     expire_in: 1 hr
     paths:
@@ -238,13 +260,13 @@ signed layer bundle:
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   needs:
-    {{ range (ds "runtimes").runtimes }}
-    - sign-layer ({{ .name }}-{{ .arch }})
-    {{ end }}
-  dependencies:
-    {{ range (ds "runtimes").runtimes }}
-    - sign-layer ({{ .name }}-{{ .arch }})
-    {{ end }}
+    {{- range (ds "runtimes").runtimes }}
+    - job: sign-layer ({{ .name }}-{{ .arch }})
+      {{- if eq .python_version "3.8" }}
+      optional: true
+      {{- end }}
+    {{- end }}
+  dependencies: []
   artifacts:
     expire_in: 1 day
     paths:
@@ -273,9 +295,13 @@ e2e-test:
       PYTHON_{{ $version }}_VERSION: $PYTHON_{{ $version }}_VERSION
     {{- end }}
     {{- end }}
-  needs: {{ range (ds "runtimes").runtimes }}
+  needs:
+    {{- range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
-      - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
+    - job: "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
+      {{- if eq .python_version "3.8" }}
+      optional: true
+      {{- end }}
     {{- end }}
     {{- end }}
 
