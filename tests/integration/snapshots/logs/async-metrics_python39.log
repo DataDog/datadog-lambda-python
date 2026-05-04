@@ -1,9 +1,8 @@
 INIT_START Runtime Version: python:3.9.vX	Runtime Version ARN: arn:aws:lambda:eu-west-1:XXXX:eu-west-1
 START
 {
-  "m": "aws.lambda.enhanced.invocations",
-  "v": 1,
   "e": XXXX,
+  "m": "aws.lambda.enhanced.invocations",
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
@@ -14,27 +13,28 @@ START
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "hello.dog",
-  "v": 1,
   "e": XXXX,
+  "m": "hello.dog",
   "t": [
     "team:serverless",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "tests.integration.count",
-  "v": 21,
   "e": XXXX,
+  "m": "tests.integration.count",
   "t": [
     "test:integration",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 21
 }
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
@@ -42,131 +42,131 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
   "traces": [
     [
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "XXXX.execute-api.us-east-2.amazonaws.com",
-        "resource": "GET /",
-        "name": "aws.apigateway",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "runtime-id": "XXXX",
           "_dd.origin": "lambda",
-          "http.url": "https://XXXX.execute-api.us-east-2.amazonaws.com/",
-          "endpoint": "/",
-          "http.method": "GET",
-          "resource_names": "GET /",
-          "http.useragent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36",
-          "span.kind": "server",
-          "apiid": "XXXX",
-          "apiname": "XXXX",
-          "stage": "Prod",
-          "request_id": "XXXX",
-          "_inferred_span.synchronicity": "sync",
-          "_inferred_span.tag_source": "self",
-          "http.status_code": "200",
-          "http.route": "/",
-          "dd_resource_key": "arn:aws:apigateway:eu-west-1:XXXX:eu-west-1/restapis/70ixmpl4fl/stages/Prod",
-          "peer.service": "integration-tests-python",
-          "_dd.peer.service.source": "peer.service",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "_dd.peer.service.source": "peer.service",
+          "_inferred_span.synchronicity": "sync",
+          "_inferred_span.tag_source": "self",
+          "apiid": "XXXX",
+          "apiname": "XXXX",
+          "dd_resource_key": "arn:aws:apigateway:eu-west-1:XXXX:eu-west-1/restapis/70ixmpl4fl/stages/Prod",
+          "endpoint": "/",
+          "http.method": "GET",
+          "http.route": "/",
+          "http.status_code": "200",
+          "http.url": "https://XXXX.execute-api.us-east-2.amazonaws.com/",
+          "http.useragent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36",
+          "language": "python",
+          "peer.service": "integration-tests-python",
+          "request_id": "XXXX",
+          "resource_names": "GET /",
+          "runtime-id": "XXXX",
+          "span.kind": "server",
+          "stage": "Prod"
         },
         "metrics": {
-          "process_id": XXXX,
           "_dd._inferred_span": 1,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": 1,
+          "process_id": XXXX
         },
+        "name": "aws.apigateway",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "XXXX.execute-api.us-east-2.amazonaws.com",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "web"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-async-metrics_python39",
-        "name": "aws.lambda",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "true",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
-          "function_version": "$LATEST",
-          "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
-          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
-          "span.name": "aws.lambda",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_trigger.event_source": "api-gateway",
           "function_trigger.event_source_arn": "XXXX",
-          "span.kind": "server",
-          "http.url": "https://XXXX.execute-api.us-east-2.amazonaws.com/Prod/",
+          "function_version": "$LATEST",
+          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
           "http.method": "GET",
           "http.route": "/",
-          "http.status_code": "200"
+          "http.status_code": "200",
+          "http.url": "https://XXXX.execute-api.us-east-2.amazonaws.com/Prod/",
+          "request_id": "XXXX",
+          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
+          "span.kind": "server",
+          "span.name": "aws.lambda"
         },
         "metrics": {
           "_dd.top_level": 1
         },
+        "name": "aws.lambda",
+        "parent_id": "XXXX",
+        "resource": "integration-tests-python-XXXX-async-metrics_python39",
+        "service": "integration-tests-python",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "serverless"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1,
           "_dd.top_level": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "_dd.p.tid": "XXXX",
           "_dd.origin": "lambda",
+          "_dd.p.tid": "XXXX",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://www.datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "www.datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       }
     ]
@@ -175,9 +175,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
 END Duration: XXXX ms (init: XXXX ms) Memory Used: XXXX MB
 START
 {
-  "m": "aws.lambda.enhanced.invocations",
-  "v": 1,
   "e": XXXX,
+  "m": "aws.lambda.enhanced.invocations",
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
@@ -188,27 +187,28 @@ START
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "hello.dog",
-  "v": 1,
   "e": XXXX,
+  "m": "hello.dog",
   "t": [
     "team:serverless",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "tests.integration.count",
-  "v": 21,
   "e": XXXX,
+  "m": "tests.integration.count",
   "t": [
     "test:integration",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 21
 }
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
@@ -216,86 +216,86 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
   "traces": [
     [
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-async-metrics_python39",
-        "name": "aws.lambda",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "runtime-id": "XXXX",
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
-          "function_version": "$LATEST",
-          "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
-          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
-          "span.name": "aws.lambda",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
+          "function_version": "$LATEST",
+          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
+          "language": "python",
+          "request_id": "XXXX",
+          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
+          "runtime-id": "XXXX",
           "span.kind": "server",
-          "language": "python"
+          "span.name": "aws.lambda"
         },
         "metrics": {
-          "process_id": XXXX,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": 1,
+          "process_id": XXXX
         },
+        "name": "aws.lambda",
+        "parent_id": "XXXX",
+        "resource": "integration-tests-python-XXXX-async-metrics_python39",
+        "service": "integration-tests-python",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "serverless"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1,
           "_dd.top_level": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://www.datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "www.datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       }
     ]
@@ -304,9 +304,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
 END Duration: XXXX ms Memory Used: XXXX MB
 START
 {
-  "m": "aws.lambda.enhanced.invocations",
-  "v": 1,
   "e": XXXX,
+  "m": "aws.lambda.enhanced.invocations",
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
@@ -317,36 +316,37 @@ START
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "datadog.serverless.dynamodb.stream.type",
-  "v": 1,
   "e": XXXX,
+  "m": "datadog.serverless.dynamodb.stream.type",
   "t": [
     "streamtype:NEW_AND_OLD_IMAGES",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "hello.dog",
-  "v": 1,
   "e": XXXX,
+  "m": "hello.dog",
   "t": [
     "team:serverless",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "tests.integration.count",
-  "v": 21,
   "e": XXXX,
+  "m": "tests.integration.count",
   "t": [
     "test:integration",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 21
 }
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
@@ -354,157 +354,157 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
   "traces": [
     [
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "ExampleTableWithStream",
-        "resource": "ExampleTableWithStream",
-        "name": "aws.dynamodb",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "runtime-id": "XXXX",
           "_dd.origin": "lambda",
-          "operation_name": "aws.dynamodb",
-          "resource_names": "ExampleTableWithStream",
-          "span.kind": "server",
-          "tablename": "ExampleTableWithStream",
-          "event_source_arn": "arn:aws:dynamodb:us-east-1:XXXX:us-east-1/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
-          "event_id": "XXXX",
-          "event_name": "INSERT",
-          "event_version": "1.1",
-          "stream_view_type": "NEW_AND_OLD_IMAGES",
-          "size_bytes": "26",
+          "_dd.p.dm": "-0",
+          "_dd.p.tid": "XXXX",
+          "_dd.peer.service.source": "peer.service",
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
           "dd_resource_key": "arn:aws:dynamodb:us-east-1:XXXX:us-east-1/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
+          "event_id": "XXXX",
+          "event_name": "INSERT",
+          "event_source_arn": "arn:aws:dynamodb:us-east-1:XXXX:us-east-1/ExampleTableWithStream/stream/2015-06-27T00:48:05.899",
+          "event_version": "1.1",
+          "language": "python",
+          "operation_name": "aws.dynamodb",
           "peer.service": "integration-tests-python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.p.dm": "-0",
-          "_dd.p.tid": "XXXX",
-          "language": "python"
+          "resource_names": "ExampleTableWithStream",
+          "runtime-id": "XXXX",
+          "size_bytes": "26",
+          "span.kind": "server",
+          "stream_view_type": "NEW_AND_OLD_IMAGES",
+          "tablename": "ExampleTableWithStream"
         },
         "metrics": {
-          "process_id": XXXX,
           "_dd._inferred_span": 1,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": 1,
+          "process_id": XXXX
         },
-        "type": "web",
+        "name": "aws.dynamodb",
+        "parent_id": "XXXX",
+        "resource": "ExampleTableWithStream",
+        "service": "ExampleTableWithStream",
+        "span_id": "XXXX",
         "span_links": [
           {
-            "trace_id": "XXXX",
-            "span_id": "XXXX",
             "attributes": {
-              "ptr.kind": "aws.dynamodb.item",
+              "link.kind": "span-pointer",
               "ptr.dir": "u",
               "ptr.hash": "e2af34d333891f765c7f02d2da80895e",
-              "link.kind": "span-pointer"
-            }
+              "ptr.kind": "aws.dynamodb.item"
+            },
+            "span_id": "XXXX",
+            "trace_id": "XXXX"
           },
           {
-            "trace_id": "XXXX",
-            "span_id": "XXXX",
             "attributes": {
-              "ptr.kind": "aws.dynamodb.item",
+              "link.kind": "span-pointer",
               "ptr.dir": "u",
               "ptr.hash": "e2af34d333891f765c7f02d2da80895e",
-              "link.kind": "span-pointer"
-            }
+              "ptr.kind": "aws.dynamodb.item"
+            },
+            "span_id": "XXXX",
+            "trace_id": "XXXX"
           },
           {
-            "trace_id": "XXXX",
-            "span_id": "XXXX",
             "attributes": {
-              "ptr.kind": "aws.dynamodb.item",
+              "link.kind": "span-pointer",
               "ptr.dir": "u",
               "ptr.hash": "e2af34d333891f765c7f02d2da80895e",
-              "link.kind": "span-pointer"
-            }
+              "ptr.kind": "aws.dynamodb.item"
+            },
+            "span_id": "XXXX",
+            "trace_id": "XXXX"
           }
-        ]
+        ],
+        "start": "XXXX",
+        "trace_id": "XXXX",
+        "type": "web"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-async-metrics_python39",
-        "name": "aws.lambda",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
-          "function_version": "$LATEST",
-          "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
-          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
-          "span.name": "aws.lambda",
-          "span.kind": "server",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_trigger.event_source": "dynamodb",
-          "function_trigger.event_source_arn": "XXXX"
+          "function_trigger.event_source_arn": "XXXX",
+          "function_version": "$LATEST",
+          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
+          "request_id": "XXXX",
+          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
+          "span.kind": "server",
+          "span.name": "aws.lambda"
         },
         "metrics": {
           "_dd.top_level": 1
         },
+        "name": "aws.lambda",
+        "parent_id": "XXXX",
+        "resource": "integration-tests-python-XXXX-async-metrics_python39",
+        "service": "integration-tests-python",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "serverless"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1,
           "_dd.top_level": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "_dd.p.tid": "XXXX",
           "_dd.origin": "lambda",
+          "_dd.p.tid": "XXXX",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://www.datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "www.datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       }
     ]
@@ -513,9 +513,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
 END Duration: XXXX ms Memory Used: XXXX MB
 START
 {
-  "m": "aws.lambda.enhanced.invocations",
-  "v": 1,
   "e": XXXX,
+  "m": "aws.lambda.enhanced.invocations",
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
@@ -526,27 +525,28 @@ START
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "hello.dog",
-  "v": 1,
   "e": XXXX,
+  "m": "hello.dog",
   "t": [
     "team:serverless",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "tests.integration.count",
-  "v": 21,
   "e": XXXX,
+  "m": "tests.integration.count",
   "t": [
     "test:integration",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 21
 }
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
@@ -554,117 +554,117 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
   "traces": [
     [
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "eventbridge.custom.event.sender",
-        "resource": "eventbridge.custom.event.sender",
-        "name": "aws.eventbridge",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "runtime-id": "XXXX",
           "_dd.origin": "lambda",
-          "operation_name": "aws.eventbridge",
-          "resource_names": "eventbridge.custom.event.sender",
-          "span.kind": "server",
-          "detail_type": "testdetail",
+          "_dd.p.dm": "-0",
+          "_dd.p.tid": "XXXX",
+          "_dd.peer.service.source": "peer.service",
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
+          "detail_type": "testdetail",
+          "language": "python",
+          "operation_name": "aws.eventbridge",
           "peer.service": "integration-tests-python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.p.dm": "-0",
-          "_dd.p.tid": "XXXX",
-          "language": "python"
+          "resource_names": "eventbridge.custom.event.sender",
+          "runtime-id": "XXXX",
+          "span.kind": "server"
         },
         "metrics": {
-          "process_id": XXXX,
           "_dd._inferred_span": 1,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": 1,
+          "process_id": XXXX
         },
+        "name": "aws.eventbridge",
+        "parent_id": "XXXX",
+        "resource": "eventbridge.custom.event.sender",
+        "service": "eventbridge.custom.event.sender",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "web"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-async-metrics_python39",
-        "name": "aws.lambda",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
-          "function_version": "$LATEST",
-          "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
-          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
-          "span.name": "aws.lambda",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
+          "function_trigger.event_source": "eventbridge",
+          "function_version": "$LATEST",
+          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
+          "request_id": "XXXX",
+          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
           "span.kind": "server",
-          "function_trigger.event_source": "eventbridge"
+          "span.name": "aws.lambda"
         },
         "metrics": {
           "_dd.top_level": 1
         },
+        "name": "aws.lambda",
+        "parent_id": "XXXX",
+        "resource": "integration-tests-python-XXXX-async-metrics_python39",
+        "service": "integration-tests-python",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "serverless"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1,
           "_dd.top_level": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "_dd.p.tid": "XXXX",
           "_dd.origin": "lambda",
+          "_dd.p.tid": "XXXX",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://www.datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "www.datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       }
     ]
@@ -673,9 +673,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
 END Duration: XXXX ms Memory Used: XXXX MB
 START
 {
-  "m": "aws.lambda.enhanced.invocations",
-  "v": 1,
   "e": XXXX,
+  "m": "aws.lambda.enhanced.invocations",
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
@@ -686,27 +685,28 @@ START
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "hello.dog",
-  "v": 1,
   "e": XXXX,
+  "m": "hello.dog",
   "t": [
     "team:serverless",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "tests.integration.count",
-  "v": 21,
   "e": XXXX,
+  "m": "tests.integration.count",
   "t": [
     "test:integration",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 21
 }
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
@@ -714,132 +714,132 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
   "traces": [
     [
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "XXXX.execute-api.eu-west-1.amazonaws.com",
-        "resource": "GET /httpapi/get",
-        "name": "aws.httpapi",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "runtime-id": "XXXX",
           "_dd.origin": "lambda",
-          "endpoint": "/httpapi/get",
-          "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com/httpapi/get",
-          "http.method": "GET",
-          "http.protocol": "HTTP/1.1",
-          "http.source_ip": "XXXX",
-          "http.useragent": "curl/7.64.1",
-          "resource_names": "GET /httpapi/get",
-          "request_id": "XXXX",
-          "apiid": "XXXX",
-          "apiname": "XXXX",
-          "stage": "$default",
+          "_dd.p.dm": "-0",
+          "_dd.p.tid": "XXXX",
+          "_dd.peer.service.source": "peer.service",
           "_inferred_span.synchronicity": "sync",
           "_inferred_span.tag_source": "self",
-          "http.status_code": "200",
-          "http.route": "/httpapi/get",
+          "apiid": "XXXX",
+          "apiname": "XXXX",
           "dd_resource_key": "arn:aws:apigateway:eu-west-1:XXXX:eu-west-1/restapis/x02yirxc7a/stages/$default",
+          "endpoint": "/httpapi/get",
+          "http.method": "GET",
+          "http.protocol": "HTTP/1.1",
+          "http.route": "/httpapi/get",
+          "http.source_ip": "XXXX",
+          "http.status_code": "200",
+          "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com/httpapi/get",
+          "http.useragent": "curl/7.64.1",
+          "language": "python",
           "peer.service": "integration-tests-python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.p.dm": "-0",
-          "_dd.p.tid": "XXXX",
-          "language": "python"
+          "request_id": "XXXX",
+          "resource_names": "GET /httpapi/get",
+          "runtime-id": "XXXX",
+          "stage": "$default"
         },
         "metrics": {
-          "process_id": XXXX,
           "_dd._inferred_span": 1,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": 1,
+          "process_id": XXXX
         },
+        "name": "aws.httpapi",
+        "parent_id": "XXXX",
+        "resource": "GET /httpapi/get",
+        "service": "XXXX.execute-api.eu-west-1.amazonaws.com",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "web"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-async-metrics_python39",
-        "name": "aws.lambda",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
-          "function_version": "$LATEST",
-          "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
-          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
-          "span.name": "aws.lambda",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_trigger.event_source": "api-gateway",
           "function_trigger.event_source_arn": "XXXX$default",
-          "span.kind": "server",
-          "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com/httpapi/get",
+          "function_version": "$LATEST",
+          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
           "http.method": "GET",
           "http.route": "/httpapi/get",
-          "http.status_code": "200"
+          "http.status_code": "200",
+          "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com/httpapi/get",
+          "request_id": "XXXX",
+          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
+          "span.kind": "server",
+          "span.name": "aws.lambda"
         },
         "metrics": {
           "_dd.top_level": 1
         },
+        "name": "aws.lambda",
+        "parent_id": "XXXX",
+        "resource": "integration-tests-python-XXXX-async-metrics_python39",
+        "service": "integration-tests-python",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "serverless"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1,
           "_dd.top_level": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "_dd.p.tid": "XXXX",
           "_dd.origin": "lambda",
+          "_dd.p.tid": "XXXX",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://www.datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "www.datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       }
     ]
@@ -848,9 +848,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
 END Duration: XXXX ms Memory Used: XXXX MB
 START
 {
-  "m": "aws.lambda.enhanced.invocations",
-  "v": 1,
   "e": XXXX,
+  "m": "aws.lambda.enhanced.invocations",
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
@@ -861,27 +860,28 @@ START
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "hello.dog",
-  "v": 1,
   "e": XXXX,
+  "m": "hello.dog",
   "t": [
     "team:serverless",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "tests.integration.count",
-  "v": 21,
   "e": XXXX,
+  "m": "tests.integration.count",
   "t": [
     "test:integration",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 21
 }
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
@@ -889,125 +889,125 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
   "traces": [
     [
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "EXAMPLE",
-        "resource": "EXAMPLE",
-        "name": "aws.kinesis",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "runtime-id": "XXXX",
           "_dd.origin": "lambda",
-          "operation_name": "aws.kinesis",
-          "resource_names": "EXAMPLE",
-          "span.kind": "server",
-          "streamname": "EXAMPLE",
-          "shardid": "shardId-XXXX",
-          "event_source_arn": "arn:aws:kinesis:EXAMPLE",
-          "event_id": "XXXX",
-          "event_name": "aws:kinesis:record",
-          "event_version": "1.0",
-          "partition_key": "XXXX",
+          "_dd.p.dm": "-0",
+          "_dd.p.tid": "XXXX",
+          "_dd.peer.service.source": "peer.service",
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
           "dd_resource_key": "arn:aws:kinesis:EXAMPLE",
+          "event_id": "XXXX",
+          "event_name": "aws:kinesis:record",
+          "event_source_arn": "arn:aws:kinesis:EXAMPLE",
+          "event_version": "1.0",
+          "language": "python",
+          "operation_name": "aws.kinesis",
+          "partition_key": "XXXX",
           "peer.service": "integration-tests-python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.p.dm": "-0",
-          "_dd.p.tid": "XXXX",
-          "language": "python"
+          "resource_names": "EXAMPLE",
+          "runtime-id": "XXXX",
+          "shardid": "shardId-XXXX",
+          "span.kind": "server",
+          "streamname": "EXAMPLE"
         },
         "metrics": {
-          "process_id": XXXX,
           "_dd._inferred_span": 1,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": 1,
+          "process_id": XXXX
         },
+        "name": "aws.kinesis",
+        "parent_id": "XXXX",
+        "resource": "EXAMPLE",
+        "service": "EXAMPLE",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "web"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-async-metrics_python39",
-        "name": "aws.lambda",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
-          "function_version": "$LATEST",
-          "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
-          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
-          "span.name": "aws.lambda",
-          "span.kind": "server",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_trigger.event_source": "kinesis",
-          "function_trigger.event_source_arn": "XXXX"
+          "function_trigger.event_source_arn": "XXXX",
+          "function_version": "$LATEST",
+          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
+          "request_id": "XXXX",
+          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
+          "span.kind": "server",
+          "span.name": "aws.lambda"
         },
         "metrics": {
           "_dd.top_level": 1
         },
+        "name": "aws.lambda",
+        "parent_id": "XXXX",
+        "resource": "integration-tests-python-XXXX-async-metrics_python39",
+        "service": "integration-tests-python",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "serverless"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1,
           "_dd.top_level": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "_dd.p.tid": "XXXX",
           "_dd.origin": "lambda",
+          "_dd.p.tid": "XXXX",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://www.datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "www.datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       }
     ]
@@ -1016,9 +1016,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
 END Duration: XXXX ms Memory Used: XXXX MB
 START
 {
-  "m": "aws.lambda.enhanced.invocations",
-  "v": 1,
   "e": XXXX,
+  "m": "aws.lambda.enhanced.invocations",
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
@@ -1029,27 +1028,28 @@ START
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "hello.dog",
-  "v": 1,
   "e": XXXX,
+  "m": "hello.dog",
   "t": [
     "team:serverless",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "tests.integration.count",
-  "v": 21,
   "e": XXXX,
+  "m": "tests.integration.count",
   "t": [
     "test:integration",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 21
 }
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
@@ -1057,134 +1057,134 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
   "traces": [
     [
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "example-bucket",
-        "resource": "example-bucket",
-        "name": "aws.s3",
         "error": 0,
         "meta": {
-          "runtime-id": "XXXX",
           "_dd.origin": "lambda",
-          "operation_name": "aws.s3",
-          "resource_names": "example-bucket",
-          "span.kind": "server",
-          "event_name": "ObjectCreated:Put",
-          "bucketname": "example-bucket",
-          "bucket_arn": "arn:aws:s3:::example-bucket",
-          "object_key": "test/key",
-          "object_size": "1024",
-          "object_etag": "XXXX",
-          "_inferred_span.synchronicity": "async",
-          "_inferred_span.tag_source": "self",
-          "dd_resource_key": "arn:aws:s3:::example-bucket",
-          "peer.service": "integration-tests-python",
-          "_dd.peer.service.source": "peer.service",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "_dd.peer.service.source": "peer.service",
+          "_inferred_span.synchronicity": "async",
+          "_inferred_span.tag_source": "self",
+          "bucket_arn": "arn:aws:s3:::example-bucket",
+          "bucketname": "example-bucket",
+          "dd_resource_key": "arn:aws:s3:::example-bucket",
+          "event_name": "ObjectCreated:Put",
+          "language": "python",
+          "object_etag": "XXXX",
+          "object_key": "test/key",
+          "object_size": "1024",
+          "operation_name": "aws.s3",
+          "peer.service": "integration-tests-python",
+          "resource_names": "example-bucket",
+          "runtime-id": "XXXX",
+          "span.kind": "server"
         },
         "metrics": {
-          "process_id": XXXX,
           "_dd._inferred_span": 1,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": 1,
+          "process_id": XXXX
         },
-        "type": "web",
+        "name": "aws.s3",
+        "parent_id": "XXXX",
+        "resource": "example-bucket",
+        "service": "example-bucket",
+        "span_id": "XXXX",
         "span_links": [
           {
-            "trace_id": "XXXX",
-            "span_id": "XXXX",
             "attributes": {
-              "ptr.kind": "aws.s3.object",
+              "link.kind": "span-pointer",
               "ptr.dir": "u",
               "ptr.hash": "1dc3e5d00dae48c1f07d95371a747788",
-              "link.kind": "span-pointer"
-            }
+              "ptr.kind": "aws.s3.object"
+            },
+            "span_id": "XXXX",
+            "trace_id": "XXXX"
           }
-        ]
+        ],
+        "trace_id": "XXXX",
+        "type": "web"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-async-metrics_python39",
-        "name": "aws.lambda",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
-          "function_version": "$LATEST",
-          "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
-          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
-          "span.name": "aws.lambda",
-          "span.kind": "server",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_trigger.event_source": "s3",
-          "function_trigger.event_source_arn": "XXXX"
+          "function_trigger.event_source_arn": "XXXX",
+          "function_version": "$LATEST",
+          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
+          "request_id": "XXXX",
+          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
+          "span.kind": "server",
+          "span.name": "aws.lambda"
         },
         "metrics": {
           "_dd.top_level": 1
         },
+        "name": "aws.lambda",
+        "parent_id": "XXXX",
+        "resource": "integration-tests-python-XXXX-async-metrics_python39",
+        "service": "integration-tests-python",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "serverless"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1,
           "_dd.top_level": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "_dd.p.tid": "XXXX",
           "_dd.origin": "lambda",
+          "_dd.p.tid": "XXXX",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://www.datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "www.datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       }
     ]
@@ -1193,9 +1193,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
 END Duration: XXXX ms Memory Used: XXXX MB
 START
 {
-  "m": "aws.lambda.enhanced.invocations",
-  "v": 1,
   "e": XXXX,
+  "m": "aws.lambda.enhanced.invocations",
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
@@ -1206,27 +1205,28 @@ START
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "hello.dog",
-  "v": 1,
   "e": XXXX,
+  "m": "hello.dog",
   "t": [
     "team:serverless",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "tests.integration.count",
-  "v": 21,
   "e": XXXX,
+  "m": "tests.integration.count",
   "t": [
     "test:integration",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 21
 }
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
@@ -1234,123 +1234,123 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
   "traces": [
     [
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "sns-lambda",
-        "resource": "sns-lambda",
-        "name": "aws.sns",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "runtime-id": "XXXX",
           "_dd.origin": "lambda",
-          "operation_name": "aws.sns",
-          "resource_names": "sns-lambda",
-          "span.kind": "server",
-          "topicname": "sns-lambda",
-          "topic_arn": "arn:aws:sns:us-east-2:XXXX:us-east-2-lambda",
-          "message_id": "XXXX",
-          "type": "Notification",
-          "subject": "TestInvoke",
+          "_dd.p.dm": "-0",
+          "_dd.p.tid": "XXXX",
+          "_dd.peer.service.source": "peer.service",
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
           "dd_resource_key": "arn:aws:sns:us-east-2:XXXX:us-east-2-lambda",
+          "language": "python",
+          "message_id": "XXXX",
+          "operation_name": "aws.sns",
           "peer.service": "integration-tests-python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.p.dm": "-0",
-          "_dd.p.tid": "XXXX",
-          "language": "python"
+          "resource_names": "sns-lambda",
+          "runtime-id": "XXXX",
+          "span.kind": "server",
+          "subject": "TestInvoke",
+          "topic_arn": "arn:aws:sns:us-east-2:XXXX:us-east-2-lambda",
+          "topicname": "sns-lambda",
+          "type": "Notification"
         },
         "metrics": {
-          "process_id": XXXX,
           "_dd._inferred_span": 1,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": 1,
+          "process_id": XXXX
         },
+        "name": "aws.sns",
+        "parent_id": "XXXX",
+        "resource": "sns-lambda",
+        "service": "sns-lambda",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "web"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-async-metrics_python39",
-        "name": "aws.lambda",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
-          "function_version": "$LATEST",
-          "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
-          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
-          "span.name": "aws.lambda",
-          "span.kind": "server",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_trigger.event_source": "sns",
-          "function_trigger.event_source_arn": "XXXX"
+          "function_trigger.event_source_arn": "XXXX",
+          "function_version": "$LATEST",
+          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
+          "request_id": "XXXX",
+          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
+          "span.kind": "server",
+          "span.name": "aws.lambda"
         },
         "metrics": {
           "_dd.top_level": 1
         },
+        "name": "aws.lambda",
+        "parent_id": "XXXX",
+        "resource": "integration-tests-python-XXXX-async-metrics_python39",
+        "service": "integration-tests-python",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "serverless"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1,
           "_dd.top_level": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "_dd.p.tid": "XXXX",
           "_dd.origin": "lambda",
+          "_dd.p.tid": "XXXX",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://www.datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "www.datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       }
     ]
@@ -1359,9 +1359,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
 END Duration: XXXX ms Memory Used: XXXX MB
 START
 {
-  "m": "aws.lambda.enhanced.invocations",
-  "v": 1,
   "e": XXXX,
+  "m": "aws.lambda.enhanced.invocations",
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
@@ -1372,27 +1371,28 @@ START
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "hello.dog",
-  "v": 1,
   "e": XXXX,
+  "m": "hello.dog",
   "t": [
     "team:serverless",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "tests.integration.count",
-  "v": 21,
   "e": XXXX,
+  "m": "tests.integration.count",
   "t": [
     "test:integration",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 21
 }
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
@@ -1400,122 +1400,122 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
   "traces": [
     [
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "my-queue",
-        "resource": "my-queue",
-        "name": "aws.sqs",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "runtime-id": "XXXX",
           "_dd.origin": "lambda",
-          "operation_name": "aws.sqs",
-          "resource_names": "my-queue",
-          "span.kind": "server",
-          "queuename": "my-queue",
-          "event_source_arn": "arn:aws:sqs:us-east-2:XXXX:us-east-2-queue",
-          "receipt_handle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
-          "sender_id": "AIDAIENQZJOLO23YVJ4VO",
+          "_dd.p.dm": "-0",
+          "_dd.p.tid": "XXXX",
+          "_dd.peer.service.source": "peer.service",
           "_inferred_span.synchronicity": "async",
           "_inferred_span.tag_source": "self",
           "dd_resource_key": "arn:aws:sqs:us-east-2:XXXX:us-east-2-queue",
+          "event_source_arn": "arn:aws:sqs:us-east-2:XXXX:us-east-2-queue",
+          "language": "python",
+          "operation_name": "aws.sqs",
           "peer.service": "integration-tests-python",
-          "_dd.peer.service.source": "peer.service",
-          "_dd.p.dm": "-0",
-          "_dd.p.tid": "XXXX",
-          "language": "python"
+          "queuename": "my-queue",
+          "receipt_handle": "AQEBwJnKyrHigUMZj6rYigCgxlaS3SLy0a...",
+          "resource_names": "my-queue",
+          "runtime-id": "XXXX",
+          "sender_id": "AIDAIENQZJOLO23YVJ4VO",
+          "span.kind": "server"
         },
         "metrics": {
-          "process_id": XXXX,
           "_dd._inferred_span": 1,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": 1,
+          "process_id": XXXX
         },
+        "name": "aws.sqs",
+        "parent_id": "XXXX",
+        "resource": "my-queue",
+        "service": "my-queue",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "web"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-async-metrics_python39",
-        "name": "aws.lambda",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
-          "function_version": "$LATEST",
-          "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
-          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
-          "span.name": "aws.lambda",
-          "span.kind": "server",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_trigger.event_source": "sqs",
-          "function_trigger.event_source_arn": "XXXX"
+          "function_trigger.event_source_arn": "XXXX",
+          "function_version": "$LATEST",
+          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
+          "request_id": "XXXX",
+          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
+          "span.kind": "server",
+          "span.name": "aws.lambda"
         },
         "metrics": {
           "_dd.top_level": 1
         },
+        "name": "aws.lambda",
+        "parent_id": "XXXX",
+        "resource": "integration-tests-python-XXXX-async-metrics_python39",
+        "service": "integration-tests-python",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "serverless"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1,
           "_dd.top_level": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "_dd.p.tid": "XXXX",
           "_dd.origin": "lambda",
+          "_dd.p.tid": "XXXX",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://www.datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "www.datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       }
     ]
@@ -1524,9 +1524,8 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
 END Duration: XXXX ms Memory Used: XXXX MB
 START
 {
-  "m": "aws.lambda.enhanced.invocations",
-  "v": 1,
   "e": XXXX,
+  "m": "aws.lambda.enhanced.invocations",
   "t": [
     "region:eu-west-1",
     "account_id:XXXX",
@@ -1537,27 +1536,28 @@ START
     "runtime:python3.9",
     "datadog_lambda:vXX",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "hello.dog",
-  "v": 1,
   "e": XXXX,
+  "m": "hello.dog",
   "t": [
     "team:serverless",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 1
 }
 {
-  "m": "tests.integration.count",
-  "v": 21,
   "e": XXXX,
+  "m": "tests.integration.count",
   "t": [
     "test:integration",
     "role:hello",
     "dd_lambda_layer:datadog-python39_X.X.X"
-  ]
+  ],
+  "v": 21
 }
 HTTP GET https://datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
 HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","Accept:*/*","Connection:keep-alive","User-Agent:python-requests/X.X.X","traceparent:XXX","tracestate:XXX
@@ -1565,130 +1565,130 @@ HTTP GET https://www.datadoghq.com/ Headers: ["Accept-Encoding:gzip, deflate","A
   "traces": [
     [
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "XXXX.execute-api.eu-west-1.amazonaws.com",
-        "resource": "$default",
-        "name": "aws.apigateway.websocket",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "runtime-id": "XXXX",
           "_dd.origin": "lambda",
-          "operation_name": "aws.apigateway.websocket",
-          "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com$default",
-          "endpoint": "$default",
-          "resource_names": "$default",
-          "span.kind": "server",
-          "apiid": "XXXX",
-          "apiname": "XXXX",
-          "stage": "dev",
-          "request_id": "XXXX",
-          "connection_id": "XXXX=",
-          "event_type": "MESSAGE",
-          "message_direction": "IN",
-          "_inferred_span.synchronicity": "sync",
-          "_inferred_span.tag_source": "self",
-          "http.status_code": "200",
-          "dd_resource_key": "arn:aws:apigateway:eu-west-1:XXXX:eu-west-1/restapis/p62c47itsb/stages/dev",
-          "peer.service": "integration-tests-python",
-          "_dd.peer.service.source": "peer.service",
           "_dd.p.dm": "-0",
           "_dd.p.tid": "XXXX",
-          "language": "python"
+          "_dd.peer.service.source": "peer.service",
+          "_inferred_span.synchronicity": "sync",
+          "_inferred_span.tag_source": "self",
+          "apiid": "XXXX",
+          "apiname": "XXXX",
+          "connection_id": "XXXX=",
+          "dd_resource_key": "arn:aws:apigateway:eu-west-1:XXXX:eu-west-1/restapis/p62c47itsb/stages/dev",
+          "endpoint": "$default",
+          "event_type": "MESSAGE",
+          "http.status_code": "200",
+          "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com$default",
+          "language": "python",
+          "message_direction": "IN",
+          "operation_name": "aws.apigateway.websocket",
+          "peer.service": "integration-tests-python",
+          "request_id": "XXXX",
+          "resource_names": "$default",
+          "runtime-id": "XXXX",
+          "span.kind": "server",
+          "stage": "dev"
         },
         "metrics": {
-          "process_id": XXXX,
           "_dd._inferred_span": 1,
           "_dd.top_level": 1,
-          "_sampling_priority_v1": 1
+          "_sampling_priority_v1": 1,
+          "process_id": XXXX
         },
+        "name": "aws.apigateway.websocket",
+        "parent_id": "XXXX",
+        "resource": "$default",
+        "service": "XXXX.execute-api.eu-west-1.amazonaws.com",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "web"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "integration-tests-python",
-        "resource": "integration-tests-python-XXXX-async-metrics_python39",
-        "name": "aws.lambda",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "cold_start": "false",
-          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
-          "function_version": "$LATEST",
-          "request_id": "XXXX",
-          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
-          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
           "datadog_lambda": "X.X.X",
           "dd_trace": "X.X.X",
-          "span.name": "aws.lambda",
+          "function_arn": "arn:aws:lambda:eu-west-1:XXXX:eu-west-1-tests-python-XXXX-async-metrics_python39",
           "function_trigger.event_source": "api-gateway",
           "function_trigger.event_source_arn": "XXXX",
-          "span.kind": "server",
+          "function_version": "$LATEST",
+          "functionname": "integration-tests-python-XXXX-async-metrics_python39",
+          "http.status_code": "200",
           "http.url": "https://XXXX.execute-api.eu-west-1.amazonaws.com",
-          "http.status_code": "200"
+          "request_id": "XXXX",
+          "resource_names": "integration-tests-python-XXXX-async-metrics_python39",
+          "span.kind": "server",
+          "span.name": "aws.lambda"
         },
         "metrics": {
           "_dd.top_level": 1
         },
+        "name": "aws.lambda",
+        "parent_id": "XXXX",
+        "resource": "integration-tests-python-XXXX-async-metrics_python39",
+        "service": "integration-tests-python",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "serverless"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
           "_dd.origin": "lambda",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://datadoghq.com/",
-          "out.host": "datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1,
           "_dd.top_level": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       },
       {
-        "trace_id": "XXXX",
-        "parent_id": "XXXX",
-        "span_id": "XXXX",
-        "service": "requests",
-        "resource": "GET /",
-        "name": "requests.request",
-        "error": 0,
-        "start": "XXXX",
         "duration": "XXXX",
+        "error": 0,
         "meta": {
-          "_dd.p.tid": "XXXX",
           "_dd.origin": "lambda",
+          "_dd.p.tid": "XXXX",
           "component": "requests",
-          "span.kind": "client",
           "http.method": "GET",
-          "http.url": "https://www.datadoghq.com/",
-          "out.host": "www.datadoghq.com",
           "http.status_code": "200",
-          "http.useragent": "python-requests/X.X.X"
+          "http.url": "https://www.datadoghq.com/",
+          "http.useragent": "python-requests/X.X.X",
+          "out.host": "www.datadoghq.com",
+          "span.kind": "client"
         },
         "metrics": {
           "_dd.measured": 1
         },
+        "name": "requests.request",
+        "parent_id": "XXXX",
+        "resource": "GET /",
+        "service": "requests",
+        "span_id": "XXXX",
+        "start": "XXXX",
+        "trace_id": "XXXX",
         "type": "http"
       }
     ]

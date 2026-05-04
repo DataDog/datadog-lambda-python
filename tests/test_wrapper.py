@@ -26,7 +26,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         # Force @datadog_lambda_wrapper to always create a real
         # (not no-op) wrapper.
         patch("ddtrace.internal.remoteconfig.worker.RemoteConfigPoller").start()
-        patch("ddtrace.internal.writer.AgentWriter.flush_queue").start()
 
         wrapper.datadog_lambda_wrapper._force_wrap = True
         patcher = patch(
