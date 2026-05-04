@@ -263,8 +263,9 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
             echo "Writing logs to $function_snapshot_path because no snapshot exists yet"
             echo "$logs" >$function_snapshot_path
         else
-            # Compare new logs to snapshots
-            diff_output=$(echo "$logs" | sort | diff -w - <(sort $function_snapshot_path))
+            # Compare new logs to snapshots (LC_ALL=C: stable sort; parse-json.js sorts object keys so
+            # e.g. span meta key order / trailing-comma lines do not vary between runs)
+            diff_output=$(echo "$logs" | LC_ALL=C sort | diff -w - <(LC_ALL=C sort $function_snapshot_path))
             if [ $? -eq 1 ]; then
                 if [ -n "$UPDATE_SNAPSHOTS" ]; then
                     # If $UPDATE_SNAPSHOTS is set to true write the new logs over the current snapshot
