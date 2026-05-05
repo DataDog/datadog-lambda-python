@@ -53,6 +53,10 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   variables:
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   script:
+    - echo $DD_TRACE_COMMIT
+    - echo $DD_TRACE_COMMIT_BRANCH
+    - echo $DD_TRACE_WHEEL
+    - echo $UPSTREAM_PIPELINE_ID
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/build_layers.sh
   timeout: 15m
   retry: 2
@@ -94,7 +98,7 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
     - PYTHON_VERSION={{ $runtime.python_version }} ./scripts/setup_python_env.sh
   script:
     - source venv/bin/activate
-    - pytest -vv -p faulthandler
+    - pytest -vv
   retry: 2
 
 integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
