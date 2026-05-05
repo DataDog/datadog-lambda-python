@@ -39,13 +39,6 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: build
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
-{{- if eq $runtime.python_version "3.8" }}
-  rules:
-    # Skip Python 3.8 layer builds when triggered from an upstream dd-trace pipeline (dd-trace no longer supports 3.8)
-    - if: '$DD_TRACE_COMMIT || $DD_TRACE_COMMIT_BRANCH || $DD_TRACE_WHEEL || $UPSTREAM_PIPELINE_ID'
-      when: never
-    - when: on_success
-{{- end }}
   artifacts:
     expire_in: 1 hr # Unsigned zips expire in 1 hour
     paths:
@@ -53,10 +46,6 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   variables:
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   script:
-    - echo $DD_TRACE_COMMIT
-    - echo $DD_TRACE_COMMIT_BRANCH
-    - echo $DD_TRACE_WHEEL
-    - echo $UPSTREAM_PIPELINE_ID
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/build_layers.sh
   timeout: 15m
   retry: 2
@@ -65,12 +54,6 @@ check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
-{{- if eq $runtime.python_version "3.8" }}
-  rules:
-    - if: '$DD_TRACE_COMMIT || $DD_TRACE_COMMIT_BRANCH || $DD_TRACE_WHEEL || $UPSTREAM_PIPELINE_ID'
-      when: never
-    - when: on_success
-{{- end }}
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
@@ -223,11 +206,14 @@ layer bundle:
   stage: build
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
-  rules:
-    - if: '$SKIP_E2E_TESTS == "true"'
-      when: never
-    - when: on_success
-  dependencies: []
+  needs:
+    {{ range (ds "runtimes").runtimes }}
+    - build-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
+  dependencies:
+    {{ range (ds "runtimes").runtimes }}
+    - build-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
   artifacts:
     expire_in: 1 hr
     paths:
@@ -244,7 +230,14 @@ signed layer bundle:
   tags: ["arch:amd64"]
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
-  dependencies: []
+  needs:
+    {{ range (ds "runtimes").runtimes }}
+    - sign-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
+  dependencies:
+    {{ range (ds "runtimes").runtimes }}
+    - sign-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
   artifacts:
     expire_in: 1 day
     paths:
@@ -273,13 +266,9 @@ e2e-test:
       PYTHON_{{ $version }}_VERSION: $PYTHON_{{ $version }}_VERSION
     {{- end }}
     {{- end }}
-  needs:
-    {{- range (ds "runtimes").runtimes }}
+  needs: {{ range (ds "runtimes").runtimes }}
     {{- if eq .arch "amd64" }}
-    - job: "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
-      {{- if eq .python_version "3.8" }}
-      optional: true
-      {{- end }}
+      - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
     {{- end }}
     {{- end }}
 
