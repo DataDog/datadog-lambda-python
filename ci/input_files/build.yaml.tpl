@@ -76,6 +76,8 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
+  variables:
+    PYTHONFAULTHANDLER: "1"
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   before_script:
     - PYTHON_VERSION={{ $runtime.python_version }} ./scripts/setup_python_env.sh
