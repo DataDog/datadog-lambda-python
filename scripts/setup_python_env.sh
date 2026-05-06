@@ -39,6 +39,9 @@
 # Environment variables:
 #   PYTHON_VERSION   Python minor version (e.g. 3.12 or just 12). Required
 #                    when the UPSTREAM_PIPELINE_ID branch is taken.
+#   ARCH             "amd64" or "arm64". Required for correct ddtrace wheel
+#                    selection when UPSTREAM_PIPELINE_ID is set (GitLab matrix
+#                    should pass the runtime arch; if unset, host arch is used).
 
 set -e
 

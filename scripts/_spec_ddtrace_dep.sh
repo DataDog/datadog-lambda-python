@@ -70,7 +70,15 @@ spec_ddtrace_dep() {
         fi
         S3_BASE="https://dd-trace-py-builds.s3.amazonaws.com/${UPSTREAM_PIPELINE_ID}"
         PY_TAG="cp$(echo "$PYTHON_VERSION" | tr -d '.')"
-        if [ "${ARCH:-amd64}" = "amd64" ]; then
+        # Wheel platform tag must match the machine that runs pip (or CI matrix arch).
+        # Default used to be amd64 when unset; prefer host arch so ARM runners/local dev work.
+        if [ -z "${ARCH:-}" ]; then
+            case "$(uname -m)" in
+                aarch64 | arm64) ARCH=arm64 ;;
+                *) ARCH=amd64 ;;
+            esac
+        fi
+        if [ "$ARCH" = "amd64" ]; then
             PLATFORM="manylinux2014_x86_64"
         else
             PLATFORM="manylinux2014_aarch64"
