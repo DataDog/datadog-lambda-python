@@ -75,8 +75,8 @@ spec_ddtrace_dep() {
         else
             PLATFORM="manylinux2014_aarch64"
         fi
-        # _search_and_spec_s3_wheel "ddtrace_serverless" "serverless" \
-        _search_and_spec_s3_wheel "ddtrace" "manylinux2014" \
+        _search_and_spec_s3_wheel "ddtrace_serverless" "serverless" \
+            || _search_and_spec_s3_wheel "ddtrace" "manylinux2014" \
             || { echo "ERROR: No matching ddtrace wheel for ${PY_TAG} ${PLATFORM} in pipeline ${UPSTREAM_PIPELINE_ID}, skipping version patch!" >&2; }
     fi
 }
