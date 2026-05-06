@@ -88,7 +88,7 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/setup_python_env.sh
   script:
     - source venv/bin/activate
-    - pytest -vv
+    - _DD_PROFILING_STACK_FAST_COPY=false pytest -vv
   retry: 2
 
 integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
