@@ -271,7 +271,11 @@ class _LambdaDecorator(object):
                 set_dd_trace_py_root(trace_context_source, config.merge_xray_traces)
                 if config.make_inferred_span:
                     self.inferred_span = create_inferred_span(
-                        event, context, event_source, config.decode_authorizer_context
+                        event,
+                        context,
+                        event_source,
+                        config.decode_authorizer_context,
+                        self.durable_function_tags,
                     )
 
                 if config.appsec_enabled:

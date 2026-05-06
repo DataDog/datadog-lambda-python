@@ -919,12 +919,93 @@ def set_dd_trace_py_root(trace_context_source, merge_xray_traces):
         )
 
 
+def _durable_execution_start_ns(event):
+    operations = _durable_operations(event)
+    if not operations:
+        return None
+
+    first_operation = operations[0]
+    if not isinstance(first_operation, dict):
+        return None
+
+    start_timestamp = first_operation.get("StartTimestamp")
+    if isinstance(start_timestamp, str):
+        start_timestamp = start_timestamp.strip()
+
+    try:
+        start_ms = int(start_timestamp)
+    except (TypeError, ValueError):
+        try:
+            start_ms = int(float(start_timestamp))
+        except (TypeError, ValueError):
+            return None
+
+    return start_ms * 1000000
+
+
+def create_inferred_span_from_durable_execution_event(
+    event, context, durable_function_tags
+):
+    if not durable_function_tags:
+        return None
+    if durable_function_tags.get("aws_lambda.durable_function.first_invocation") != "true":
+        return None
+
+    inferred_span_start_ns = _durable_execution_start_ns(event)
+    if inferred_span_start_ns is None:
+        return None
+
+    service_name = os.environ.get(
+        "DD_DURABLE_EXECUTION_SERVICE", "aws.durable-execution"
+    )
+    execution_name = durable_function_tags.get(
+        "aws_lambda.durable_function.execution_name"
+    )
+    execution_id = durable_function_tags.get("aws_lambda.durable_function.execution_id")
+    durable_execution_arn = event.get("DurableExecutionArn")
+
+    tags = {
+        "operation_name": "aws.durable.execution_init",
+        "resource_names": execution_name,
+        "request_id": context.aws_request_id if context else None,
+        "service": service_name,
+        "service.name": service_name,
+        "span.type": "serverless",
+        "resource.name": execution_name,
+        "span.kind": "server",
+        "durable.execution_arn": durable_execution_arn,
+        "durable.execution_name": execution_name,
+        "durable.execution_id": execution_id,
+    }
+    InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="async")
+
+    tracer.set_tags(_dd_origin)
+    span = tracer.trace(
+        "aws.durable.execution_init",
+        service=service_name,
+        resource=execution_name,
+        span_type="serverless",
+    )
+    if span:
+        span.set_tags(tags)
+        span.set_metric(InferredSpanInfo.METRIC, 1.0)
+        span.start_ns = inferred_span_start_ns
+    return span
+
+
 def create_inferred_span(
     event,
     context,
     event_source: _EventSource = None,
     decode_authorizer_context: bool = True,
+    durable_function_tags=None,
 ):
+    if durable_function_tags:
+        logger.debug("Durable execution event detected. Inferring a span")
+        return create_inferred_span_from_durable_execution_event(
+            event, context, durable_function_tags
+        )
+
     if event_source is None:
         event_source = parse_event_source(event)
     try:

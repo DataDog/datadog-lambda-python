@@ -85,6 +85,27 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
             },
         )
 
+    def test_sets_first_invocation_false_when_operations_is_a_map(self):
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
+            "CheckpointToken": "some-token",
+            "InitialExecutionState": {
+                "Operations": {
+                    "0": {"Type": "EXECUTION"},
+                    "1": {"Type": "STEP"},
+                }
+            },
+        }
+        result = extract_durable_function_tags(event)
+        self.assertEqual(
+            result,
+            {
+                "aws_lambda.durable_function.execution_name": "my-execution",
+                "aws_lambda.durable_function.execution_id": "550e8400-e29b-41d4-a716-446655440004",
+                "aws_lambda.durable_function.first_invocation": "false",
+            },
+        )
+
     def test_returns_empty_dict_for_regular_lambda_event(self):
         event = {
             "body": '{"key": "value"}',
