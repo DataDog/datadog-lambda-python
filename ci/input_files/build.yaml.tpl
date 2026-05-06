@@ -74,7 +74,12 @@ lint python:
 
 unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
-  tags: ["arch:amd64"]
+  tags:
+{{ if eq $runtime.arch "arm64" }}
+    - "arch:arm64"
+{{ else }}
+    - "arch:amd64"
+{{ end }}
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
   artifacts:
     when: always
@@ -83,12 +88,13 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
     expire_in: 1 week
   variables:
     PYTHONFAULTHANDLER: "1"
-  
+    _DD_PROFILING_STACK_FAST_COPY: false
+  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   before_script:
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/setup_python_env.sh
   script:
     - source venv/bin/activate
-    - _DD_PROFILING_STACK_FAST_COPY=false pytest -vv
+    - pytest -vv
   retry: 2
 
 integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
