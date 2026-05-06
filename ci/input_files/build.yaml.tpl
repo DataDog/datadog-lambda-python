@@ -83,7 +83,7 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
     expire_in: 1 week
   variables:
     PYTHONFAULTHANDLER: "1"
-  cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
+  
   before_script:
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/setup_python_env.sh
   script:
