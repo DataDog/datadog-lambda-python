@@ -76,6 +76,11 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
+  artifacts:
+    when: always
+    paths:
+      - core.*
+    expire_in: 1 week
   variables:
     PYTHONFAULTHANDLER: "1"
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
