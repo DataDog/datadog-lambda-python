@@ -45,23 +45,25 @@
 
 set -e
 
-# Normalize Python version shorthand (e.g. 12 -> 3.12, 3.12 -> 3.12)
-if [ -n "${PYTHON_VERSION:-}" ]; then
-    if [[ "$PYTHON_VERSION" =~ ^[0-9]+$ ]]; then
-        PYTHON_VERSION="3.${PYTHON_VERSION}"
+if [ -z "${IS_LINT:-}" ] || [ "${IS_LINT}" = "0" ] || [ "${IS_LINT}" = "false" ]; then
+  # Normalize Python version shorthand (e.g. 12 -> 3.12, 3.12 -> 3.12)
+    if [ -n "${PYTHON_VERSION:-}" ]; then
+        if [[ "$PYTHON_VERSION" =~ ^[0-9]+$ ]]; then
+            PYTHON_VERSION="3.${PYTHON_VERSION}"
+        fi
     fi
+
+    # Backup pyproject.toml so the rewrite doesn't persist across runs (matters
+    # for local invocations; CI runners are ephemeral but cheap to be tidy).
+    cp pyproject.toml pyproject.toml.bak
+    cleanup() {
+        mv pyproject.toml.bak pyproject.toml 2>/dev/null || true
+    }
+    trap cleanup EXIT
+
+    source "$(dirname "$0")/_spec_ddtrace_dep.sh"
+    spec_ddtrace_dep
 fi
-
-# Backup pyproject.toml so the rewrite doesn't persist across runs (matters
-# for local invocations; CI runners are ephemeral but cheap to be tidy).
-cp pyproject.toml pyproject.toml.bak
-cleanup() {
-    mv pyproject.toml.bak pyproject.toml 2>/dev/null || true
-}
-trap cleanup EXIT
-
-source "$(dirname "$0")/_spec_ddtrace_dep.sh"
-spec_ddtrace_dep
 
 pip install virtualenv
 virtualenv venv

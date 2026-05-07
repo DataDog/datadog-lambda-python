@@ -67,7 +67,7 @@ lint python:
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   before_script:
-    - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/setup_python_env.sh
+    - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} IS_LINT="1" ./scripts/setup_python_env.sh
   script:
     - source venv/bin/activate
     - ./scripts/check_format.sh
