@@ -23,24 +23,24 @@ crt = ["awscrt (==0.23.8)"]
 
 [[package]]
 name = "botocore"
-version = "1.42.94"
+version = "1.43.1"
 description = "Low-level, data-driven core of boto 3."
 optional = true
-python-versions = ">=3.9"
+python-versions = ">=3.10"
 groups = ["main"]
 markers = "python_version >= \"3.10\" and extra == \"dev\""
 files = [
-    {file = "botocore-1.42.94-py3-none-any.whl", hash = "sha256:a2143742132ed0f6cdb90204d667b89d0301068b1045e8bc099efa267bf1b348"},
-    {file = "botocore-1.42.94.tar.gz", hash = "sha256:41c6b3b11b073221a41f52b222ba387be34459fb77cdc506e8b74cdaf24bdcce"},
+    {file = "botocore-1.43.1-py3-none-any.whl", hash = "sha256:955edc6a398b9c4100cf0d5a31433fdba3835500bf38c1ef171e6e75f4b477d2"},
+    {file = "botocore-1.43.1.tar.gz", hash = "sha256:270d6357d662550fdb84973ec247e02bece0b6283d90bf37319c7753515336e4"},
 ]
 
 [package.dependencies]
 jmespath = ">=0.7.1,<2.0.0"
 python-dateutil = ">=2.1,<3.0.0"
-urllib3 = {version = ">=1.25.4,<2.2.0 || >2.2.0,<3", markers = "python_version >= \"3.10\""}
+urllib3 = ">=1.25.4,<2.2.0 || >2.2.0,<3"
 
 [package.extras]
-crt = ["awscrt (==0.31.2)"]
+crt = ["awscrt (==0.32.2)"]
 
 [[package]]
 name = "bytecode"
@@ -646,15 +646,15 @@ importlib-metadata = ">=6.0,<8.7.0"
 
 [[package]]
 name = "opentelemetry-api"
-version = "1.41.0"
+version = "1.41.1"
 description = "OpenTelemetry Python API"
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "python_version >= \"3.10\""
 files = [
-    {file = "opentelemetry_api-1.41.0-py3-none-any.whl", hash = "sha256:0e77c806e6a89c9e4f8d372034622f3e1418a11bdbe1c80a50b3d3397ad0fa4f"},
-    {file = "opentelemetry_api-1.41.0.tar.gz", hash = "sha256:9421d911326ec12dee8bc933f7839090cad7a3f13fcfb0f9e82f8174dc003c09"},
+    {file = "opentelemetry_api-1.41.1-py3-none-any.whl", hash = "sha256:a22df900e75c76dc08440710e51f52f1aa6b451b429298896023e60db5b3139f"},
+    {file = "opentelemetry_api-1.41.1.tar.gz", hash = "sha256:0ad1814d73b875f84494387dae86ce0b12c68556331ce6ce8fe789197c949621"},
 ]
 
 [package.dependencies]
@@ -663,15 +663,15 @@ typing-extensions = ">=4.5.0"
 
 [[package]]
 name = "packaging"
-version = "26.1"
+version = "26.2"
 description = "Core utilities for Python packages"
 optional = true
 python-versions = ">=3.8"
 groups = ["main"]
 markers = "extra == \"dev\""
 files = [
-    {file = "packaging-26.1-py3-none-any.whl", hash = "sha256:5d9c0669c6285e491e0ced2eee587eaf67b670d94a19e94e3984a481aba6802f"},
-    {file = "packaging-26.1.tar.gz", hash = "sha256:f042152b681c4bfac5cae2742a55e103d27ab2ec0f3d88037136b6bfe7c9c5de"},
+    {file = "packaging-26.2-py3-none-any.whl", hash = "sha256:5fc45236b9446107ff2415ce77c807cee2862cb6fac22b8a73826d0693b0980e"},
+    {file = "packaging-26.2.tar.gz", hash = "sha256:ff452ff5a3e828ce110190feff1178bb1f2ea2281fa2075aadb987c2fb221661"},
 ]
 
 [[package]]
@@ -1347,4 +1347,4 @@ dev = ["botocore", "flake8", "pytest", "pytest", "pytest-benchmark", "requests",
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.8.0,<3.15"
-content-hash = "efbcbce710e9ecdbdc03f6ade8eb1585fb959c6f5eee342894935b5d72d6cd25"
+content-hash = "3600320095c1aff40c5ad05f3d7b80b00ff8aacbdc2edd597401ad7ccbc582f7"
