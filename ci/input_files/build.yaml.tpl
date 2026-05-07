@@ -74,7 +74,12 @@ lint python:
 
 unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
-  tags: ["arch:amd64"]
+  tags:
+  {{ if eq $runtime.arch "arm64" }}
+      - "arch:arm64"
+  {{ else }}
+      - "arch:amd64"
+  {{ end }}
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   before_script:
