@@ -126,11 +126,12 @@ function find_and_spec_wheel {
     # Restore pyproject.toml to a clean state for each build iteration
     cp pyproject.toml.bak pyproject.toml
 
-    # Replace ddtrace source if necessary
+    # Source checkouts still publish project metadata as "ddtrace", even when
+    # this function is called while probing for ddtrace_serverless wheels.
     if [ -n "$DD_TRACE_COMMIT" ]; then
-        replace_ddtrace_dep "${wheel_basename} = { git = \"https://github.com/DataDog/dd-trace-py.git\", rev = \"$DD_TRACE_COMMIT\" }"
+        replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", rev = \"$DD_TRACE_COMMIT\" }"
     elif [ -n "$DD_TRACE_COMMIT_BRANCH" ]; then
-        replace_ddtrace_dep "${wheel_basename} = { git = \"https://github.com/DataDog/dd-trace-py.git\", branch = \"$DD_TRACE_COMMIT_BRANCH\" }"
+        replace_ddtrace_dep "ddtrace = { git = \"https://github.com/DataDog/dd-trace-py.git\", branch = \"$DD_TRACE_COMMIT_BRANCH\" }"
     elif [ -n "$DD_TRACE_WHEEL" ]; then
         wheel_basename=$(sed 's/^.*\///' <<< ${DD_TRACE_WHEEL%%-*})
         replace_ddtrace_dep "${wheel_basename} = { file = \"$DD_TRACE_WHEEL\" }"
