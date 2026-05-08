@@ -69,15 +69,6 @@ PIDS=()
 # Makes sure any subprocesses will be terminated with this process
 trap "pkill -P $$; exit 1;" INT
 
-# Check that the layer files exist
-for layer_file in "${LAYER_PATHS[@]}"
-do
-    if [ ! -f $layer_file  ]; then
-        echo "Could not find $layer_file."
-        exit 1
-    fi
-done
-
 # Determine the target regions
 if [ -z "$REGIONS" ]; then
     echo "Region not specified, running for all available regions."
@@ -115,6 +106,19 @@ if [ -z "$VERSION" ]; then
 else
     echo "Layer version specified: $VERSION"
 fi
+
+# Check that the layer files exist for the layers we'll actually publish
+for layer_name in "${LAYERS[@]}"; do
+    for i in "${!AVAILABLE_LAYERS[@]}"; do
+        if [[ "${AVAILABLE_LAYERS[$i]}" = "${layer_name}" ]]; then
+            layer_file="${LAYER_PATHS[$i]}"
+            if [ ! -f "$layer_file" ]; then
+                echo "Could not find $layer_file."
+                exit 1
+            fi
+        fi
+    done
+done
 
 read -p "Ready to publish version $VERSION of layers ${LAYERS[*]} to regions ${REGIONS[*]} (y/n)?" CONT
 if [ "$CONT" != "y" ]; then
