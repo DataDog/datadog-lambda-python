@@ -7,13 +7,6 @@ stages:
  - publish
  - e2e
 
-.python-before-script: &python-before-script
-  - pip install virtualenv
-  - virtualenv venv
-  - source venv/bin/activate
-  - pip install .[dev]
-  - pip install poetry
-
 default:
   retry:
     max: 1
@@ -73,17 +66,24 @@ lint python:
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
-  before_script: *python-before-script
+  before_script:
+    - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} IS_LINT="1" ./scripts/setup_python_env.sh
   script:
     - source venv/bin/activate
     - ./scripts/check_format.sh
 
 unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
-  tags: ["arch:amd64"]
+  tags:
+  {{ if eq $runtime.arch "arm64" }}
+      - "arch:arm64"
+  {{ else }}
+      - "arch:amd64"
+  {{ end }}
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
-  before_script: *python-before-script
+  before_script:
+    - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/setup_python_env.sh
   script:
     - source venv/bin/activate
     - pytest -vv
@@ -195,7 +195,8 @@ publish-pypi-package:
   stage: publish
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10-py3
-  before_script: *python-before-script
+  before_script:
+    - ./scripts/setup_python_env.sh
   cache: []
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'

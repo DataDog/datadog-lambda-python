@@ -36,5 +36,5 @@ jobs:
       library: python_lambda
       binaries_artifact: binaries
       scenarios_groups: tracer_release
-      skip_empty_scenarios: true
+      skip_empty_scenarios: ${{ github.event_name == 'pull_request' }}
       push_to_test_optimization: true
