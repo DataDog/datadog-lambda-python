@@ -568,35 +568,6 @@ def _extract_context_from_durable_checkpoint(operation):
     return propagator.extract(result)
 
 
-def _extract_context_from_durable_input_payload(operation):
-    if not isinstance(operation, dict):
-        return None
-
-    execution_details = operation.get("ExecutionDetails")
-    if not isinstance(execution_details, dict):
-        return None
-
-    input_payload = execution_details.get("InputPayload")
-    if isinstance(input_payload, str):
-        try:
-            input_payload = json.loads(input_payload)
-        except Exception:
-            return None
-
-    if not isinstance(input_payload, dict):
-        return None
-
-    headers = input_payload.get("headers")
-    if isinstance(headers, dict):
-        return propagator.extract(headers)
-
-    dd_data = input_payload.get("_datadog")
-    if isinstance(dd_data, dict):
-        return propagator.extract(dd_data)
-
-    return None
-
-
 def extract_context_from_durable_execution(event):
     operations = event.get("InitialExecutionState", {}).get("Operations")
     if isinstance(operations, dict):
@@ -621,10 +592,7 @@ def extract_context_from_durable_execution(event):
             highest = number
             best_operation = operation
 
-    if best_operation is not None:
-        return _extract_context_from_durable_checkpoint(best_operation)
-
-    return _extract_context_from_durable_input_payload(operations[0])
+    return _extract_context_from_durable_checkpoint(best_operation)
 
 
 def extract_context_custom_extractor(extractor, event, lambda_context):
