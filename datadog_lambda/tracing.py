@@ -755,28 +755,26 @@ def extract_dd_trace_context(
         context = extract_context_custom_extractor(extractor, event, lambda_context)
     elif isinstance(event, (set, dict)) and "DurableExecutionArn" in event:
         context = extract_context_from_durable_execution(event)
-
-    if context is None:
-        if isinstance(event, (set, dict)) and "request" in event:
-            context = extract_context_from_request_header_or_context(
-                event, lambda_context, event_source
-            )
-        elif isinstance(event, (set, dict)) and "headers" in event:
-            context = extract_context_from_http_event_or_context(
-                event, lambda_context, event_source, decode_authorizer_context
-            )
-        elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
-            context = extract_context_from_sqs_or_sns_event_or_context(
-                event, lambda_context, event_source
-            )
-        elif event_source.equals(EventTypes.EVENTBRIDGE):
-            context = extract_context_from_eventbridge_event(event, lambda_context)
-        elif event_source.equals(EventTypes.KINESIS):
-            context = extract_context_from_kinesis_event(event, lambda_context)
-        elif event_source.equals(EventTypes.STEPFUNCTIONS):
-            context = extract_context_from_step_functions(event, lambda_context)
-        else:
-            context = extract_context_from_lambda_context(lambda_context)
+    elif isinstance(event, (set, dict)) and "request" in event:
+        context = extract_context_from_request_header_or_context(
+            event, lambda_context, event_source
+        )
+    elif isinstance(event, (set, dict)) and "headers" in event:
+        context = extract_context_from_http_event_or_context(
+            event, lambda_context, event_source, decode_authorizer_context
+        )
+    elif event_source.equals(EventTypes.SNS) or event_source.equals(EventTypes.SQS):
+        context = extract_context_from_sqs_or_sns_event_or_context(
+            event, lambda_context, event_source
+        )
+    elif event_source.equals(EventTypes.EVENTBRIDGE):
+        context = extract_context_from_eventbridge_event(event, lambda_context)
+    elif event_source.equals(EventTypes.KINESIS):
+        context = extract_context_from_kinesis_event(event, lambda_context)
+    elif event_source.equals(EventTypes.STEPFUNCTIONS):
+        context = extract_context_from_step_functions(event, lambda_context)
+    else:
+        context = extract_context_from_lambda_context(lambda_context)
 
     if _is_context_complete(context):
         logger.debug("Extracted Datadog trace context from event or context")
