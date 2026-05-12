@@ -547,31 +547,6 @@ def extract_context_from_step_functions(event, lambda_context):
         return extract_context_from_lambda_context(lambda_context)
 
 
-def _durable_operations(event):
-    if not isinstance(event, dict):
-        return []
-
-    operations = event.get("InitialExecutionState", {}).get("Operations")
-    if isinstance(operations, list):
-        return operations
-    if not isinstance(operations, dict):
-        return []
-
-    numeric_keys = []
-    other_keys = []
-    for key, value in operations.items():
-        if not isinstance(value, dict):
-            continue
-        try:
-            numeric_keys.append((int(key), value))
-        except (TypeError, ValueError):
-            other_keys.append((str(key), value))
-
-    numeric_keys.sort(key=lambda item: item[0])
-    other_keys.sort(key=lambda item: item[0])
-    return [value for _, value in numeric_keys + other_keys]
-
-
 def _extract_context_from_durable_checkpoint(operation):
     if not isinstance(operation, dict):
         return None
@@ -623,17 +598,14 @@ def _extract_context_from_durable_input_payload(operation):
 
 
 def extract_context_from_durable_execution(event):
-    if not isinstance(event, dict):
-        return None
-    if not isinstance(event.get("DurableExecutionArn"), str):
-        return None
-
-    operations = _durable_operations(event)
-    if not operations:
+    operations = event.get("InitialExecutionState", {}).get("Operations")
+    if isinstance(operations, dict):
+        operations = list(operations.values())
+    if not isinstance(operations, list) or not operations:
         return None
 
-    best_context = None
-    best_number = -1
+    highest = -1
+    best_operation = None
     for operation in operations:
         if not isinstance(operation, dict):
             continue
@@ -645,21 +617,14 @@ def extract_context_from_durable_execution(event):
             number = int(suffix)
         except (TypeError, ValueError):
             continue
-        if number < best_number:
-            continue
-        context = _extract_context_from_durable_checkpoint(operation)
-        if _is_context_complete(context):
-            best_context = context
-            best_number = number
+        if number > highest:
+            highest = number
+            best_operation = operation
 
-    if best_context is not None:
-        return best_context
+    if best_operation is not None:
+        return _extract_context_from_durable_checkpoint(best_operation)
 
-    upstream_context = _extract_context_from_durable_input_payload(operations[0])
-    if _is_context_complete(upstream_context):
-        return upstream_context
-
-    return None
+    return _extract_context_from_durable_input_payload(operations[0])
 
 
 def extract_context_custom_extractor(extractor, event, lambda_context):
@@ -753,7 +718,7 @@ def extract_dd_trace_context(
 
     if extractor is not None:
         context = extract_context_custom_extractor(extractor, event, lambda_context)
-    elif isinstance(event, (set, dict)) and "DurableExecutionArn" in event:
+    elif isinstance(event, dict) and "DurableExecutionArn" in event:
         context = extract_context_from_durable_execution(event)
     elif isinstance(event, (set, dict)) and "request" in event:
         context = extract_context_from_request_header_or_context(
