@@ -432,7 +432,6 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         self.assertEqual(source, "event")
         self.assertEqual(ctx, Context(trace_id=123, span_id=321, sampling_priority=1))
 
-    
     @with_trace_propagation_style("datadog")
     def test_with_extractor_function(self):
         def extractor_foo(event, context):
