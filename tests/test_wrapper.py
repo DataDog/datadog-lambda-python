@@ -113,6 +113,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.mock_inject_correlation_ids.assert_called()
 
     def test_datadog_lambda_wrapper_flush_to_log(self):
+        self.addCleanup(os.environ.pop, "DD_FLUSH_TO_LOG", None)
         os.environ["DD_FLUSH_TO_LOG"] = "True"
 
         @wrapper.datadog_lambda_wrapper
@@ -123,8 +124,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         lambda_handler(lambda_event, get_mock_context())
 
         self.mock_threadstats_flush_distributions.assert_not_called()
-
-        del os.environ["DD_FLUSH_TO_LOG"]
 
     def test_datadog_lambda_wrapper_flush_in_thread(self):
         # force ThreadStats to flush in thread
@@ -183,6 +182,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_datadog_lambda_wrapper_inject_correlation_ids(self):
+        self.addCleanup(os.environ.pop, "DD_LOGS_INJECTION", None)
         os.environ["DD_LOGS_INJECTION"] = "True"
 
         @wrapper.datadog_lambda_wrapper
@@ -193,8 +193,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         lambda_handler(lambda_event, get_mock_context())
         self.mock_set_correlation_ids.assert_called()
         self.mock_inject_correlation_ids.assert_called()
-
-        del os.environ["DD_LOGS_INJECTION"]
 
     def test_invocations_metric(self):
         @wrapper.datadog_lambda_wrapper
@@ -484,6 +482,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
 
     def test_dd_requests_service_name_default(self):
         # TODO(astuyve) this is now set by CI, so we need to null it out for this case
+        self.addCleanup(os.environ.pop, "DD_SERVICE", None)
         os.environ["DD_SERVICE"] = "aws.lambda"
 
         @wrapper.datadog_lambda_wrapper
@@ -493,6 +492,7 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         self.assertEqual(os.environ.get("DD_REQUESTS_SERVICE_NAME"), "aws.lambda")
 
     def test_dd_requests_service_name_set(self):
+        self.addCleanup(os.environ.pop, "DD_SERVICE", None)
         os.environ["DD_SERVICE"] = "myAwesomeService"
 
         @wrapper.datadog_lambda_wrapper
@@ -500,7 +500,6 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
             pass
 
         self.assertEqual(os.environ.get("DD_REQUESTS_SERVICE_NAME"), "myAwesomeService")
-        del os.environ["DD_SERVICE"]
 
     @patch("datadog_lambda.config.Config.make_inferred_span", False)
     def test_encode_authorizer_span(self):
@@ -563,12 +562,13 @@ class TestLambdaWrapperWithTraceContext(unittest.TestCase):
         f"Root={xray_root};Parent={xray_parent};Sampled=1;Lineage=c6c5b1b9:0"
     )
 
-    @patch(
-        "os.environ",
+    @patch.dict(
+        os.environ,
         {
             "AWS_XRAY_DAEMON_ADDRESS": xray_daemon_envvar,
             "_X_AMZN_TRACE_ID": xray_trace_envvar,
         },
+        clear=True,
     )
     def test_event_bridge_sqs_payload(self):
         reset_xray_connection()
@@ -782,6 +782,7 @@ class TestLambdaWrapperAppsecBlocking(unittest.TestCase):
             lambda_handler(self.api_gateway_request, get_mock_context())
 
     def test_no_blocking_appsec_disabled(self):
+        self.addCleanup(os.environ.pop, "DD_APPSEC_ENABLED", None)
         os.environ["DD_APPSEC_ENABLED"] = "false"
 
         importlib.reload(wrapper)
@@ -855,17 +856,25 @@ def test_exception_replay_enabled(monkeypatch):
 def test_profiling_enabled(monkeypatch):
     importlib.reload(wrapper)
 
-    original_Profiler_start = wrapper.profiler.Profiler.start
-    Profiler_start_calls = []
+    Profiler_start_calls: list = []
+    Profiler_stop_calls: list = []
 
-    def Profiler_start(*args, **kwargs):
+    real_Profiler_start = wrapper.profiler.Profiler.start
+    real_Profiler_stop = wrapper.profiler.Profiler.stop
+
+    def Profiler_start(*args: object, **kwargs: object) -> None:
         Profiler_start_calls.append((args, kwargs))
-        return original_Profiler_start(*args, **kwargs)
+        return real_Profiler_start(*args, **kwargs)
+
+    def Profiler_stop(*args: object, **kwargs: object) -> None:
+        Profiler_stop_calls.append((args, kwargs))
+        return real_Profiler_stop(*args, **kwargs)
 
     monkeypatch.setattr("datadog_lambda.wrapper.is_new_sandbox", lambda: True)
     monkeypatch.setattr(
         "datadog_lambda.wrapper.profiler.Profiler.start", Profiler_start
     )
+    monkeypatch.setattr("datadog_lambda.wrapper.profiler.Profiler.stop", Profiler_stop)
 
     expected_response = {
         "statusCode": 200,
@@ -880,6 +889,8 @@ def test_profiling_enabled(monkeypatch):
 
     assert response == expected_response
     assert len(Profiler_start_calls) == 1
+
+    lambda_handler.prof.stop()
 
 
 @patch("datadog_lambda.config.Config.llmobs_enabled", True)
