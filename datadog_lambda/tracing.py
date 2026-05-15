@@ -585,7 +585,7 @@ def extract_context_from_durable_execution(event):
         name = operation.get("Name")
         if not isinstance(name, str) or not name.startswith(_TRACE_CHECKPOINT_PREFIX):
             continue
-        suffix = name[len(_TRACE_CHECKPOINT_PREFIX) :]
+        suffix = name[len(_TRACE_CHECKPOINT_PREFIX):]
         try:
             number = int(suffix)
         except (TypeError, ValueError):
