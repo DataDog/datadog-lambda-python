@@ -856,17 +856,25 @@ def test_exception_replay_enabled(monkeypatch):
 def test_profiling_enabled(monkeypatch):
     importlib.reload(wrapper)
 
-    original_Profiler_start = wrapper.profiler.Profiler.start
-    Profiler_start_calls = []
+    Profiler_start_calls: list = []
+    Profiler_stop_calls: list = []
 
-    def Profiler_start(*args, **kwargs):
+    real_Profiler_start = wrapper.profiler.Profiler.start
+    real_Profiler_stop = wrapper.profiler.Profiler.stop
+
+    def Profiler_start(*args: object, **kwargs: object) -> None:
         Profiler_start_calls.append((args, kwargs))
-        return original_Profiler_start(*args, **kwargs)
+        return real_Profiler_start(*args, **kwargs)
+
+    def Profiler_stop(*args: object, **kwargs: object) -> None:
+        Profiler_stop_calls.append((args, kwargs))
+        return real_Profiler_stop(*args, **kwargs)
 
     monkeypatch.setattr("datadog_lambda.wrapper.is_new_sandbox", lambda: True)
     monkeypatch.setattr(
         "datadog_lambda.wrapper.profiler.Profiler.start", Profiler_start
     )
+    monkeypatch.setattr("datadog_lambda.wrapper.profiler.Profiler.stop", Profiler_stop)
 
     expected_response = {
         "statusCode": 200,
@@ -881,6 +889,8 @@ def test_profiling_enabled(monkeypatch):
 
     assert response == expected_response
     assert len(Profiler_start_calls) == 1
+
+    lambda_handler.prof.stop()
 
 
 @patch("datadog_lambda.config.Config.llmobs_enabled", True)
