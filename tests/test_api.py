@@ -23,7 +23,7 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         self.env_patcher.start()
 
     def tearDown(self):
-        del os.environ["AWS_REGION"]
+        self.env_patcher.stop()
 
     @patch("datadog_lambda.config.Config.fips_mode_enabled", True)
     @patch("botocore.session.Session.create_client")
@@ -172,7 +172,6 @@ class TestDatadogLambdaAPI(unittest.TestCase):
         mock_client.get_secret_value.return_value = {"SecretString": "test-api-key"}
         mock_boto3_client.return_value = mock_client
 
-        os.environ.clear()
         os.environ["AWS_REGION"] = "us-west-2"
         os.environ["DD_API_KEY_SECRET_ARN"] = (
             "arn:aws:secretsmanager:us-west-2:1234567890:secret:key-name-123ABC"
