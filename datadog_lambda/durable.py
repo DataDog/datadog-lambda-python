@@ -47,9 +47,9 @@ def extract_durable_function_tags(event):
     operations = event.get("InitialExecutionState", {}).get("Operations", [])
     is_first_invocation = len(operations) == 1
     return {
-        "aws_lambda.durable_function.execution_name": execution_name,
-        "aws_lambda.durable_function.execution_id": execution_id,
-        "aws_lambda.durable_function.first_invocation": str(
+        "aws.durable.execution_name": execution_name,
+        "aws.durable.execution_id": execution_id,
+        "aws.durable.first_invocation": str(
             is_first_invocation
         ).lower(),
     }

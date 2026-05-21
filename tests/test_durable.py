@@ -57,9 +57,9 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
         self.assertEqual(
             result,
             {
-                "aws_lambda.durable_function.execution_name": "my-execution",
-                "aws_lambda.durable_function.execution_id": "550e8400-e29b-41d4-a716-446655440004",
-                "aws_lambda.durable_function.first_invocation": "true",
+                "aws.durable.execution_name": "my-execution",
+                "aws.durable.execution_id": "550e8400-e29b-41d4-a716-446655440004",
+                "aws.durable.first_invocation": "true",
             },
         )
 
@@ -79,9 +79,9 @@ class TestExtractDurableFunctionTags(unittest.TestCase):
         self.assertEqual(
             result,
             {
-                "aws_lambda.durable_function.execution_name": "my-execution",
-                "aws_lambda.durable_function.execution_id": "550e8400-e29b-41d4-a716-446655440004",
-                "aws_lambda.durable_function.first_invocation": "false",
+                "aws.durable.execution_name": "my-execution",
+                "aws.durable.execution_id": "550e8400-e29b-41d4-a716-446655440004",
+                "aws.durable.first_invocation": "false",
             },
         )
 
