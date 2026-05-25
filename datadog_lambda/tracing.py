@@ -31,7 +31,7 @@ from datadog_lambda.xray import (
 
 from ddtrace import patch
 from ddtrace import __version__ as ddtrace_version
-from ddtrace.propagation.http import HTTPPropagator, _DatadogMultiHeader
+from ddtrace.propagation.http import HTTPPropagator
 from ddtrace.trace import Context, Span, tracer
 
 from datadog_lambda.config import config
@@ -548,6 +548,12 @@ def extract_context_from_step_functions(event, lambda_context):
 
 
 def _extract_context_from_durable_checkpoint(operation):
+    # Checkpoint data is written by the dd-trace-py in Datadog style
+    # (x-datadog-* headers). Extraction goes through the standard
+    # propagator.extract path, which honors DD_TRACE_PROPAGATION_STYLE_EXTRACT.
+    # The default extract list (datadog, tracecontext, baggage) already
+    # includes datadog. Customers who override the extract list MUST keep
+    # datadog in it.
     if not isinstance(operation, dict):
         return None
 
@@ -565,9 +571,7 @@ def _extract_context_from_durable_checkpoint(operation):
     if not isinstance(result, dict):
         return None
 
-    # Checkpoints are written by dd-trace-py as x-datadog-* headers, so extract
-    # directly and bypass DD_TRACE_PROPAGATION_STYLE_EXTRACT on purpose.
-    return _DatadogMultiHeader._extract(result)
+    return propagator.extract(result)
 
 
 def extract_context_from_durable_execution(event):
