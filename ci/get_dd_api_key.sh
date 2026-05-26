@@ -11,4 +11,16 @@ set -e
 
 printf "Getting DD API KEY...\n"
 
-export DD_API_KEY=$(vault kv get -field=dd-api-key kv/k8s/gitlab-runner/datadog-lambda-python/secrets)
+DD_API_KEY=$(vault kv get -field=dd-api-key kv/k8s/gitlab-runner/datadog-lambda-python/secrets)
+
+if [ -z "$DD_API_KEY" ]; then
+    printf "[Error] DD_API_KEY is empty after Vault lookup.\n"
+    exit 1
+fi
+
+export DD_API_KEY
+
+# Persist for later script steps when the runner uses separate shells per step.
+if [ -n "${GITLAB_ENV:-}" ]; then
+    echo "DD_API_KEY=${DD_API_KEY}" >>"$GITLAB_ENV"
+fi

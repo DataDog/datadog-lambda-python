@@ -90,8 +90,11 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
     - source ./ci/get_dd_api_key.sh
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/setup_python_env.sh
   script:
-    - source venv/bin/activate
-    - pytest -vv --ddtrace
+    - |
+      set -e
+      source ./ci/get_dd_api_key.sh
+      source venv/bin/activate
+      pytest -vv --ddtrace
   retry: 2
 
 integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
