@@ -82,7 +82,12 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   {{ end }}
   image: registry.ddbuild.io/images/mirror/python:{{ $runtime.image }}
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python-{{ $runtime.python_version }}-{{ $runtime.arch }}"
+    DD_ENV: "ci"
   before_script:
+    - source ./ci/get_dd_api_key.sh
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/setup_python_env.sh
   script:
     - source venv/bin/activate
