@@ -87,14 +87,13 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
     DD_SERVICE: "datadog-lambda-python-{{ $runtime.python_version }}-{{ $runtime.arch }}"
     DD_ENV: "ci"
   before_script:
-    - source ./ci/get_dd_api_key.sh
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/setup_python_env.sh
   script:
-    - |
-      set -e
-      source ./ci/get_dd_api_key.sh
-      source venv/bin/activate
-      pytest -vv --ddtrace
+    - set -e
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
   retry: 2
 
 integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):

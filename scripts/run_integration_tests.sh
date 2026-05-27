@@ -220,8 +220,6 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 # Normalize python-requests version
                 sed -E "s/(User-Agent:python-requests\/)[0-9]+\.[0-9]+\.[0-9]+/\1X\.X\.X/g" |
                 sed -E "s/(\"http.useragent\"\: \"python-requests\/)[0-9]+\.[0-9]+\.[0-9]+/\1X\.X\.X/g" |
-                # ddtrace 4.x adds http.status_msg (derived from http.status_code); omit from snapshots
-                sed '/"http\.status_msg"/d' |
                 # Strip out trace/span/parent/timestamps
                 sed -E "s/(\"trace_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
                 sed -E "s/(\"span_id\"\: \")[A-Z0-9\.\-]+/\1XXXX/g" |
