@@ -63,19 +63,17 @@ _export_dd_api_key() {
 
 if [ -n "${DD_API_KEY:-}" ]; then
     printf "Using DD_API_KEY from environment.\n"
-    _export_dd_api_key
-    exit 0
-fi
+else
+    printf "Getting DD API KEY from Vault...\n"
 
-printf "Getting DD API KEY from Vault...\n"
+    _ensure_vault_cli
 
-_ensure_vault_cli
+    DD_API_KEY=$(vault kv get -field=dd-api-key "$VAULT_SECRETS_PATH")
 
-DD_API_KEY=$(vault kv get -field=dd-api-key "$VAULT_SECRETS_PATH")
-
-if [ -z "$DD_API_KEY" ]; then
-    printf "[Error] DD_API_KEY is empty after Vault lookup.\n" >&2
-    exit 1
+    if [ -z "$DD_API_KEY" ]; then
+        printf "[Error] DD_API_KEY is empty after Vault lookup.\n" >&2
+        return 1 2>/dev/null || exit 1
+    fi
 fi
 
 _export_dd_api_key
