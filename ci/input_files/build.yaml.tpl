@@ -84,14 +84,14 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
   variables:
     DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
-    DD_SERVICE: "datadog-lambda-python-{{ $runtime.python_version }}-{{ $runtime.arch }}"
+    DD_SERVICE: "datadog-lambda-python"
     DD_ENV: "ci"
+    DD_TAGS: "python_version:{{ $runtime.python_version }},arch:{{ $runtime.arch }}"
   before_script:
     - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
     - PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/setup_python_env.sh
   script:
     - set -e
-    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
     - source venv/bin/activate
     - pytest -vv --ddtrace
   retry: 2
