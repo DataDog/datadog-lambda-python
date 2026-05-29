@@ -35,20 +35,17 @@ replace_ddtrace_dep() {
 # dep to point at the downloaded file. Globals required:
 #   S3_BASE, PY_TAG, PLATFORM
 # Returns 0 on success, 1 if no matching wheel was found at the index.
-_search_and_spec_s3_wheel() {
-    local basename=$1
+_download_s3_wheel() {
+    export basename=$1
     local index=$2
     local search_pattern="${basename}-[^\"]*${PY_TAG}[^\"]*${PLATFORM}[^\"]*\.whl"
     local index_url="${S3_BASE}/index-${index}.html"
     echo "Searching for wheel ${search_pattern} in ${index_url}"
-    local wheel_file
-    wheel_file=$(curl -sSfL "${index_url}" | grep -o "${search_pattern}" | head -n 1 || true)
+    export wheel_file=$(curl -sSfL "${index_url}" | grep -o "${search_pattern}" | head -n 1 || true)
     if [ -z "$wheel_file" ]; then
         return 1
     fi
     curl -sSfL "${S3_BASE}/${wheel_file}" -o "${wheel_file}"
-    echo "Using S3 wheel: ${wheel_file}"
-    replace_ddtrace_dep "${basename} = { file = \"${wheel_file}\" }"
 }
 
 # Rewrite pyproject.toml's ddtrace dep based on the env-var precedence above.
@@ -75,8 +72,11 @@ spec_ddtrace_dep() {
         else
             PLATFORM="manylinux2014_aarch64"
         fi
-        _search_and_spec_s3_wheel "ddtrace_serverless" "serverless" \
-            || _search_and_spec_s3_wheel "ddtrace" "manylinux2014" \
+        _download_s3_wheel "ddtrace_internal" "manylinux2014" || true
+        _download_s3_wheel "ddtrace_serverless" "serverless" \
+            || _download_s3_wheel "ddtrace" "manylinux2014" \
             || { echo "ERROR: No matching ddtrace wheel for ${PY_TAG} ${PLATFORM} in pipeline ${UPSTREAM_PIPELINE_ID}, skipping version patch!" >&2; }
+        echo "Using S3 wheel: ${wheel_file}"
+        replace_ddtrace_dep "${basename} = { file = \"${wheel_file}\" }"
     fi
 }
