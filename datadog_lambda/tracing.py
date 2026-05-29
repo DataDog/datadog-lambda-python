@@ -638,8 +638,6 @@ def extract_dd_trace_context(
 
     if extractor is not None:
         context = extract_context_custom_extractor(extractor, event, lambda_context)
-    elif isinstance(event, dict) and "DurableExecutionArn" in event:
-        context = extract_context_from_durable_execution(event)
     elif isinstance(event, (set, dict)) and "request" in event:
         context = extract_context_from_request_header_or_context(
             event, lambda_context, event_source
@@ -658,6 +656,8 @@ def extract_dd_trace_context(
         context = extract_context_from_kinesis_event(event, lambda_context)
     elif event_source.equals(EventTypes.STEPFUNCTIONS):
         context = extract_context_from_step_functions(event, lambda_context)
+    elif isinstance(event, dict) and "DurableExecutionArn" in event:
+        context = extract_context_from_durable_execution(event)
     else:
         context = extract_context_from_lambda_context(lambda_context)
 
