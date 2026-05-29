@@ -1083,13 +1083,15 @@ class TestLogsInjection(unittest.TestCase):
         self.assertEqual(span.parent_id, int(fake_xray_header_value_parent_decimal))
         span.finish()
 
+    @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_set_correlation_ids_handle_empty_trace_context(self):
-        # neither x-ray or ddtrace is used. no tracing context at all.
+        # Incomplete trace context: no dummy span should be created. Do not assert
+        # tracer.current_span() is None — pytest's CI Visibility plugin (--ddtrace)
+        # keeps a root test span active for the duration of the test.
         self.mock_get_dd_trace_context.return_value = Context()
-        # no exception thrown
-        set_correlation_ids()
-        span = tracer.current_span()
-        self.assertIsNone(span)
+        with patch.object(tracer, "trace") as mock_trace:
+            set_correlation_ids()
+            mock_trace.assert_not_called()
 
 
 def _expected_span_pointer_link(
