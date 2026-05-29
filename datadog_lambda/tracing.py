@@ -44,6 +44,7 @@ from datadog_lambda.trigger import (
     EventTypes,
     EventSubtypes,
 )
+from datadog_lambda.durable import extract_context_from_durable_execution
 
 if config.otel_enabled:
     from opentelemetry.trace import set_tracer_provider
@@ -61,7 +62,6 @@ propagator = HTTPPropagator()
 DD_TRACE_JAVA_TRACE_ID_PADDING = "00000000"
 HIGHER_64_BITS = "HIGHER_64_BITS"
 LOWER_64_BITS = "LOWER_64_BITS"
-_TRACE_CHECKPOINT_PREFIX = "_datadog_"
 
 
 def _dsm_set_checkpoint(context_json, event_type, arn):
@@ -545,60 +545,6 @@ def extract_context_from_step_functions(event, lambda_context):
     except Exception as e:
         logger.debug("The Step Functions trace extractor returned with error %s", e)
         return extract_context_from_lambda_context(lambda_context)
-
-
-def _extract_context_from_durable_checkpoint(operation):
-    # Checkpoint data is written by the dd-trace-py in Datadog style
-    # (x-datadog-* headers). Extraction goes through the standard
-    # propagator.extract path, which honors DD_TRACE_PROPAGATION_STYLE_EXTRACT.
-    # The default extract list (datadog, tracecontext, baggage) already
-    # includes datadog. Customers who override the extract list MUST keep
-    # datadog in it.
-    if not isinstance(operation, dict):
-        return None
-
-    step_details = operation.get("StepDetails")
-    if not isinstance(step_details, dict):
-        return None
-
-    result = step_details.get("Result")
-    if isinstance(result, str):
-        try:
-            result = json.loads(result)
-        except Exception:
-            return None
-
-    if not isinstance(result, dict):
-        return None
-
-    return propagator.extract(result)
-
-
-def extract_context_from_durable_execution(event):
-    operations = event.get("InitialExecutionState", {}).get("Operations")
-    if isinstance(operations, dict):
-        operations = list(operations.values())
-    if not isinstance(operations, list) or not operations:
-        return None
-
-    highest = -1
-    best_operation = None
-    for operation in operations:
-        if not isinstance(operation, dict):
-            continue
-        name = operation.get("Name")
-        if not isinstance(name, str) or not name.startswith(_TRACE_CHECKPOINT_PREFIX):
-            continue
-        suffix = name[len(_TRACE_CHECKPOINT_PREFIX) :]
-        try:
-            number = int(suffix)
-        except (TypeError, ValueError):
-            continue
-        if number > highest:
-            highest = number
-            best_operation = operation
-
-    return _extract_context_from_durable_checkpoint(best_operation)
 
 
 def extract_context_custom_extractor(extractor, event, lambda_context):

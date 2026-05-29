@@ -4,8 +4,11 @@
 # Copyright 2019 Datadog, Inc.
 import logging
 import re
+import ujson as json
 
 logger = logging.getLogger(__name__)
+
+_TRACE_CHECKPOINT_PREFIX = "_datadog_"
 
 
 def _parse_durable_execution_arn(arn):
@@ -56,6 +59,62 @@ def extract_durable_function_tags(event):
 
 
 VALID_DURABLE_STATUSES = {"SUCCEEDED", "FAILED", "PENDING"}
+
+
+def _extract_context_from_durable_checkpoint(operation):
+    # Checkpoint data is written by the dd-trace-py in Datadog style
+    # (x-datadog-* headers). Extraction goes through the standard
+    # propagator.extract path, which honors DD_TRACE_PROPAGATION_STYLE_EXTRACT.
+    # The default extract list (datadog, tracecontext, baggage) already
+    # includes datadog. Customers who override the extract list MUST keep
+    # datadog in it.
+    if not isinstance(operation, dict):
+        return None
+
+    step_details = operation.get("StepDetails")
+    if not isinstance(step_details, dict):
+        return None
+
+    result = step_details.get("Result")
+    if isinstance(result, str):
+        try:
+            result = json.loads(result)
+        except Exception:
+            return None
+
+    if not isinstance(result, dict):
+        return None
+
+    from datadog_lambda.tracing import propagator
+
+    return propagator.extract(result)
+
+
+def extract_context_from_durable_execution(event):
+    operations = event.get("InitialExecutionState", {}).get("Operations")
+    if isinstance(operations, dict):
+        operations = list(operations.values())
+    if not isinstance(operations, list) or not operations:
+        return None
+
+    highest = -1
+    best_operation = None
+    for operation in operations:
+        if not isinstance(operation, dict):
+            continue
+        name = operation.get("Name")
+        if not isinstance(name, str) or not name.startswith(_TRACE_CHECKPOINT_PREFIX):
+            continue
+        suffix = name[len(_TRACE_CHECKPOINT_PREFIX) :]
+        try:
+            number = int(suffix)
+        except (TypeError, ValueError):
+            continue
+        if number > highest:
+            highest = number
+            best_operation = operation
+
+    return _extract_context_from_durable_checkpoint(best_operation)
 
 
 def extract_durable_execution_status(response, event):
