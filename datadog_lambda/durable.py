@@ -47,8 +47,11 @@ def extract_durable_function_tags(event):
     execution_name, execution_id = parsed
     # Use the number of operations to determine if it's the first invocation. This is
     # what the durable execution SDK does to determine the replay status.
-    operations = event.get("InitialExecutionState", {}).get("Operations", [])
-    is_first_invocation = len(operations) == 1
+    operations = event.get("InitialExecutionState", {}).get("Operations")
+    operation_count = (
+        len(operations) if isinstance(operations, (list, dict)) else 0
+    )
+    is_first_invocation = operation_count == 1
     return {
         "aws.durable.execution_name": execution_name,
         "aws.durable.execution_id": execution_id,

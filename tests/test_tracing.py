@@ -2510,6 +2510,98 @@ def test_authorizer_span_no_negative_duration_when_clock_skew(mock_span_finish):
     )
 
 
+class TestDurableExecutionInferredSpan(unittest.TestCase):
+    def test_creates_execution_init_span_for_first_invocation(self):
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
+            "InitialExecutionState": {
+                "Operations": [{"StartTimestamp": "1778088546775"}]
+            },
+        }
+        durable_function_tags = {
+            "aws_lambda.durable_function.execution_name": "my-execution",
+            "aws_lambda.durable_function.execution_id": "550e8400-e29b-41d4-a716-446655440004",
+            "aws_lambda.durable_function.first_invocation": "true",
+        }
+        ctx = get_mock_context(aws_request_id="abc-123")
+
+        with patch.dict(
+            os.environ, {"DD_DURABLE_EXECUTION_SERVICE": "durable-svc"}, clear=False
+        ):
+            span = create_inferred_span(
+                event, ctx, durable_function_tags=durable_function_tags
+            )
+
+        self.assertIsNotNone(span)
+        self.assertEqual(span.name, "aws.durable.execution_init")
+        self.assertEqual(span.service, "durable-svc")
+        self.assertEqual(span.resource, "my-execution")
+        self.assertEqual(span.start_ns, 1778088546775000000)
+        self.assertEqual(
+            span.get_tag("operation_name"), "aws.durable.execution_init"
+        )
+        self.assertEqual(
+            span.get_tag("durable.execution_arn"), event["DurableExecutionArn"]
+        )
+        self.assertEqual(span.get_tag("durable.execution_name"), "my-execution")
+        self.assertEqual(
+            span.get_tag("durable.execution_id"),
+            "550e8400-e29b-41d4-a716-446655440004",
+        )
+        span.finish()
+
+    def test_does_not_create_execution_init_span_for_replay_invocation(self):
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
+            "InitialExecutionState": {
+                "Operations": [{"StartTimestamp": "1778088546775"}]
+            },
+        }
+        durable_function_tags = {
+            "aws_lambda.durable_function.execution_name": "my-execution",
+            "aws_lambda.durable_function.execution_id": "550e8400-e29b-41d4-a716-446655440004",
+            "aws_lambda.durable_function.first_invocation": "false",
+        }
+        ctx = get_mock_context()
+
+        span = create_inferred_span(event, ctx, durable_function_tags=durable_function_tags)
+        self.assertIsNone(span)
+
+    def test_parents_lambda_span_to_execution_init_span(self):
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-1:123456789012:function:my-func:1/durable-execution/my-execution/550e8400-e29b-41d4-a716-446655440004",
+            "InitialExecutionState": {
+                "Operations": [{"StartTimestamp": "1778088546775"}]
+            },
+        }
+        durable_function_tags = {
+            "aws_lambda.durable_function.execution_name": "my-execution",
+            "aws_lambda.durable_function.execution_id": "550e8400-e29b-41d4-a716-446655440004",
+            "aws_lambda.durable_function.first_invocation": "true",
+        }
+        ctx = get_mock_context()
+
+        inferred_span = create_inferred_span(
+            event, ctx, durable_function_tags=durable_function_tags
+        )
+        lambda_span = create_function_execution_span(
+            context=ctx,
+            function_name="Function",
+            is_cold_start=False,
+            is_proactive_init=False,
+            trace_context_source={"source": ""},
+            merge_xray_traces=False,
+            trigger_tags={},
+            durable_function_tags=durable_function_tags,
+            parent_span=inferred_span,
+            span_pointers=None,
+        )
+
+        self.assertEqual(lambda_span.parent_id, inferred_span.span_id)
+        lambda_span.finish()
+        inferred_span.finish()
+
+
 class TestInferredSpans(unittest.TestCase):
     @patch("datadog_lambda.tracing.submit_errors_metric")
     def test_mark_trace_as_error_for_5xx_responses_getting_400_response_code(
