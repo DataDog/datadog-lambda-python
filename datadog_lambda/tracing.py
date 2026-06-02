@@ -44,6 +44,7 @@ from datadog_lambda.trigger import (
     EventTypes,
     EventSubtypes,
 )
+from datadog_lambda.durable import extract_context_from_durable_execution
 
 if config.otel_enabled:
     from opentelemetry.trace import set_tracer_provider
@@ -633,6 +634,7 @@ def extract_dd_trace_context(
     global dd_trace_context
     trace_context_source = None
     event_source = parse_event_source(event)
+    context = None
 
     if extractor is not None:
         context = extract_context_custom_extractor(extractor, event, lambda_context)
@@ -654,6 +656,8 @@ def extract_dd_trace_context(
         context = extract_context_from_kinesis_event(event, lambda_context)
     elif event_source.equals(EventTypes.STEPFUNCTIONS):
         context = extract_context_from_step_functions(event, lambda_context)
+    elif isinstance(event, dict) and "DurableExecutionArn" in event:
+        context = extract_context_from_durable_execution(event)
     else:
         context = extract_context_from_lambda_context(lambda_context)
 

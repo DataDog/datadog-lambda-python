@@ -395,6 +395,44 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     @with_trace_propagation_style("datadog")
+    def test_extracts_durable_trace_context_from_latest_checkpoint_operation_map(self):
+        lambda_ctx = get_mock_context()
+        headers = {
+            TraceHeader.TRACE_ID: "123",
+            TraceHeader.PARENT_ID: "321",
+            TraceHeader.SAMPLING_PRIORITY: "1",
+        }
+
+        event = {
+            "DurableExecutionArn": "arn:aws:lambda:us-east-2:123456789012:function:demo:1/durable-execution/demo/abc",
+            "CheckpointToken": "token",
+            "InitialExecutionState": {
+                "Operations": {
+                    "0": {"Type": "EXECUTION"},
+                    "1": {
+                        "Name": "_datadog_0",
+                        "StepDetails": {
+                            "Result": {
+                                TraceHeader.TRACE_ID: "999",
+                                TraceHeader.PARENT_ID: "888",
+                                TraceHeader.SAMPLING_PRIORITY: "1",
+                            }
+                        },
+                    },
+                    "2": {
+                        "Name": "_datadog_1",
+                        "StepDetails": {"Result": headers},
+                    },
+                }
+            },
+        }
+
+        ctx, source, _ = extract_dd_trace_context(event, lambda_ctx)
+
+        self.assertEqual(source, "event")
+        self.assertEqual(ctx, Context(trace_id=123, span_id=321, sampling_priority=1))
+
+    @with_trace_propagation_style("datadog")
     def test_with_extractor_function(self):
         def extractor_foo(event, context):
             foo = event.get("foo", {})
