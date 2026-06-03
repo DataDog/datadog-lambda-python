@@ -818,7 +818,7 @@ def extract_dd_trace_context(
     elif event_source.equals(EventTypes.STEPFUNCTIONS):
         context = extract_context_from_step_functions(event, lambda_context)
     elif isinstance(event, dict) and "DurableExecutionArn" in event:
-        context = extract_context_from_durable_execution(event)
+        context = extract_context_from_durable_execution(event, lambda_context)
     else:
         context = extract_context_from_lambda_context(lambda_context)
 
