@@ -31,6 +31,7 @@ from datadog_lambda.xray import (
 
 from ddtrace import patch
 from ddtrace import __version__ as ddtrace_version
+from ddtrace.internal.telemetry import telemetry_writer
 from ddtrace.propagation.http import HTTPPropagator
 from ddtrace.trace import Context, Span, tracer
 
@@ -1513,6 +1514,10 @@ def create_function_execution_span(
                 pointer_hash=span_pointer_description.pointer_hash,
                 extra_attributes=span_pointer_description.extra_attributes,
             )
+
+    if is_cold_start:
+        telemetry_writer.periodic(force_flush=True)
+
     return span
 
 
