@@ -752,6 +752,107 @@ class TestExtractAndGetDDTraceContext(unittest.TestCase):
         )
 
     @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_with_input_datadog(self):
+        """Legacy SFN context with upstream trace in Execution.Input._datadog"""
+        sfn_event = {
+            "Execution": {
+                "Id": "arn:aws:states:sa-east-1:425362996713:execution:rstrat-sfn-lambda-jsonpath-demo-dev-state-machine:7d67bd1e-57df-4021-8b52-f55d5cad1169",
+                "Input": {
+                    "hello": "world",
+                    "_datadog": {
+                        "x-datadog-trace-id": "12766418539254701015",
+                        "x-datadog-parent-id": "5497030307431673011",
+                        "x-datadog-sampling-priority": "1",
+                        "x-datadog-tags": "_dd.p.dm=-0,_dd.p.tid=69f4ed3a00000000",
+                        "traceparent": "00-69f4ed3a00000000b12b6e05a63cdbd7-4c495ff0aa056cb3-01",
+                        "tracestate": "dd=p:4c495ff0aa056cb3;s:1;t.dm:-0;t.tid:69f4ed3a00000000",
+                    },
+                },
+                "StartTime": "2026-05-01T18:13:14.130Z",
+                "Name": "7d67bd1e-57df-4021-8b52-f55d5cad1169",
+                "RoleArn": "arn:aws:iam::425362996713:role/rstrat-sfn-lambda-jsonpat-StepFunctionsExecutionRol-mtfEz4KEzBEE",
+                "RedriveCount": 0,
+            },
+            "State": {
+                "Name": "InvokeDownstreamSecond",
+                "EnteredTime": "2026-05-01T18:13:16.310Z",
+                "RetryCount": 0,
+            },
+            "StateMachine": {
+                "Id": "arn:aws:states:sa-east-1:425362996713:stateMachine:rstrat-sfn-lambda-jsonpath-demo-dev-state-machine",
+                "Name": "rstrat-sfn-lambda-jsonpath-demo-dev-state-machine",
+            },
+        }
+        self._test_step_function_trace_data_common(
+            sfn_event, 12766418539254701015, 5718818197702795437, "69f4ed3a00000000"
+        )
+
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_input_datadog_without_tid(self):
+        """Execution.Input._datadog without _dd.p.tid still preserves upstream trace id"""
+        sfn_event = {
+            "Execution": {
+                "Id": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-activity-state-machine:72a7ca3e-901c-41bb-b5a3-5f279b92a316",
+                "Input": {
+                    "_datadog": {
+                        "x-datadog-trace-id": "5821803790426892636",
+                    },
+                },
+                "Name": "72a7ca3e-901c-41bb-b5a3-5f279b92a316",
+                "RoleArn": "arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j",
+                "StartTime": "2024-12-04T19:38:04.069Z",
+                "RedriveCount": 0,
+            },
+            "State": {
+                "Name": "Lambda Invoke",
+                "EnteredTime": "2024-12-04T19:38:04.118Z",
+                "RetryCount": 0,
+            },
+            "StateMachine": {
+                "Id": "arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-activity-state-machine",
+                "Name": "abhinav-activity-state-machine",
+            },
+        }
+        lambda_ctx = get_mock_context()
+        expected_context = Context(
+            trace_id=5821803790426892636,
+            span_id=3929055471293792800,
+            sampling_priority=1,
+            meta={},
+        )
+
+        ctx, source, _ = extract_dd_trace_context(sfn_event, lambda_ctx)
+
+        self.assertEqual(source, "event")
+        self.assertEqual(ctx, expected_context)
+
+    @with_trace_propagation_style("datadog")
+    def test_step_function_trace_data_input_without_datadog(self):
+        """Execution.Input without _datadog falls back to deterministic trace id"""
+        sfn_event = {
+            "Execution": {
+                "Id": "arn:aws:states:sa-east-1:425362996713:execution:abhinav-activity-state-machine:72a7ca3e-901c-41bb-b5a3-5f279b92a316",
+                "Input": {"hello": "world"},
+                "Name": "72a7ca3e-901c-41bb-b5a3-5f279b92a316",
+                "RoleArn": "arn:aws:iam::425362996713:role/service-role/StepFunctions-abhinav-activity-state-machine-role-22jpbgl6j",
+                "StartTime": "2024-12-04T19:38:04.069Z",
+                "RedriveCount": 0,
+            },
+            "State": {
+                "Name": "Lambda Invoke",
+                "EnteredTime": "2024-12-04T19:38:04.118Z",
+                "RetryCount": 0,
+            },
+            "StateMachine": {
+                "Id": "arn:aws:states:sa-east-1:425362996713:stateMachine:abhinav-activity-state-machine",
+                "Name": "abhinav-activity-state-machine",
+            },
+        }
+        self._test_step_function_trace_data_common(
+            sfn_event, 435175499815315247, 3929055471293792800, "3e7a89d1b7310603"
+        )
+
+    @with_trace_propagation_style("datadog")
     def test_step_function_trace_data_retry(self):
         """Test step function trace data extraction with non-zero retry count"""
         sfn_event = {

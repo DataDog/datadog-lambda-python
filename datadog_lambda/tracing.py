@@ -482,6 +482,21 @@ def _generate_sfn_parent_id(context: dict) -> int:
     )
 
 
+def _extract_dd_trace_id_from_dd_data(dd_data, meta):
+    """
+    Read native Datadog trace headers from a `_datadog` dict.
+    Returns the 64-bit trace_id and populates meta["_dd.p.tid"] when present.
+    Returns None if no usable trace id is found.
+    """
+    if not dd_data or "x-datadog-trace-id" not in dd_data:
+        return None
+    trace_id = int(dd_data.get("x-datadog-trace-id"))
+    high_64_bit_trace_id = _parse_high_64_bits(dd_data.get("x-datadog-tags"))
+    if high_64_bit_trace_id:
+        meta["_dd.p.tid"] = high_64_bit_trace_id
+    return trace_id
+
+
 def _generate_sfn_trace_id(execution_id: str, part: str):
     """
     Take the SHA-256 hash of the execution_id to calculate the trace ID. If the high 64 bits are
@@ -517,10 +532,7 @@ def extract_context_from_step_functions(event, lambda_context):
 
         if event.get("serverless-version") == "v1":
             if "x-datadog-trace-id" in event:  # lambda root
-                trace_id = int(event.get("x-datadog-trace-id"))
-                high_64_bit_trace_id = _parse_high_64_bits(event.get("x-datadog-tags"))
-                if high_64_bit_trace_id:
-                    meta["_dd.p.tid"] = high_64_bit_trace_id
+                trace_id = _extract_dd_trace_id_from_dd_data(event, meta)
             else:  # sfn root
                 root_execution_id = event.get("RootExecutionId")
                 trace_id = _generate_sfn_trace_id(root_execution_id, LOWER_64_BITS)
@@ -530,9 +542,13 @@ def extract_context_from_step_functions(event, lambda_context):
 
             parent_id = _generate_sfn_parent_id(event)
         else:
-            execution_id = event.get("Execution").get("Id")
-            trace_id = _generate_sfn_trace_id(execution_id, LOWER_64_BITS)
-            meta["_dd.p.tid"] = _generate_sfn_trace_id(execution_id, HIGHER_64_BITS)
+            execution = event.get("Execution", {})
+            dd_input = execution.get("Input", {}).get("_datadog")
+            trace_id = _extract_dd_trace_id_from_dd_data(dd_input, meta)
+            if trace_id is None:
+                execution_id = execution.get("Id")
+                trace_id = _generate_sfn_trace_id(execution_id, LOWER_64_BITS)
+                meta["_dd.p.tid"] = _generate_sfn_trace_id(execution_id, HIGHER_64_BITS)
             parent_id = _generate_sfn_parent_id(event)
 
         sampling_priority = SamplingPriority.AUTO_KEEP
