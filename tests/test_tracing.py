@@ -1467,6 +1467,7 @@ class TestServiceMapping(unittest.TestCase):
         self.set_service_mapping(new_service_mapping)
         self.assertEqual(self.get_service_mapping(), new_service_mapping)
 
+    @patch("datadog_lambda.config.Config.service", None)
     def test_determine_service_name(self):
         # Prepare the environment
         os.environ["DD_SERVICE_MAPPING"] = "api1:service1,api2:service2"
@@ -1501,43 +1502,101 @@ class TestServiceMapping(unittest.TestCase):
             "default",
         )
 
-        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED set to false
-        os.environ["DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED"] = "false"
-        self.assertEqual(
-            determine_service_name(
-                self.get_service_mapping(), "api4", "api4", "extracted", "fallback"
-            ),
-            "fallback",
-        )
+        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED disabled
+        with patch(
+            "datadog_lambda.config.Config.aws_service_representation_enabled", False
+        ):
+            self.assertEqual(
+                determine_service_name(
+                    self.get_service_mapping(),
+                    "api4",
+                    "api4",
+                    "extracted",
+                    "fallback",
+                ),
+                "fallback",
+            )
 
-        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED set to 0
-        os.environ["DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED"] = "0"
-        self.assertEqual(
-            determine_service_name(
-                self.get_service_mapping(), "api4", "api4", "extracted", "fallback"
-            ),
-            "fallback",
-        )
+        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED enabled (default)
+        with patch(
+            "datadog_lambda.config.Config.aws_service_representation_enabled", True
+        ):
+            self.assertEqual(
+                determine_service_name(
+                    self.get_service_mapping(),
+                    "api4",
+                    "api4",
+                    "extracted",
+                    "fallback",
+                ),
+                "extracted",
+            )
 
-        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED not set (default behavior)
-        if "DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED" in os.environ:
-            del os.environ["DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED"]
-        self.assertEqual(
-            determine_service_name(
-                self.get_service_mapping(), "api4", "api4", "extracted", "fallback"
-            ),
-            "extracted",
-        )
-
-        # Test with empty extracted key
-        self.assertEqual(
-            determine_service_name(
-                self.get_service_mapping(), "api4", "api4", "  ", "fallback"
-            ),
-            "fallback",
-        )
+            # Test with empty extracted key
+            self.assertEqual(
+                determine_service_name(
+                    self.get_service_mapping(), "api4", "api4", "  ", "fallback"
+                ),
+                "fallback",
+            )
 
         del os.environ["DD_SERVICE_MAPPING"]
+
+    def test_determine_service_name_prefers_dd_service(self):
+        # When DD_SERVICE is set, inferred spans always use the base service
+        # name (DD_SERVICE), regardless of any other configuration.
+        with patch("datadog_lambda.config.Config.service", "my-service"):
+            self.assertEqual(
+                determine_service_name(
+                    {}, "queue-name", "lambda_sqs", "queue-name", "sqs"
+                ),
+                "my-service",
+            )
+
+            # DD_SERVICE takes precedence over an explicit service mapping.
+            self.assertEqual(
+                determine_service_name(
+                    {"lambda_sqs": "mapped-service"},
+                    "queue-name",
+                    "lambda_sqs",
+                    "queue-name",
+                    "sqs",
+                ),
+                "my-service",
+            )
+
+            # DD_SERVICE takes precedence over a disabled AWS service
+            # representation.
+            with patch(
+                "datadog_lambda.config.Config.aws_service_representation_enabled",
+                False,
+            ):
+                self.assertEqual(
+                    determine_service_name(
+                        {}, "queue-name", "lambda_sqs", "queue-name", "sqs"
+                    ),
+                    "my-service",
+                )
+
+        # When DD_SERVICE is not set, fall back to the existing behavior
+        # (service mapping, then AWS service representation / extracted key).
+        with patch("datadog_lambda.config.Config.service", None):
+            self.assertEqual(
+                determine_service_name(
+                    {"lambda_sqs": "mapped-service"},
+                    "queue-name",
+                    "lambda_sqs",
+                    "queue-name",
+                    "sqs",
+                ),
+                "mapped-service",
+            )
+            self.assertEqual(
+                determine_service_name(
+                    {}, "queue-name", "lambda_sqs", "queue-name", "sqs"
+                ),
+                "queue-name",
+            )
 
     def test_remaps_all_inferred_span_service_names_from_api_gateway_event(self):
         new_service_mapping = {"lambda_api_gateway": "new-name"}

@@ -893,6 +893,12 @@ def create_service_mapping(val):
 def determine_service_name(
     service_mapping, specific_key, generic_key, extracted_key, fallback=None
 ):
+    # DD_SERVICE (the base service name) takes top priority for inferred
+    # (synthetic) spans. When it is set, use it as the service regardless of
+    # any AWS service representation or service mapping.
+    if config.service:
+        return config.service
+
     # Check for mapped service (specific key first, then generic key)
     mapped_service = service_mapping.get(specific_key) or service_mapping.get(
         generic_key
@@ -901,10 +907,7 @@ def determine_service_name(
         return mapped_service
 
     # Check if AWS service representation is disabled
-    aws_service_representation = os.environ.get(
-        "DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", ""
-    ).lower()
-    if aws_service_representation in ("false", "0"):
+    if not config.aws_service_representation_enabled:
         return fallback
 
     # Use extracted_key if it exists and is not empty, otherwise use fallback
