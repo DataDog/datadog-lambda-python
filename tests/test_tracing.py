@@ -1549,34 +1549,23 @@ class TestServiceMapping(unittest.TestCase):
 
         del os.environ["DD_SERVICE_MAPPING"]
 
-    def test_determine_service_name_prefers_dd_service(self):
-        # When DD_SERVICE is set, inferred spans always use the base service
-        # name (DD_SERVICE), regardless of any other configuration.
+    def test_determine_service_name_with_remove_integration_flag(self):
+        # By default (flag off), inferred spans use the AWS resource name even
+        # when DD_SERVICE is set.
         with patch("datadog_lambda.config.Config.service", "my-service"):
             self.assertEqual(
                 determine_service_name(
                     {}, "queue-name", "lambda_sqs", "queue-name", "sqs"
                 ),
-                "my-service",
+                "queue-name",
             )
 
-            # DD_SERVICE takes precedence over an explicit service mapping.
-            self.assertEqual(
-                determine_service_name(
-                    {"lambda_sqs": "mapped-service"},
-                    "queue-name",
-                    "lambda_sqs",
-                    "queue-name",
-                    "sqs",
-                ),
-                "my-service",
-            )
-
-            # DD_SERVICE takes precedence over a disabled AWS service
-            # representation.
+            # With DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED, inferred
+            # spans use DD_SERVICE instead of the AWS resource name.
             with patch(
-                "datadog_lambda.config.Config.aws_service_representation_enabled",
-                False,
+                "datadog_lambda.config.Config."
+                "remove_integration_service_names_enabled",
+                True,
             ):
                 self.assertEqual(
                     determine_service_name(
@@ -1585,25 +1574,45 @@ class TestServiceMapping(unittest.TestCase):
                     "my-service",
                 )
 
-        # When DD_SERVICE is not set, fall back to the existing behavior
-        # (service mapping, then AWS service representation / extracted key).
+                # An explicit service mapping still wins over DD_SERVICE.
+                self.assertEqual(
+                    determine_service_name(
+                        {"lambda_sqs": "mapped-service"},
+                        "queue-name",
+                        "lambda_sqs",
+                        "queue-name",
+                        "sqs",
+                    ),
+                    "mapped-service",
+                )
+
+                # DD_SERVICE is used even when AWS service representation is
+                # disabled.
+                with patch(
+                    "datadog_lambda.config.Config."
+                    "aws_service_representation_enabled",
+                    False,
+                ):
+                    self.assertEqual(
+                        determine_service_name(
+                            {}, "queue-name", "lambda_sqs", "queue-name", "sqs"
+                        ),
+                        "my-service",
+                    )
+
+        # When DD_SERVICE is not set, the flag has no effect (resource name).
         with patch("datadog_lambda.config.Config.service", None):
-            self.assertEqual(
-                determine_service_name(
-                    {"lambda_sqs": "mapped-service"},
+            with patch(
+                "datadog_lambda.config.Config."
+                "remove_integration_service_names_enabled",
+                True,
+            ):
+                self.assertEqual(
+                    determine_service_name(
+                        {}, "queue-name", "lambda_sqs", "queue-name", "sqs"
+                    ),
                     "queue-name",
-                    "lambda_sqs",
-                    "queue-name",
-                    "sqs",
-                ),
-                "mapped-service",
-            )
-            self.assertEqual(
-                determine_service_name(
-                    {}, "queue-name", "lambda_sqs", "queue-name", "sqs"
-                ),
-                "queue-name",
-            )
+                )
 
     def test_remaps_all_inferred_span_service_names_from_api_gateway_event(self):
         new_service_mapping = {"lambda_api_gateway": "new-name"}
@@ -1793,9 +1802,11 @@ class TestServiceMapping(unittest.TestCase):
         self.assertEqual(span2.get_tag("operation_name"), "aws.sqs")
         self.assertEqual(span2.service, "different-sqs-url")
 
-    def test_create_inferred_span_uses_dd_service_when_set(self):
-        # When DD_SERVICE is set, inferred spans use it as the service,
-        # taking precedence over any AWS service representation or mapping.
+    def test_create_inferred_span_uses_dd_service_with_remove_integration_flag(
+        self,
+    ):
+        # With DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED and DD_SERVICE
+        # set, inferred spans use DD_SERVICE instead of the AWS resource name.
         event_sample_source = "sqs-string-msg-attribute"
         test_file = event_samples + event_sample_source + ".json"
         with open(test_file, "r") as event:
@@ -1804,8 +1815,13 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        self.set_service_mapping({"lambda_sqs": "mapped-name"})
-        with patch("datadog_lambda.config.Config.service", "my-dd-service"):
+        with patch(
+            "datadog_lambda.config.Config.service", "my-dd-service"
+        ), patch(
+            "datadog_lambda.config.Config."
+            "remove_integration_service_names_enabled",
+            True,
+        ):
             span = create_inferred_span(original_event, ctx)
         self.assertEqual(span.get_tag("operation_name"), "aws.sqs")
         self.assertEqual(span.service, "my-dd-service")

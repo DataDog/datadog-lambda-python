@@ -893,18 +893,18 @@ def create_service_mapping(val):
 def determine_service_name(
     service_mapping, specific_key, generic_key, extracted_key, fallback=None
 ):
-    # DD_SERVICE (the base service name) takes top priority for inferred
-    # (synthetic) spans. When it is set, use it as the service regardless of
-    # any AWS service representation or service mapping.
-    if config.service:
-        return config.service
-
     # Check for mapped service (specific key first, then generic key)
     mapped_service = service_mapping.get(specific_key) or service_mapping.get(
         generic_key
     )
     if mapped_service:
         return mapped_service
+
+    # When integration service names are removed, inferred (synthetic) spans use
+    # the base service name (DD_SERVICE) instead of the AWS resource/instance
+    # representation.
+    if config.remove_integration_service_names_enabled and config.service:
+        return config.service
 
     # Check if AWS service representation is disabled
     if not config.aws_service_representation_enabled:

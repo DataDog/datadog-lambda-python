@@ -78,6 +78,9 @@ class Config:
     aws_service_representation_enabled = _get_env(
         "DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", "true", as_bool
     )
+    remove_integration_service_names_enabled = _get_env(
+        "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED", "false", as_bool
+    )
 
     enhanced_metrics_enabled = _get_env("DD_ENHANCED_METRICS", "true", as_bool)
 
