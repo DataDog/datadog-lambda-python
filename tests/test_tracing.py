@@ -1421,6 +1421,13 @@ class TestSetTraceRootSpan(unittest.TestCase):
 class TestServiceMapping(unittest.TestCase):
     def setUp(self):
         self.service_mapping = {}
+        # These tests exercise the AWS service-representation / service-mapping
+        # resolution, which only applies when DD_SERVICE is not set. Pin
+        # config.service to None so the tests are deterministic regardless of
+        # whether DD_SERVICE is present in the environment (e.g. in CI).
+        service_patcher = patch("datadog_lambda.config.Config.service", None)
+        service_patcher.start()
+        self.addCleanup(service_patcher.stop)
 
     def get_service_mapping(self):
         return global_service_mapping
@@ -2614,6 +2621,7 @@ _test_create_inferred_span = (
 
 @pytest.mark.parametrize("source,expect", _test_create_inferred_span)
 @patch("ddtrace.trace.Span.finish", autospec=True)
+@patch("datadog_lambda.config.Config.service", None)
 def test_create_inferred_span(mock_span_finish, source, expect):
     with open(f"{event_samples}{source}.json") as f:
         event = json.load(f)
