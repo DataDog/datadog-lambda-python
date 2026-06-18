@@ -191,7 +191,7 @@ class _LambdaDecorator(object):
                 return self.blocking_response
             self.response = self.func(event, context, **kwargs)
         except Exception as e:
-            if type(e).__name__ == "BlockingException":
+            if "BlockingException" in type(e).__name__:
                 self.blocking_response = get_asm_blocked_response(self.event_source)
             else:
                 from datadog_lambda.metric import submit_errors_metric
