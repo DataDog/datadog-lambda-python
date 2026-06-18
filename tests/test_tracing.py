@@ -1815,11 +1815,8 @@ class TestServiceMapping(unittest.TestCase):
         ctx = get_mock_context()
         ctx.aws_request_id = "123"
 
-        with patch(
-            "datadog_lambda.config.Config.service", "my-dd-service"
-        ), patch(
-            "datadog_lambda.config.Config."
-            "remove_integration_service_names_enabled",
+        with patch("datadog_lambda.config.Config.service", "my-dd-service"), patch(
+            "datadog_lambda.config.Config." "remove_integration_service_names_enabled",
             True,
         ):
             span = create_inferred_span(original_event, ctx)
