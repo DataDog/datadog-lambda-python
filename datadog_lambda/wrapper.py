@@ -2,52 +2,53 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
-import os
 import logging
+import os
 import traceback
-import ujson as json
 from importlib import import_module
 from time import time_ns
 
-from datadog_lambda.extension import should_use_extension, flush_extension
+import ujson as json
+
 from datadog_lambda.cold_start import (
-    set_cold_start,
-    is_cold_start,
-    is_proactive_init,
-    is_new_sandbox,
-    is_managed_instances_mode,
     ColdStartTracer,
+    is_cold_start,
+    is_managed_instances_mode,
+    is_new_sandbox,
+    is_proactive_init,
+    set_cold_start,
 )
 from datadog_lambda.config import config
 from datadog_lambda.constants import (
+    Headers,
     TraceContextSource,
     XraySubsegment,
-    Headers,
 )
+from datadog_lambda.durable import (
+    extract_durable_execution_status,
+    extract_durable_function_tags,
+)
+from datadog_lambda.extension import flush_extension, should_use_extension
 from datadog_lambda.module_name import modify_module_name
 from datadog_lambda.span_pointers import calculate_span_pointers
 from datadog_lambda.tag_object import tag_object
 from datadog_lambda.tracing import (
-    extract_dd_trace_context,
+    InferredSpanInfo,
     create_dd_dummy_metadata_subsegment,
-    inject_correlation_ids,
-    mark_trace_as_error_for_5xx_responses,
-    set_correlation_ids,
-    set_dd_trace_py_root,
     create_function_execution_span,
     create_inferred_span,
-    InferredSpanInfo,
+    extract_dd_trace_context,
+    inject_correlation_ids,
     is_authorizer_response,
-    tracer,
+    mark_trace_as_error_for_5xx_responses,
     propagator,
-)
-from datadog_lambda.durable import (
-    extract_durable_function_tags,
-    extract_durable_execution_status,
+    set_correlation_ids,
+    set_dd_trace_py_root,
+    tracer,
 )
 from datadog_lambda.trigger import (
-    extract_trigger_tags,
     extract_http_status_code_tag,
+    extract_trigger_tags,
 )
 
 logger = logging.getLogger(__name__)
@@ -57,13 +58,14 @@ logger = logging.getLogger(__name__)
 # making changes to any ddtrace import.
 
 if config.appsec_enabled:
+    from ddtrace.internal.appsec.product import start
+
     from datadog_lambda.asm import (
         asm_set_context,
-        asm_start_response,
         asm_start_request,
+        asm_start_response,
         get_asm_blocked_response,
     )
-    from ddtrace.internal.appsec.product import start
 
     start()
 
@@ -190,17 +192,17 @@ class _LambdaDecorator(object):
             if self.blocking_response:
                 return self.blocking_response
             self.response = self.func(event, context, **kwargs)
-        except Exception as e:
+        except Exception:
+            from datadog_lambda.metric import submit_errors_metric
+
+            submit_errors_metric(context)
+
+            if self.span:
+                self.span.set_traceback()
+            raise
+        except BaseException as e:
             if "BlockingException" in type(e).__name__:
                 self.blocking_response = get_asm_blocked_response(self.event_source)
-            else:
-                from datadog_lambda.metric import submit_errors_metric
-
-                submit_errors_metric(context)
-
-                if self.span:
-                    self.span.set_traceback()
-                raise
         finally:
             self._after(event, context)
         if self.blocking_response:

@@ -724,7 +724,7 @@ class TestLambdaWrapperAppsecBlocking(unittest.TestCase):
     def test_blocking_during(self):
         self.mock_get_asm_blocking_response.return_value = None
 
-        class BlockingException(Exception):
+        class BlockingException(BaseException):
             pass
 
         def lambda_handler(event, context):
