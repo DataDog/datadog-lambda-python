@@ -2,53 +2,52 @@
 # under the Apache License Version 2.0.
 # This product includes software developed at Datadog (https://www.datadoghq.com/).
 # Copyright 2019 Datadog, Inc.
-import logging
 import os
+import logging
 import traceback
+import ujson as json
 from importlib import import_module
 from time import time_ns
 
-import ujson as json
-
+from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import (
-    ColdStartTracer,
-    is_cold_start,
-    is_managed_instances_mode,
-    is_new_sandbox,
-    is_proactive_init,
     set_cold_start,
+    is_cold_start,
+    is_proactive_init,
+    is_new_sandbox,
+    is_managed_instances_mode,
+    ColdStartTracer,
 )
 from datadog_lambda.config import config
 from datadog_lambda.constants import (
-    Headers,
     TraceContextSource,
     XraySubsegment,
+    Headers,
 )
-from datadog_lambda.durable import (
-    extract_durable_execution_status,
-    extract_durable_function_tags,
-)
-from datadog_lambda.extension import flush_extension, should_use_extension
 from datadog_lambda.module_name import modify_module_name
 from datadog_lambda.span_pointers import calculate_span_pointers
 from datadog_lambda.tag_object import tag_object
 from datadog_lambda.tracing import (
-    InferredSpanInfo,
-    create_dd_dummy_metadata_subsegment,
-    create_function_execution_span,
-    create_inferred_span,
     extract_dd_trace_context,
+    create_dd_dummy_metadata_subsegment,
     inject_correlation_ids,
-    is_authorizer_response,
     mark_trace_as_error_for_5xx_responses,
-    propagator,
     set_correlation_ids,
     set_dd_trace_py_root,
+    create_function_execution_span,
+    create_inferred_span,
+    InferredSpanInfo,
+    is_authorizer_response,
     tracer,
+    propagator,
+)
+from datadog_lambda.durable import (
+    extract_durable_function_tags,
+    extract_durable_execution_status,
 )
 from datadog_lambda.trigger import (
-    extract_http_status_code_tag,
     extract_trigger_tags,
+    extract_http_status_code_tag,
 )
 
 logger = logging.getLogger(__name__)
@@ -58,14 +57,13 @@ logger = logging.getLogger(__name__)
 # making changes to any ddtrace import.
 
 if config.appsec_enabled:
-    from ddtrace.internal.appsec.product import start
-
     from datadog_lambda.asm import (
         asm_set_context,
-        asm_start_request,
         asm_start_response,
+        asm_start_request,
         get_asm_blocked_response,
     )
+    from ddtrace.internal.appsec.product import start
 
     start()
 
