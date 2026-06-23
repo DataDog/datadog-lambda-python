@@ -724,11 +724,14 @@ class TestLambdaWrapperAppsecBlocking(unittest.TestCase):
     def test_blocking_during(self):
         self.mock_get_asm_blocking_response.return_value = None
 
+        class BlockingException(BaseException):
+            pass
+
         def lambda_handler(event, context):
             self.mock_get_asm_blocking_response.return_value = (
                 self.fake_blocking_response
             )
-            raise wrapper.BlockingException()
+            raise BlockingException()
 
         lambda_handler = wrapper.datadog_lambda_wrapper(lambda_handler)
 

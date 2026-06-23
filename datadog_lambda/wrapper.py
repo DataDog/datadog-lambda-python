@@ -9,7 +9,6 @@ import ujson as json
 from importlib import import_module
 from time import time_ns
 
-from ddtrace.internal._exceptions import BlockingException
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import (
     set_cold_start,
@@ -191,8 +190,6 @@ class _LambdaDecorator(object):
             if self.blocking_response:
                 return self.blocking_response
             self.response = self.func(event, context, **kwargs)
-        except BlockingException:
-            self.blocking_response = get_asm_blocked_response(self.event_source)
         except Exception:
             from datadog_lambda.metric import submit_errors_metric
 
@@ -201,6 +198,9 @@ class _LambdaDecorator(object):
             if self.span:
                 self.span.set_traceback()
             raise
+        except BaseException as e:
+            if "BlockingException" in type(e).__name__:
+                self.blocking_response = get_asm_blocked_response(self.event_source)
         finally:
             self._after(event, context)
         if self.blocking_response:
