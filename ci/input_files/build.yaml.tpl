@@ -38,7 +38,7 @@ default:
 build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: build
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10
+  image: registry.ddbuild.io/images/docker:29.4.0-noble
   artifacts:
     expire_in: 1 hr # Unsigned zips expire in 1 hour
     paths:
@@ -53,7 +53,7 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
 check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10
+  image: registry.ddbuild.io/images/docker:29.4.0-noble
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
@@ -99,7 +99,7 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
 integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10-py3
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   rules:
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
@@ -124,7 +124,7 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10-py3
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
       when: manual
@@ -155,7 +155,7 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
 publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: publish
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10-py3
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   rules:
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
@@ -201,7 +201,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
 publish-pypi-package:
   stage: publish
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10-py3
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   before_script:
     - ./scripts/setup_python_env.sh
   cache: []
@@ -217,7 +217,7 @@ publish-pypi-package:
 layer bundle:
   stage: build
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10
+  image: registry.ddbuild.io/images/docker:29.4.0-noble
   needs:
     {{ range (ds "runtimes").runtimes }}
     - build-layer ({{ .name }}-{{ .arch }})
@@ -238,7 +238,7 @@ layer bundle:
 
 signed layer bundle:
   stage: sign
-  image: registry.ddbuild.io/images/docker:20.10-py3
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   tags: ["arch:amd64"]
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
@@ -286,7 +286,7 @@ e2e-test:
 
 e2e-test-status:
   stage: e2e
-  image: registry.ddbuild.io/images/docker:20.10-py3
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   tags: ["arch:amd64"]
   timeout: 3h
   rules:
