@@ -152,10 +152,3 @@ os.environ["DD_TRACE_STATS_COMPUTATION_ENABLED"] = "false"
 # unset css aliases to ensure it is disabled
 if "DD_TRACE_COMPUTE_STATS" in os.environ:
     del os.environ["DD_TRACE_COMPUTE_STATS"]
-
-if (
-    "DD_INSTRUMENTATION_TELEMETRY_ENABLED" not in os.environ
-    and not config.sca_enabled
-    and not config.appsec_enabled
-):
-    os.environ["DD_INSTRUMENTATION_TELEMETRY_ENABLED"] = "false"
