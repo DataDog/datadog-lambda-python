@@ -113,6 +113,10 @@ _test_extract_dd_trace_context = (
         Context(trace_id=12345, span_id=67890, sampling_priority=2),
     ),
     (
+        "application-load-balancer",
+        Context(trace_id=12345, span_id=67890, sampling_priority=2),
+    ),
+    (
         "authorizer-request-api-gateway-v1",
         Context(
             trace_id=13478705995797221209,
@@ -1952,6 +1956,133 @@ class TestServiceMapping(unittest.TestCase):
         span2 = create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.eventbridge")
         self.assertEqual(span2.service, "different.eventbridge.custom.event.sender")
+
+    def test_remaps_all_inferred_span_service_names_from_alb_event(self):
+        self.set_service_mapping({"lambda_alb": "new-name"})
+        with open(f"{event_samples}application-load-balancer.json") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.alb")
+        self.assertEqual(span1.service, "new-name")
+
+        event2 = copy.deepcopy(original_event)
+        event2["headers"]["host"] = "different-alb.us-east-2.elb.amazonaws.com"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.alb")
+        self.assertEqual(span2.service, "new-name")
+
+    def test_remaps_specific_inferred_span_service_names_from_alb_event(self):
+        host = "lambda-alb-123578498.us-east-2.elb.amazonaws.com"
+        self.set_service_mapping({host: "mapped-alb-service"})
+        with open(f"{event_samples}application-load-balancer.json") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        span1 = create_inferred_span(original_event, ctx)
+        self.assertEqual(span1.get_tag("operation_name"), "aws.alb")
+        self.assertEqual(span1.service, "mapped-alb-service")
+
+        event2 = copy.deepcopy(original_event)
+        event2["headers"]["host"] = "other-alb.us-east-2.elb.amazonaws.com"
+        span2 = create_inferred_span(event2, ctx)
+        self.assertEqual(span2.get_tag("operation_name"), "aws.alb")
+        self.assertEqual(span2.service, "other-alb.us-east-2.elb.amazonaws.com")
+
+
+class TestAlbInferredSpan(unittest.TestCase):
+    ALB_SAMPLE = "application-load-balancer"
+    ALB_MULTIVALUE = "application-load-balancer-multivalue-headers"
+    ALB_HOST = "lambda-alb-123578498.us-east-2.elb.amazonaws.com"
+    ALB_USER_AGENT = (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36"
+    )
+
+    def _load_event(self, sample_name):
+        with open(f"{event_samples}{sample_name}.json") as event_file:
+            return json.load(event_file)
+
+    def test_create_inferred_span_from_alb_event(self):
+        event = self._load_event(self.ALB_SAMPLE)
+        ctx = get_mock_context(aws_request_id="123")
+
+        span = create_inferred_span(event, ctx)
+
+        self.assertIsNotNone(span)
+        self.assertEqual(span.name, "aws.alb")
+        self.assertEqual(span.span_type, "http")
+        self.assertEqual(span.service, self.ALB_HOST)
+        self.assertEqual(span.resource, "GET /lambda")
+        self.assertEqual(span.get_tag("operation_name"), "aws.alb")
+        self.assertEqual(span.get_tag("span.kind"), "server")
+        self.assertEqual(span.get_tag("http.method"), "GET")
+        self.assertEqual(
+            span.get_tag("http.url"), f"http://{self.ALB_HOST}/lambda"
+        )
+        self.assertEqual(span.get_tag("http.useragent"), self.ALB_USER_AGENT)
+        self.assertEqual(span.get_tag("endpoint"), "/lambda")
+        self.assertEqual(span.get_tag("resource_names"), "GET /lambda")
+        self.assertEqual(span.get_tag("request_id"), "123")
+        self.assertEqual(span.get_tag("_inferred_span.synchronicity"), "sync")
+        self.assertEqual(span.get_tag("_inferred_span.tag_source"), "self")
+        self.assertEqual(span.get_metric("_dd._inferred_span"), 1.0)
+        self.assertEqual(
+            span.get_tag("target_group_arn"),
+            "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
+        )
+
+    def test_create_inferred_span_omits_tags_when_headers_missing(self):
+        event = self._load_event(self.ALB_SAMPLE)
+        del event["headers"]
+        event["httpMethod"] = None
+        event["path"] = None
+
+        span = create_inferred_span(event, get_mock_context())
+
+        self.assertIsNotNone(span)
+        self.assertNotIn("http.url", span.get_tags())
+        self.assertNotIn("http.method", span.get_tags())
+        self.assertNotIn("http.useragent", span.get_tags())
+
+    def test_multivalue_headers_subtype_returns_none(self):
+        event = self._load_event(self.ALB_MULTIVALUE)
+        span = create_inferred_span(event, get_mock_context())
+        self.assertIsNone(span)
+
+    @with_trace_propagation_style("datadog")
+    def test_inbound_datadog_context_parents_inferred_span(self):
+        event = self._load_event(self.ALB_SAMPLE)
+        ctx = get_mock_context()
+
+        parent_ctx, source, _ = extract_dd_trace_context(event, ctx)
+        set_dd_trace_py_root(source, merge_xray_traces=False)
+        span = create_inferred_span(event, ctx)
+
+        self.assertEqual(span.trace_id, parent_ctx.trace_id)
+        self.assertEqual(span.parent_id, parent_ctx.span_id)
+
+    def test_inbound_w3c_context_extracted_from_alb_event(self):
+        event = self._load_event(self.ALB_SAMPLE)
+        event["headers"] = {
+            "host": self.ALB_HOST,
+            "user-agent": self.ALB_USER_AGENT,
+            "x-forwarded-proto": "http",
+            "traceparent": "00-0000000000000000000000000000abcd-000000000000004d-01",
+            "tracestate": "dd=s:1",
+        }
+
+        ctx, source, _ = extract_dd_trace_context(event, get_mock_context())
+
+        self.assertIsNotNone(ctx)
+        self.assertEqual(source, TraceContextSource.EVENT)
+        self.assertEqual(ctx.trace_id, 0xABCD)
+        self.assertEqual(ctx.span_id, 0x4D)
 
 
 class _Span(object):

@@ -434,6 +434,21 @@ class GetTriggerTags(unittest.TestCase):
             },
         )
 
+    def test_extract_trigger_tags_application_load_balancer_multivalue_headers(self):
+        event_sample_source = "application-load-balancer-multivalue-headers"
+        test_file = event_samples + event_sample_source + ".json"
+        ctx = get_mock_context()
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        tags = extract_trigger_tags(event, ctx)
+
+        assert tags.get("function_trigger.event_source") == "application-load-balancer"
+        assert tags.get("http.method") == "GET"
+        assert tags.get("http.route") == "/lambda"
+        # multi-value subtype has no single-value ``headers`` map
+        assert "http.url" not in tags
+        assert "http.useragent" not in tags
+
     def test_extract_trigger_tags_cloudfront(self):
         event_sample_source = "cloudfront"
         test_file = event_samples + event_sample_source + ".json"
