@@ -16,10 +16,11 @@ from datadog_lambda.config import config
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 from ddtrace.trace import Span, tracer
-from ddtrace.internal.constants import MAX_UINT_64BITS
+
 
 from tests.utils import get_mock_context, reset_xray_connection
 
+MAX_UINT_64BITS = (1 << 64) - 1
 
 class TestDatadogLambdaWrapper(unittest.TestCase):
     def setUp(self):
