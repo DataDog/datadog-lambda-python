@@ -324,6 +324,25 @@ def extract_http_tags(event):
             path = apigateway_v2_http.get("path")
             method = apigateway_v2_http.get("method")
 
+    elif request_context and request_context.get("elb"):
+        # ALB events have no requestContext.stage; derive the URL from the
+        # forwarded host/proto headers and the top-level path.
+        alb_headers = event.get("headers")
+        if not isinstance(alb_headers, dict):
+            alb_headers = {}
+        host = alb_headers.get("host")
+        if host:
+            proto = alb_headers.get("x-forwarded-proto", "http")
+            http_tags["http.url"] = f"{proto}://{host}"
+
+        user_agent = alb_headers.get("user-agent")
+        if user_agent:
+            http_tags["http.useragent"] = user_agent
+
+        # ALB carries no route template, so use the request path as the route.
+        if path:
+            http_tags["http.route"] = path
+
     if path:
         if http_tags.get("http.url"):
             http_tags["http.url"] += path

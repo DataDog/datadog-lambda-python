@@ -427,6 +427,9 @@ class GetTriggerTags(unittest.TestCase):
                 "function_trigger.event_source": "application-load-balancer",
                 "function_trigger.event_source_arn": "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
                 "http.method": "GET",
+                "http.url": "http://lambda-alb-123578498.us-east-2.elb.amazonaws.com/lambda",
+                "http.route": "/lambda",
+                "http.useragent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
                 "span.kind": "server",
             },
         )
