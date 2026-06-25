@@ -22,6 +22,7 @@ from tests.utils import get_mock_context, reset_xray_connection
 
 MAX_UINT_64BITS = (1 << 64) - 1
 
+
 class TestDatadogLambdaWrapper(unittest.TestCase):
     def setUp(self):
         # Force @datadog_lambda_wrapper to always create a real
