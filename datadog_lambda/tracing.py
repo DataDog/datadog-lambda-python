@@ -82,6 +82,43 @@ def _dsm_set_checkpoint(context_json, event_type, arn):
         )
 
 
+def _dsm_set_eventbridge_checkpoint(context_json, detail_type):
+    """Set a DSM consume checkpoint for an EventBridge event.
+
+    Unlike the SQS/SNS/Kinesis helper, the EventBridge edge tags include an
+    `exchange` tag (the bus name) to mirror the produce-side tags so the
+    consume node pairs with the produce node. The bus name is not present in
+    the inbound event, so it is sourced from `DD_DSM_EXCHANGE_NAME` when set.
+    The public `set_consume_checkpoint` helper cannot emit an `exchange` tag,
+    so the lower-level processor API is used directly.
+    """
+    if not config.data_streams_enabled:
+        return
+
+    if not detail_type:
+        return
+
+    try:
+        from ddtrace.internal.datastreams import data_streams_processor
+        from ddtrace.internal.datastreams.processor import PROPAGATION_KEY_BASE_64
+
+        processor = data_streams_processor()
+        if not processor:
+            return
+
+        carrier_get = lambda k: context_json and context_json.get(k)  # noqa: E731
+        processor.decode_pathway_b64(carrier_get(PROPAGATION_KEY_BASE_64))
+
+        tags = ["direction:in", "topic:" + detail_type, "type:eventbridge"]
+        if config.dsm_exchange_name:
+            tags.append("exchange:" + config.dsm_exchange_name)
+        processor.set_checkpoint(tags)
+    except Exception as e:
+        logger.debug(
+            f"DSM:Failed to set consume checkpoint for eventbridge {detail_type}: {e}"
+        )
+
+
 def _convert_xray_trace_id(xray_trace_id):
     """
     Convert X-Ray trace id (hex)'s last 63 bits to a Datadog trace id (int).
@@ -353,11 +390,31 @@ def _extract_context_from_eventbridge_sqs_event(event):
     This is only possible if first record in `Records` contains a
     `body` field which contains the EventBridge `detail` as a JSON string.
     """
-    first_record = event.get("Records")[0]
+    records = event.get("Records")
+    first_record = records[0]
     body_str = first_record.get("body")
     body = json.loads(body_str)
     detail = body.get("detail")
+    # If `detail` is missing this is not an EventBridge -> SQS event; raising
+    # here lets the caller fall back to the regular SQS extraction path before
+    # any DSM checkpoint is set, avoiding double counting for plain SQS events.
     dd_context = detail.get("_datadog")
+
+    # The event has been confirmed as EventBridge -> SQS. Set a consume
+    # checkpoint for every record in the batch. The message is consumed from
+    # the SQS queue, so it follows SQS conventions (type:sqs, topic:queue ARN).
+    if config.data_streams_enabled:
+        for record in records:
+            try:
+                record_body = json.loads(record.get("body"))
+                record_context = (record_body.get("detail") or {}).get("_datadog")
+                _dsm_set_checkpoint(
+                    record_context, "sqs", record.get("eventSourceARN", "")
+                )
+            except Exception:
+                logger.debug(
+                    "Failed to set DSM checkpoint for an EventBridge to SQS record."
+                )
 
     if is_step_function_event(dd_context):
         try:
@@ -379,8 +436,11 @@ def extract_context_from_eventbridge_event(event, lambda_context):
     that header.
     """
     try:
-        detail = event.get("detail")
+        detail = event.get("detail") or {}
         dd_context = detail.get("_datadog")
+
+        _dsm_set_eventbridge_checkpoint(dd_context, event.get("detail-type"))
+
         if not dd_context:
             return extract_context_from_lambda_context(lambda_context)
 
