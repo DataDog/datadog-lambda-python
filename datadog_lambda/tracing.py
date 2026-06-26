@@ -900,11 +900,14 @@ def determine_service_name(
     if mapped_service:
         return mapped_service
 
+    # When integration service names are removed, inferred (synthetic) spans use
+    # the base service name (DD_SERVICE) instead of the AWS resource/instance
+    # representation.
+    if config.remove_integration_service_names_enabled and config.service:
+        return config.service
+
     # Check if AWS service representation is disabled
-    aws_service_representation = os.environ.get(
-        "DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", ""
-    ).lower()
-    if aws_service_representation in ("false", "0"):
+    if not config.aws_service_representation_enabled:
         return fallback
 
     # Use extracted_key if it exists and is not empty, otherwise use fallback

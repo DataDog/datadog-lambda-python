@@ -1421,6 +1421,13 @@ class TestSetTraceRootSpan(unittest.TestCase):
 class TestServiceMapping(unittest.TestCase):
     def setUp(self):
         self.service_mapping = {}
+        # These tests exercise the AWS service-representation / service-mapping
+        # resolution, which only applies when DD_SERVICE is not set. Pin
+        # config.service to None so the tests are deterministic regardless of
+        # whether DD_SERVICE is present in the environment (e.g. in CI).
+        service_patcher = patch("datadog_lambda.config.Config.service", None)
+        service_patcher.start()
+        self.addCleanup(service_patcher.stop)
 
     def get_service_mapping(self):
         return global_service_mapping
@@ -1467,6 +1474,7 @@ class TestServiceMapping(unittest.TestCase):
         self.set_service_mapping(new_service_mapping)
         self.assertEqual(self.get_service_mapping(), new_service_mapping)
 
+    @patch("datadog_lambda.config.Config.service", None)
     def test_determine_service_name(self):
         # Prepare the environment
         os.environ["DD_SERVICE_MAPPING"] = "api1:service1,api2:service2"
@@ -1501,43 +1509,110 @@ class TestServiceMapping(unittest.TestCase):
             "default",
         )
 
-        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED set to false
-        os.environ["DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED"] = "false"
-        self.assertEqual(
-            determine_service_name(
-                self.get_service_mapping(), "api4", "api4", "extracted", "fallback"
-            ),
-            "fallback",
-        )
+        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED disabled
+        with patch(
+            "datadog_lambda.config.Config.aws_service_representation_enabled", False
+        ):
+            self.assertEqual(
+                determine_service_name(
+                    self.get_service_mapping(),
+                    "api4",
+                    "api4",
+                    "extracted",
+                    "fallback",
+                ),
+                "fallback",
+            )
 
-        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED set to 0
-        os.environ["DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED"] = "0"
-        self.assertEqual(
-            determine_service_name(
-                self.get_service_mapping(), "api4", "api4", "extracted", "fallback"
-            ),
-            "fallback",
-        )
+        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED enabled (default)
+        with patch(
+            "datadog_lambda.config.Config.aws_service_representation_enabled", True
+        ):
+            self.assertEqual(
+                determine_service_name(
+                    self.get_service_mapping(),
+                    "api4",
+                    "api4",
+                    "extracted",
+                    "fallback",
+                ),
+                "extracted",
+            )
 
-        # Test with DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED not set (default behavior)
-        if "DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED" in os.environ:
-            del os.environ["DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED"]
-        self.assertEqual(
-            determine_service_name(
-                self.get_service_mapping(), "api4", "api4", "extracted", "fallback"
-            ),
-            "extracted",
-        )
-
-        # Test with empty extracted key
-        self.assertEqual(
-            determine_service_name(
-                self.get_service_mapping(), "api4", "api4", "  ", "fallback"
-            ),
-            "fallback",
-        )
+            # Test with empty extracted key
+            self.assertEqual(
+                determine_service_name(
+                    self.get_service_mapping(), "api4", "api4", "  ", "fallback"
+                ),
+                "fallback",
+            )
 
         del os.environ["DD_SERVICE_MAPPING"]
+
+    def test_determine_service_name_with_remove_integration_flag(self):
+        # By default (flag off), inferred spans use the AWS resource name even
+        # when DD_SERVICE is set.
+        with patch("datadog_lambda.config.Config.service", "my-service"):
+            self.assertEqual(
+                determine_service_name(
+                    {}, "queue-name", "lambda_sqs", "queue-name", "sqs"
+                ),
+                "queue-name",
+            )
+
+            # With DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED, inferred
+            # spans use DD_SERVICE instead of the AWS resource name.
+            with patch(
+                "datadog_lambda.config.Config."
+                "remove_integration_service_names_enabled",
+                True,
+            ):
+                self.assertEqual(
+                    determine_service_name(
+                        {}, "queue-name", "lambda_sqs", "queue-name", "sqs"
+                    ),
+                    "my-service",
+                )
+
+                # An explicit service mapping still wins over DD_SERVICE.
+                self.assertEqual(
+                    determine_service_name(
+                        {"lambda_sqs": "mapped-service"},
+                        "queue-name",
+                        "lambda_sqs",
+                        "queue-name",
+                        "sqs",
+                    ),
+                    "mapped-service",
+                )
+
+                # DD_SERVICE is used even when AWS service representation is
+                # disabled.
+                with patch(
+                    "datadog_lambda.config.Config."
+                    "aws_service_representation_enabled",
+                    False,
+                ):
+                    self.assertEqual(
+                        determine_service_name(
+                            {}, "queue-name", "lambda_sqs", "queue-name", "sqs"
+                        ),
+                        "my-service",
+                    )
+
+        # When DD_SERVICE is not set, the flag has no effect (resource name).
+        with patch("datadog_lambda.config.Config.service", None):
+            with patch(
+                "datadog_lambda.config.Config."
+                "remove_integration_service_names_enabled",
+                True,
+            ):
+                self.assertEqual(
+                    determine_service_name(
+                        {}, "queue-name", "lambda_sqs", "queue-name", "sqs"
+                    ),
+                    "queue-name",
+                )
 
     def test_remaps_all_inferred_span_service_names_from_api_gateway_event(self):
         new_service_mapping = {"lambda_api_gateway": "new-name"}
@@ -1726,6 +1801,27 @@ class TestServiceMapping(unittest.TestCase):
         span2 = create_inferred_span(event2, ctx)
         self.assertEqual(span2.get_tag("operation_name"), "aws.sqs")
         self.assertEqual(span2.service, "different-sqs-url")
+
+    def test_create_inferred_span_uses_dd_service_with_remove_integration_flag(
+        self,
+    ):
+        # With DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED and DD_SERVICE
+        # set, inferred spans use DD_SERVICE instead of the AWS resource name.
+        event_sample_source = "sqs-string-msg-attribute"
+        test_file = event_samples + event_sample_source + ".json"
+        with open(test_file, "r") as event:
+            original_event = json.load(event)
+
+        ctx = get_mock_context()
+        ctx.aws_request_id = "123"
+
+        with patch("datadog_lambda.config.Config.service", "my-dd-service"), patch(
+            "datadog_lambda.config.Config." "remove_integration_service_names_enabled",
+            True,
+        ):
+            span = create_inferred_span(original_event, ctx)
+        self.assertEqual(span.get_tag("operation_name"), "aws.sqs")
+        self.assertEqual(span.service, "my-dd-service")
 
     def test_remaps_all_inferred_span_service_names_from_sns_event(self):
         self.set_service_mapping({"lambda_sns": "new-name"})
@@ -2555,6 +2651,7 @@ _test_create_inferred_span = (
 
 @pytest.mark.parametrize("source,expect", _test_create_inferred_span)
 @patch("ddtrace.trace.Span.finish", autospec=True)
+@patch("datadog_lambda.config.Config.service", None)
 def test_create_inferred_span(mock_span_finish, source, expect):
     with open(f"{event_samples}{source}.json") as f:
         event = json.load(f)
