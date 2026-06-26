@@ -661,7 +661,9 @@ class GetTriggerTags(unittest.TestCase):
 
         event = {"headers": {"Referer": "https://example.com/capitalized"}}
         http_tags = extract_http_tags(event)
-        self.assertEqual(http_tags.get("http.referer"), "https://example.com/capitalized")
+        self.assertEqual(
+            http_tags.get("http.referer"), "https://example.com/capitalized"
+        )
 
         event = {"headers": {"referer": "https://example.com/lowercase"}}
         http_tags = extract_http_tags(event)
