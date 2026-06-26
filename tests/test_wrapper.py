@@ -1010,7 +1010,9 @@ class TestAlbInferredSpanWrapper(unittest.TestCase):
         patch("ddtrace.internal.remoteconfig.worker.RemoteConfigPoller").start()
         wrapper.datadog_lambda_wrapper._force_wrap = True
 
-        patcher = patch("datadog.threadstats.reporters.HttpReporter.flush_distributions")
+        patcher = patch(
+            "datadog.threadstats.reporters.HttpReporter.flush_distributions"
+        )
         self.mock_flush_distributions = patcher.start()
         self.addCleanup(patcher.stop)
 

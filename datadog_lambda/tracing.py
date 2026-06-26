@@ -978,9 +978,7 @@ def create_inferred_span_from_alb_event(event, context):
     # fall back to it when DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED is on.
     service_name = determine_service_name(service_mapping, host, "lambda_alb", host)
 
-    http_url = (
-        "%s://%s%s" % (proto, host, path) if host and path is not None else None
-    )
+    http_url = "%s://%s%s" % (proto, host, path) if host and path is not None else None
     if method and path is not None:
         resource = f"{method} {path}"
     else:
