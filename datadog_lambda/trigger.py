@@ -316,6 +316,16 @@ def resolve_alb_request_headers(event):
     return resolved
 
 
+def _get_header_case_insensitive(headers, name):
+    if not isinstance(headers, dict):
+        return None
+    name_lower = name.lower()
+    for key, value in headers.items():
+        if isinstance(key, str) and key.lower() == name_lower and value:
+            return value
+    return None
+
+
 def extract_http_tags(event):
     """
     Extracts HTTP facet tags from the triggering event
@@ -329,6 +339,7 @@ def extract_http_tags(event):
 
     path = event.get("path")
     method = event.get("httpMethod")
+    request_headers = None
 
     if request_context and request_context.get("stage"):
         domain_name = request_context.get("domainName")
@@ -350,13 +361,13 @@ def extract_http_tags(event):
     elif request_context and request_context.get("elb"):
         # ALB events have no requestContext.stage; derive the URL from the
         # forwarded host/proto headers and the top-level path.
-        alb_headers = resolve_alb_request_headers(event)
-        host = alb_headers.get("host")
+        request_headers = resolve_alb_request_headers(event)
+        host = request_headers.get("host")
         if host:
-            proto = alb_headers.get("x-forwarded-proto", "http")
+            proto = request_headers.get("x-forwarded-proto", "http")
             http_tags["http.url"] = proto + "://" + host
 
-        user_agent = alb_headers.get("user-agent")
+        user_agent = request_headers.get("user-agent")
         if user_agent:
             http_tags["http.useragent"] = user_agent
 
@@ -370,13 +381,14 @@ def extract_http_tags(event):
     if method:
         http_tags["http.method"] = method
 
-    # Safely get headers
-    headers = event.get("headers", {})
-    if not isinstance(headers, dict):
-        headers = {}
+    if request_headers is None:
+        request_headers = event.get("headers")
+        if not isinstance(request_headers, dict):
+            request_headers = {}
 
-    if headers and headers.get("Referer"):
-        http_tags["http.referer"] = headers.get("Referer")
+    referer = _get_header_case_insensitive(request_headers, "referer")
+    if referer:
+        http_tags["http.referer"] = referer
 
     # Try to get `routeKey` from API GW v2; otherwise try to get `resource` from API GW v1
     route = event.get("routeKey") or event.get("resource")

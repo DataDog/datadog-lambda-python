@@ -450,6 +450,26 @@ class GetTriggerTags(unittest.TestCase):
         )
         assert tags.get("http.useragent").startswith("Mozilla/5.0")
 
+    def test_extract_trigger_tags_alb_referer_from_lowercase_headers(self):
+        event_sample_source = "application-load-balancer"
+        with open(event_samples + event_sample_source + ".json") as event_file:
+            event = json.load(event_file)
+        event["headers"]["referer"] = "https://example.com/page"
+
+        tags = extract_trigger_tags(event, get_mock_context())
+
+        self.assertEqual(tags.get("http.referer"), "https://example.com/page")
+
+    def test_extract_trigger_tags_alb_referer_from_multivalue_headers(self):
+        event_sample_source = "application-load-balancer-multivalue-headers"
+        with open(event_samples + event_sample_source + ".json") as event_file:
+            event = json.load(event_file)
+        event["multiValueHeaders"]["referer"] = ["https://example.com/page"]
+
+        tags = extract_trigger_tags(event, get_mock_context())
+
+        self.assertEqual(tags.get("http.referer"), "https://example.com/page")
+
     def test_extract_trigger_tags_cloudfront(self):
         event_sample_source = "cloudfront"
         test_file = event_samples + event_sample_source + ".json"
@@ -635,6 +655,17 @@ class GetTriggerTags(unittest.TestCase):
         http_tags = extract_http_tags(event)
         # Should not raise an exception
         self.assertEqual(http_tags, {"span.kind": "server"})
+
+    def test_extract_http_tags_referer_case_insensitive(self):
+        from datadog_lambda.trigger import extract_http_tags
+
+        event = {"headers": {"Referer": "https://example.com/capitalized"}}
+        http_tags = extract_http_tags(event)
+        self.assertEqual(http_tags.get("http.referer"), "https://example.com/capitalized")
+
+        event = {"headers": {"referer": "https://example.com/lowercase"}}
+        http_tags = extract_http_tags(event)
+        self.assertEqual(http_tags.get("http.referer"), "https://example.com/lowercase")
 
     def test_extract_http_tags_with_invalid_route(self):
         from datadog_lambda.trigger import extract_http_tags
