@@ -1057,7 +1057,36 @@ class TestAlbInferredSpanWrapper(unittest.TestCase):
         self.assertEqual(inferred.get_tag("http.status_code"), "200")
         self.assertEqual(inferred.get_tag("http.route"), "/lambda")
         self.assertEqual(execution.parent_id, inferred.span_id)
-        self.assertEqual(execution.get_tag("http.status_code"), "200")
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.make_inferred_span", True)
+    @patch("datadog_lambda.config.Config.service", "alb-demo-downstream")
+    def test_wrapper_sets_peer_service_and_dd_resource_key(self):
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return self._alb_response(200)
+
+        lambda_handler(self.alb_event, get_mock_context())
+
+        inferred = lambda_handler.inferred_span
+
+        self.assertEqual(inferred.get_tag("peer.service"), "alb-demo-downstream")
+        self.assertEqual(
+            inferred.get_tag("dd_resource_key"),
+            "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
+        )
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.make_inferred_span", False)
+    def test_wrapper_skips_inferred_alb_span_when_disabled(self):
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return self._alb_response(200)
+
+        lambda_handler(self.alb_event, get_mock_context())
+
+        self.assertIsNone(lambda_handler.inferred_span)
+        self.assertIsNotNone(lambda_handler.span)
 
     @patch("datadog_lambda.config.Config.trace_enabled", True)
     @patch("datadog_lambda.config.Config.make_inferred_span", True)
@@ -1093,7 +1122,7 @@ class TestAlbInferredSpanWrapper(unittest.TestCase):
 
     @patch("datadog_lambda.config.Config.trace_enabled", True)
     @patch("datadog_lambda.config.Config.make_inferred_span", True)
-    def test_wrapper_multivalue_alb_event_has_no_inferred_span(self):
+    def test_wrapper_emits_inferred_alb_span_for_multivalue_headers(self):
         with open(
             "tests/event_samples/application-load-balancer-multivalue-headers.json"
         ) as f:
@@ -1105,5 +1134,16 @@ class TestAlbInferredSpanWrapper(unittest.TestCase):
 
         lambda_handler(event, get_mock_context())
 
-        self.assertIsNone(lambda_handler.inferred_span)
-        self.assertIsNotNone(lambda_handler.span)
+        inferred = lambda_handler.inferred_span
+        execution = lambda_handler.span
+
+        self.assertIsNotNone(inferred)
+        self.assertEqual(inferred.name, "aws.alb")
+        self.assertEqual(inferred.get_tag("http.method"), "GET")
+        self.assertEqual(
+            inferred.get_tag("http.url"),
+            "http://lambda-alb-123578498.us-east-2.elb.amazonaws.com/lambda",
+        )
+        self.assertEqual(inferred.get_tag("http.status_code"), "200")
+        self.assertEqual(inferred.get_tag("http.route"), "/lambda")
+        self.assertEqual(execution.parent_id, inferred.span_id)

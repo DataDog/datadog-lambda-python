@@ -445,9 +445,10 @@ class GetTriggerTags(unittest.TestCase):
         assert tags.get("function_trigger.event_source") == "application-load-balancer"
         assert tags.get("http.method") == "GET"
         assert tags.get("http.route") == "/lambda"
-        # multi-value subtype has no single-value ``headers`` map
-        assert "http.url" not in tags
-        assert "http.useragent" not in tags
+        assert tags.get("http.url") == (
+            "http://lambda-alb-123578498.us-east-2.elb.amazonaws.com/lambda"
+        )
+        assert tags.get("http.useragent").startswith("Mozilla/5.0")
 
     def test_extract_trigger_tags_cloudfront(self):
         event_sample_source = "cloudfront"

@@ -2023,7 +2023,8 @@ class TestAlbInferredSpan(unittest.TestCase):
         self.assertEqual(span.get_tag("span.kind"), "server")
         self.assertEqual(span.get_tag("http.method"), "GET")
         self.assertEqual(
-            span.get_tag("http.url"), f"http://{self.ALB_HOST}/lambda"
+            span.get_tag("http.url"),
+            "http://%s/lambda" % self.ALB_HOST,
         )
         self.assertEqual(span.get_tag("http.useragent"), self.ALB_USER_AGENT)
         self.assertEqual(span.get_tag("endpoint"), "/lambda")
@@ -2050,10 +2051,32 @@ class TestAlbInferredSpan(unittest.TestCase):
         self.assertNotIn("http.method", span.get_tags())
         self.assertNotIn("http.useragent", span.get_tags())
 
-    def test_multivalue_headers_subtype_returns_none(self):
+    def test_multivalue_headers_subtype_emits_inferred_span(self):
         event = self._load_event(self.ALB_MULTIVALUE)
         span = create_inferred_span(event, get_mock_context())
-        self.assertIsNone(span)
+        self.assertIsNotNone(span)
+        self.assertEqual(span.name, "aws.alb")
+        self.assertEqual(span.get_tag("http.method"), "GET")
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "http://%s/lambda" % self.ALB_HOST,
+        )
+        self.assertEqual(span.get_tag("http.useragent"), self.ALB_USER_AGENT)
+
+    @with_trace_propagation_style("datadog")
+    def test_inbound_datadog_context_from_multivalue_headers(self):
+        event = self._load_event(self.ALB_MULTIVALUE)
+        ctx = get_mock_context()
+
+        parent_ctx, source, _ = extract_dd_trace_context(event, ctx)
+        self.assertIsNotNone(parent_ctx)
+        self.assertEqual(parent_ctx.trace_id, 12345)
+        self.assertEqual(parent_ctx.span_id, 67890)
+
+        set_dd_trace_py_root(source, merge_xray_traces=False)
+        span = create_inferred_span(event, ctx)
+        self.assertEqual(span.trace_id, parent_ctx.trace_id)
+        self.assertEqual(span.parent_id, parent_ctx.span_id)
 
     @with_trace_propagation_style("datadog")
     def test_inbound_datadog_context_parents_inferred_span(self):
@@ -2083,6 +2106,28 @@ class TestAlbInferredSpan(unittest.TestCase):
         self.assertEqual(source, TraceContextSource.EVENT)
         self.assertEqual(ctx.trace_id, 0xABCD)
         self.assertEqual(ctx.span_id, 0x4D)
+
+    def test_http_url_uses_https_when_forwarded_proto_is_https(self):
+        event = self._load_event(self.ALB_SAMPLE)
+        event["headers"]["x-forwarded-proto"] = "https"
+
+        span = create_inferred_span(event, get_mock_context())
+
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "https://%s/lambda" % self.ALB_HOST,
+        )
+
+    def test_http_url_excludes_query_string(self):
+        event = self._load_event(self.ALB_SAMPLE)
+
+        span = create_inferred_span(event, get_mock_context())
+
+        self.assertEqual(
+            span.get_tag("http.url"),
+            "http://%s/lambda" % self.ALB_HOST,
+        )
+        self.assertNotIn("query=", span.get_tag("http.url") or "")
 
 
 class _Span(object):

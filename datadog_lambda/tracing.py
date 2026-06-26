@@ -43,6 +43,7 @@ from datadog_lambda.trigger import (
     is_step_function_event,
     EventTypes,
     EventSubtypes,
+    resolve_alb_request_headers,
 )
 from datadog_lambda.durable import extract_context_from_durable_execution
 
@@ -197,6 +198,11 @@ def extract_context_from_http_event_or_context(
             return context
 
     headers = event.get("headers")
+    if not isinstance(headers, dict) or not headers:
+        if isinstance(event.get("multiValueHeaders"), dict):
+            headers = resolve_alb_request_headers(event)
+        else:
+            headers = {}
     context = propagator.extract(headers)
 
     if not _is_context_complete(context):
@@ -658,7 +664,9 @@ def extract_dd_trace_context(
         context = extract_context_from_request_header_or_context(
             event, lambda_context, event_source
         )
-    elif isinstance(event, (set, dict)) and "headers" in event:
+    elif isinstance(event, (set, dict)) and (
+        "headers" in event or "multiValueHeaders" in event
+    ):
         context = extract_context_from_http_event_or_context(
             event, lambda_context, event_source, decode_authorizer_context
         )
@@ -837,7 +845,7 @@ def create_inferred_span(
         elif event_source.equals(EventTypes.LAMBDA_FUNCTION_URL):
             logger.debug("Function URL event detected. Inferring a span")
             return create_inferred_span_from_lambda_function_url_event(event, context)
-        elif event_source.equals(EventTypes.ALB, subtype=EventSubtypes.ALB):
+        elif event_source.event_type == EventTypes.ALB:
             logger.debug("ALB event detected. Inferring a span")
             return create_inferred_span_from_alb_event(event, context)
         elif event_source.equals(
@@ -960,9 +968,7 @@ def create_inferred_span_from_alb_event(event, context):
     elb = request_context.get("elb") or {}
     target_group_arn = elb.get("targetGroupArn")
 
-    headers = event.get("headers")
-    if not isinstance(headers, dict):
-        headers = {}
+    headers = resolve_alb_request_headers(event)
     host = headers.get("host")
     method = event.get("httpMethod")
     path = event.get("path")
@@ -972,7 +978,9 @@ def create_inferred_span_from_alb_event(event, context):
     # fall back to it when DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED is on.
     service_name = determine_service_name(service_mapping, host, "lambda_alb", host)
 
-    http_url = f"{proto}://{host}{path}" if host and path is not None else None
+    http_url = (
+        "%s://%s%s" % (proto, host, path) if host and path is not None else None
+    )
     if method and path is not None:
         resource = f"{method} {path}"
     else:
@@ -992,13 +1000,13 @@ def create_inferred_span_from_alb_event(event, context):
     # Drop tags we couldn't derive so the span never carries malformed values.
     tags = {key: value for key, value in tags.items() if value is not None}
 
-    InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     tracer.set_tags(_dd_origin)
     # ALB events carry no request timestamp (unlike API GW requestTimeEpoch /
     # Function URL timeEpoch), so the span starts at handler time.
     span = tracer.trace(
         "aws.alb", service=service_name, resource=resource, span_type="http"
     )
+    InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
     if span:
         span.set_tags(tags)
         span.set_metric(InferredSpanInfo.METRIC, 1.0)

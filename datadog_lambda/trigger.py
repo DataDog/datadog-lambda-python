@@ -293,6 +293,29 @@ def get_event_source_arn(source: _EventSource, event: dict, context: Any) -> str
     return event_source_arn
 
 
+def resolve_alb_request_headers(event):
+    """
+    Resolve ALB request headers from single-value ``headers`` or
+    ``multiValueHeaders`` (first value per key, matching datadog-lambda-js).
+    """
+    headers = event.get("headers")
+    if isinstance(headers, dict) and headers:
+        return headers
+
+    multi_value = event.get("multiValueHeaders")
+    if not isinstance(multi_value, dict):
+        return {}
+
+    resolved = {}
+    for key, value in multi_value.items():
+        if isinstance(value, list):
+            if value:
+                resolved[key] = value[0]
+        elif isinstance(value, str):
+            resolved[key] = value
+    return resolved
+
+
 def extract_http_tags(event):
     """
     Extracts HTTP facet tags from the triggering event
@@ -327,13 +350,11 @@ def extract_http_tags(event):
     elif request_context and request_context.get("elb"):
         # ALB events have no requestContext.stage; derive the URL from the
         # forwarded host/proto headers and the top-level path.
-        alb_headers = event.get("headers")
-        if not isinstance(alb_headers, dict):
-            alb_headers = {}
+        alb_headers = resolve_alb_request_headers(event)
         host = alb_headers.get("host")
         if host:
             proto = alb_headers.get("x-forwarded-proto", "http")
-            http_tags["http.url"] = f"{proto}://{host}"
+            http_tags["http.url"] = proto + "://" + host
 
         user_agent = alb_headers.get("user-agent")
         if user_agent:
