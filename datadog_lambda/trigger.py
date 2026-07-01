@@ -293,6 +293,39 @@ def get_event_source_arn(source: _EventSource, event: dict, context: Any) -> str
     return event_source_arn
 
 
+def resolve_multivalue_headers(event):
+    """
+    Resolve request headers from single-value ``headers`` or ``multiValueHeaders``
+    (first value per key, matching datadog-lambda-js).
+    """
+    headers = event.get("headers")
+    if isinstance(headers, dict) and headers:
+        return headers
+
+    multi_value = event.get("multiValueHeaders")
+    if not isinstance(multi_value, dict):
+        return {}
+
+    resolved = {}
+    for key, value in multi_value.items():
+        if isinstance(value, list):
+            if value:
+                resolved[key] = value[0]
+        elif isinstance(value, str):
+            resolved[key] = value
+    return resolved
+
+
+def _get_header_case_insensitive(headers, name):
+    if not isinstance(headers, dict):
+        return None
+    name_lower = name.lower()
+    for key, value in headers.items():
+        if isinstance(key, str) and key.lower() == name_lower and value:
+            return value
+    return None
+
+
 def extract_http_tags(event):
     """
     Extracts HTTP facet tags from the triggering event
@@ -324,19 +357,32 @@ def extract_http_tags(event):
             path = apigateway_v2_http.get("path")
             method = apigateway_v2_http.get("method")
 
+    elif request_context and request_context.get("elb"):
+        # ALB events have no requestContext.stage; derive the URL from the
+        # forwarded host/proto headers and the top-level path.
+        alb_headers = resolve_multivalue_headers(event)
+        host = alb_headers.get("host")
+        if host:
+            proto = alb_headers.get("x-forwarded-proto", "http")
+            http_tags["http.url"] = proto + "://" + host
+
+        user_agent = alb_headers.get("user-agent")
+        if user_agent:
+            http_tags["http.useragent"] = user_agent
+
+        # ALB carries no route template, so use the request path as the route.
+        if path:
+            http_tags["http.route"] = path
+
     if path:
         if http_tags.get("http.url"):
             http_tags["http.url"] += path
     if method:
         http_tags["http.method"] = method
 
-    # Safely get headers
-    headers = event.get("headers", {})
-    if not isinstance(headers, dict):
-        headers = {}
-
-    if headers and headers.get("Referer"):
-        http_tags["http.referer"] = headers.get("Referer")
+    referer = _get_header_case_insensitive(resolve_multivalue_headers(event), "referer")
+    if referer:
+        http_tags["http.referer"] = referer
 
     # Try to get `routeKey` from API GW v2; otherwise try to get `resource` from API GW v1
     route = event.get("routeKey") or event.get("resource")

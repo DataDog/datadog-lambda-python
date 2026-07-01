@@ -1001,3 +1001,151 @@ def test_profiling_import_errors_caught(monkeypatch):
     )  # force ModuleNotFoundError
     importlib.reload(wrapper)
     assert not hasattr(wrapper.datadog_lambda_wrapper, "prof")
+
+
+class TestAlbInferredSpanWrapper(unittest.TestCase):
+    """End-to-end wrapper tests for the inferred aws.alb span (FRSLES-851)."""
+
+    def setUp(self):
+        patch("ddtrace.internal.remoteconfig.worker.RemoteConfigPoller").start()
+        wrapper.datadog_lambda_wrapper._force_wrap = True
+
+        patcher = patch(
+            "datadog.threadstats.reporters.HttpReporter.flush_distributions"
+        )
+        self.mock_flush_distributions = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("datadog_lambda.xray.send_segment")
+        self.mock_send_segment = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        patcher = patch("datadog_lambda.wrapper.create_dd_dummy_metadata_subsegment")
+        self.mock_create_dd_dummy_metadata_subsegment = patcher.start()
+        self.addCleanup(patcher.stop)
+
+        with open("tests/event_samples/application-load-balancer.json") as f:
+            self.alb_event = json.load(f)
+
+    def _alb_response(self, status_code=200):
+        return {
+            "statusCode": status_code,
+            "statusDescription": f"{status_code} OK",
+            "headers": {"Content-Type": "application/json"},
+            "body": "{}",
+            "isBase64Encoded": False,
+        }
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.make_inferred_span", True)
+    def test_wrapper_emits_inferred_alb_span_with_http_tags(self):
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return self._alb_response(200)
+
+        lambda_handler(self.alb_event, get_mock_context())
+
+        inferred = lambda_handler.inferred_span
+        execution = lambda_handler.span
+
+        self.assertIsNotNone(inferred)
+        self.assertEqual(inferred.name, "aws.alb")
+        self.assertEqual(inferred.get_tag("operation_name"), "aws.alb")
+        self.assertEqual(inferred.get_tag("http.method"), "GET")
+        self.assertEqual(
+            inferred.get_tag("http.url"),
+            "http://lambda-alb-123578498.us-east-2.elb.amazonaws.com/lambda",
+        )
+        self.assertEqual(inferred.get_tag("http.status_code"), "200")
+        self.assertEqual(inferred.get_tag("http.route"), "/lambda")
+        self.assertEqual(execution.parent_id, inferred.span_id)
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.make_inferred_span", True)
+    @patch("datadog_lambda.config.Config.service", "alb-demo-downstream")
+    def test_wrapper_sets_peer_service_and_dd_resource_key(self):
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return self._alb_response(200)
+
+        lambda_handler(self.alb_event, get_mock_context())
+
+        inferred = lambda_handler.inferred_span
+
+        self.assertEqual(inferred.get_tag("peer.service"), "alb-demo-downstream")
+        self.assertEqual(
+            inferred.get_tag("dd_resource_key"),
+            "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
+        )
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.make_inferred_span", False)
+    def test_wrapper_skips_inferred_alb_span_when_disabled(self):
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return self._alb_response(200)
+
+        lambda_handler(self.alb_event, get_mock_context())
+
+        self.assertIsNone(lambda_handler.inferred_span)
+        self.assertIsNotNone(lambda_handler.span)
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.make_inferred_span", True)
+    def test_wrapper_inferred_alb_span_joins_inbound_datadog_context(self):
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return self._alb_response(200)
+
+        lambda_handler(self.alb_event, get_mock_context())
+
+        inferred = lambda_handler.inferred_span
+
+        self.assertIsNotNone(inferred)
+        # Fixture carries x-datadog-trace-id=12345, x-datadog-parent-id=67890
+        self.assertEqual(inferred.trace_id, 12345)
+        self.assertEqual(inferred.parent_id, 67890)
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.make_inferred_span", True)
+    def test_wrapper_sets_error_on_inferred_alb_span_for_5xx(self):
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return self._alb_response(502)
+
+        lambda_handler(self.alb_event, get_mock_context())
+
+        inferred = lambda_handler.inferred_span
+        execution = lambda_handler.span
+
+        self.assertEqual(inferred.get_tag("http.status_code"), "502")
+        self.assertEqual(execution.get_tag("http.status_code"), "502")
+        self.assertEqual(execution.error, 1)
+
+    @patch("datadog_lambda.config.Config.trace_enabled", True)
+    @patch("datadog_lambda.config.Config.make_inferred_span", True)
+    def test_wrapper_emits_inferred_alb_span_for_multivalue_headers(self):
+        with open(
+            "tests/event_samples/application-load-balancer-multivalue-headers.json"
+        ) as f:
+            event = json.load(f)
+
+        @wrapper.datadog_lambda_wrapper
+        def lambda_handler(event, context):
+            return self._alb_response(200)
+
+        lambda_handler(event, get_mock_context())
+
+        inferred = lambda_handler.inferred_span
+        execution = lambda_handler.span
+
+        self.assertIsNotNone(inferred)
+        self.assertEqual(inferred.name, "aws.alb")
+        self.assertEqual(inferred.get_tag("http.method"), "GET")
+        self.assertEqual(
+            inferred.get_tag("http.url"),
+            "http://lambda-alb-123578498.us-east-2.elb.amazonaws.com/lambda",
+        )
+        self.assertEqual(inferred.get_tag("http.status_code"), "200")
+        self.assertEqual(inferred.get_tag("http.route"), "/lambda")
+        self.assertEqual(execution.parent_id, inferred.span_id)

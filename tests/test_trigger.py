@@ -427,9 +427,48 @@ class GetTriggerTags(unittest.TestCase):
                 "function_trigger.event_source": "application-load-balancer",
                 "function_trigger.event_source_arn": "arn:aws:elasticloadbalancing:us-east-2:123456789012:targetgroup/lambda-xyz/123abc",
                 "http.method": "GET",
+                "http.url": "http://lambda-alb-123578498.us-east-2.elb.amazonaws.com/lambda",
+                "http.route": "/lambda",
+                "http.useragent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36",
                 "span.kind": "server",
             },
         )
+
+    def test_extract_trigger_tags_application_load_balancer_multivalue_headers(self):
+        event_sample_source = "application-load-balancer-multivalue-headers"
+        test_file = event_samples + event_sample_source + ".json"
+        ctx = get_mock_context()
+        with open(test_file, "r") as event:
+            event = json.load(event)
+        tags = extract_trigger_tags(event, ctx)
+
+        assert tags.get("function_trigger.event_source") == "application-load-balancer"
+        assert tags.get("http.method") == "GET"
+        assert tags.get("http.route") == "/lambda"
+        assert tags.get("http.url") == (
+            "http://lambda-alb-123578498.us-east-2.elb.amazonaws.com/lambda"
+        )
+        assert tags.get("http.useragent").startswith("Mozilla/5.0")
+
+    def test_extract_trigger_tags_alb_referer_from_lowercase_headers(self):
+        event_sample_source = "application-load-balancer"
+        with open(event_samples + event_sample_source + ".json") as event_file:
+            event = json.load(event_file)
+        event["headers"]["referer"] = "https://example.com/page"
+
+        tags = extract_trigger_tags(event, get_mock_context())
+
+        self.assertEqual(tags.get("http.referer"), "https://example.com/page")
+
+    def test_extract_trigger_tags_alb_referer_from_multivalue_headers(self):
+        event_sample_source = "application-load-balancer-multivalue-headers"
+        with open(event_samples + event_sample_source + ".json") as event_file:
+            event = json.load(event_file)
+        event["multiValueHeaders"]["referer"] = ["https://example.com/page"]
+
+        tags = extract_trigger_tags(event, get_mock_context())
+
+        self.assertEqual(tags.get("http.referer"), "https://example.com/page")
 
     def test_extract_trigger_tags_cloudfront(self):
         event_sample_source = "cloudfront"
@@ -616,6 +655,19 @@ class GetTriggerTags(unittest.TestCase):
         http_tags = extract_http_tags(event)
         # Should not raise an exception
         self.assertEqual(http_tags, {"span.kind": "server"})
+
+    def test_extract_http_tags_referer_case_insensitive(self):
+        from datadog_lambda.trigger import extract_http_tags
+
+        event = {"headers": {"Referer": "https://example.com/capitalized"}}
+        http_tags = extract_http_tags(event)
+        self.assertEqual(
+            http_tags.get("http.referer"), "https://example.com/capitalized"
+        )
+
+        event = {"headers": {"referer": "https://example.com/lowercase"}}
+        http_tags = extract_http_tags(event)
+        self.assertEqual(http_tags.get("http.referer"), "https://example.com/lowercase")
 
     def test_extract_http_tags_with_invalid_route(self):
         from datadog_lambda.trigger import extract_http_tags
