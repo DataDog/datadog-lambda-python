@@ -293,10 +293,10 @@ def get_event_source_arn(source: _EventSource, event: dict, context: Any) -> str
     return event_source_arn
 
 
-def resolve_alb_request_headers(event):
+def resolve_multivalue_headers(event):
     """
-    Resolve ALB request headers from single-value ``headers`` or
-    ``multiValueHeaders`` (first value per key, matching datadog-lambda-js).
+    Resolve request headers from single-value ``headers`` or ``multiValueHeaders``
+    (first value per key, matching datadog-lambda-js).
     """
     headers = event.get("headers")
     if isinstance(headers, dict) and headers:
@@ -339,7 +339,6 @@ def extract_http_tags(event):
 
     path = event.get("path")
     method = event.get("httpMethod")
-    request_headers = None
 
     if request_context and request_context.get("stage"):
         domain_name = request_context.get("domainName")
@@ -361,13 +360,13 @@ def extract_http_tags(event):
     elif request_context and request_context.get("elb"):
         # ALB events have no requestContext.stage; derive the URL from the
         # forwarded host/proto headers and the top-level path.
-        request_headers = resolve_alb_request_headers(event)
-        host = request_headers.get("host")
+        alb_headers = resolve_multivalue_headers(event)
+        host = alb_headers.get("host")
         if host:
-            proto = request_headers.get("x-forwarded-proto", "http")
+            proto = alb_headers.get("x-forwarded-proto", "http")
             http_tags["http.url"] = proto + "://" + host
 
-        user_agent = request_headers.get("user-agent")
+        user_agent = alb_headers.get("user-agent")
         if user_agent:
             http_tags["http.useragent"] = user_agent
 
@@ -381,12 +380,7 @@ def extract_http_tags(event):
     if method:
         http_tags["http.method"] = method
 
-    if request_headers is None:
-        request_headers = event.get("headers")
-        if not isinstance(request_headers, dict):
-            request_headers = {}
-
-    referer = _get_header_case_insensitive(request_headers, "referer")
+    referer = _get_header_case_insensitive(resolve_multivalue_headers(event), "referer")
     if referer:
         http_tags["http.referer"] = referer
 

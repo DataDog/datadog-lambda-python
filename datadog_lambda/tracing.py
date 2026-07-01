@@ -43,7 +43,7 @@ from datadog_lambda.trigger import (
     is_step_function_event,
     EventTypes,
     EventSubtypes,
-    resolve_alb_request_headers,
+    resolve_multivalue_headers,
 )
 from datadog_lambda.durable import extract_context_from_durable_execution
 
@@ -197,12 +197,7 @@ def extract_context_from_http_event_or_context(
         if _is_context_complete(context):
             return context
 
-    headers = event.get("headers")
-    if not isinstance(headers, dict) or not headers:
-        if isinstance(event.get("multiValueHeaders"), dict):
-            headers = resolve_alb_request_headers(event)
-        else:
-            headers = {}
+    headers = resolve_multivalue_headers(event)
     context = propagator.extract(headers)
 
     if not _is_context_complete(context):
@@ -968,7 +963,7 @@ def create_inferred_span_from_alb_event(event, context):
     elb = request_context.get("elb") or {}
     target_group_arn = elb.get("targetGroupArn")
 
-    headers = resolve_alb_request_headers(event)
+    headers = resolve_multivalue_headers(event)
     host = headers.get("host")
     method = event.get("httpMethod")
     path = event.get("path")
