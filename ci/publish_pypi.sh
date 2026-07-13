@@ -28,4 +28,5 @@ if [ -d "dist" ]; then
 fi
 
 # Publish to pypi
+source venv/bin/activate
 poetry publish --build --username __token__ --password $PYPI_TOKEN
