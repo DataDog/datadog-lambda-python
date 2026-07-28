@@ -99,15 +99,16 @@ def _dsm_set_eventbridge_checkpoint(context_json, detail_type):
         return
 
     try:
-        from ddtrace.internal.datastreams import data_streams_processor
-        from ddtrace.internal.datastreams.processor import PROPAGATION_KEY_BASE_64
+        from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
+        from ddtrace.data_streams import ddtrace as ddtrace_data_streams
 
-        processor = data_streams_processor()
+        processor = getattr(ddtrace_data_streams.tracer, "data_streams_processor", None)
         if not processor:
             return
 
-        carrier_get = lambda k: context_json and context_json.get(k)  # noqa: E731
-        processor.decode_pathway_b64(carrier_get(PROPAGATION_KEY_BASE_64))
+        processor.decode_pathway_b64(
+            context_json.get(PROPAGATION_KEY_BASE_64) if context_json else None
+        )
 
         tags = ["direction:in", "topic:" + detail_type, "type:eventbridge"]
         if config.dsm_exchange_name:
@@ -289,9 +290,13 @@ def extract_context_from_sqs_or_sns_event_or_context(
 
     # EventBridge => SQS
     try:
-        context = _extract_context_from_eventbridge_sqs_event(event)
-        if _is_context_complete(context):
-            return context
+        context, is_eventbridge_sqs = _extract_context_from_eventbridge_sqs_event(
+            event
+        )
+        if is_eventbridge_sqs:
+            if _is_context_complete(context):
+                return context
+            return extract_context_from_lambda_context(lambda_context)
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
@@ -390,24 +395,35 @@ def _extract_context_from_eventbridge_sqs_event(event):
     This is only possible if first record in `Records` contains a
     `body` field which contains the EventBridge `detail` as a JSON string.
     """
-    records = event.get("Records")
+    records = event.get("Records") or []
+    if not records:
+        return None, False
+
     first_record = records[0]
     body_str = first_record.get("body")
     body = json.loads(body_str)
     detail = body.get("detail")
-    # If `detail` is missing this is not an EventBridge -> SQS event; raising
-    # here lets the caller fall back to the regular SQS extraction path before
-    # any DSM checkpoint is set, avoiding double counting for plain SQS events.
+    if not isinstance(detail, dict):
+        return None, False
+
     dd_context = detail.get("_datadog")
 
     # The event has been confirmed as EventBridge -> SQS. Set a consume
     # checkpoint for every record in the batch. The message is consumed from
     # the SQS queue, so it follows SQS conventions (type:sqs, topic:queue ARN).
     if config.data_streams_enabled:
+        _dsm_set_checkpoint(dd_context, "sqs", first_record.get("eventSourceARN", ""))
         for record in records:
+            if record is first_record:
+                continue
             try:
                 record_body = json.loads(record.get("body"))
-                record_context = (record_body.get("detail") or {}).get("_datadog")
+                record_detail = record_body.get("detail")
+                record_context = (
+                    record_detail.get("_datadog")
+                    if isinstance(record_detail, dict)
+                    else None
+                )
                 _dsm_set_checkpoint(
                     record_context, "sqs", record.get("eventSourceARN", "")
                 )
@@ -418,13 +434,13 @@ def _extract_context_from_eventbridge_sqs_event(event):
 
     if is_step_function_event(dd_context):
         try:
-            return extract_context_from_step_functions(dd_context, None)
+            return extract_context_from_step_functions(dd_context, None), True
         except Exception:
             logger.debug(
                 "Failed to extract Step Functions context from EventBridge to SQS event."
             )
 
-    return propagator.extract(dd_context)
+    return propagator.extract(dd_context), True
 
 
 def extract_context_from_eventbridge_event(event, lambda_context):
