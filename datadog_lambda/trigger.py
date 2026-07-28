@@ -461,6 +461,8 @@ def is_step_function_event(event):
     The actual event must contain "Execution", "StateMachine", and "State" fields.
     """
     event = event.get("Payload", event)
+    if not isinstance(event, dict):
+        return False
 
     # JSONPath style
     if "Execution" in event and "StateMachine" in event and "State" in event:
