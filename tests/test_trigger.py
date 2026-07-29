@@ -757,3 +757,7 @@ class IsStepFunctionEvent(unittest.TestCase):
             }
         }
         self.assertFalse(is_step_function_event(event))
+
+    def test_is_step_function_event_payload_not_dict(self):
+        event = {"Payload": "This is a string, not a dict"}
+        self.assertFalse(is_step_function_event(event))
