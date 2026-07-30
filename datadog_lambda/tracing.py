@@ -395,7 +395,7 @@ def _extract_context_from_eventbridge_sqs_event(event):
     This is only possible if first record in `Records` contains a
     `body` field which contains the EventBridge `detail` as a JSON string.
     """
-    records = event.get("Records") or []
+    records = event.get("Records")
     if not records:
         return None, False
 
