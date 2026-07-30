@@ -2815,6 +2815,43 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         # None indicates no DSM context propagation
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    def test_sqs_detail_body_still_uses_message_attributes(self, mock_extract_context):
+        dd_data = {
+            "x-datadog-trace-id": "12345",
+            "x-datadog-parent-id": "67890",
+            "x-datadog-sampling-priority": "1",
+            "dd-pathway-ctx-base64": "attr-ctx",
+        }
+        dd_json_data = json.dumps(dd_data)
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {"dataType": "String", "stringValue": dd_json_data}
+                    },
+                    "eventSource": "aws:sqs",
+                    "body": json.dumps({"detail": {"application": "payload"}}),
+                }
+            ]
+        }
+
+        context = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_extract_context.assert_not_called()
+        self.assertEqual(context.trace_id, 12345)
+        self.assertEqual(context.span_id, 67890)
+        self.assertEqual(context.sampling_priority, 1)
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        self.assertEqual(args[2]("dd-pathway-ctx-base64"), "attr-ctx")
+
     def test_sqs_empty_datadog_message_attribute(self):
         event = {
             "Records": [

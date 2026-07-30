@@ -402,8 +402,15 @@ def _extract_context_from_eventbridge_sqs_event(event):
     first_record = records[0]
     body_str = first_record.get("body")
     body = json.loads(body_str)
+    if not isinstance(body, dict):
+        return None, False
+
     detail = body.get("detail")
-    if not isinstance(detail, dict):
+    if not (
+        isinstance(detail, dict)
+        and body.get("detail-type")
+        and body.get("source")
+    ):
         return None, False
 
     dd_context = detail.get("_datadog")
