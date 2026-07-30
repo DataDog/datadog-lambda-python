@@ -3831,13 +3831,9 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
 class TestEventBridgeDSMLogic(unittest.TestCase):
     def setUp(self):
         self.lambda_context = get_mock_context()
-        self.mock_processor = Mock()
-        tracer_patcher = patch(
-            "ddtrace.data_streams.ddtrace.tracer",
-            new=SimpleNamespace(data_streams_processor=self.mock_processor),
-        )
-        tracer_patcher.start()
-        self.addCleanup(tracer_patcher.stop)
+        checkpoint_patcher = patch("ddtrace.data_streams.set_consume_checkpoint")
+        self.mock_checkpoint = checkpoint_patcher.start()
+        self.addCleanup(checkpoint_patcher.stop)
         config_patcher = patch(
             "datadog_lambda.config.Config.data_streams_enabled", True
         )
@@ -3857,46 +3853,56 @@ class TestEventBridgeDSMLogic(unittest.TestCase):
 
         extract_context_from_eventbridge_event(event, self.lambda_context)
 
-        self.mock_processor.decode_pathway_b64.assert_called_once_with("12345")
-        self.mock_processor.set_checkpoint.assert_called_once()
-        (tags,), _ = self.mock_processor.set_checkpoint.call_args
-        self.assertIn("direction:in", tags)
-        self.assertIn("type:eventbridge", tags)
-        self.assertIn("topic:MyDetailType", tags)
-        self.assertFalse(any(t.startswith("exchange:") for t in tags))
+        self.mock_checkpoint.assert_called_once()
+        args, kwargs = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "eventbridge")
+        self.assertEqual(args[1], "MyDetailType")
+        carrier_get = args[2]
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
+        self.assertEqual(kwargs, {"manual_checkpoint": False})
 
     @patch("datadog_lambda.config.Config.dsm_exchange_name", "my-event-bus")
-    def test_eventbridge_exchange_tag_from_env(self):
+    def test_eventbridge_exchange_name_ignored_until_upstream_support_lands(self):
         event = self._eventbridge_event()
 
         extract_context_from_eventbridge_event(event, self.lambda_context)
 
-        (tags,), _ = self.mock_processor.set_checkpoint.call_args
-        self.assertIn("exchange:my-event-bus", tags)
-        self.assertIn("topic:MyDetailType", tags)
-        self.assertIn("type:eventbridge", tags)
+        self.mock_checkpoint.assert_called_once()
+        args, kwargs = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "eventbridge")
+        self.assertEqual(args[1], "MyDetailType")
+        carrier_get = args[2]
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
+        self.assertEqual(kwargs, {"manual_checkpoint": False})
 
     def test_eventbridge_no_detail_type_skips_checkpoint(self):
         event = self._eventbridge_event(detail_type=None)
 
         extract_context_from_eventbridge_event(event, self.lambda_context)
 
-        self.mock_processor.set_checkpoint.assert_not_called()
+        self.mock_checkpoint.assert_not_called()
 
     def test_eventbridge_no_dd_context_still_checkpoints(self):
         event = {"detail-type": "MyDetailType", "detail": {}}
 
         extract_context_from_eventbridge_event(event, self.lambda_context)
 
-        self.mock_processor.decode_pathway_b64.assert_called_once_with(None)
-        self.mock_processor.set_checkpoint.assert_called_once()
+        self.mock_checkpoint.assert_called_once()
+        args, kwargs = self.mock_checkpoint.call_args
+        carrier_get = args[2]
+        self.assertIsNone(carrier_get("dd-pathway-ctx-base64"))
+        self.assertEqual(kwargs, {"manual_checkpoint": False})
 
     def test_eventbridge_missing_detail_still_checkpoints(self):
         event = {"detail-type": "MyDetailType"}
 
         extract_context_from_eventbridge_event(event, self.lambda_context)
 
-        self.mock_processor.set_checkpoint.assert_called_once()
+        self.mock_checkpoint.assert_called_once()
+        args, kwargs = self.mock_checkpoint.call_args
+        carrier_get = args[2]
+        self.assertIsNone(carrier_get("dd-pathway-ctx-base64"))
+        self.assertEqual(kwargs, {"manual_checkpoint": False})
 
     @patch("datadog_lambda.config.Config.data_streams_enabled", False)
     def test_eventbridge_data_streams_disabled(self):
@@ -3904,4 +3910,4 @@ class TestEventBridgeDSMLogic(unittest.TestCase):
 
         extract_context_from_eventbridge_event(event, self.lambda_context)
 
-        self.mock_processor.set_checkpoint.assert_not_called()
+        self.mock_checkpoint.assert_not_called()

@@ -85,39 +85,12 @@ def _dsm_set_checkpoint(context_json, event_type, arn):
 def _dsm_set_eventbridge_checkpoint(context_json, detail_type):
     """Set a DSM consume checkpoint for an EventBridge event.
 
-    Unlike the SQS/SNS/Kinesis helper, the EventBridge edge tags include an
-    `exchange` tag (the bus name) to mirror the produce-side tags so the
-    consume node pairs with the produce node. The bus name is not present in
-    the inbound event, so it is sourced from `DD_DSM_EXCHANGE_NAME` when set.
-    The public `set_consume_checkpoint` helper cannot emit an `exchange` tag,
-    so the lower-level processor API is used directly.
+    Temporary note: richer EventBridge consume checkpoint tagging is being
+    upstreamed into dd-trace-py. Until that lands, keep this on the same
+    public consume checkpoint API used by SQS/SNS/Kinesis and omit the
+    EventBridge exchange tag for now.
     """
-    if not config.data_streams_enabled:
-        return
-
-    if not detail_type:
-        return
-
-    try:
-        from ddtrace.data_streams import PROPAGATION_KEY_BASE_64
-        from ddtrace.data_streams import ddtrace as ddtrace_data_streams
-
-        processor = getattr(ddtrace_data_streams.tracer, "data_streams_processor", None)
-        if not processor:
-            return
-
-        processor.decode_pathway_b64(
-            context_json.get(PROPAGATION_KEY_BASE_64) if context_json else None
-        )
-
-        tags = ["direction:in", "topic:" + detail_type, "type:eventbridge"]
-        if config.dsm_exchange_name:
-            tags.append("exchange:" + config.dsm_exchange_name)
-        processor.set_checkpoint(tags)
-    except Exception as e:
-        logger.debug(
-            f"DSM:Failed to set consume checkpoint for eventbridge {detail_type}: {e}"
-        )
+    _dsm_set_checkpoint(context_json, "eventbridge", detail_type)
 
 
 def _convert_xray_trace_id(xray_trace_id):
