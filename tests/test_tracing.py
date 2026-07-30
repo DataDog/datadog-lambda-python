@@ -3703,9 +3703,7 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         body = {
             "detail-type": "MyDetailType",
             "source": "my.event.source",
-            "detail": {
-                "_datadog": dd_context
-            },
+            "detail": {"_datadog": dd_context},
         }
         return {
             "eventSourceARN": queue_arn,
@@ -3750,6 +3748,44 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         self.assertEqual(first_args[2]("dd-pathway-ctx-base64"), "ctx-1")
         self.assertEqual((second_args[0], second_args[1]), ("sqs", arn2))
         self.assertEqual(second_args[2]("dd-pathway-ctx-base64"), "ctx-2")
+
+    def test_eventbridge_sqs_mixed_batch_uses_per_record_carriers(self):
+        arn1 = "arn:aws:sqs:us-east-1:123456789012:eb-queue"
+        arn2 = "arn:aws:sqs:us-east-1:123456789012:direct-queue"
+        second_dd_data = {
+            "x-datadog-trace-id": "12345",
+            "x-datadog-parent-id": "67890",
+            "x-datadog-sampling-priority": "1",
+            "dd-pathway-ctx-base64": "sqs-ctx",
+        }
+        event = {
+            "Records": [
+                self._eventbridge_sqs_record(arn1, "eb-ctx"),
+                {
+                    "eventSourceARN": arn2,
+                    "eventSource": "aws:sqs",
+                    "body": json.dumps({"message": "direct sqs payload"}),
+                    "messageAttributes": {
+                        "_datadog": {
+                            "dataType": "String",
+                            "stringValue": json.dumps(second_dd_data),
+                        }
+                    },
+                },
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        self.assertEqual(self.mock_checkpoint.call_count, 2)
+        first_args, _ = self.mock_checkpoint.call_args_list[0]
+        second_args, _ = self.mock_checkpoint.call_args_list[1]
+        self.assertEqual((first_args[0], first_args[1]), ("sqs", arn1))
+        self.assertEqual(first_args[2]("dd-pathway-ctx-base64"), "eb-ctx")
+        self.assertEqual((second_args[0], second_args[1]), ("sqs", arn2))
+        self.assertEqual(second_args[2]("dd-pathway-ctx-base64"), "sqs-ctx")
 
     @patch(
         "datadog_lambda.tracing.extract_context_from_lambda_context",
