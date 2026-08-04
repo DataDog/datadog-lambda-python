@@ -89,6 +89,10 @@ class Config:
     data_streams_enabled = _get_env(
         "DD_DATA_STREAMS_ENABLED", "false", as_bool, depends_on_tracing=True
     )
+    # EventBridge bus name used as the DSM `exchange` tag. The bus name is not
+    # present in the inbound event, so it must be provided explicitly to allow
+    # the consume checkpoint to pair with the EventBridge produce checkpoint.
+    dsm_exchange_name = _get_env("DD_DSM_EXCHANGE_NAME")
     appsec_enabled = _get_env("DD_APPSEC_ENABLED", "false", as_bool)
     sca_enabled = _get_env("DD_APPSEC_SCA_ENABLED", "false", as_bool)
 

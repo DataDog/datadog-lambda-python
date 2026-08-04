@@ -83,6 +83,17 @@ def _dsm_set_checkpoint(context_json, event_type, arn):
         )
 
 
+def _dsm_set_eventbridge_checkpoint(context_json, detail_type):
+    """Set a DSM consume checkpoint for an EventBridge event.
+
+    Temporary note: richer EventBridge consume checkpoint tagging is being
+    upstreamed into dd-trace-py. Until that lands, keep this on the same
+    public consume checkpoint API used by SQS/SNS/Kinesis and omit the
+    EventBridge exchange tag for now.
+    """
+    _dsm_set_checkpoint(context_json, "eventbridge", detail_type)
+
+
 def _convert_xray_trace_id(xray_trace_id):
     """
     Convert X-Ray trace id (hex)'s last 63 bits to a Datadog trace id (int).
@@ -253,9 +264,11 @@ def extract_context_from_sqs_or_sns_event_or_context(
 
     # EventBridge => SQS
     try:
-        context = _extract_context_from_eventbridge_sqs_event(event)
-        if _is_context_complete(context):
-            return context
+        context, is_eventbridge_sqs = _extract_context_from_eventbridge_sqs_event(event)
+        if is_eventbridge_sqs:
+            if _is_context_complete(context):
+                return context
+            return extract_context_from_lambda_context(lambda_context)
     except Exception:
         logger.debug("Failed extracting context as EventBridge to SQS.")
 
@@ -354,21 +367,87 @@ def _extract_context_from_eventbridge_sqs_event(event):
     This is only possible if first record in `Records` contains a
     `body` field which contains the EventBridge `detail` as a JSON string.
     """
-    first_record = event.get("Records")[0]
-    body_str = first_record.get("body")
-    body = json.loads(body_str)
-    detail = body.get("detail")
-    dd_context = detail.get("_datadog")
+    records = event.get("Records")
+    if not records:
+        return None, False
+
+    first_record = records[0]
+    dd_context, is_eventbridge_sqs = _extract_eventbridge_sqs_record_context(
+        first_record
+    )
+    if not is_eventbridge_sqs:
+        return None, False
+
+    # The event has been confirmed as EventBridge -> SQS. Set a consume
+    # checkpoint for every record in the batch. The message is consumed from
+    # the SQS queue, so it follows SQS conventions (type:sqs, topic:queue ARN).
+    if config.data_streams_enabled:
+        for record in records:
+            try:
+                record_context, is_eventbridge_record = (
+                    _extract_eventbridge_sqs_record_context(record)
+                )
+                if not is_eventbridge_record:
+                    record_context = _extract_sqs_record_message_attribute_context(
+                        record
+                    )
+                _dsm_set_checkpoint(
+                    record_context, "sqs", record.get("eventSourceARN", "")
+                )
+            except Exception:
+                logger.debug(
+                    "Failed to set DSM checkpoint for an EventBridge to SQS record."
+                )
 
     if is_step_function_event(dd_context):
         try:
-            return extract_context_from_step_functions(dd_context, None)
+            return extract_context_from_step_functions(dd_context, None), True
         except Exception:
             logger.debug(
                 "Failed to extract Step Functions context from EventBridge to SQS event."
             )
 
-    return propagator.extract(dd_context)
+    return propagator.extract(dd_context), True
+
+
+def _extract_eventbridge_sqs_record_context(record):
+    body_str = record.get("body")
+    body = json.loads(body_str)
+    if not isinstance(body, dict):
+        return None, False
+
+    detail = body.get("detail")
+    if not (
+        isinstance(detail, dict) and body.get("detail-type") and body.get("source")
+    ):
+        return None, False
+
+    return detail.get("_datadog"), True
+
+
+def _extract_sqs_record_message_attribute_context(record):
+    msg_attributes = record.get("messageAttributes") or {}
+    dd_payload = msg_attributes.get("_datadog")
+    if not dd_payload:
+        return None
+
+    dd_json_data = None
+    dd_json_data_type = dd_payload.get("Type") or dd_payload.get("dataType")
+    if dd_json_data_type == "Binary":
+        import base64
+
+        dd_json_data = dd_payload.get("binaryValue") or dd_payload.get("Value")
+        if dd_json_data:
+            dd_json_data = base64.b64decode(dd_json_data)
+    elif dd_json_data_type == "String":
+        dd_json_data = dd_payload.get("stringValue") or dd_payload.get("Value")
+    else:
+        logger.debug(
+            "Datadog Lambda Python only supports extracting trace"
+            "context from String or Binary SQS/SNS message attributes"
+        )
+
+    return json.loads(dd_json_data) if dd_json_data else None
 
 
 def extract_context_from_eventbridge_event(event, lambda_context):
@@ -380,8 +459,11 @@ def extract_context_from_eventbridge_event(event, lambda_context):
     that header.
     """
     try:
-        detail = event.get("detail")
+        detail = event.get("detail") or {}
         dd_context = detail.get("_datadog")
+
+        _dsm_set_eventbridge_checkpoint(dd_context, event.get("detail-type"))
+
         if not dd_context:
             return extract_context_from_lambda_context(lambda_context)
 

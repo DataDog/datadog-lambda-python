@@ -46,6 +46,7 @@ from datadog_lambda.tracing import (
     _dsm_set_checkpoint,
     extract_context_from_kinesis_event,
     extract_context_from_sqs_or_sns_event_or_context,
+    extract_context_from_eventbridge_event,
 )
 
 from datadog_lambda.trigger import parse_event_source
@@ -2990,6 +2991,43 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         # None indicates no DSM context propagation
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), None)
 
+    @patch("datadog_lambda.tracing.extract_context_from_lambda_context")
+    def test_sqs_detail_body_still_uses_message_attributes(self, mock_extract_context):
+        dd_data = {
+            "x-datadog-trace-id": "12345",
+            "x-datadog-parent-id": "67890",
+            "x-datadog-sampling-priority": "1",
+            "dd-pathway-ctx-base64": "attr-ctx",
+        }
+        dd_json_data = json.dumps(dd_data)
+
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": "arn:aws:sqs:us-east-1:123456789012:test-queue",
+                    "messageAttributes": {
+                        "_datadog": {"dataType": "String", "stringValue": dd_json_data}
+                    },
+                    "eventSource": "aws:sqs",
+                    "body": json.dumps({"detail": {"application": "payload"}}),
+                }
+            ]
+        }
+
+        context = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        mock_extract_context.assert_not_called()
+        self.assertEqual(context.trace_id, 12345)
+        self.assertEqual(context.span_id, 67890)
+        self.assertEqual(context.sampling_priority, 1)
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
+        self.assertEqual(args[1], "arn:aws:sqs:us-east-1:123456789012:test-queue")
+        self.assertEqual(args[2]("dd-pathway-ctx-base64"), "attr-ctx")
+
     def test_sqs_empty_datadog_message_attribute(self):
         event = {
             "Records": [
@@ -3822,3 +3860,230 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         arn = "arn:aws:kinesis:us-east-1:123456789012:stream/test-stream"
 
         _dsm_set_checkpoint(context_json, event_type, arn)
+
+    # EVENTBRIDGE -> SQS TESTS
+
+    @staticmethod
+    def _eventbridge_sqs_record(queue_arn, pathway_ctx, include_trace_headers=True):
+        dd_context = {"dd-pathway-ctx-base64": pathway_ctx}
+        if include_trace_headers:
+            dd_context.update(
+                {
+                    # Complete trace context so the extractor returns early and
+                    # does not fall through to the regular SQS path.
+                    "x-datadog-trace-id": "12345",
+                    "x-datadog-parent-id": "67890",
+                    "x-datadog-sampling-priority": "1",
+                }
+            )
+        body = {
+            "detail-type": "MyDetailType",
+            "source": "my.event.source",
+            "detail": {"_datadog": dd_context},
+        }
+        return {
+            "eventSourceARN": queue_arn,
+            "eventSource": "aws:sqs",
+            "body": json.dumps(body),
+        }
+
+    def test_eventbridge_sqs_context_propagated(self):
+        queue_arn = "arn:aws:sqs:us-east-1:123456789012:eb-queue"
+        event = {"Records": [self._eventbridge_sqs_record(queue_arn, "12345")]}
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        # EventBridge -> SQS is consumed from the queue, so it uses SQS tags.
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
+        self.assertEqual(args[1], queue_arn)
+        carrier_get = args[2]
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
+
+    def test_eventbridge_sqs_checkpoints_all_records(self):
+        arn1 = "arn:aws:sqs:us-east-1:123456789012:eb-queue"
+        arn2 = "arn:aws:sqs:us-east-1:123456789012:eb-queue-2"
+        event = {
+            "Records": [
+                self._eventbridge_sqs_record(arn1, "ctx-1"),
+                self._eventbridge_sqs_record(arn2, "ctx-2"),
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        self.assertEqual(self.mock_checkpoint.call_count, 2)
+        first_args, _ = self.mock_checkpoint.call_args_list[0]
+        second_args, _ = self.mock_checkpoint.call_args_list[1]
+        self.assertEqual((first_args[0], first_args[1]), ("sqs", arn1))
+        self.assertEqual(first_args[2]("dd-pathway-ctx-base64"), "ctx-1")
+        self.assertEqual((second_args[0], second_args[1]), ("sqs", arn2))
+        self.assertEqual(second_args[2]("dd-pathway-ctx-base64"), "ctx-2")
+
+    def test_eventbridge_sqs_mixed_batch_uses_per_record_carriers(self):
+        arn1 = "arn:aws:sqs:us-east-1:123456789012:eb-queue"
+        arn2 = "arn:aws:sqs:us-east-1:123456789012:direct-queue"
+        second_dd_data = {
+            "x-datadog-trace-id": "12345",
+            "x-datadog-parent-id": "67890",
+            "x-datadog-sampling-priority": "1",
+            "dd-pathway-ctx-base64": "sqs-ctx",
+        }
+        event = {
+            "Records": [
+                self._eventbridge_sqs_record(arn1, "eb-ctx"),
+                {
+                    "eventSourceARN": arn2,
+                    "eventSource": "aws:sqs",
+                    "body": json.dumps({"message": "direct sqs payload"}),
+                    "messageAttributes": {
+                        "_datadog": {
+                            "dataType": "String",
+                            "stringValue": json.dumps(second_dd_data),
+                        }
+                    },
+                },
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        self.assertEqual(self.mock_checkpoint.call_count, 2)
+        first_args, _ = self.mock_checkpoint.call_args_list[0]
+        second_args, _ = self.mock_checkpoint.call_args_list[1]
+        self.assertEqual((first_args[0], first_args[1]), ("sqs", arn1))
+        self.assertEqual(first_args[2]("dd-pathway-ctx-base64"), "eb-ctx")
+        self.assertEqual((second_args[0], second_args[1]), ("sqs", arn2))
+        self.assertEqual(second_args[2]("dd-pathway-ctx-base64"), "sqs-ctx")
+
+    @patch(
+        "datadog_lambda.tracing.extract_context_from_lambda_context",
+        return_value=Context(trace_id=111, span_id=222, sampling_priority=1),
+    )
+    def test_eventbridge_sqs_incomplete_context_uses_single_checkpoint(
+        self, mock_extract_context
+    ):
+        queue_arn = "arn:aws:sqs:us-east-1:123456789012:eb-queue"
+        event = {
+            "Records": [
+                self._eventbridge_sqs_record(
+                    queue_arn, "ctx-only", include_trace_headers=False
+                )
+            ]
+        }
+
+        context = extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        self.assertEqual(context.trace_id, 111)
+        self.assertEqual(context.span_id, 222)
+        mock_extract_context.assert_called_once_with(self.lambda_context)
+        self.assertEqual(self.mock_checkpoint.call_count, 1)
+        args, _ = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "sqs")
+        self.assertEqual(args[1], queue_arn)
+        self.assertEqual(args[2]("dd-pathway-ctx-base64"), "ctx-only")
+
+    @patch("datadog_lambda.config.Config.data_streams_enabled", False)
+    def test_eventbridge_sqs_data_streams_disabled(self):
+        queue_arn = "arn:aws:sqs:us-east-1:123456789012:eb-queue"
+        event = {"Records": [self._eventbridge_sqs_record(queue_arn, "12345")]}
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        self.mock_checkpoint.assert_not_called()
+
+
+class TestEventBridgeDSMLogic(unittest.TestCase):
+    def setUp(self):
+        self.lambda_context = get_mock_context()
+        checkpoint_patcher = patch("ddtrace.data_streams.set_consume_checkpoint")
+        self.mock_checkpoint = checkpoint_patcher.start()
+        self.addCleanup(checkpoint_patcher.stop)
+        config_patcher = patch(
+            "datadog_lambda.config.Config.data_streams_enabled", True
+        )
+        config_patcher.start()
+        self.addCleanup(config_patcher.stop)
+
+    @staticmethod
+    def _eventbridge_event(detail_type="MyDetailType", pathway_ctx="12345"):
+        return {
+            "detail-type": detail_type,
+            "source": "my.event.source",
+            "detail": {"_datadog": {"dd-pathway-ctx-base64": pathway_ctx}},
+        }
+
+    def test_eventbridge_context_propagated(self):
+        event = self._eventbridge_event()
+
+        extract_context_from_eventbridge_event(event, self.lambda_context)
+
+        self.mock_checkpoint.assert_called_once()
+        args, kwargs = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "eventbridge")
+        self.assertEqual(args[1], "MyDetailType")
+        carrier_get = args[2]
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
+        self.assertEqual(kwargs, {"manual_checkpoint": False})
+
+    @patch("datadog_lambda.config.Config.dsm_exchange_name", "my-event-bus")
+    def test_eventbridge_exchange_name_ignored_until_upstream_support_lands(self):
+        event = self._eventbridge_event()
+
+        extract_context_from_eventbridge_event(event, self.lambda_context)
+
+        self.mock_checkpoint.assert_called_once()
+        args, kwargs = self.mock_checkpoint.call_args
+        self.assertEqual(args[0], "eventbridge")
+        self.assertEqual(args[1], "MyDetailType")
+        carrier_get = args[2]
+        self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
+        self.assertEqual(kwargs, {"manual_checkpoint": False})
+
+    def test_eventbridge_no_detail_type_skips_checkpoint(self):
+        event = self._eventbridge_event(detail_type=None)
+
+        extract_context_from_eventbridge_event(event, self.lambda_context)
+
+        self.mock_checkpoint.assert_not_called()
+
+    def test_eventbridge_no_dd_context_still_checkpoints(self):
+        event = {"detail-type": "MyDetailType", "detail": {}}
+
+        extract_context_from_eventbridge_event(event, self.lambda_context)
+
+        self.mock_checkpoint.assert_called_once()
+        args, kwargs = self.mock_checkpoint.call_args
+        carrier_get = args[2]
+        self.assertIsNone(carrier_get("dd-pathway-ctx-base64"))
+        self.assertEqual(kwargs, {"manual_checkpoint": False})
+
+    def test_eventbridge_missing_detail_still_checkpoints(self):
+        event = {"detail-type": "MyDetailType"}
+
+        extract_context_from_eventbridge_event(event, self.lambda_context)
+
+        self.mock_checkpoint.assert_called_once()
+        args, kwargs = self.mock_checkpoint.call_args
+        carrier_get = args[2]
+        self.assertIsNone(carrier_get("dd-pathway-ctx-base64"))
+        self.assertEqual(kwargs, {"manual_checkpoint": False})
+
+    @patch("datadog_lambda.config.Config.data_streams_enabled", False)
+    def test_eventbridge_data_streams_disabled(self):
+        event = self._eventbridge_event()
+
+        extract_context_from_eventbridge_event(event, self.lambda_context)
+
+        self.mock_checkpoint.assert_not_called()
