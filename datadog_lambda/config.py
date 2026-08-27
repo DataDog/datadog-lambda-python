@@ -75,6 +75,13 @@ class Config:
     add_span_pointers = _get_env("DD_BOTOCORE_ADD_SPAN_POINTERS", "true", as_bool)
     trace_extractor = _get_env("DD_TRACE_EXTRACTOR")
 
+    aws_service_representation_enabled = _get_env(
+        "DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", "true", as_bool
+    )
+    remove_integration_service_names_enabled = _get_env(
+        "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED", "false", as_bool
+    )
+
     enhanced_metrics_enabled = _get_env("DD_ENHANCED_METRICS", "true", as_bool)
 
     flush_in_thread = _get_env("DD_FLUSH_IN_THREAD", "false", as_bool)
