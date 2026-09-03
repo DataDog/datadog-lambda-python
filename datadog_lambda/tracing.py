@@ -86,12 +86,42 @@ def _dsm_set_checkpoint(context_json, event_type, arn):
 def _dsm_set_eventbridge_checkpoint(context_json, detail_type):
     """Set a DSM consume checkpoint for an EventBridge event.
 
-    Temporary note: richer EventBridge consume checkpoint tagging is being
-    upstreamed into dd-trace-py. Until that lands, keep this on the same
-    public consume checkpoint API used by SQS/SNS/Kinesis and omit the
-    EventBridge exchange tag for now.
+    When ddtrace >= 4.14 is present the public ``tags`` parameter is used to
+    attach the ``exchange:`` edge tag (sourced from ``DD_DSM_EXCHANGE_NAME``).
+    On older installs the checkpoint is still emitted, just without the
+    exchange tag.
     """
-    _dsm_set_checkpoint(context_json, "eventbridge", detail_type)
+    if not config.data_streams_enabled or not detail_type:
+        return
+
+    try:
+        from ddtrace.data_streams import set_consume_checkpoint
+
+        carrier_get = lambda k: context_json and context_json.get(k)  # noqa: E731
+        try:
+            tags = (
+                ["exchange:" + config.dsm_exchange_name]
+                if config.dsm_exchange_name
+                else None
+            )
+            set_consume_checkpoint(
+                "eventbridge",
+                detail_type,
+                carrier_get,
+                manual_checkpoint=False,
+                tags=tags,
+            )
+        except TypeError:
+            # ddtrace < 4.14 has no `tags` parameter. Retry without it, but
+            # keep `manual_checkpoint=False` so the checkpoint stays
+            # consistent with every other consume checkpoint.
+            set_consume_checkpoint(
+                "eventbridge", detail_type, carrier_get, manual_checkpoint=False
+            )
+    except Exception as e:
+        logger.debug(
+            f"DSM:Failed to set consume checkpoint for eventbridge {detail_type}: {e}"
+        )
 
 
 def _convert_xray_trace_id(xray_trace_id):
@@ -262,9 +292,17 @@ def extract_context_from_sqs_or_sns_event_or_context(
     source_arn = ""
     event_type = "sqs" if event_source.equals(EventTypes.SQS) else "sns"
 
-    # EventBridge => SQS
+    # EventBridge => SQS. `dsm_handled` is True when the batch contained at
+    # least one EventBridge delivery and DSM checkpoints were already set
+    # per-record; in that case the regular SQS path below must not set another
+    # checkpoint for the first record or it would be double counted.
+    dsm_handled = False
     try:
-        context, is_eventbridge_sqs = _extract_context_from_eventbridge_sqs_event(event)
+        (
+            context,
+            is_eventbridge_sqs,
+            dsm_handled,
+        ) = _extract_context_from_eventbridge_sqs_event(event)
         if is_eventbridge_sqs:
             if _is_context_complete(context):
                 return context
@@ -325,7 +363,8 @@ def extract_context_from_sqs_or_sns_event_or_context(
                             "Failed to extract Step Functions context from SQS/SNS event."
                         )
                 context = propagator.extract(dd_data)
-                _dsm_set_checkpoint(dd_data, event_type, source_arn)
+                if not dsm_handled:
+                    _dsm_set_checkpoint(dd_data, event_type, source_arn)
                 return context
         else:
             # Handle case where trace context is injected into attributes.AWSTraceHeader
@@ -350,12 +389,14 @@ def extract_context_from_sqs_or_sns_event_or_context(
                             sampling_priority=float(x_ray_context["sampled"]),
                         )
         # Still want to set a DSM checkpoint even if DSM context not propagated
-        _dsm_set_checkpoint(None, event_type, source_arn)
+        if not dsm_handled:
+            _dsm_set_checkpoint(None, event_type, source_arn)
         return extract_context_from_lambda_context(lambda_context)
     except Exception as e:
         logger.debug("The trace extractor returned with error %s", e)
         # Still want to set a DSM checkpoint even if DSM context not propagated
-        _dsm_set_checkpoint(None, event_type, source_arn)
+        if not dsm_handled:
+            _dsm_set_checkpoint(None, event_type, source_arn)
         return extract_context_from_lambda_context(lambda_context)
 
 
@@ -366,53 +407,112 @@ def _extract_context_from_eventbridge_sqs_event(event):
 
     This is only possible if first record in `Records` contains a
     `body` field which contains the EventBridge `detail` as a JSON string.
+
+    Returns a tuple ``(context, is_eventbridge_sqs, dsm_handled)``:
+
+    * ``context`` / ``is_eventbridge_sqs`` describe the trace context and are
+      derived only from the first record, since that is the record whose trace
+      context becomes the Lambda's parent.
+    * ``dsm_handled`` reports whether this function already set DSM checkpoints
+      for the batch. It is ``True`` whenever *any* record in the batch is an
+      EventBridge delivery, so the caller must not set its own SQS checkpoint
+      (which would double count the first record).
     """
     records = event.get("Records")
     if not records:
-        return None, False
+        return None, False, False
 
     first_record = records[0]
     dd_context, is_eventbridge_sqs = _extract_eventbridge_sqs_record_context(
         first_record
     )
-    if not is_eventbridge_sqs:
-        return None, False
 
-    # The event has been confirmed as EventBridge -> SQS. Set a consume
-    # checkpoint for every record in the batch. The message is consumed from
-    # the SQS queue, so it follows SQS conventions (type:sqs, topic:queue ARN).
-    if config.data_streams_enabled:
-        for record in records:
-            try:
-                record_context, is_eventbridge_record = (
-                    _extract_eventbridge_sqs_record_context(record)
-                )
-                if not is_eventbridge_record:
-                    record_context = _extract_sqs_record_message_attribute_context(
-                        record
-                    )
-                _dsm_set_checkpoint(
-                    record_context, "sqs", record.get("eventSourceARN", "")
-                )
-            except Exception:
-                logger.debug(
-                    "Failed to set DSM checkpoint for an EventBridge to SQS record."
-                )
+    # Set a consume checkpoint for every record in the batch whenever the batch
+    # contains at least one EventBridge delivery. Each record is classified
+    # independently so a mixed batch (EventBridge deliveries alongside direct
+    # SQS sends, in either order) uses the correct carrier per record. The
+    # message is consumed from the SQS queue, so it follows SQS conventions
+    # (type:sqs, topic:queue ARN).
+    dsm_handled = _dsm_set_eventbridge_sqs_batch_checkpoints(records)
+
+    if not is_eventbridge_sqs:
+        return None, False, dsm_handled
 
     if is_step_function_event(dd_context):
         try:
-            return extract_context_from_step_functions(dd_context, None), True
+            return (
+                extract_context_from_step_functions(dd_context, None),
+                True,
+                dsm_handled,
+            )
         except Exception:
             logger.debug(
                 "Failed to extract Step Functions context from EventBridge to SQS event."
             )
 
-    return propagator.extract(dd_context), True
+    return propagator.extract(dd_context), True, dsm_handled
+
+
+def _dsm_set_eventbridge_sqs_batch_checkpoints(records):
+    """Set a per-record SQS DSM consume checkpoint for an EventBridge -> SQS
+    batch.
+
+    Returns ``True`` when the batch contains at least one EventBridge delivery
+    (and checkpoints were therefore this function's responsibility), otherwise
+    ``False`` so the caller can fall back to its regular SQS checkpoint path.
+    Each record is classified independently: EventBridge records use the
+    carrier embedded in ``body.detail._datadog`` while other records fall back
+    to the SQS ``messageAttributes._datadog`` carrier.
+    """
+    if not config.data_streams_enabled:
+        return False
+
+    record_carriers = []
+    batch_has_eventbridge = False
+    for record in records:
+        record_context, is_eventbridge_record = _extract_eventbridge_sqs_record_context(
+            record
+        )
+        if is_eventbridge_record:
+            batch_has_eventbridge = True
+        else:
+            try:
+                record_context = _extract_sqs_record_message_attribute_context(record)
+            except Exception:
+                record_context = None
+        record_carriers.append(record_context)
+
+    if not batch_has_eventbridge:
+        return False
+
+    for record, record_context in zip(records, record_carriers):
+        try:
+            _dsm_set_checkpoint(record_context, "sqs", record.get("eventSourceARN", ""))
+        except Exception:
+            logger.debug(
+                "Failed to set DSM checkpoint for an EventBridge to SQS record."
+            )
+
+    return True
 
 
 def _extract_eventbridge_sqs_record_context(record):
+    """Classify a single SQS record as an EventBridge delivery and return its
+    DSM carrier.
+
+    Returns a tuple ``(dd_context, is_eventbridge)``. A record is only treated
+    as EventBridge when its ``body`` is a JSON object carrying the EventBridge
+    envelope fields (``detail`` object plus ``detail-type`` and ``source``). A
+    non-JSON or non-envelope body is not an error here: it simply means the
+    record is a regular SQS message, so the caller can fall back to the SQS
+    message attribute carrier instead.
+    """
     body_str = record.get("body")
-    body = json.loads(body_str)
+    try:
+        body = json.loads(body_str)
+    except (ValueError, TypeError):
+        return None, False
+
     if not isinstance(body, dict):
         return None, False
 

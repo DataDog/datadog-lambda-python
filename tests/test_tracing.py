@@ -1,6 +1,8 @@
 import base64
+import contextlib
 import copy
 import functools
+import inspect
 import json
 import traceback
 import pytest
@@ -44,6 +46,7 @@ from datadog_lambda.tracing import (
     propagator,
     emit_telemetry_on_exception_outside_of_handler,
     _dsm_set_checkpoint,
+    _dsm_set_eventbridge_checkpoint,
     extract_context_from_kinesis_event,
     extract_context_from_sqs_or_sns_event_or_context,
     extract_context_from_eventbridge_event,
@@ -51,7 +54,6 @@ from datadog_lambda.tracing import (
 
 from datadog_lambda.trigger import parse_event_source
 from tests.utils import get_mock_context, ClientContext
-
 
 function_arn = "arn:aws:lambda:us-west-1:123457598159:function:python-layer-test"
 
@@ -4060,6 +4062,88 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         self.assertEqual((second_args[0], second_args[1]), ("sqs", arn2))
         self.assertEqual(second_args[2]("dd-pathway-ctx-base64"), "sqs-ctx")
 
+    def test_eventbridge_sqs_direct_first_record_still_checkpoints_eventbridge(self):
+        # First record is a direct SQS send, a later record is an EventBridge
+        # delivery. Every record must still be classified and checkpointed
+        # independently, and the first record must not be double counted.
+        arn1 = "arn:aws:sqs:us-east-1:123456789012:direct-queue"
+        arn2 = "arn:aws:sqs:us-east-1:123456789012:eb-queue"
+        first_dd_data = {
+            "x-datadog-trace-id": "12345",
+            "x-datadog-parent-id": "67890",
+            "x-datadog-sampling-priority": "1",
+            "dd-pathway-ctx-base64": "sqs-ctx",
+        }
+        event = {
+            "Records": [
+                {
+                    "eventSourceARN": arn1,
+                    "eventSource": "aws:sqs",
+                    "body": json.dumps({"message": "direct sqs payload"}),
+                    "messageAttributes": {
+                        "_datadog": {
+                            "dataType": "String",
+                            "stringValue": json.dumps(first_dd_data),
+                        }
+                    },
+                },
+                self._eventbridge_sqs_record(arn2, "eb-ctx"),
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        self.assertEqual(self.mock_checkpoint.call_count, 2)
+        first_args, _ = self.mock_checkpoint.call_args_list[0]
+        second_args, _ = self.mock_checkpoint.call_args_list[1]
+        self.assertEqual((first_args[0], first_args[1]), ("sqs", arn1))
+        self.assertEqual(first_args[2]("dd-pathway-ctx-base64"), "sqs-ctx")
+        self.assertEqual((second_args[0], second_args[1]), ("sqs", arn2))
+        self.assertEqual(second_args[2]("dd-pathway-ctx-base64"), "eb-ctx")
+
+    def test_eventbridge_sqs_non_json_body_falls_back_to_sqs_attributes(self):
+        # A later direct SQS record can legitimately carry a non-JSON body
+        # while its DSM carrier lives in messageAttributes._datadog. The
+        # unparseable body must not prevent that record's checkpoint.
+        arn1 = "arn:aws:sqs:us-east-1:123456789012:eb-queue"
+        arn2 = "arn:aws:sqs:us-east-1:123456789012:direct-queue"
+        second_dd_data = {
+            "x-datadog-trace-id": "12345",
+            "x-datadog-parent-id": "67890",
+            "x-datadog-sampling-priority": "1",
+            "dd-pathway-ctx-base64": "sqs-ctx",
+        }
+        event = {
+            "Records": [
+                self._eventbridge_sqs_record(arn1, "eb-ctx"),
+                {
+                    "eventSourceARN": arn2,
+                    "eventSource": "aws:sqs",
+                    "body": "plain text, not json",
+                    "messageAttributes": {
+                        "_datadog": {
+                            "dataType": "String",
+                            "stringValue": json.dumps(second_dd_data),
+                        }
+                    },
+                },
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        self.assertEqual(self.mock_checkpoint.call_count, 2)
+        first_args, _ = self.mock_checkpoint.call_args_list[0]
+        second_args, _ = self.mock_checkpoint.call_args_list[1]
+        self.assertEqual((first_args[0], first_args[1]), ("sqs", arn1))
+        self.assertEqual(first_args[2]("dd-pathway-ctx-base64"), "eb-ctx")
+        self.assertEqual((second_args[0], second_args[1]), ("sqs", arn2))
+        self.assertEqual(second_args[2]("dd-pathway-ctx-base64"), "sqs-ctx")
+
     @patch(
         "datadog_lambda.tracing.extract_context_from_lambda_context",
         return_value=Context(trace_id=111, span_id=222, sampling_priority=1),
@@ -4132,10 +4216,10 @@ class TestEventBridgeDSMLogic(unittest.TestCase):
         self.assertEqual(args[1], "MyDetailType")
         carrier_get = args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
-        self.assertEqual(kwargs, {"manual_checkpoint": False})
+        self.assertEqual(kwargs, {"manual_checkpoint": False, "tags": None})
 
     @patch("datadog_lambda.config.Config.dsm_exchange_name", "my-event-bus")
-    def test_eventbridge_exchange_name_ignored_until_upstream_support_lands(self):
+    def test_eventbridge_exchange_name_used_when_upstream_support_present(self):
         event = self._eventbridge_event()
 
         extract_context_from_eventbridge_event(event, self.lambda_context)
@@ -4146,7 +4230,9 @@ class TestEventBridgeDSMLogic(unittest.TestCase):
         self.assertEqual(args[1], "MyDetailType")
         carrier_get = args[2]
         self.assertEqual(carrier_get("dd-pathway-ctx-base64"), "12345")
-        self.assertEqual(kwargs, {"manual_checkpoint": False})
+        self.assertEqual(
+            kwargs, {"manual_checkpoint": False, "tags": ["exchange:my-event-bus"]}
+        )
 
     def test_eventbridge_no_detail_type_skips_checkpoint(self):
         event = self._eventbridge_event(detail_type=None)
@@ -4164,7 +4250,7 @@ class TestEventBridgeDSMLogic(unittest.TestCase):
         args, kwargs = self.mock_checkpoint.call_args
         carrier_get = args[2]
         self.assertIsNone(carrier_get("dd-pathway-ctx-base64"))
-        self.assertEqual(kwargs, {"manual_checkpoint": False})
+        self.assertEqual(kwargs, {"manual_checkpoint": False, "tags": None})
 
     def test_eventbridge_missing_detail_still_checkpoints(self):
         event = {"detail-type": "MyDetailType"}
@@ -4175,7 +4261,7 @@ class TestEventBridgeDSMLogic(unittest.TestCase):
         args, kwargs = self.mock_checkpoint.call_args
         carrier_get = args[2]
         self.assertIsNone(carrier_get("dd-pathway-ctx-base64"))
-        self.assertEqual(kwargs, {"manual_checkpoint": False})
+        self.assertEqual(kwargs, {"manual_checkpoint": False, "tags": None})
 
     @patch("datadog_lambda.config.Config.data_streams_enabled", False)
     def test_eventbridge_data_streams_disabled(self):
@@ -4184,3 +4270,135 @@ class TestEventBridgeDSMLogic(unittest.TestCase):
         extract_context_from_eventbridge_event(event, self.lambda_context)
 
         self.mock_checkpoint.assert_not_called()
+
+
+def _real_set_consume_checkpoint_supports_tags():
+    """True when the installed ddtrace `set_consume_checkpoint` exposes the
+    `tags` parameter (ddtrace >= 4.14)."""
+    from ddtrace.data_streams import set_consume_checkpoint
+
+    return "tags" in inspect.signature(set_consume_checkpoint).parameters
+
+
+@contextlib.contextmanager
+def _stub_data_streams_processor(mock_processor):
+    """Drive the *real* `ddtrace.data_streams.set_consume_checkpoint` while
+    stubbing only the DSM processor via a public (non-`.internal`) seam.
+
+    The public accessor differs by ddtrace version:
+
+    * ddtrace >= 4.x exposes the module-level `ddtrace.data_streams.
+      data_streams_processor()` factory, which `set_consume_checkpoint`
+      calls directly.
+    * ddtrace 3.19.x reads `ddtrace.tracer.data_streams_processor` instead
+      (populated at startup when DSM is enabled).
+
+    Patching whichever seam the running version uses keeps this test honest:
+    the real `set_consume_checkpoint` executes, so any upstream change to its
+    signature or behaviour surfaces here instead of being masked by a mock.
+    """
+    import ddtrace
+    from ddtrace import data_streams
+
+    ds_enabled = ddtrace.config._data_streams_enabled
+    ddtrace.config._data_streams_enabled = True
+    try:
+        if hasattr(data_streams, "data_streams_processor"):
+            with patch(
+                "ddtrace.data_streams.data_streams_processor",
+                return_value=mock_processor,
+            ):
+                yield
+        else:
+            with patch(
+                "ddtrace.tracer.data_streams_processor",
+                mock_processor,
+                create=True,
+            ):
+                yield
+    finally:
+        ddtrace.config._data_streams_enabled = ds_enabled
+
+
+class TestDSMRealDdtraceApi(unittest.TestCase):
+    """Guard tests that exercise the real ddtrace `set_consume_checkpoint`
+    public API without mocking it, so a signature/behaviour change upstream
+    fails CI instead of passing silently against a permissive mock.
+    """
+
+    def setUp(self):
+        config_patcher = patch(
+            "datadog_lambda.config.Config.data_streams_enabled", True
+        )
+        config_patcher.start()
+        self.addCleanup(config_patcher.stop)
+
+    def _edge_tags(self, mock_processor):
+        self.assertTrue(
+            mock_processor.set_checkpoint.called,
+            "expected real set_consume_checkpoint to reach processor.set_checkpoint",
+        )
+        return mock_processor.set_checkpoint.call_args.args[0]
+
+    def test_real_api_sqs_checkpoint(self):
+        mock_processor = Mock()
+        context_json = {"dd-pathway-ctx-base64": "sqs-ctx"}
+        arn = "arn:aws:sqs:us-east-1:123456789012:test-queue"
+
+        with _stub_data_streams_processor(mock_processor):
+            _dsm_set_checkpoint(context_json, "sqs", arn)
+
+        edge_tags = self._edge_tags(mock_processor)
+        self.assertIn("type:sqs", edge_tags)
+        self.assertIn("topic:" + arn, edge_tags)
+        self.assertIn("direction:in", edge_tags)
+        # manual_checkpoint=False must not emit the manual_checkpoint tag.
+        self.assertNotIn("manual_checkpoint:true", edge_tags)
+
+    def test_real_api_eventbridge_checkpoint(self):
+        mock_processor = Mock()
+        context_json = {"dd-pathway-ctx-base64": "eb-ctx"}
+
+        with _stub_data_streams_processor(mock_processor):
+            _dsm_set_eventbridge_checkpoint(context_json, "MyDetailType")
+
+        edge_tags = self._edge_tags(mock_processor)
+        self.assertIn("type:eventbridge", edge_tags)
+        self.assertIn("topic:MyDetailType", edge_tags)
+        self.assertIn("direction:in", edge_tags)
+        self.assertNotIn("manual_checkpoint:true", edge_tags)
+
+    @unittest.skipUnless(
+        _real_set_consume_checkpoint_supports_tags(),
+        "installed ddtrace has no `tags` parameter (< 4.14)",
+    )
+    @patch("datadog_lambda.config.Config.dsm_exchange_name", "my-event-bus")
+    def test_real_api_eventbridge_exchange_tag(self):
+        # Exercises the ddtrace >= 4.14 `tags` functionality end-to-end: the
+        # exchange edge tag must actually reach the processor.
+        mock_processor = Mock()
+        context_json = {"dd-pathway-ctx-base64": "eb-ctx"}
+
+        with _stub_data_streams_processor(mock_processor):
+            _dsm_set_eventbridge_checkpoint(context_json, "MyDetailType")
+
+        edge_tags = self._edge_tags(mock_processor)
+        self.assertIn("type:eventbridge", edge_tags)
+        self.assertIn("topic:MyDetailType", edge_tags)
+        self.assertIn("exchange:my-event-bus", edge_tags)
+
+    @unittest.skipUnless(
+        _real_set_consume_checkpoint_supports_tags(),
+        "installed ddtrace has no `tags` parameter (< 4.14)",
+    )
+    def test_real_api_eventbridge_no_exchange_tag_when_unset(self):
+        # With no DD_DSM_EXCHANGE_NAME configured, no exchange tag is emitted
+        # even on ddtrace versions that support `tags`.
+        mock_processor = Mock()
+        context_json = {"dd-pathway-ctx-base64": "eb-ctx"}
+
+        with _stub_data_streams_processor(mock_processor):
+            _dsm_set_eventbridge_checkpoint(context_json, "MyDetailType")
+
+        edge_tags = self._edge_tags(mock_processor)
+        self.assertFalse(any(t.startswith("exchange:") for t in edge_tags))
