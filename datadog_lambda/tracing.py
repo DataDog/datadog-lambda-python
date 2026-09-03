@@ -43,6 +43,7 @@ from datadog_lambda.trigger import (
     is_step_function_event,
     EventTypes,
     EventSubtypes,
+    resolve_multivalue_headers,
 )
 from datadog_lambda.durable import extract_context_from_durable_execution
 
@@ -207,7 +208,7 @@ def extract_context_from_http_event_or_context(
         if _is_context_complete(context):
             return context
 
-    headers = event.get("headers")
+    headers = resolve_multivalue_headers(event)
     context = propagator.extract(headers)
 
     if not _is_context_complete(context):
@@ -740,7 +741,9 @@ def extract_dd_trace_context(
         context = extract_context_from_request_header_or_context(
             event, lambda_context, event_source
         )
-    elif isinstance(event, (set, dict)) and "headers" in event:
+    elif isinstance(event, (set, dict)) and (
+        "headers" in event or "multiValueHeaders" in event
+    ):
         context = extract_context_from_http_event_or_context(
             event, lambda_context, event_source, decode_authorizer_context
         )
@@ -919,6 +922,9 @@ def create_inferred_span(
         elif event_source.equals(EventTypes.LAMBDA_FUNCTION_URL):
             logger.debug("Function URL event detected. Inferring a span")
             return create_inferred_span_from_lambda_function_url_event(event, context)
+        elif event_source.event_type == EventTypes.ALB:
+            logger.debug("ALB event detected. Inferring a span")
+            return create_inferred_span_from_alb_event(event, context)
         elif event_source.equals(
             EventTypes.API_GATEWAY, subtype=EventSubtypes.HTTP_API
         ):
@@ -982,11 +988,14 @@ def determine_service_name(
     if mapped_service:
         return mapped_service
 
+    # When integration service names are removed, inferred (synthetic) spans use
+    # the base service name (DD_SERVICE) instead of the AWS resource/instance
+    # representation.
+    if config.remove_integration_service_names_enabled and config.service:
+        return config.service
+
     # Check if AWS service representation is disabled
-    aws_service_representation = os.environ.get(
-        "DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED", ""
-    ).lower()
-    if aws_service_representation in ("false", "0"):
+    if not config.aws_service_representation_enabled:
         return fallback
 
     # Use extracted_key if it exists and is not empty, otherwise use fallback
@@ -1031,6 +1040,54 @@ def create_inferred_span_from_lambda_function_url_event(event, context):
         span.set_tags(tags)
         span.set_metric(InferredSpanInfo.METRIC, 1.0)
         span.start_ns = int(request_time_epoch * 1e6)
+    return span
+
+
+def create_inferred_span_from_alb_event(event, context):
+    request_context = event.get("requestContext") or {}
+    elb = request_context.get("elb") or {}
+    target_group_arn = elb.get("targetGroupArn")
+
+    headers = resolve_multivalue_headers(event)
+    host = headers.get("host")
+    method = event.get("httpMethod")
+    path = event.get("path")
+    proto = headers.get("x-forwarded-proto", "http")
+
+    # ALB has no api id; key the service mapping off the load-balancer host and
+    # fall back to it when DD_TRACE_AWS_SERVICE_REPRESENTATION_ENABLED is on.
+    service_name = determine_service_name(service_mapping, host, "lambda_alb", host)
+
+    http_url = "%s://%s%s" % (proto, host, path) if host and path is not None else None
+    if method and path is not None:
+        resource = f"{method} {path}"
+    else:
+        resource = method or path
+
+    tags = {
+        "operation_name": "aws.alb",
+        "span.kind": "server",
+        "http.method": method,
+        "http.url": http_url,
+        "http.useragent": headers.get("user-agent"),
+        "endpoint": path,
+        "resource_names": resource,
+        "request_id": context.aws_request_id,
+        "target_group_arn": target_group_arn,
+    }
+    # Drop tags we couldn't derive so the span never carries malformed values.
+    tags = {key: value for key, value in tags.items() if value is not None}
+
+    tracer.set_tags(_dd_origin)
+    # ALB events carry no request timestamp (unlike API GW requestTimeEpoch /
+    # Function URL timeEpoch), so the span starts at handler time.
+    span = tracer.trace(
+        "aws.alb", service=service_name, resource=resource, span_type="http"
+    )
+    InferredSpanInfo.set_tags(tags, tag_source="self", synchronicity="sync")
+    if span:
+        span.set_tags(tags)
+        span.set_metric(InferredSpanInfo.METRIC, 1.0)
     return span
 
 
