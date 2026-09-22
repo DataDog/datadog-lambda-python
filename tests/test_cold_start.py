@@ -3,7 +3,7 @@ import time
 import unittest
 
 from sys import modules, meta_path
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import datadog_lambda.cold_start as cold_start
 import datadog_lambda.wrapper as wrapper
@@ -162,6 +162,7 @@ class TestColdStartTracer(unittest.TestCase):
     def setUp(self) -> None:
         mock_tracer = MagicMock()
         self.output_spans = []
+        self.output_services = []
         self.shared_mock_span = MagicMock()
         self.shared_mock_span.current_spans = []
         self.finish_call_count = 0
@@ -176,6 +177,7 @@ class TestColdStartTracer(unittest.TestCase):
         def _trace(*args, **kwargs):
             module_name = kwargs["resource"]
             self.shared_mock_span.current_spans.append(module_name)
+            self.output_services.append(kwargs["service"])
             return self.shared_mock_span
 
         mock_tracer.trace = _trace
@@ -286,6 +288,20 @@ class TestColdStartTracer(unittest.TestCase):
         self.mock_activate.assert_called_once_with(self.mock_trace_ctx)
         self.assertEqual(self.output_spans, ["node_0", "unittest_cold_start"])
 
+    @patch("datadog_lambda.config.Config.service", "my-dd-service")
+    def test_trace_uses_dd_service(self):
+        node_0 = cold_start.ImportNode("node_0", None, self.first_node_start_time_ns)
+        node_0.end_time_ns = self.first_node_start_time_ns + self.test_time_unit
+        self.cold_start_tracer.trace([node_0])
+        self.assertEqual(self.output_services, ["my-dd-service", "my-dd-service"])
+
+    @patch("datadog_lambda.config.Config.service", None)
+    def test_trace_falls_back_to_aws_lambda_service(self):
+        node_0 = cold_start.ImportNode("node_0", None, self.first_node_start_time_ns)
+        node_0.end_time_ns = self.first_node_start_time_ns + self.test_time_unit
+        self.cold_start_tracer.trace([node_0])
+        self.assertEqual(self.output_services, ["aws.lambda", "aws.lambda"])
+
 
 def test_lazy_loaded_package_imports(monkeypatch):
     spans = []
@@ -325,3 +341,43 @@ def test_lazy_loaded_package_imports(monkeypatch):
     assert import_span.trace_id == function_span.trace_id
     assert load_span is not None
     assert load_span.trace_id == function_span.trace_id
+
+
+def test_cold_start_spans_use_dd_service(monkeypatch):
+    spans = []
+
+    def finish(span):
+        spans.append(span)
+
+    monkeypatch.setattr(wrapper.tracer, "_on_span_finish", finish)
+    monkeypatch.setattr(wrapper, "is_new_sandbox", lambda: True)
+    monkeypatch.setattr("datadog_lambda.config.Config.trace_enabled", True)
+    monkeypatch.setattr("datadog_lambda.config.Config.service", "my-dd-service")
+    monkeypatch.setenv(
+        "DD_COLD_START_TRACE_SKIP_LIB", "ddtrace.contrib.logging,datadog_lambda.wrapper"
+    )
+    monkeypatch.setenv("DD_MIN_COLD_START_DURATION", "0")
+    # ensure the import below is not served from the module cache
+    monkeypatch.delitem(modules, "colorsys", raising=False)
+
+    @wrapper.datadog_lambda_wrapper
+    def handler(event, context):
+        import colorsys  # noqa: F401
+
+    handler({}, get_mock_context())
+
+    function_span = import_span = load_span = None
+    for span in spans:
+        if span.resource == "colorsys":
+            import_span = span
+        elif span.name == "aws.lambda":
+            function_span = span
+        elif span.name == "aws.lambda.load":
+            load_span = span
+
+    assert function_span is not None
+    assert import_span is not None
+    assert load_span is not None
+    assert function_span.service == "my-dd-service"
+    assert import_span.service == "my-dd-service"
+    assert load_span.service == "my-dd-service"

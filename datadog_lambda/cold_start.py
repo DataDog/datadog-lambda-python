@@ -248,7 +248,7 @@ class ColdStartTracer(object):
             )  # reactivate required after each finish() call
             self.need_to_reactivate_context = False
         span_kwargs = {
-            "service": "aws.lambda",
+            "service": config.service or "aws.lambda",
             "resource": resource,
             "span_type": span_type,
         }
