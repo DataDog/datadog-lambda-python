@@ -325,3 +325,45 @@ def test_lazy_loaded_package_imports(monkeypatch):
     assert import_span.trace_id == function_span.trace_id
     assert load_span is not None
     assert load_span.trace_id == function_span.trace_id
+
+
+def test_lazy_loaded_package_imports_inside_client_span(monkeypatch):
+    spans = []
+
+    def finish(span):
+        spans.append(span)
+
+    monkeypatch.setattr(wrapper.tracer, "_on_span_finish", finish)
+    monkeypatch.setattr(wrapper, "is_new_sandbox", lambda: True)
+    monkeypatch.setattr("datadog_lambda.config.Config.trace_enabled", True)
+    monkeypatch.setenv(
+        "DD_COLD_START_TRACE_SKIP_LIB", "ddtrace.contrib.logging,datadog_lambda.wrapper"
+    )
+    monkeypatch.setenv("DD_MIN_COLD_START_DURATION", "0")
+    # ensure the import below is not served from the module cache
+    monkeypatch.delitem(modules, "colorsys", raising=False)
+
+    @wrapper.datadog_lambda_wrapper
+    def handler(event, context):
+        # e.g. botocore lazily importing modules on the first DynamoDB call
+        with wrapper.tracer.trace("dynamodb.command", service="aws.dynamodb") as span:
+            span.set_tag("span.kind", "client")
+            import colorsys  # noqa: F401
+
+    handler({}, get_mock_context())
+
+    function_span = client_span = import_span = None
+    for span in spans:
+        if span.resource == "colorsys":
+            import_span = span
+        elif span.name == "aws.lambda":
+            function_span = span
+        elif span.name == "dynamodb.command":
+            client_span = span
+
+    assert function_span is not None
+    assert client_span is not None
+    assert import_span is not None
+    assert import_span.parent_id == function_span.span_id
+    assert import_span.parent_id != client_span.span_id
+    assert import_span.trace_id == function_span.trace_id
