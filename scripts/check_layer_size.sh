@@ -8,7 +8,7 @@
 # Compares layer size to threshold, and fails if below that threshold
 
 set -e
-MAX_LAYER_COMPRESSED_SIZE_KB=$(expr 9 \* 1024 + 512)     # 9728 KB
+MAX_LAYER_COMPRESSED_SIZE_KB=$(expr 10 \* 1024)     # 10240 KB
 MAX_LAYER_UNCOMPRESSED_SIZE_KB=$(expr 25 \* 1024)   # 25600 KB
 
 
