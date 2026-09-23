@@ -526,8 +526,51 @@ def _extract_eventbridge_sqs_record_context(record):
 
 
 def _extract_sqs_record_message_attribute_context(record):
-    msg_attributes = record.get("messageAttributes") or {}
-    dd_payload = msg_attributes.get("_datadog")
+    """Return the ``_datadog`` carrier for a non-EventBridge SQS record.
+
+    A record in an SQS batch may itself be an SNS notification (an SNS => SQS
+    subscription without raw message delivery), in which case the attributes
+    live in the SNS envelope inside ``body`` rather than in the record's own
+    ``messageAttributes``. Both shapes are handled here so that a mixed batch
+    (EventBridge deliveries alongside SNS deliveries on the same queue) does
+    not lose the SNS DSM context.
+    """
+    msg_attributes = record.get("messageAttributes")
+
+    if msg_attributes is None:
+        sns_record = _parse_sns_notification_from_sqs_body(record) or {}
+        msg_attributes = sns_record.get("MessageAttributes") or {}
+
+    return _decode_dd_message_attribute(msg_attributes.get("_datadog"))
+
+
+def _parse_sns_notification_from_sqs_body(record):
+    """Return the SNS envelope carried in an SQS record's ``body``, if any.
+
+    Returns ``None`` when the body is not an SNS notification, which simply
+    means the record is a direct SQS send.
+    """
+    try:
+        body = json.loads(record.get("body"))
+    except (ValueError, TypeError):
+        return None
+
+    if (
+        isinstance(body, dict)
+        and body.get("Type", "") == "Notification"
+        and "TopicArn" in body
+    ):
+        return body
+
+    return None
+
+
+def _decode_dd_message_attribute(dd_payload):
+    """Decode a ``_datadog`` SQS/SNS message attribute into a carrier dict.
+
+    SQS uses ``dataType`` with ``stringValue``/``binaryValue`` while SNS uses
+    ``Type`` with ``Value``; both are supported.
+    """
     if not dd_payload:
         return None
 

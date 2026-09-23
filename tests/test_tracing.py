@@ -4103,6 +4103,57 @@ class TestExtractDDContextWithDSMLogic(unittest.TestCase):
         self.assertEqual((second_args[0], second_args[1]), ("sqs", arn2))
         self.assertEqual(second_args[2]("dd-pathway-ctx-base64"), "eb-ctx")
 
+    def test_eventbridge_sqs_mixed_batch_with_sns_record_keeps_sns_context(self):
+        # EventBridge and SNS can both be routed to the same SQS queue and then
+        # batched into a single event payload. The SNS record's DSM context
+        # lives in the SNS envelope inside `body` (SNS => SQS subscription
+        # without raw message delivery), not in `messageAttributes`, and must
+        # still be extracted even though the batch contains an EventBridge
+        # delivery.
+        arn1 = "arn:aws:sqs:us-east-1:123456789012:eb-queue"
+        arn2 = "arn:aws:sqs:us-east-1:123456789012:sns-queue"
+        sns_dd_data = {
+            "x-datadog-trace-id": "12345",
+            "x-datadog-parent-id": "67890",
+            "x-datadog-sampling-priority": "1",
+            "dd-pathway-ctx-base64": "sns-ctx",
+        }
+        sns_body = {
+            "Type": "Notification",
+            "TopicArn": "arn:aws:sns:us-east-1:123456789012:my-topic",
+            "Message": "hello from sns",
+            "MessageAttributes": {
+                "_datadog": {
+                    "Type": "String",
+                    "Value": json.dumps(sns_dd_data),
+                }
+            },
+        }
+        event = {
+            "Records": [
+                self._eventbridge_sqs_record(arn1, "eb-ctx"),
+                {
+                    "eventSourceARN": arn2,
+                    "eventSource": "aws:sqs",
+                    "body": json.dumps(sns_body),
+                },
+            ]
+        }
+
+        extract_context_from_sqs_or_sns_event_or_context(
+            event, self.lambda_context, parse_event_source(event)
+        )
+
+        self.assertEqual(self.mock_checkpoint.call_count, 2)
+        first_args, _ = self.mock_checkpoint.call_args_list[0]
+        second_args, _ = self.mock_checkpoint.call_args_list[1]
+        self.assertEqual((first_args[0], first_args[1]), ("sqs", arn1))
+        self.assertEqual(first_args[2]("dd-pathway-ctx-base64"), "eb-ctx")
+        # The SNS record is consumed from the SQS queue, so it keeps SQS
+        # conventions, but its carrier must come from the SNS envelope.
+        self.assertEqual((second_args[0], second_args[1]), ("sqs", arn2))
+        self.assertEqual(second_args[2]("dd-pathway-ctx-base64"), "sns-ctx")
+
     def test_eventbridge_sqs_non_json_body_falls_back_to_sqs_attributes(self):
         # A later direct SQS record can legitimately carry a non-JSON body
         # while its DSM carrier lives in messageAttributes._datadog. The
