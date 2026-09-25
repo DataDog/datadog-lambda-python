@@ -202,7 +202,11 @@ class ColdStartTracer(object):
         cold_start_span = self.create_cold_start_span(cold_start_span_start_time_ns)
         while root_nodes:
             root_node = root_nodes.pop()
-            parent = root_node.context or cold_start_span
+            # Modules lazily imported during the invocation hang off the function
+            # span, not the span active at import time: nesting them under a
+            # client span (e.g. a DynamoDB call) makes the backend peer service
+            # pipeline map that client's host to the import span's service.
+            parent = self.trace_ctx if root_node.context else cold_start_span
             self.trace_tree(root_node, parent)
         self.finish_span(cold_start_span, cold_start_span_end_time_ns)
 
