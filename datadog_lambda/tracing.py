@@ -537,7 +537,7 @@ def _extract_sqs_record_message_attribute_context(record):
     """
     msg_attributes = record.get("messageAttributes")
 
-    if msg_attributes is None:
+    if not msg_attributes:
         sns_record = _parse_sns_notification_from_sqs_body(record) or {}
         msg_attributes = sns_record.get("MessageAttributes") or {}
 
