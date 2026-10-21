@@ -42,12 +42,12 @@ RUN rm -rf \
 
 # CI Visibility paths/integrations
 RUN rm -rf \
-    ./python/lib/$runtime/site-packages/ddtrace/contrib/coverage/ \
-    ./python/lib/$runtime/site-packages/ddtrace/contrib/pytest/ \
-    ./python/lib/$runtime/site-packages/ddtrace/contrib/pytest_bdd/ \
-    ./python/lib/$runtime/site-packages/ddtrace/contrib/pytest_benchmark/ \
-    ./python/lib/$runtime/site-packages/ddtrace/contrib/selenium/ \
-    ./python/lib/$runtime/site-packages/ddtrace/contrib/unittest/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/internal/coverage/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/internal/pytest/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/internal/pytest_bdd/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/internal/pytest_benchmark/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/internal/selenium/ \
+    ./python/lib/$runtime/site-packages/ddtrace/contrib/internal/unittest/ \
     ./python/lib/$runtime/site-packages/ddtrace/ext/ci_visibility \
     ./python/lib/$runtime/site-packages/ddtrace/ext/test_visibility \
     ./python/lib/$runtime/site-packages/ddtrace/internal/ci_visibility \

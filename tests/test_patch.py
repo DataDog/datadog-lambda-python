@@ -94,3 +94,15 @@ class TestPatchHTTPClients(unittest.TestCase):
         self.assertEqual(r.request.headers[TraceHeader.TRACE_ID], "123")
         self.assertEqual(r.request.headers[TraceHeader.PARENT_ID], "321")
         self.assertEqual(r.request.headers[TraceHeader.SAMPLING_PRIORITY], "2")
+
+
+@patch("datadog_lambda.patch.patch_all_dd")
+@patch("datadog_lambda.patch.config")
+def test_patch_all_disables_ci_visibility_integrations(mock_config, mock_patch_all_dd):
+    from datadog_lambda.patch import patch_all
+
+    mock_config.trace_enabled = True
+    mock_config.integration_test = False
+    patch_all()
+
+    mock_patch_all_dd.assert_called_once_with(unittest=False, selenium=False)
