@@ -11,7 +11,7 @@ from openfeature import api
 from openfeature.evaluation_context import EvaluationContext
 
 provider = DataDogProvider()
-api.set_provider(provider)
+api.set_provider_and_wait(provider)
 client = api.get_client("lambda-flush-smoke")
 sandbox_id = uuid.uuid4().hex
 invocations = 0

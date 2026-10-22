@@ -7,7 +7,8 @@ layer until the release record below is populated.
 ## Existing examples and access
 
 The smoke handler initializes its provider and client once at module scope and
-reuses them across invocations.
+reuses them across invocations. Registration waits for provider initialization
+before the first invocation, bounded by the provider's default 10-second timeout.
 
 This repository's `scripts/run_integration_tests.sh` documents
 `sso-serverless-sandbox-account-admin`. `tests/integration/serverless.yml` uses
@@ -22,7 +23,8 @@ Verify that the selected profile can access the approved account before deployin
    internal flush contract version 1 and this Lambda library. The ordinary layer
    build installs the declared tracer dependency, so verify the zip actually
    contains the candidate tracer instead of a published version without the fix.
-2. Package `feature_flags.py` and `openfeature-sdk`. Configure its handler as
+2. Package `feature_flags.py` and `openfeature-sdk==0.10.0` (which provides
+   `set_provider_and_wait`). Configure its handler as
    `feature_flags.handle`. It uses the ordinary Datadog wrapper and has no flush
    or shutdown calls. Reuse the approved sandbox's IAM and deployment settings
    from `serverless.yml`, with a unique `integration-tests-*` function name.

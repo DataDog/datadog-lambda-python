@@ -1,9 +1,11 @@
 import importlib.util
+import os
 import unittest
 from unittest.mock import Mock, patch
 
 from datadog_lambda import feature_flags
 from datadog_lambda import wrapper
+from datadog_lambda.config import Config
 
 
 class FeatureFlagFlushTest(unittest.TestCase):
@@ -48,8 +50,37 @@ class FeatureFlagFlushTest(unittest.TestCase):
 
     def test_old_tracer(self):
         for telemetry in [None, Mock(FLUSH_API_VERSION=2)]:
-            with patch.object(feature_flags, "_telemetry", telemetry):
-                feature_flags.flush_feature_flag_telemetry(None)
+            with self.subTest(telemetry=telemetry), patch.object(
+                feature_flags, "_telemetry", telemetry
+            ):
+                context = Mock()
+                context.get_remaining_time_in_millis.return_value = 1000
+                feature_flags.flush_feature_flag_telemetry(context)
+                context.get_remaining_time_in_millis.assert_not_called()
+                if telemetry is not None:
+                    telemetry.flush.assert_not_called()
+
+    def test_timeout_environment_parsing_preserves_flush(self):
+        for value, expected in [
+            (None, 0.5),
+            ("250.5", 0.2505),
+            ("", 0.5),
+            ("garbage", 0.5),
+            ("500ms", 0.5),
+        ]:
+            with self.subTest(value=value), patch.dict(os.environ), patch.object(
+                feature_flags, "config", Config()
+            ), patch.object(feature_flags, "_telemetry") as telemetry:
+                if value is None:
+                    os.environ.pop("DD_FEATURE_FLAG_FLUSH_TIMEOUT_MS", None)
+                else:
+                    os.environ["DD_FEATURE_FLAG_FLUSH_TIMEOUT_MS"] = value
+                telemetry.FLUSH_API_VERSION = 1
+                telemetry.flush.return_value = "completed"
+                feature_flags.flush_feature_flag_telemetry(
+                    Mock(get_remaining_time_in_millis=lambda: 1000)
+                )
+                telemetry.flush.assert_called_once_with(expected)
 
     def test_missing_context_and_telemetry_errors_are_safe(self):
         with patch.object(feature_flags, "_telemetry") as telemetry:
