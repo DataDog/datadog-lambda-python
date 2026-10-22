@@ -40,7 +40,7 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
   artifacts:
-    expire_in: 24 hr # Unsigned zips expire in 1 day
+    expire_in: 1 day # Unsigned zips expire in 1 day
     paths:
       - .layers/datadog_lambda_py-{{ $runtime.arch }}-{{ $runtime.python_version }}.zip
   variables:
@@ -227,7 +227,7 @@ layer bundle:
     - build-layer ({{ .name }}-{{ .arch }})
     {{ end }}
   artifacts:
-    expire_in: 1 hr
+    expire_in: 1 day
     paths:
       - datadog_lambda_py-bundle-${CI_JOB_ID}/
     name: datadog_lambda_py-bundle-${CI_JOB_ID}
