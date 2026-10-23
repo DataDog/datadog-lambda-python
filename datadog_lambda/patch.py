@@ -30,7 +30,10 @@ def patch_all():
     _patch_for_integration_tests()
 
     if config.trace_enabled:
-        patch_all_dd()
+        # unittest and selenium are CI Visibility integrations. The layer strips
+        # their code and ddtrace.internal.ci_visibility, so leaving them enabled
+        # logs an import error whenever the user's code imports those modules.
+        patch_all_dd(unittest=False, selenium=False)
     else:
         _patch_http()
         _ensure_patch_requests()
