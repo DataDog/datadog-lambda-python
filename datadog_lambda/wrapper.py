@@ -85,6 +85,14 @@ if config.exception_replay_enabled:
     except ImportError:
         from ddtrace.debugging._uploader import LogsIntakeUploaderV1 as SignalUploader
 
+ffe_writer = None
+if config.feature_flags_enabled:
+    try:
+        from ddtrace.internal.openfeature import _config as ffe_config
+        from ddtrace.internal.openfeature import writer as ffe_writer
+    except ImportError:
+        pass
+
 DD_REQUESTS_SERVICE_NAME = "DD_REQUESTS_SERVICE_NAME"
 DD_SERVICE = "DD_SERVICE"
 
@@ -412,6 +420,15 @@ class _LambdaDecorator(object):
 
             if config.llmobs_enabled:
                 LLMObs.flush()
+
+            # Flush feature flag exposures and evaluations
+            if ffe_writer is not None:
+                if ffe_writer._EXPOSURE_WRITER is not None:
+                    ffe_writer._EXPOSURE_WRITER.periodic()
+                    for provider in getattr(ffe_config, "_provider_instances", ()):
+                        writer = getattr(provider, "_flag_eval_evp_writer", None)
+                        if writer is not None:
+                            writer.periodic()
 
             # Flush exception replay
             if config.exception_replay_enabled:

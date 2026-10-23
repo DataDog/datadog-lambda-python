@@ -93,6 +93,7 @@ class Config:
     profiling_enabled = _get_env("DD_PROFILING_ENABLED", "false", as_bool)
     llmobs_enabled = _get_env("DD_LLMOBS_ENABLED", "false", as_bool)
     exception_replay_enabled = _get_env("DD_EXCEPTION_REPLAY_ENABLED", "false", as_bool)
+    feature_flags_enabled = _get_env("DD_FEATURE_FLAGS_ENABLED", "true", as_bool)
     data_streams_enabled = _get_env(
         "DD_DATA_STREAMS_ENABLED", "false", as_bool, depends_on_tracing=True
     )
