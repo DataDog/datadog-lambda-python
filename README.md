@@ -76,3 +76,27 @@ Unless explicitly stated otherwise all files in this repository are licensed und
 This product includes software developed at Datadog (https://www.datadoghq.com/). Copyright 2019 Datadog, Inc.
 
 [1]: https://www.datadoghq.com/blog/troubleshoot-lambda-function-request-response-payloads/
+
+## Feature flag telemetry at invocation end
+
+With a tracer and Lambda layer that support automatic feature flag flushing,
+the wrapper attempts to send pending evaluation and exposure events before
+returning a response or rethrowing a handler exception. No additional handler
+code or provider shutdown is required; providers and polling remain available
+for warm invocations.
+
+`DD_FEATURE_FLAG_FLUSH_TIMEOUT_MS` sets the maximum added wait in milliseconds
+(default: `500`; `0` disables waiting). The actual budget is the smaller of that
+cap and the invocation's remaining time minus a 100 ms safety margin. The wrapper
+skips waiting when that budget is exhausted or unavailable. Incomplete flushes
+are reported in debug logs without changing the handler's result.
+
+Delivery is best effort. A timeout stops waiting but does not cancel or retry
+in-flight requests; they may complete after a warm thaw. Abrupt termination can
+still lose buffered events. Endpoint acceptance does not guarantee immediate
+visibility in the UI. Older tracers safely skip the integration.
+
+Release status: this capability requires the tracer's internal flush contract
+version 1. The first supported tracer/library/layer combination is pending
+coordinated release and deployed validation; an older published layer does not
+provide this behavior merely by setting the timeout variable.
