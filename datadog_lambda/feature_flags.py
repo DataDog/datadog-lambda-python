@@ -2,6 +2,7 @@
 
 import logging
 import math
+from time import monotonic
 
 from datadog_lambda.config import config
 
@@ -13,9 +14,15 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 SAFETY_MARGIN_MS = 100.0
+MAX_CONSECUTIVE_TIMEOUTS = 3
+TIMEOUT_BACKOFF_S = 60.0
+# Warm invocations share this state; a new process starts with no cooldown.
+_consecutive_timeouts = 0
+_skip_until = 0.0
 
 
 def flush_feature_flag_telemetry(context):
+    global _consecutive_timeouts, _skip_until
     try:
         if _telemetry is None:
             return
@@ -35,7 +42,18 @@ def flush_feature_flag_telemetry(context):
                 "Skipping feature flag telemetry flush: no invocation time remains"
             )
             return
+        if monotonic() < _skip_until:
+            logger.debug("Skipping feature flag telemetry flush: backing off")
+            return
         outcome = _telemetry.flush(budget_ms / 1000.0)
+        if outcome != "timed_out":
+            _consecutive_timeouts = 0
+        elif budget_ms >= cap_ms:
+            # A short invocation budget says nothing about intake health.
+            _consecutive_timeouts += 1
+            if _consecutive_timeouts >= MAX_CONSECUTIVE_TIMEOUTS:
+                _consecutive_timeouts = 0
+                _skip_until = monotonic() + TIMEOUT_BACKOFF_S
         if outcome != "completed":
             logger.debug("Feature flag telemetry flush incomplete: %s", outcome)
     except Exception:

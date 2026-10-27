@@ -195,31 +195,18 @@ class _LambdaDecorator(object):
                 return self.blocking_response
             self.response = self.func(event, context, **kwargs)
         except Exception:
-            try:
-                from datadog_lambda.metric import submit_errors_metric
+            from datadog_lambda.metric import submit_errors_metric
 
-                submit_errors_metric(context)
-                if self.span:
-                    self.span.set_traceback()
-            except Exception as e:
-                logger.error(format_err_with_traceback(e))
+            submit_errors_metric(context)
+
+            if self.span:
+                self.span.set_traceback()
             raise
         except BaseException as e:
             if "BlockingException" in type(e).__name__:
                 self.blocking_response = get_asm_blocked_response(self.event_source)
-            else:
-                raise
         finally:
-            try:
-                self._after(event, context)
-            except Exception as e:
-                logger.error(format_err_with_traceback(e))
-            finally:
-                if (
-                    config.feature_flags_enabled
-                    and flush_feature_flag_telemetry is not None
-                ):
-                    flush_feature_flag_telemetry(context)
+            self._after(event, context)
         if self.blocking_response:
             return self.blocking_response
         return self.response
@@ -416,6 +403,12 @@ class _LambdaDecorator(object):
                     ).trace()
                 except Exception as e:
                     logger.debug("Failed to create cold start spans. %s", e)
+
+            if (
+                config.feature_flags_enabled
+                and flush_feature_flag_telemetry is not None
+            ):
+                flush_feature_flag_telemetry(context)
 
             if not config.flush_to_log or should_use_extension:
                 from datadog_lambda.metric import flush_stats

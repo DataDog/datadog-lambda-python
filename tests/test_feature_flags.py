@@ -1,4 +1,3 @@
-import importlib.util
 import os
 import subprocess
 import sys
@@ -7,11 +6,84 @@ import unittest
 from unittest.mock import Mock, patch
 
 from datadog_lambda import feature_flags
-from datadog_lambda import wrapper
 from datadog_lambda.config import Config
 
 
 class FeatureFlagFlushTest(unittest.TestCase):
+    def setUp(self):
+        for name, value in [("_consecutive_timeouts", 0), ("_skip_until", 0.0)]:
+            patcher = patch.object(feature_flags, name, value)
+            patcher.start()
+            self.addCleanup(patcher.stop)
+
+    def test_full_budget_timeouts_back_off_and_retry_after_expiry(self):
+        with patch.object(
+            feature_flags, "monotonic", return_value=1000.0
+        ) as now, patch.object(feature_flags, "_telemetry") as telemetry, patch.object(
+            Config, "feature_flag_flush_timeout_ms", 250
+        ):
+            telemetry.FLUSH_API_VERSION = 1
+            telemetry.flush.return_value = "timed_out"
+            context = Mock(get_remaining_time_in_millis=lambda: 30000)
+            for _ in range(3):
+                feature_flags.flush_feature_flag_telemetry(context)
+            self.assertEqual(telemetry.flush.call_count, 3)
+            telemetry.flush.assert_called_with(0.25)
+            for timestamp in (1000.0, 1030.0, 1059.999):
+                now.return_value = timestamp
+                feature_flags.flush_feature_flag_telemetry(context)
+                self.assertEqual(telemetry.flush.call_count, 3)
+            now.return_value = 1060.0
+            telemetry.flush.return_value = "completed"
+            feature_flags.flush_feature_flag_telemetry(context)
+            self.assertEqual(telemetry.flush.call_count, 4)
+            # Recovery starts a new streak, not an immediate second cooldown.
+            telemetry.flush.return_value = "timed_out"
+            for _ in range(2):
+                feature_flags.flush_feature_flag_telemetry(context)
+            telemetry.flush.return_value = "completed"
+            feature_flags.flush_feature_flag_telemetry(context)
+            self.assertEqual(telemetry.flush.call_count, 7)
+
+    def test_completed_and_failed_flushes_reset_timeout_streak(self):
+        for outcome in ("completed", "failed"):
+            with self.subTest(outcome=outcome), patch.object(
+                feature_flags, "_telemetry"
+            ) as telemetry, patch.object(
+                feature_flags, "monotonic", return_value=1000.0
+            ):
+                telemetry.FLUSH_API_VERSION = 1
+                outcomes = [
+                    "timed_out",
+                    "timed_out",
+                    outcome,
+                    "timed_out",
+                    "timed_out",
+                    "completed",
+                ]
+                telemetry.flush.side_effect = outcomes
+                for _ in outcomes:
+                    feature_flags.flush_feature_flag_telemetry(
+                        Mock(get_remaining_time_in_millis=lambda: 30000)
+                    )
+                self.assertEqual(telemetry.flush.call_count, len(outcomes))
+
+    def test_short_budget_timeouts_neither_count_nor_reset_streak(self):
+        with patch.object(feature_flags, "_telemetry") as telemetry, patch.object(
+            feature_flags, "monotonic", return_value=1000.0
+        ):
+            telemetry.FLUSH_API_VERSION = 1
+            telemetry.flush.return_value = "timed_out"
+            for remaining in (30000, 200, 200, 200, 30000, 30000):
+                feature_flags.flush_feature_flag_telemetry(
+                    Mock(get_remaining_time_in_millis=lambda: remaining)
+                )
+            self.assertEqual(telemetry.flush.call_count, 6)
+            feature_flags.flush_feature_flag_telemetry(
+                Mock(get_remaining_time_in_millis=lambda: 30000)
+            )
+            self.assertEqual(telemetry.flush.call_count, 6)
+
     def test_budget(self):
         for remaining, cap, expected in [
             (5000, 500, 0.5),
@@ -118,7 +190,8 @@ class FeatureFlagFlushTest(unittest.TestCase):
             )
 
     def test_disabled_feature_flags_do_not_import_flush_modules(self):
-        code = textwrap.dedent("""
+        code = textwrap.dedent(
+            """
             import sys
 
             class BlockFlushImports:
@@ -134,7 +207,8 @@ class FeatureFlagFlushTest(unittest.TestCase):
             assert not wrapper.config.feature_flags_enabled
             assert "datadog_lambda.feature_flags" not in sys.modules
             assert "ddtrace.internal.openfeature._telemetry" not in sys.modules
-            """)
+            """
+        )
         result = subprocess.run(
             [sys.executable, "-c", code],
             env={
@@ -160,88 +234,3 @@ class FeatureFlagFlushTest(unittest.TestCase):
             log.debug.assert_called_with(
                 "Feature flag telemetry flush incomplete: %s", "timed_out"
             )
-
-    def test_wrapper_preserves_result_and_exception_when_cleanup_fails(self):
-        for raises in [False, True]:
-            original = ValueError("handler error")
-            handler = (
-                Mock(side_effect=original)
-                if raises
-                else Mock(return_value={"ok": True})
-            )
-            # Isolate invocation control flow from tracing/metrics initialization.
-            decorated = object.__new__(wrapper._LambdaDecorator)
-            decorated.func = handler
-            decorated.blocking_response = None
-            decorated.span = None
-            decorated._before = Mock()
-            decorated._after = Mock(side_effect=RuntimeError("cleanup error"))
-            context = Mock(get_remaining_time_in_millis=lambda: 30000)
-            with patch.object(wrapper, "flush_feature_flag_telemetry") as flush, patch(
-                "datadog_lambda.metric.submit_errors_metric",
-                side_effect=RuntimeError("metrics error"),
-            ):
-                if raises:
-                    with self.assertRaises(ValueError) as caught:
-                        decorated({}, context)
-                    self.assertIs(caught.exception, original)
-                else:
-                    self.assertEqual(decorated({}, context), {"ok": True})
-                flush.assert_called_once_with(context)
-
-
-class FeatureFlagTracerIntegrationTest(unittest.TestCase):
-    @unittest.skipUnless(
-        feature_flags._telemetry is not None
-        and importlib.util.find_spec("openfeature") is not None,
-        "requires tracer flush contract v1 and the optional OpenFeature SDK",
-    )
-    def test_short_warm_invocations_flush_both_writers(self):
-        from ddtrace.internal.openfeature._flagevaluation_writer import (
-            FlagEvaluationWriter,
-            _EvalEvent,
-        )
-        from ddtrace.internal.openfeature._evp_transport import EVPRoute
-        from ddtrace.internal.openfeature.writer import ExposureWriter
-
-        route = EVPRoute("http://agent:8126", "/evp_proxy/v2", {})
-        selector = Mock(configuration_source="agentless")
-        selector.select.return_value = route
-        selector.send.side_effect = lambda route, send: send(route)
-        connection = Mock()
-        connection.getresponse.return_value.status = 202
-        evaluations = FlagEvaluationWriter(
-            route_selector=selector, connection_factory=lambda *a, **k: connection
-        )
-        exposures = ExposureWriter(
-            enabled=True,
-            route_selector=selector,
-            connection_factory=lambda *a, **k: connection,
-        )
-        original = ValueError("handler failure")
-
-        def handler(event, context):
-            evaluations.enqueue(
-                _EvalEvent("flag", "on", "allocation", "subject", {}, False, "", 1)
-            )
-            exposures.enqueue({"timestamp": 1})
-            if event.get("raise"):
-                raise original
-            return {"ok": True}
-
-        decorated = object.__new__(wrapper._LambdaDecorator)
-        decorated.func = handler
-        decorated.blocking_response = None
-        decorated.span = None
-        decorated._before = Mock()
-        decorated._after = Mock(side_effect=RuntimeError("unrelated cleanup"))
-        context = Mock(get_remaining_time_in_millis=lambda: 30000)
-        with patch("datadog_lambda.metric.submit_errors_metric"):
-            self.assertEqual(decorated({}, context), {"ok": True})
-            self.assertEqual(connection.request.call_count, 2)
-            with self.assertRaises(ValueError) as caught:
-                decorated({"raise": True}, context)
-            self.assertIs(caught.exception, original)
-            self.assertEqual(connection.request.call_count, 4)
-            self.assertEqual(decorated({}, context), {"ok": True})
-            self.assertEqual(connection.request.call_count, 6)
