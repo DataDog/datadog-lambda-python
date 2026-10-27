@@ -72,9 +72,9 @@ class FeatureFlagFlushTest(unittest.TestCase):
                 feature_flags, "config", Config()
             ), patch.object(feature_flags, "_telemetry") as telemetry:
                 if value is None:
-                    os.environ.pop("DD_FEATURE_FLAG_FLUSH_TIMEOUT_MS", None)
+                    os.environ.pop("DD_FEATURE_FLAGS_FLUSH_TIMEOUT_MS", None)
                 else:
-                    os.environ["DD_FEATURE_FLAG_FLUSH_TIMEOUT_MS"] = value
+                    os.environ["DD_FEATURE_FLAGS_FLUSH_TIMEOUT_MS"] = value
                 telemetry.FLUSH_API_VERSION = 1
                 telemetry.flush.return_value = "completed"
                 feature_flags.flush_feature_flag_telemetry(
