@@ -1,5 +1,8 @@
 import importlib.util
 import os
+import subprocess
+import sys
+import textwrap
 import unittest
 from unittest.mock import Mock, patch
 
@@ -91,6 +94,59 @@ class FeatureFlagFlushTest(unittest.TestCase):
                 Mock(get_remaining_time_in_millis=lambda: 1000)
             )
             telemetry.flush.assert_called_once()
+
+    def test_missing_remaining_time_skips_without_failure_log(self):
+        for context in (None, object()):
+            with self.subTest(context=context), patch.object(
+                feature_flags, "_telemetry"
+            ) as telemetry, patch.object(feature_flags, "logger") as log:
+                telemetry.FLUSH_API_VERSION = 1
+                feature_flags.flush_feature_flag_telemetry(context)
+                telemetry.flush.assert_not_called()
+                log.debug.assert_not_called()
+
+    def test_unsupported_tracer_skip_is_logged(self):
+        with patch.object(
+            feature_flags, "_telemetry", Mock(FLUSH_API_VERSION=2)
+        ) as telemetry, patch.object(feature_flags, "logger") as log:
+            feature_flags.flush_feature_flag_telemetry(
+                Mock(get_remaining_time_in_millis=lambda: 1000)
+            )
+            telemetry.flush.assert_not_called()
+            log.debug.assert_called_once_with(
+                "Skipping feature flag telemetry flush: unsupported tracer"
+            )
+
+    def test_disabled_feature_flags_do_not_import_flush_modules(self):
+        code = textwrap.dedent("""
+            import sys
+
+            class BlockFlushImports:
+                def find_spec(self, fullname, *args):
+                    if fullname in (
+                        "datadog_lambda.feature_flags",
+                        "ddtrace.internal.openfeature._telemetry",
+                    ):
+                        raise AssertionError("unexpected import: " + fullname)
+
+            sys.meta_path.insert(0, BlockFlushImports())
+            from datadog_lambda import wrapper
+            assert not wrapper.config.feature_flags_enabled
+            assert "datadog_lambda.feature_flags" not in sys.modules
+            assert "ddtrace.internal.openfeature._telemetry" not in sys.modules
+            """)
+        result = subprocess.run(
+            [sys.executable, "-c", code],
+            env={
+                **os.environ,
+                "DD_FEATURE_FLAGS_ENABLED": "false",
+                "DD_INSTRUMENTATION_TELEMETRY_ENABLED": "false",
+            },
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_incomplete_diagnostic(self):
         with patch.object(feature_flags, "_telemetry") as telemetry, patch.object(

@@ -9,7 +9,6 @@ import ujson as json
 from importlib import import_module
 from time import time_ns
 
-from datadog_lambda.feature_flags import flush_feature_flag_telemetry
 from datadog_lambda.extension import should_use_extension, flush_extension
 from datadog_lambda.cold_start import (
     set_cold_start,
@@ -77,6 +76,10 @@ if config.profiling_enabled:
 
 if config.llmobs_enabled:
     from ddtrace.llmobs import LLMObs
+
+flush_feature_flag_telemetry = None
+if config.feature_flags_enabled:
+    from datadog_lambda.feature_flags import flush_feature_flag_telemetry
 
 if config.exception_replay_enabled:
     from ddtrace.debugging._exception.replay import SpanExceptionHandler
@@ -212,7 +215,11 @@ class _LambdaDecorator(object):
             except Exception as e:
                 logger.error(format_err_with_traceback(e))
             finally:
-                flush_feature_flag_telemetry(context)
+                if (
+                    config.feature_flags_enabled
+                    and flush_feature_flag_telemetry is not None
+                ):
+                    flush_feature_flag_telemetry(context)
         if self.blocking_response:
             return self.blocking_response
         return self.response

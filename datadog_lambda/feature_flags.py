@@ -17,14 +17,19 @@ SAFETY_MARGIN_MS = 100.0
 
 def flush_feature_flag_telemetry(context):
     try:
-        if _telemetry is None or getattr(_telemetry, "FLUSH_API_VERSION", None) != 1:
+        if _telemetry is None:
+            return
+        if getattr(_telemetry, "FLUSH_API_VERSION", None) != 1:
+            logger.debug("Skipping feature flag telemetry flush: unsupported tracer")
             return
         cap_ms = config.feature_flag_flush_timeout_ms
         if not math.isfinite(cap_ms) or cap_ms <= 0:
             return
         # No remaining-time information means no safe invocation budget.
-        remaining_ms = context.get_remaining_time_in_millis()
-        budget_ms = min(cap_ms, remaining_ms - SAFETY_MARGIN_MS)
+        get_remaining_ms = getattr(context, "get_remaining_time_in_millis", None)
+        if get_remaining_ms is None:
+            return
+        budget_ms = min(cap_ms, get_remaining_ms() - SAFETY_MARGIN_MS)
         if budget_ms <= 0:
             logger.debug(
                 "Skipping feature flag telemetry flush: no invocation time remains"

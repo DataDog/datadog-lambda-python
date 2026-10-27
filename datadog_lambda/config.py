@@ -85,6 +85,7 @@ class Config:
     enhanced_metrics_enabled = _get_env("DD_ENHANCED_METRICS", "true", as_bool)
 
     flush_in_thread = _get_env("DD_FLUSH_IN_THREAD", "false", as_bool)
+    feature_flags_enabled = _get_env("DD_FEATURE_FLAGS_ENABLED", "true", as_bool)
     feature_flag_flush_timeout_ms = _get_env(
         "DD_FEATURE_FLAGS_FLUSH_TIMEOUT_MS", 500.0, float
     )

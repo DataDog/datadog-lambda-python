@@ -4,6 +4,7 @@ import os
 import unittest
 import importlib
 import sys
+import types
 import pytest
 
 from unittest.mock import MagicMock, patch, call, ANY
@@ -76,6 +77,58 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         # Mock the layer version so we don't have to update tests on every version bump
         self.mock_dd_lambda_layer_tag = patcher.start()
         self.addCleanup(patcher.stop)
+
+    def test_real_decorator_calls_feature_flag_flush_contract(self):
+        import ddtrace.internal.openfeature as openfeature_pkg
+        from datadog_lambda import feature_flags
+
+        calls = []
+        fake = types.ModuleType("ddtrace.internal.openfeature._telemetry")
+        fake.FLUSH_API_VERSION = 1
+        fake.flush = lambda timeout: calls.append(timeout) or "completed"
+        self.addCleanup(importlib.reload, feature_flags)
+        with patch.dict(sys.modules, {fake.__name__: fake}), patch.object(
+            openfeature_pkg, "_telemetry", fake, create=True
+        ), patch.object(type(config), "feature_flags_enabled", True):
+            importlib.reload(feature_flags)
+            context = get_mock_context()
+            context.get_remaining_time_in_millis = lambda: 30000
+
+            handler = wrapper.datadog_lambda_wrapper(
+                lambda event, context: {"ok": True}
+            )
+            self.assertEqual(handler({}, context), {"ok": True})
+
+            error = ValueError("handler error")
+
+            def raising(event, context):
+                raise error
+
+            with self.assertRaises(ValueError) as caught:
+                wrapper.datadog_lambda_wrapper(raising)({}, context)
+            self.assertIs(caught.exception, error)
+        self.assertEqual(calls, [0.5, 0.5])
+
+    def test_disabled_feature_flags_skip_flush(self):
+        with patch.object(type(config), "feature_flags_enabled", False), patch.object(
+            wrapper, "flush_feature_flag_telemetry"
+        ) as flush:
+            context = get_mock_context()
+            context.get_remaining_time_in_millis = lambda: 30000
+            handler = wrapper.datadog_lambda_wrapper(
+                lambda event, context: {"ok": True}
+            )
+            self.assertEqual(handler({}, context), {"ok": True})
+
+            error = ValueError("handler error")
+
+            def raising(event, context):
+                raise error
+
+            with self.assertRaises(ValueError) as caught:
+                wrapper.datadog_lambda_wrapper(raising)({}, context)
+            self.assertIs(caught.exception, error)
+            flush.assert_not_called()
 
     @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_datadog_lambda_wrapper(self):
