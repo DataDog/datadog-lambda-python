@@ -38,7 +38,8 @@ RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
 RUN rm -rf \
     ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast \
     ./python/lib/$runtime/site-packages/ddtrace/appsec/sca \
-    ./python/lib/$runtime/site-packages/ddtrace/appsec/_shared
+    ./python/lib/$runtime/site-packages/ddtrace/appsec/_shared \
+    ./python/lib/$runtime/site-packages/ddtrace/internal/security/_stacktrace*.so
 
 # CI Visibility paths/integrations
 RUN rm -rf \
