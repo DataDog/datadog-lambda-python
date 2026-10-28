@@ -4,6 +4,8 @@ import os
 import unittest
 import importlib
 import sys
+import types
+from contextlib import ExitStack
 import pytest
 
 from unittest.mock import MagicMock, patch, call, ANY
@@ -13,6 +15,7 @@ import datadog_lambda.wrapper as wrapper
 import datadog_lambda.xray as xray
 
 from datadog_lambda.config import config
+from datadog_lambda import feature_flags
 from datadog_lambda.metric import lambda_metric
 from datadog_lambda.thread_stats_writer import ThreadStatsWriter
 from ddtrace.trace import Span, tracer
@@ -76,6 +79,225 @@ class TestDatadogLambdaWrapper(unittest.TestCase):
         # Mock the layer version so we don't have to update tests on every version bump
         self.mock_dd_lambda_layer_tag = patcher.start()
         self.addCleanup(patcher.stop)
+
+    @unittest.skipUnless(
+        feature_flags._telemetry is not None
+        and importlib.util.find_spec("openfeature") is not None,
+        "requires tracer flush contract v1 and the optional OpenFeature SDK",
+    )
+    def test_short_warm_invocations_flush_both_writers(self):
+        from ddtrace.internal.openfeature._flagevaluation_writer import (
+            FlagEvaluationWriter,
+            _EvalEvent,
+        )
+        from ddtrace.internal.openfeature._evp_transport import EVPRoute
+        from ddtrace.internal.openfeature.writer import ExposureWriter
+
+        route = EVPRoute("http://agent:8126", "/evp_proxy/v2", {})
+        selector = MagicMock(configuration_source="agentless")
+        selector.select.return_value = route
+        selector.send.side_effect = lambda route, send: send(route)
+        connection = MagicMock()
+        connection.getresponse.return_value.status = 202
+        evaluations = FlagEvaluationWriter(
+            route_selector=selector, connection_factory=lambda *a, **k: connection
+        )
+        exposures = ExposureWriter(
+            enabled=True,
+            route_selector=selector,
+            connection_factory=lambda *a, **k: connection,
+        )
+        original = ValueError("handler failure")
+
+        def handler(event, context):
+            evaluations.enqueue(
+                _EvalEvent("flag", "on", "allocation", "subject", {}, False, "", 1)
+            )
+            exposures.enqueue({"timestamp": 1})
+            if event.get("raise"):
+                raise original
+            return {"ok": True}
+
+        decorated = wrapper.datadog_lambda_wrapper(handler)
+        context = get_mock_context()
+        context.get_remaining_time_in_millis = lambda: 30000
+        with patch("datadog_lambda.metric.submit_errors_metric"):
+            self.assertEqual(decorated({}, context), {"ok": True})
+            self.assertEqual(connection.request.call_count, 2)
+            with self.assertRaises(ValueError) as caught:
+                decorated({"raise": True}, context)
+            self.assertIs(caught.exception, original)
+            self.assertEqual(connection.request.call_count, 4)
+            self.assertEqual(decorated({}, context), {"ok": True})
+            self.assertEqual(connection.request.call_count, 6)
+
+    def test_real_decorator_calls_feature_flag_flush_contract(self):
+        import ddtrace.internal.openfeature as openfeature_pkg
+        from datadog_lambda import feature_flags
+
+        calls = []
+        fake = types.ModuleType("ddtrace.internal.openfeature._telemetry")
+        fake.FLUSH_API_VERSION = 1
+        fake.flush = lambda timeout: calls.append(timeout) or "completed"
+        self.addCleanup(importlib.reload, feature_flags)
+        with patch.dict(sys.modules, {fake.__name__: fake}), patch.object(
+            openfeature_pkg, "_telemetry", fake, create=True
+        ), patch.object(type(config), "feature_flags_enabled", True):
+            importlib.reload(feature_flags)
+            context = get_mock_context()
+            context.get_remaining_time_in_millis = lambda: 30000
+
+            handler = wrapper.datadog_lambda_wrapper(
+                lambda event, context: {"ok": True}
+            )
+            self.assertEqual(handler({}, context), {"ok": True})
+
+            error = ValueError("handler error")
+
+            def raising(event, context):
+                raise error
+
+            with self.assertRaises(ValueError) as caught:
+                wrapper.datadog_lambda_wrapper(raising)({}, context)
+            self.assertIs(caught.exception, error)
+        self.assertEqual(calls, [0.5, 0.5])
+
+    def test_feature_flag_outcomes_allow_later_flushes(self):
+        for outcome in ("completed", "failed", "timed_out", "exception", "cooldown"):
+            for raises in (False, True):
+                with self.subTest(outcome=outcome, raises=raises), ExitStack() as stack:
+                    for name, value in (
+                        ("feature_flags_enabled", True),
+                        ("trace_enabled", False),
+                        ("cold_start_tracing", False),
+                        ("llmobs_enabled", True),
+                        ("exception_replay_enabled", True),
+                        ("local_test", True),
+                    ):
+                        stack.enter_context(patch.object(type(config), name, value))
+                    stack.enter_context(
+                        patch.object(wrapper, "should_use_extension", True)
+                    )
+                    stack.enter_context(
+                        patch.object(wrapper, "SpanExceptionHandler", create=True)
+                    )
+                    stack.enter_context(
+                        patch.object(feature_flags, "_consecutive_timeouts", 0)
+                    )
+                    stack.enter_context(
+                        patch.object(
+                            feature_flags,
+                            "_skip_until",
+                            1060.0 if outcome == "cooldown" else 0.0,
+                        )
+                    )
+                    stack.enter_context(
+                        patch.object(feature_flags, "monotonic", return_value=1000.0)
+                    )
+                    telemetry = stack.enter_context(
+                        patch.object(feature_flags, "_telemetry")
+                    )
+                    telemetry.FLUSH_API_VERSION = 1
+                    events = []
+
+                    def flush_flags(timeout):
+                        events.append("flags")
+                        if outcome == "exception":
+                            raise RuntimeError("telemetry unavailable")
+                        return outcome
+
+                    telemetry.flush.side_effect = flush_flags
+                    stack.enter_context(
+                        patch(
+                            "datadog_lambda.metric.flush_stats",
+                            side_effect=lambda context: events.append("metrics"),
+                        )
+                    )
+                    stack.enter_context(
+                        patch.object(
+                            wrapper,
+                            "flush_extension",
+                            side_effect=lambda: events.append("extension"),
+                        )
+                    )
+                    llmobs = stack.enter_context(
+                        patch.object(wrapper, "LLMObs", create=True)
+                    )
+                    llmobs.flush.side_effect = lambda: events.append("llmobs")
+                    replay = stack.enter_context(
+                        patch.object(wrapper, "SignalUploader", create=True)
+                    )
+                    replay._instance.periodic.side_effect = lambda: events.append(
+                        "replay"
+                    )
+                    error = ValueError("handler error")
+
+                    def handler(event, context):
+                        if raises:
+                            raise error
+                        return {"ok": True}
+
+                    decorated = wrapper.datadog_lambda_wrapper(handler)
+                    context = get_mock_context()
+                    context.get_remaining_time_in_millis = lambda: 30000
+                    if raises:
+                        with self.assertRaises(ValueError) as caught:
+                            decorated({}, context)
+                        self.assertIs(caught.exception, error)
+                    else:
+                        self.assertEqual(decorated({}, context), {"ok": True})
+                    expected = [] if outcome == "cooldown" else ["flags"]
+                    self.assertEqual(
+                        events, expected + ["metrics", "extension", "llmobs", "replay"]
+                    )
+
+    def test_early_cleanup_failure_skips_feature_flag_flush(self):
+        with patch.object(type(config), "feature_flags_enabled", True), patch.object(
+            wrapper, "flush_feature_flag_telemetry"
+        ) as flush, patch(
+            "datadog_lambda.metric.submit_batch_item_failures_metric",
+            side_effect=RuntimeError("earlier cleanup failure"),
+        ):
+            for raises in (False, True):
+                with self.subTest(raises=raises):
+                    error = ValueError("handler error")
+
+                    def handler(event, context):
+                        if raises:
+                            raise error
+                        return {"ok": True}
+
+                    decorated = wrapper.datadog_lambda_wrapper(handler)
+                    if raises:
+                        with self.assertRaises(ValueError) as caught:
+                            decorated({}, get_mock_context())
+                        self.assertIs(caught.exception, error)
+                    else:
+                        self.assertEqual(
+                            decorated({}, get_mock_context()), {"ok": True}
+                        )
+                    flush.assert_not_called()
+
+    def test_disabled_feature_flags_skip_flush(self):
+        with patch.object(type(config), "feature_flags_enabled", False), patch.object(
+            wrapper, "flush_feature_flag_telemetry"
+        ) as flush:
+            context = get_mock_context()
+            context.get_remaining_time_in_millis = lambda: 30000
+            handler = wrapper.datadog_lambda_wrapper(
+                lambda event, context: {"ok": True}
+            )
+            self.assertEqual(handler({}, context), {"ok": True})
+
+            error = ValueError("handler error")
+
+            def raising(event, context):
+                raise error
+
+            with self.assertRaises(ValueError) as caught:
+                wrapper.datadog_lambda_wrapper(raising)({}, context)
+            self.assertIs(caught.exception, error)
+            flush.assert_not_called()
 
     @patch("datadog_lambda.config.Config.trace_enabled", False)
     def test_datadog_lambda_wrapper(self):
