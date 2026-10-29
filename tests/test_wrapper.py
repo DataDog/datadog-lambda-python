@@ -23,6 +23,38 @@ from tests.utils import get_mock_context, reset_xray_connection
 MAX_UINT_64BITS = (1 << 64) - 1
 
 
+@pytest.mark.parametrize("sca_enabled", [False, True])
+def test_sca_startup(sca_enabled, monkeypatch):
+    product = MagicMock()
+    monkeypatch.setattr("datadog_lambda.config.Config.sca_enabled", sca_enabled)
+    monkeypatch.setitem(sys.modules, "ddtrace.internal.sca.product", product)
+
+    importlib.reload(wrapper)
+
+    assert product.mock_calls == (
+        [call.start(), call.post_preload()] if sca_enabled else []
+    )
+
+
+def test_sca_startup_with_older_tracer(monkeypatch):
+    monkeypatch.setattr("datadog_lambda.config.Config.sca_enabled", True)
+    monkeypatch.setitem(sys.modules, "ddtrace.internal.sca.product", None)
+
+    importlib.reload(wrapper)
+
+
+def test_sca_startup_failure_preserves_handler(monkeypatch):
+    product = MagicMock()
+    product.start.side_effect = RuntimeError("SCA startup failed")
+    monkeypatch.setattr("datadog_lambda.config.Config.sca_enabled", True)
+    monkeypatch.setitem(sys.modules, "ddtrace.internal.sca.product", product)
+
+    importlib.reload(wrapper)
+
+    product.post_preload.assert_not_called()
+    assert callable(wrapper.datadog_lambda_wrapper)
+
+
 class TestDatadogLambdaWrapper(unittest.TestCase):
     def setUp(self):
         # Force @datadog_lambda_wrapper to always create a real
