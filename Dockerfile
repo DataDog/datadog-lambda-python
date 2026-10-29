@@ -37,7 +37,6 @@ RUN rm -rf ./python/lib/$runtime/site-packages/jsonschema/tests
 # Remove unsupported appsec modules
 RUN rm -rf \
     ./python/lib/$runtime/site-packages/ddtrace/appsec/_iast \
-    ./python/lib/$runtime/site-packages/ddtrace/appsec/sca \
     ./python/lib/$runtime/site-packages/ddtrace/appsec/_shared
 
 # CI Visibility paths/integrations
