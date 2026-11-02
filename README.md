@@ -18,6 +18,8 @@ Follow the [configuration instructions](https://docs.datadoghq.com/serverless/co
 
 For additional tracing configuration options, check out the [official documentation for Datadog trace client](https://ddtrace.readthedocs.io/en/stable/configuration.html).
 
+For AWS Durable functions, trace context is propagated across invocations by dd-trace-py, keeping spans from multiple invocations in one intact trace per durable execution. This is controlled by the dd-trace-py environment variable `DD_DURABLE_CROSS_INVOCATION_TRACING_ENABLED` (default `true`).
+
 Besides the environment variables supported by dd-trace-py, the datadog-lambda-python library added following environment variables.
 
 | Environment Variables | Description | Default Value |
