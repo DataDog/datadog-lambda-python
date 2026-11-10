@@ -23,6 +23,8 @@ LAYER_FILES=(
     "datadog_lambda_py-arm64-3.13.zip"
     "datadog_lambda_py-amd64-3.14.zip"
     "datadog_lambda_py-arm64-3.14.zip"
+    "datadog_lambda_py-amd64-3.15.zip"
+    "datadog_lambda_py-arm64-3.15.zip"
 )
 SIGNING_PROFILE_NAME="DatadogLambdaSigningProfile"
 
