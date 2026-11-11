@@ -77,6 +77,10 @@ if config.profiling_enabled:
 if config.llmobs_enabled:
     from ddtrace.llmobs import LLMObs
 
+flush_feature_flag_telemetry = None
+if config.feature_flags_enabled:
+    from datadog_lambda.feature_flags import flush_feature_flag_telemetry
+
 if config.exception_replay_enabled:
     from ddtrace.debugging._exception.replay import SpanExceptionHandler
 
@@ -399,6 +403,12 @@ class _LambdaDecorator(object):
                     ).trace()
                 except Exception as e:
                     logger.debug("Failed to create cold start spans. %s", e)
+
+            if (
+                config.feature_flags_enabled
+                and flush_feature_flag_telemetry is not None
+            ):
+                flush_feature_flag_telemetry(context)
 
             if not config.flush_to_log or should_use_extension:
                 from datadog_lambda.metric import flush_stats
