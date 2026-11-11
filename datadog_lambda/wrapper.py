@@ -67,6 +67,18 @@ if config.appsec_enabled:
 
     start()
 
+if config.sca_enabled:
+    try:
+        from ddtrace.internal.sca.product import start as start_sca
+        from ddtrace.internal.sca.product import post_preload as instrument_sca
+
+        # The layer patches integrations before loading the wrapper. It does not
+        # use ddtrace.auto, so run both SCA startup phases before importing user code.
+        start_sca()
+        instrument_sca()
+    except Exception:
+        logger.debug("Failed to initialize SCA reachability", exc_info=True)
+
 profiler = None
 if config.profiling_enabled:
     try:

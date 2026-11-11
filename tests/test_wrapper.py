@@ -23,6 +23,23 @@ from tests.utils import get_mock_context, reset_xray_connection
 MAX_UINT_64BITS = (1 << 64) - 1
 
 
+@patch("datadog_lambda.config.Config.sca_enabled", True)
+def test_sca_enabled(monkeypatch):
+    product = MagicMock()
+    monkeypatch.setitem(sys.modules, "ddtrace.internal.sca.product", product)
+
+    importlib.reload(wrapper)
+
+    assert product.mock_calls == [call.start(), call.post_preload()]
+
+
+@patch("datadog_lambda.config.Config.sca_enabled", True)
+def test_sca_import_errors_caught(monkeypatch):
+    monkeypatch.setitem(sys.modules, "ddtrace.internal.sca.product", None)
+
+    importlib.reload(wrapper)
+
+
 class TestDatadogLambdaWrapper(unittest.TestCase):
     def setUp(self):
         # Force @datadog_lambda_wrapper to always create a real
