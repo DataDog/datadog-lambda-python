@@ -1170,7 +1170,7 @@ class TestLambdaWrapperAppsecAccessKeyId(unittest.TestCase):
             AWS_ACCESS_KEY_ID=self.access_key_id,
             AWS_SECRET_ACCESS_KEY="canary-secret-7f3b9c1e",
             AWS_SESSION_TOKEN="canary-token-2d8a6e4f",
-            DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED="true",
+            DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED="true",
             **env,
         )
         config._reset()
@@ -1262,7 +1262,7 @@ print(json.dumps({
             os.environ,
             DD_APPSEC_ENABLED="true",
             DD_TRACE_ENABLED="true",
-            DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED="true",
+            DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED="true",
             DD_TRACE_AGENT_URL="http://127.0.0.1:1",
             AWS_LAMBDA_FUNCTION_NAME="function",
             AWS_ACCESS_KEY_ID=self.access_key_id,

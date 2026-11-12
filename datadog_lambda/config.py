@@ -105,8 +105,8 @@ class Config:
     # Tags AppSec-monitored invocation spans with the execution environment's
     # AWS access key ID, for CADR. Off by default: the tag is a credential
     # identifier and has not passed the privacy review yet.
-    appsec_aws_access_key_id_enabled = _get_env(
-        "DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "false", as_bool
+    appsec_aws_access_key_id_tag_enabled = _get_env(
+        "DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", "false", as_bool
     )
 
     is_gov_region = _get_env("AWS_REGION", "", lambda x: x.startswith("us-gov-"))

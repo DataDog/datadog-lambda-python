@@ -444,7 +444,7 @@ def access_key_env(monkeypatch):
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", FAKE_ACCESS_KEY_ID)
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", CANARY_SECRET)
     monkeypatch.setenv("AWS_SESSION_TOKEN", CANARY_TOKEN)
-    monkeypatch.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    monkeypatch.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", "true")
     return monkeypatch
 
 
@@ -473,9 +473,9 @@ def test_access_key_id_tag_on_http_events(access_key_env, file):
 def test_access_key_id_tag_feature_off(access_key_env, value):
     # S2: unset or false gives no tag, and the variable is not read.
     if value is None:
-        access_key_env.delenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED")
+        access_key_env.delenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED")
     else:
-        access_key_env.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", value)
+        access_key_env.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", value)
     span = _start_request()
     assert span.get_tag(asm.AWS_ACCESS_KEY_ID_TAG) is None
     assert asm._aws_access_key_id is asm._UNREAD

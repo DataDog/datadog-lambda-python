@@ -157,7 +157,7 @@ def asm_start_request(
     else:
         return
 
-    if config.appsec_aws_access_key_id_enabled:
+    if config.appsec_aws_access_key_id_tag_enabled:
         aws_access_key_id = _get_aws_access_key_id()
         if aws_access_key_id:
             span.set_tag(AWS_ACCESS_KEY_ID_TAG, aws_access_key_id)

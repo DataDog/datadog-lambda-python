@@ -112,8 +112,8 @@ _test_config_from_environ = (
     *_test_as_bool("DD_APPSEC_ENABLED", "appsec_enabled", default=False),
     *_test_as_bool("DD_APPSEC_SCA_ENABLED", "sca_enabled", default=False),
     *_test_as_bool(
-        "DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED",
-        "appsec_aws_access_key_id_enabled",
+        "DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED",
+        "appsec_aws_access_key_id_tag_enabled",
         default=False,
     ),
     *_test_int(

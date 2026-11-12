@@ -104,7 +104,7 @@ def test_asm_start_request_access_key_id(feature, benchmark, monkeypatch):
 
     from datadog_lambda import asm
 
-    monkeypatch.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", feature)
+    monkeypatch.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", feature)
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "ASIAEXAMPLE000000001")
     monkeypatch.setattr(asm, "_aws_access_key_id", asm._UNREAD)
     with open(f"{event_samples_dir}/api-gateway.json") as f:
