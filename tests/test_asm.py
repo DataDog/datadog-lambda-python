@@ -1,8 +1,11 @@
 import json
+import logging
+import os
 import pytest
 from unittest.mock import MagicMock, patch
 
 from datadog_lambda.asm import (
+    AWS_ACCESS_KEY_ID_TAG,
     asm_start_request,
     asm_start_response,
     get_asm_blocked_response,
@@ -427,3 +430,132 @@ def test_get_asm_blocked_response_not_blocked(
     event_source = _EventSource(event_type=EventTypes.API_GATEWAY)
     response = get_asm_blocked_response(event_source)
     assert response is None
+
+
+ACCESS_KEY_ID = "ASIAEXAMPLE000000001"
+SECRET_CANARY = "canary-secret-ee3f9c1b"
+TOKEN_CANARY = "canary-token-7d41a0c2"
+
+
+@pytest.fixture
+def aws_credentials(monkeypatch):
+    import datadog_lambda.asm as asm
+
+    monkeypatch.setattr(asm, "_aws_access_key_id", asm._UNSET)
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", ACCESS_KEY_ID)
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", SECRET_CANARY)
+    monkeypatch.setenv("AWS_SESSION_TOKEN", TOKEN_CANARY)
+    return monkeypatch
+
+
+def _start_request(file="lambda-url.json"):
+    with open(event_samples + file, "r") as f:
+        event = json.load(f)
+    span = MagicMock()
+    with patch("datadog_lambda.asm.core"):
+        asm_start_request(
+            span,
+            event,
+            parse_event_source(event),
+            extract_trigger_tags(event, get_mock_context()),
+        )
+    return span
+
+
+def _access_key_tag_calls(span):
+    return [
+        c for c in span.set_tag.call_args_list if c.args[0] == AWS_ACCESS_KEY_ID_TAG
+    ]
+
+
+@pytest.mark.parametrize(
+    "file",
+    [
+        "lambda-url.json",
+        "api-gateway.json",
+        "http-api.json",
+        "application-load-balancer.json",
+    ],
+)
+def test_access_key_id_tag_set_when_enabled(aws_credentials, file):
+    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    span = _start_request(file)
+    span.set_tag.assert_any_call(AWS_ACCESS_KEY_ID_TAG, ACCESS_KEY_ID)
+    assert len(_access_key_tag_calls(span)) == 1
+
+
+@pytest.mark.parametrize("value", [None, "false", "0"])
+def test_access_key_id_tag_off_by_default(aws_credentials, value):
+    if value is not None:
+        aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", value)
+    span = _start_request()
+    assert _access_key_tag_calls(span) == []
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "",
+        "ASIA",
+        "XXXXEXAMPLE000000001",
+        "asiaexample000000001",
+        "ASIAEXAMPLE0000000012",
+        "ASIAEXAMPLE000000001\n",
+    ],
+)
+def test_access_key_id_tag_not_set_for_malformed_value(aws_credentials, value, caplog):
+    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    aws_credentials.setenv("AWS_ACCESS_KEY_ID", value)
+    with caplog.at_level(logging.DEBUG, logger="datadog_lambda.asm"):
+        span = _start_request()
+    assert _access_key_tag_calls(span) == []
+    assert all(r.levelno <= logging.DEBUG for r in caplog.records)
+
+
+def test_access_key_id_tag_not_set_when_variable_missing(aws_credentials):
+    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    aws_credentials.delenv("AWS_ACCESS_KEY_ID")
+    span = _start_request()
+    assert _access_key_tag_calls(span) == []
+
+
+def test_access_key_id_read_once(aws_credentials):
+    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    first = _start_request()
+    aws_credentials.setenv("AWS_ACCESS_KEY_ID", "AKIAEXAMPLE000000002")
+    second = _start_request()
+    first.set_tag.assert_any_call(AWS_ACCESS_KEY_ID_TAG, ACCESS_KEY_ID)
+    second.set_tag.assert_any_call(AWS_ACCESS_KEY_ID_TAG, ACCESS_KEY_ID)
+
+
+def test_access_key_id_tag_not_set_for_non_http_event(aws_credentials):
+    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    span = _start_request("sqs-batch.json")
+    assert _access_key_tag_calls(span) == []
+
+
+class _GuardedEnviron(dict):
+    """Fails the test if the secret access key or the session token is read"""
+
+    FORBIDDEN = ("AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN")
+
+    def __getitem__(self, key):
+        assert key not in self.FORBIDDEN, f"{key} was read"
+        return super().__getitem__(key)
+
+    def get(self, key, default=None):
+        assert key not in self.FORBIDDEN, f"{key} was read"
+        return super().get(key, default)
+
+
+def test_access_key_id_never_reads_secret_or_token(aws_credentials, caplog):
+    import datadog_lambda.asm as asm
+
+    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    aws_credentials.setattr(asm.os, "environ", _GuardedEnviron(os.environ))
+    with caplog.at_level(logging.DEBUG):
+        span = _start_request()
+    span.set_tag.assert_any_call(AWS_ACCESS_KEY_ID_TAG, ACCESS_KEY_ID)
+    recorded = repr(span.mock_calls) + caplog.text
+    assert SECRET_CANARY not in recorded
+    assert TOKEN_CANARY not in recorded
