@@ -111,6 +111,11 @@ _test_config_from_environ = (
     *_test_as_bool("DD_DATA_STREAMS_ENABLED", "data_streams_enabled", default=False),
     *_test_as_bool("DD_APPSEC_ENABLED", "appsec_enabled", default=False),
     *_test_as_bool("DD_APPSEC_SCA_ENABLED", "sca_enabled", default=False),
+    *_test_as_bool(
+        "DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED",
+        "appsec_aws_access_key_id_tag_enabled",
+        default=False,
+    ),
     *_test_int(
         "DD_CAPTURE_LAMBDA_PAYLOAD_MAX_DEPTH", "capture_payload_max_depth", default=10
     ),

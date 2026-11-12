@@ -95,3 +95,23 @@ def test_xray_send_segment(benchmark, monkeypatch):
     }
     benchmark(xray.send_segment, XraySubsegment.TRACE_KEY, key)
     assert sends
+
+
+@pytest.mark.parametrize("feature", ["false", "true"])
+def test_asm_start_request_access_key_id(feature, benchmark, monkeypatch):
+    # Feature overhead of the AWS access key ID tag: compare "true" to "false".
+    from unittest.mock import patch
+
+    from datadog_lambda import asm
+
+    monkeypatch.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", feature)
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "ASIAEXAMPLE000000001")
+    monkeypatch.setattr(asm, "_aws_access_key_id", asm._UNREAD)
+    with open(f"{event_samples_dir}/api-gateway.json") as f:
+        event = json.load(f)
+    context = get_mock_context()
+    event_source = trigger.parse_event_source(event)
+    trigger_tags = trigger.extract_trigger_tags(event, context)
+    span = ddtrace.trace.tracer.start_span("aws.lambda")
+    with patch("datadog_lambda.asm.core"):
+        benchmark(asm.asm_start_request, span, event, event_source, trigger_tags)

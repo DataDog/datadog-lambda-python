@@ -1149,3 +1149,150 @@ class TestAlbInferredSpanWrapper(unittest.TestCase):
         self.assertEqual(inferred.get_tag("http.status_code"), "200")
         self.assertEqual(inferred.get_tag("http.route"), "/lambda")
         self.assertEqual(execution.parent_id, inferred.span_id)
+
+
+class TestLambdaWrapperAppsecAccessKeyId(unittest.TestCase):
+    """The AWS access key ID tag on the invocation span (RFC "CADR for AWS
+    Lambda", scenarios S1, S4, S6, S7 and S8)."""
+
+    access_key_id = "ASIAEXAMPLE000000001"
+
+    def _set_env(self, **values):
+        for key, value in values.items():
+            self.addCleanup(os.environ.pop, key, None)
+            os.environ[key] = value
+
+    def _load_wrapper(self, **env):
+        import datadog_lambda.asm as asm
+
+        self._set_env(
+            DD_TRACE_ENABLED="true",
+            AWS_ACCESS_KEY_ID=self.access_key_id,
+            AWS_SECRET_ACCESS_KEY="canary-secret-7f3b9c1e",
+            AWS_SESSION_TOKEN="canary-token-2d8a6e4f",
+            DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED="true",
+            **env,
+        )
+        config._reset()
+        patcher = patch.object(asm, "_aws_access_key_id", asm._UNREAD)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        importlib.reload(wrapper)
+        self.addCleanup(lambda: importlib.reload(wrapper))
+        self.addCleanup(config._reset)
+
+    def _invoke(self, event_file="api-gateway.json", query=None):
+        with open(f"tests/event_samples/{event_file}") as f:
+            event = json.loads(f.read())
+        if query is not None:
+            event["multiValueQueryStringParameters"] = query
+            event["queryStringParameters"] = {k: v[0] for k, v in query.items()}
+        lambda_handler = wrapper.datadog_lambda_wrapper(
+            lambda event, context: {"statusCode": 200, "body": "ok"}
+        )
+        lambda_handler(event, get_mock_context())
+        return lambda_handler
+
+    def test_tag_on_invocation_span(self):
+        # S1: the tag is on aws.lambda, the span AppSec runs on.
+        self._load_wrapper(DD_APPSEC_ENABLED="true")
+        handler = self._invoke()
+        self.assertEqual(handler.span.name, "aws.lambda")
+        self.assertEqual(
+            handler.span.get_tag("aws.lambda.access_key_id"), self.access_key_id
+        )
+        self.assertIsNone(
+            handler.inferred_span.get_tag("aws.lambda.access_key_id"),
+            "only the invocation span carries the tag",
+        )
+
+    def test_no_tag_when_appsec_off(self):
+        # S4: AppSec off, feature on.
+        self._load_wrapper(DD_APPSEC_ENABLED="false")
+        handler = self._invoke()
+        self.assertIsNone(handler.span.get_tag("aws.lambda.access_key_id"))
+
+    def test_no_tag_when_only_extension_appsec_on(self):
+        # S8: extension AppSec on, tracer AppSec off: the wrapper does not tag.
+        self._load_wrapper(
+            DD_APPSEC_ENABLED="false", DD_SERVERLESS_APPSEC_ENABLED="true"
+        )
+        handler = self._invoke()
+        self.assertIsNone(handler.span.get_tag("aws.lambda.access_key_id"))
+
+    def test_tag_when_both_appsec_paths_on(self):
+        # S9c (RFC D5): an exec wrapper that keeps DD_APPSEC_ENABLED=true while
+        # extension AppSec is on. The wrapper's AppSec runs on the span, so the
+        # wrapper tags it; the extension does not overwrite a value it finds.
+        self._load_wrapper(
+            DD_APPSEC_ENABLED="true", DD_SERVERLESS_APPSEC_ENABLED="true"
+        )
+        handler = self._invoke()
+        self.assertEqual(
+            handler.span.get_tag("aws.lambda.access_key_id"), self.access_key_id
+        )
+
+    def test_same_value_on_two_invocations(self):
+        # S6: two invocations on one execution environment.
+        self._load_wrapper(DD_APPSEC_ENABLED="true")
+        first = self._invoke()
+        os.environ["AWS_ACCESS_KEY_ID"] = "ASIAEXAMPLE000000002"
+        second = self._invoke()
+        for handler in (first, second):
+            self.assertEqual(
+                handler.span.get_tag("aws.lambda.access_key_id"), self.access_key_id
+            )
+
+    def test_tag_with_appsec_event(self):
+        # S7: a request that triggers crs-930-120 still raises the AppSec
+        # event, and the span carries the tag. ddtrace reads DD_APPSEC_ENABLED
+        # when it is imported, so the real WAF runs in a fresh interpreter.
+        import subprocess
+
+        script = """
+import json
+from datadog_lambda import wrapper
+from tests.utils import get_mock_context
+with open("tests/event_samples/api-gateway.json") as f:
+    event = json.load(f)
+event["multiValueQueryStringParameters"] = {"file": ["/proc/self/environ"]}
+event["queryStringParameters"] = {"file": "/proc/self/environ"}
+handler = wrapper.datadog_lambda_wrapper(
+    lambda e, c: {"statusCode": 200, "body": "ok"}
+)
+handler(event, get_mock_context())
+span = handler.span
+appsec = span._get_struct_tag("appsec") or {}
+print(json.dumps({
+    "tag": span.get_tag("aws.lambda.access_key_id"),
+    "event": span.get_tag("appsec.event"),
+    "rules": [t["rule"]["id"] for t in appsec.get("triggers", [])],
+    "payload": json.dumps([span.get_tags(), span.get_metrics(), appsec]),
+}))
+"""
+        env = dict(
+            os.environ,
+            DD_APPSEC_ENABLED="true",
+            DD_TRACE_ENABLED="true",
+            DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED="true",
+            DD_TRACE_AGENT_URL="http://127.0.0.1:1",
+            AWS_LAMBDA_FUNCTION_NAME="function",
+            AWS_ACCESS_KEY_ID=self.access_key_id,
+            AWS_SECRET_ACCESS_KEY="canary-secret-7f3b9c1e",
+            AWS_SESSION_TOKEN="canary-token-2d8a6e4f",
+        )
+        out = subprocess.run(
+            [sys.executable, "-c", script],
+            env=env,
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=True,
+        ).stdout
+        result = json.loads(out.strip().splitlines()[-1])
+        self.assertEqual(result["tag"], self.access_key_id)
+        self.assertEqual(result["event"], "true")
+        self.assertIn("crs-930-120", result["rules"])
+        # S3 on the span: the canaries appear in no tag, metric or event.
+        self.assertNotIn("canary-secret-7f3b9c1e", result["payload"])
+        self.assertNotIn("canary-token-2d8a6e4f", result["payload"])
