@@ -1,4 +1,6 @@
 import logging
+import os
+import re
 import urllib.parse
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Union
@@ -9,6 +11,7 @@ from ddtrace.internal.utils import get_blocked
 from ddtrace.internal.utils import http as http_utils
 from ddtrace.trace import Span
 
+from datadog_lambda.config import config
 from datadog_lambda.trigger import (
     EventSubtypes,
     EventTypes,
@@ -17,6 +20,39 @@ from datadog_lambda.trigger import (
 )
 
 logger = logging.getLogger(__name__)
+
+AWS_ACCESS_KEY_ID_TAG = "aws.lambda.access_key_id"
+_AWS_ACCESS_KEY_ID_RE = re.compile(r"(ASIA|AKIA)[A-Z0-9]{16}")
+_SNAP_START_INITIALIZATION_TYPE = "snap-start"
+
+# Read once per execution environment, on the first monitored invocation.
+_UNREAD = object()
+_aws_access_key_id = _UNREAD
+
+
+def _read_aws_access_key_id() -> Optional[str]:
+    """Read and validate the execution environment's AWS access key ID.
+
+    Only AWS_ACCESS_KEY_ID is read: the secret access key and the session
+    token are never read for this feature.
+    """
+    if config.aws_lambda_initialization_type == _SNAP_START_INITIALIZATION_TYPE:
+        # The environment was captured before the snapshot, so any value in it
+        # would be the pre-snapshot one, shared by every restored environment.
+        logger.debug("SnapStart function: not tagging the AWS access key ID")
+        return None
+    value = os.environ.get("AWS_ACCESS_KEY_ID", "")
+    if not _AWS_ACCESS_KEY_ID_RE.fullmatch(value):
+        logger.debug("AWS access key ID missing or malformed: not tagging")
+        return None
+    return value
+
+
+def _get_aws_access_key_id() -> Optional[str]:
+    global _aws_access_key_id
+    if _aws_access_key_id is _UNREAD:
+        _aws_access_key_id = _read_aws_access_key_id()
+    return _aws_access_key_id  # type: ignore[return-value]
 
 
 def _to_single_value_headers(headers: Dict[str, List[str]]) -> Dict[str, str]:
@@ -120,6 +156,11 @@ def asm_start_request(
 
     else:
         return
+
+    if config.appsec_aws_access_key_id_enabled:
+        aws_access_key_id = _get_aws_access_key_id()
+        if aws_access_key_id:
+            span.set_tag(AWS_ACCESS_KEY_ID_TAG, aws_access_key_id)
 
     body = event.get("body")
     is_base64_encoded = event.get("isBase64Encoded", False)
