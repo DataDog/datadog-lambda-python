@@ -43,7 +43,7 @@ default:
 build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: build
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:27.3.1@sha256:966b6cd18c53e3730e7aaea2c0ca6b6b9877dcff11d9446f25ee5bc2293585d0
+  image: registry.ddbuild.io/images/docker:v152537305-593bdcb-27.3.1@sha256:0d9ee7bf1fc4c02ca8a2ad6c14b421ef89fa90d63b832ad4515f5fabdd6b0200
   artifacts:
     expire_in: 1 day # Unsigned zips expire in 1 day
     paths:
@@ -58,7 +58,7 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
 check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:27.3.1@sha256:966b6cd18c53e3730e7aaea2c0ca6b6b9877dcff11d9446f25ee5bc2293585d0
+  image: registry.ddbuild.io/images/docker:v152537305-593bdcb-27.3.1@sha256:0d9ee7bf1fc4c02ca8a2ad6c14b421ef89fa90d63b832ad4515f5fabdd6b0200
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
@@ -104,7 +104,7 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
 integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3@sha256:a1e09b5d90ac6c8576313064f1b0e5809ba718355715fb43a832ea7aa1ec7b70
+  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
   rules:
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
@@ -130,7 +130,7 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3@sha256:a1e09b5d90ac6c8576313064f1b0e5809ba718355715fb43a832ea7aa1ec7b70
+  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
       when: manual
@@ -162,7 +162,7 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
 publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: publish
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3@sha256:a1e09b5d90ac6c8576313064f1b0e5809ba718355715fb43a832ea7aa1ec7b70
+  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
   rules:
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
@@ -210,7 +210,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
 publish-pypi-package:
   stage: publish
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3@sha256:a1e09b5d90ac6c8576313064f1b0e5809ba718355715fb43a832ea7aa1ec7b70
+  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
   before_script:
     - *install-python-tools
     - ./scripts/setup_python_env.sh
@@ -227,7 +227,7 @@ publish-pypi-package:
 layer bundle:
   stage: build
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:27.3.1@sha256:966b6cd18c53e3730e7aaea2c0ca6b6b9877dcff11d9446f25ee5bc2293585d0
+  image: registry.ddbuild.io/images/docker:v152537305-593bdcb-27.3.1@sha256:0d9ee7bf1fc4c02ca8a2ad6c14b421ef89fa90d63b832ad4515f5fabdd6b0200
   needs:
     {{ range (ds "runtimes").runtimes }}
     - build-layer ({{ .name }}-{{ .arch }})
@@ -248,7 +248,7 @@ layer bundle:
 
 signed layer bundle:
   stage: sign
-  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3@sha256:a1e09b5d90ac6c8576313064f1b0e5809ba718355715fb43a832ea7aa1ec7b70
+  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
   tags: ["arch:amd64"]
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
@@ -296,7 +296,7 @@ e2e-test:
 
 e2e-test-status:
   stage: e2e
-  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3@sha256:a1e09b5d90ac6c8576313064f1b0e5809ba718355715fb43a832ea7aa1ec7b70
+  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
   tags: ["arch:amd64"]
   timeout: 3h
   rules:
