@@ -1158,9 +1158,11 @@ class TestLambdaWrapperAppsecAccessKeyId(unittest.TestCase):
     access_key_id = "ASIAEXAMPLE000000001"
 
     def _set_env(self, **values):
-        for key, value in values.items():
-            self.addCleanup(os.environ.pop, key, None)
-            os.environ[key] = value
+        # patch.dict restores the environment as it was, including any
+        # variable a test changes directly.
+        patcher = patch.dict(os.environ, values)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def _load_wrapper(self, **env):
         import datadog_lambda.asm as asm
@@ -1281,15 +1283,15 @@ print(json.dumps({
             AWS_SECRET_ACCESS_KEY="canary-secret-7f3b9c1e",
             AWS_SESSION_TOKEN="canary-token-2d8a6e4f",
         )
-        out = subprocess.run(
+        proc = subprocess.run(
             [sys.executable, "-c", script],
             env=env,
             capture_output=True,
             text=True,
             timeout=60,
-            check=True,
-        ).stdout
-        result = json.loads(out.strip().splitlines()[-1])
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        result = json.loads(proc.stdout.strip().splitlines()[-1])
         self.assertEqual(result["tag"], self.access_key_id)
         self.assertEqual(result["event"], "true")
         self.assertIn("crs-930-120", result["rules"])
