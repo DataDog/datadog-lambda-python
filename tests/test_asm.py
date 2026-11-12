@@ -2,6 +2,9 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 
+from ddtrace.trace import Span
+
+from datadog_lambda import asm
 from datadog_lambda.asm import (
     asm_start_request,
     asm_start_response,
@@ -427,3 +430,185 @@ def test_get_asm_blocked_response_not_blocked(
     event_source = _EventSource(event_type=EventTypes.API_GATEWAY)
     response = get_asm_blocked_response(event_source)
     assert response is None
+
+
+# Tests for the AWS access key ID tag (RFC "CADR for AWS Lambda", D1 to D8).
+FAKE_ACCESS_KEY_ID = "ASIAEXAMPLE000000001"
+CANARY_SECRET = "canary-secret-7f3b9c1e"
+CANARY_TOKEN = "canary-token-2d8a6e4f"
+
+
+@pytest.fixture
+def access_key_env(monkeypatch):
+    monkeypatch.setattr(asm, "_aws_access_key_id", asm._UNREAD)
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", FAKE_ACCESS_KEY_ID)
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", CANARY_SECRET)
+    monkeypatch.setenv("AWS_SESSION_TOKEN", CANARY_TOKEN)
+    monkeypatch.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", "true")
+    return monkeypatch
+
+
+def _start_request(file="lambda-url.json"):
+    with open(event_samples + file, "r") as f:
+        event = json.load(f)
+    span = Span("aws.lambda")
+    with patch("datadog_lambda.asm.core"):
+        asm_start_request(
+            span, event, parse_event_source(event), extract_trigger_tags(event, ctx)
+        )
+    return span
+
+
+ctx = get_mock_context()
+
+
+@pytest.mark.parametrize("file", [case[1] for case in ASM_START_REQUEST_TEST_CASES])
+def test_access_key_id_tag_on_http_events(access_key_env, file):
+    # S1: every HTTP event type that AppSec monitors carries the tag.
+    span = _start_request(file)
+    assert span.get_tag(asm.AWS_ACCESS_KEY_ID_TAG) == FAKE_ACCESS_KEY_ID
+
+
+@pytest.mark.parametrize("value", [None, "false", "0", "no"])
+def test_access_key_id_tag_feature_off(access_key_env, value):
+    # S2: unset or false gives no tag, and the variable is not read.
+    if value is None:
+        access_key_env.delenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED")
+    else:
+        access_key_env.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", value)
+    span = _start_request()
+    assert span.get_tag(asm.AWS_ACCESS_KEY_ID_TAG) is None
+    assert asm._aws_access_key_id is asm._UNREAD
+
+
+@pytest.mark.parametrize("file", [case[1] for case in ASM_START_REQUEST_TEST_CASES])
+def test_access_key_id_tag_never_carries_secret_or_token(access_key_env, file):
+    # S3: neither canary appears anywhere on the span.
+    span = _start_request(file)
+    serialized = json.dumps(span.get_tags()) + json.dumps(span.get_metrics())
+    assert CANARY_SECRET not in serialized
+    assert CANARY_TOKEN not in serialized
+
+
+def test_access_key_id_read_ignores_secret_and_token(access_key_env):
+    # D1: only AWS_ACCESS_KEY_ID is read from the environment.
+    env = {
+        "AWS_ACCESS_KEY_ID": FAKE_ACCESS_KEY_ID,
+        "AWS_SECRET_ACCESS_KEY": CANARY_SECRET,
+        "AWS_SESSION_TOKEN": CANARY_TOKEN,
+    }
+    with patch("datadog_lambda.asm.os.environ") as environ:
+        environ.get.side_effect = lambda key, default=None: env.get(key, default)
+        assert asm._get_aws_access_key_id() == FAKE_ACCESS_KEY_ID
+    read_keys = {c.args[0] for c in environ.get.call_args_list}
+    # The initialization type is read through config, for the SnapStart check.
+    assert read_keys <= {"AWS_ACCESS_KEY_ID", "AWS_LAMBDA_INITIALIZATION_TYPE"}
+    assert "AWS_SECRET_ACCESS_KEY" not in str(environ.mock_calls)
+    assert "AWS_SESSION_TOKEN" not in str(environ.mock_calls)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "",
+        "ASIAEXAMPLE00000000",  # 15 characters after the prefix
+        "ASIAEXAMPLE0000000011",  # 17 characters after the prefix
+        "asiaexample000000001",  # lower case
+        "ABIAEXAMPLE000000001",  # unknown prefix
+        "ASIAEXAMPLE00000000!",
+        "ASIAEXAMPLE000000001\n",  # trailing newline
+        " ASIAEXAMPLE000000001",
+    ],
+)
+def test_access_key_id_tag_empty_or_malformed(access_key_env, caplog, value):
+    # S5: no tag and nothing logged above debug.
+    access_key_env.setenv("AWS_ACCESS_KEY_ID", value)
+    with caplog.at_level("DEBUG", logger="datadog_lambda.asm"):
+        span = _start_request()
+    assert span.get_tag(asm.AWS_ACCESS_KEY_ID_TAG) is None
+    assert all(r.levelname == "DEBUG" for r in caplog.records)
+    assert all(value not in r.getMessage() for r in caplog.records if value)
+
+
+def test_access_key_id_tag_missing(access_key_env, caplog):
+    # S5: missing variable.
+    access_key_env.delenv("AWS_ACCESS_KEY_ID")
+    with caplog.at_level("DEBUG", logger="datadog_lambda.asm"):
+        span = _start_request()
+    assert span.get_tag(asm.AWS_ACCESS_KEY_ID_TAG) is None
+    assert all(r.levelname == "DEBUG" for r in caplog.records)
+
+
+def test_access_key_id_tag_akia_prefix(access_key_env):
+    # D3: long-term keys (AKIA) are valid too.
+    access_key_env.setenv("AWS_ACCESS_KEY_ID", "AKIAEXAMPLE000000001")
+    span = _start_request()
+    assert span.get_tag(asm.AWS_ACCESS_KEY_ID_TAG) == "AKIAEXAMPLE000000001"
+
+
+def test_access_key_id_read_once(access_key_env):
+    # S6 and D2: same value on two invocations, the variable is read once.
+    with patch(
+        "datadog_lambda.asm._read_aws_access_key_id", wraps=asm._read_aws_access_key_id
+    ) as read:
+        first = _start_request()
+        access_key_env.setenv("AWS_ACCESS_KEY_ID", "ASIAEXAMPLE000000002")
+        second = _start_request()
+    assert read.call_count == 1
+    assert first.get_tag(asm.AWS_ACCESS_KEY_ID_TAG) == FAKE_ACCESS_KEY_ID
+    assert second.get_tag(asm.AWS_ACCESS_KEY_ID_TAG) == FAKE_ACCESS_KEY_ID
+
+
+def test_access_key_id_invalid_value_is_cached(access_key_env):
+    # D2: a missing value is cached too, so there is no read per invocation.
+    access_key_env.setenv("AWS_ACCESS_KEY_ID", "")
+    _start_request()
+    access_key_env.setenv("AWS_ACCESS_KEY_ID", FAKE_ACCESS_KEY_ID)
+    span = _start_request()
+    assert span.get_tag(asm.AWS_ACCESS_KEY_ID_TAG) is None
+
+
+def test_access_key_id_tag_snapstart(access_key_env):
+    # D2: on SnapStart the environment predates the snapshot: no tag.
+    access_key_env.setenv("AWS_LAMBDA_INITIALIZATION_TYPE", "snap-start")
+    span = _start_request()
+    assert span.get_tag(asm.AWS_ACCESS_KEY_ID_TAG) is None
+
+
+@pytest.mark.parametrize(
+    "init_type", ["on-demand", "provisioned-concurrency", "lambda-managed-instances"]
+)
+def test_access_key_id_tag_other_initialization_types(access_key_env, init_type):
+    access_key_env.setenv("AWS_LAMBDA_INITIALIZATION_TYPE", init_type)
+    span = _start_request()
+    assert span.get_tag(asm.AWS_ACCESS_KEY_ID_TAG) == FAKE_ACCESS_KEY_ID
+
+
+@pytest.mark.parametrize(
+    "file", ["sqs-batch.json", "eventbridge-custom.json", "sns-batch.json"]
+)
+def test_access_key_id_tag_not_on_non_http_events(access_key_env, file):
+    # D4: AppSec does not monitor non-HTTP events, so they carry no tag.
+    span = _start_request(file)
+    assert span.get_tag(asm.AWS_ACCESS_KEY_ID_TAG) is None
+
+
+def test_access_key_id_tag_set_before_dispatch(access_key_env):
+    # S7: the tag is on the span before the WAF runs, so a span that AppSec
+    # blocks or flags at request time carries it.
+    with open(event_samples + "lambda-url.json", "r") as f:
+        event = json.load(f)
+    event["rawQueryString"] = "file=/proc/self/environ"
+    event["queryStringParameters"] = {"file": "/proc/self/environ"}
+    span = Span("aws.lambda")
+    seen = {}
+
+    def dispatch(name, args):
+        seen[name] = args[0].get_tag(asm.AWS_ACCESS_KEY_ID_TAG)
+
+    with patch("datadog_lambda.asm.core") as mock_core:
+        mock_core.dispatch.side_effect = dispatch
+        asm_start_request(
+            span, event, parse_event_source(event), extract_trigger_tags(event, ctx)
+        )
+    assert seen == {"aws_lambda.start_request": FAKE_ACCESS_KEY_ID}
