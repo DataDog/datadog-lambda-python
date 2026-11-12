@@ -478,7 +478,7 @@ def _access_key_tag_calls(span):
     ],
 )
 def test_access_key_id_tag_set_when_enabled(aws_credentials, file):
-    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", "true")
     span = _start_request(file)
     span.set_tag.assert_any_call(AWS_ACCESS_KEY_ID_TAG, ACCESS_KEY_ID)
     assert len(_access_key_tag_calls(span)) == 1
@@ -487,7 +487,7 @@ def test_access_key_id_tag_set_when_enabled(aws_credentials, file):
 @pytest.mark.parametrize("value", [None, "false", "0"])
 def test_access_key_id_tag_off_by_default(aws_credentials, value):
     if value is not None:
-        aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", value)
+        aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", value)
     span = _start_request()
     assert _access_key_tag_calls(span) == []
 
@@ -504,7 +504,7 @@ def test_access_key_id_tag_off_by_default(aws_credentials, value):
     ],
 )
 def test_access_key_id_tag_not_set_for_malformed_value(aws_credentials, value, caplog):
-    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", "true")
     aws_credentials.setenv("AWS_ACCESS_KEY_ID", value)
     with caplog.at_level(logging.DEBUG, logger="datadog_lambda.asm"):
         span = _start_request()
@@ -513,14 +513,14 @@ def test_access_key_id_tag_not_set_for_malformed_value(aws_credentials, value, c
 
 
 def test_access_key_id_tag_not_set_when_variable_missing(aws_credentials):
-    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", "true")
     aws_credentials.delenv("AWS_ACCESS_KEY_ID")
     span = _start_request()
     assert _access_key_tag_calls(span) == []
 
 
 def test_access_key_id_read_once(aws_credentials):
-    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", "true")
     first = _start_request()
     aws_credentials.setenv("AWS_ACCESS_KEY_ID", "AKIAEXAMPLE000000002")
     second = _start_request()
@@ -529,7 +529,7 @@ def test_access_key_id_read_once(aws_credentials):
 
 
 def test_access_key_id_tag_not_set_for_non_http_event(aws_credentials):
-    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", "true")
     span = _start_request("sqs-batch.json")
     assert _access_key_tag_calls(span) == []
 
@@ -551,7 +551,7 @@ class _GuardedEnviron(dict):
 def test_access_key_id_never_reads_secret_or_token(aws_credentials, caplog):
     import datadog_lambda.asm as asm
 
-    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_ENABLED", "true")
+    aws_credentials.setenv("DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", "true")
     aws_credentials.setattr(asm.os, "environ", _GuardedEnviron(os.environ))
     with caplog.at_level(logging.DEBUG):
         span = _start_request()
