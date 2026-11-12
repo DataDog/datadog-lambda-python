@@ -17,7 +17,10 @@ default:
 # The Noble Python image uses managed system Python and does not include AWS CLI.
 .install-python-tools: &install-python-tools
   - apt-get update
-  - apt-get install -y --no-install-recommends awscli python3-venv python-is-python3
+  - apt-get install -y --no-install-recommends python3-venv python-is-python3
+  - python3 -m venv /opt/ci-python-tools
+  - /opt/ci-python-tools/bin/pip install awscli
+  - export PATH="/opt/ci-python-tools/bin:$PATH"
 
 # This is for serverless framework
 .install-node: &install-node
@@ -30,6 +33,18 @@ default:
   - apt-get update
   - apt-get install nodejs -y
   - npm install --global yarn
+
+validate-python-ci-tools:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
+  before_script:
+    - *install-python-tools
+  script:
+    - aws --version
+    - python --version
+    - python -m pip --version
+    - docker buildx version | grep -F "github.com/docker/buildx v0.38.2-dd.3 "
 
 {{ range $runtime := (ds "runtimes").runtimes }}
 
@@ -106,6 +121,9 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
   rules:
+    # Image-maintenance validation has no authorization to deploy Lambda services.
+    - if: '$CI_COMMIT_BRANCH == "ericlim/internal-buildx-modern-docker-20261103" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "ericlim/internal-buildx-modern-docker-20261103"'
+      when: never
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
     - when: on_success
@@ -164,6 +182,9 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
   rules:
+    # Image-maintenance validation has no authorization to deploy Lambda services.
+    - if: '$CI_COMMIT_BRANCH == "ericlim/internal-buildx-modern-docker-20261103" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "ericlim/internal-buildx-modern-docker-20261103"'
+      when: never
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
     - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "{{ $e2e_region }}" && "{{ $runtime.arch }}" == "amd64"'
@@ -276,6 +297,9 @@ e2e-test:
     project: DataDog/serverless-e2e-tests
     strategy: depend
   rules:
+    # Image-maintenance validation has no authorization to deploy Lambda services.
+    - if: '$CI_COMMIT_BRANCH == "ericlim/internal-buildx-modern-docker-20261103" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "ericlim/internal-buildx-modern-docker-20261103"'
+      when: never
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
     - when: on_success
@@ -300,6 +324,9 @@ e2e-test-status:
   tags: ["arch:amd64"]
   timeout: 3h
   rules:
+    # Image-maintenance validation has no authorization to deploy Lambda services.
+    - if: '$CI_COMMIT_BRANCH == "ericlim/internal-buildx-modern-docker-20261103" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "ericlim/internal-buildx-modern-docker-20261103"'
+      when: never
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
     - when: on_success
