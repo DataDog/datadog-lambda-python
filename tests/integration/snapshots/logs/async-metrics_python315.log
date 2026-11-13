@@ -1,5 +1,4 @@
 INIT_START Runtime Version: python:3.15.vX	Runtime Version ARN: arn:aws:lambda:eu-west-1:XXXX:eu-west-1
-[tls-profile] applied 'aws' -> /var/runtime/tls-profiles/commercial-2025.conf
 START
 {
   "e": XXXX,

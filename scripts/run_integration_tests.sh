@@ -256,7 +256,9 @@ for handler_name in "${LAMBDA_HANDLERS[@]}"; do
                 # Parse out account ID in ARN
                 sed -E "s/([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9]+):([a-zA-Z0-9\-]+):([a-zA-Z0-9\-\:]+)/\1:\2:\3:\4:XXXX:\4/g" |
                 sed -E "/init complete at epoch/d" |
-                sed -E "/main started at epoch/d"
+                sed -E "/main started at epoch/d" |
+                # Lambda preview runtimes log the TLS profile name, which is not stable across invocations
+                sed '/\[tls-profile\]/d'
         )
 
         if [ ! -f $function_snapshot_path ]; then
