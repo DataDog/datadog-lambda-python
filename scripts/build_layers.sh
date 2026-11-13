@@ -35,7 +35,7 @@ set -e
 
 LAYER_DIR=".layers"
 LAYER_FILES_PREFIX="datadog_lambda_py"
-AVAILABLE_PYTHON_VERSIONS=("3.8" "3.9" "3.10" "3.11" "3.12" "3.13" "3.14")
+AVAILABLE_PYTHON_VERSIONS=("3.8" "3.9" "3.10" "3.11" "3.12" "3.13" "3.14" "3.15")
 AVAILABLE_ARCHS=("arm64" "amd64")
 
 if [ -n "$ARCH" ]; then
@@ -103,11 +103,19 @@ function docker_build_zip {
 
     destination=$(make_path_absolute $2)
     arch=$3
+    # Python 3.15 is a Lambda preview runtime. AWS has not published
+    # public.ecr.aws/sam/build-python3.15, so use the preview base image.
+    # The Dockerfile installs the compiler toolchain that image is missing.
+    if [ "$1" = "3.15" ]; then
+        image="public.ecr.aws/lambda/python:3.15-preview"
+    else
+        image="public.ecr.aws/sam/build-python$1:1"
+    fi
     # Install datadogpy in a docker container to avoid the mess from switching
     # between different python runtimes.
     temp_dir=$(mktemp -d)
     docker buildx build -t datadog-lambda-python-${arch}:$1 . --no-cache \
-        --build-arg image=public.ecr.aws/sam/build-python$1:1 \
+        --build-arg image="${image}" \
         --build-arg runtime=python$1 \
         --platform linux/${arch} \
         --progress=plain \
