@@ -58,7 +58,7 @@ validate-python-ci-tools:
 build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: build
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:v152537305-593bdcb-27.3.1@sha256:0d9ee7bf1fc4c02ca8a2ad6c14b421ef89fa90d63b832ad4515f5fabdd6b0200
+  image: registry.ddbuild.io/images/docker:27.3.1@sha256:66bf4f361622deb610f186243ca16e779556c963d4d35d0545c8de65e94e356a
   artifacts:
     expire_in: 1 day # Unsigned zips expire in 1 day
     paths:
@@ -73,7 +73,7 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
 check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:v152537305-593bdcb-27.3.1@sha256:0d9ee7bf1fc4c02ca8a2ad6c14b421ef89fa90d63b832ad4515f5fabdd6b0200
+  image: registry.ddbuild.io/images/docker:27.3.1@sha256:66bf4f361622deb610f186243ca16e779556c963d4d35d0545c8de65e94e356a
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
@@ -248,7 +248,7 @@ publish-pypi-package:
 layer bundle:
   stage: build
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:v152537305-593bdcb-27.3.1@sha256:0d9ee7bf1fc4c02ca8a2ad6c14b421ef89fa90d63b832ad4515f5fabdd6b0200
+  image: registry.ddbuild.io/images/docker:27.3.1@sha256:66bf4f361622deb610f186243ca16e779556c963d4d35d0545c8de65e94e356a
   needs:
     {{ range (ds "runtimes").runtimes }}
     - build-layer ({{ .name }}-{{ .arch }})
