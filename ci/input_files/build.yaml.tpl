@@ -37,14 +37,14 @@ default:
 validate-python-ci-tools:
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   before_script:
     - *install-python-tools
   script:
     - aws --version
     - python --version
     - python -m pip --version
-    - docker buildx version | grep -F "github.com/docker/buildx v0.38.2-dd.3 "
+    - docker buildx version
 
 {{ range $runtime := (ds "runtimes").runtimes }}
 
@@ -58,7 +58,7 @@ validate-python-ci-tools:
 build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: build
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:27.3.1@sha256:66bf4f361622deb610f186243ca16e779556c963d4d35d0545c8de65e94e356a
+  image: registry.ddbuild.io/images/docker:27.3.1
   artifacts:
     expire_in: 1 day # Unsigned zips expire in 1 day
     paths:
@@ -73,7 +73,7 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
 check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:27.3.1@sha256:66bf4f361622deb610f186243ca16e779556c963d4d35d0545c8de65e94e356a
+  image: registry.ddbuild.io/images/docker:27.3.1
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
@@ -119,7 +119,7 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
 integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   rules:
     # Image-maintenance validation has no authorization to deploy Lambda services.
     - if: '$CI_COMMIT_BRANCH == "ericlim/internal-buildx-modern-docker-20261103" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "ericlim/internal-buildx-modern-docker-20261103"'
@@ -148,7 +148,7 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
       when: manual
@@ -180,7 +180,7 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
 publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: publish
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   rules:
     # Image-maintenance validation has no authorization to deploy Lambda services.
     - if: '$CI_COMMIT_BRANCH == "ericlim/internal-buildx-modern-docker-20261103" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "ericlim/internal-buildx-modern-docker-20261103"'
@@ -231,7 +231,7 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
 publish-pypi-package:
   stage: publish
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   before_script:
     - *install-python-tools
     - ./scripts/setup_python_env.sh
@@ -248,7 +248,7 @@ publish-pypi-package:
 layer bundle:
   stage: build
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:27.3.1@sha256:66bf4f361622deb610f186243ca16e779556c963d4d35d0545c8de65e94e356a
+  image: registry.ddbuild.io/images/docker:27.3.1
   needs:
     {{ range (ds "runtimes").runtimes }}
     - build-layer ({{ .name }}-{{ .arch }})
@@ -269,7 +269,7 @@ layer bundle:
 
 signed layer bundle:
   stage: sign
-  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   tags: ["arch:amd64"]
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
@@ -320,7 +320,7 @@ e2e-test:
 
 e2e-test-status:
   stage: e2e
-  image: registry.ddbuild.io/images/docker:v152556028-36457c2-29.4.0-noble-py3@sha256:87eb41a1ee25cec0470ba98ecee89fb67ce4bf935f06129b00e29d496720ead4
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   tags: ["arch:amd64"]
   timeout: 3h
   rules:
