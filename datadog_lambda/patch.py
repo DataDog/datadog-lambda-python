@@ -4,6 +4,7 @@
 # Copyright 2019 Datadog, Inc.
 
 import sys
+import os
 import logging
 import zlib
 import ujson as json
@@ -11,8 +12,9 @@ import ujson as json
 from wrapt import wrap_function_wrapper as wrap
 from wrapt.importer import when_imported
 from ddtrace import patch_all as patch_all_dd
+from ddtrace import patch as patch_dd
 
-from datadog_lambda.config import config
+from datadog_lambda.config import config, as_bool
 from datadog_lambda.tracing import get_dd_trace_context
 from collections.abc import MutableMapping
 
@@ -33,10 +35,29 @@ def patch_all():
         # unittest and selenium are CI Visibility integrations. The layer strips
         # their code and ddtrace.internal.ci_visibility, so leaving them enabled
         # logs an import error whenever the user's code imports those modules.
-        patch_all_dd(unittest=False, selenium=False)
+        patch_modules = {"unittest": False, "selenium": False}
+        if config.sca_enabled:
+            # The Lambda integration imports the handler. Defer it until SCA is ready.
+            patch_modules["aws_lambda"] = False
+        patch_all_dd(**patch_modules)
     else:
         _patch_http()
         _ensure_patch_requests()
+
+    if config.sca_enabled:
+        try:
+            from ddtrace.internal.sca.product import start as start_sca
+            from ddtrace.internal.sca.product import post_preload as instrument_sca
+
+            start_sca()
+            instrument_sca()
+        except Exception:
+            logger.debug("Failed to initialize SCA reachability", exc_info=True)
+
+        if config.trace_enabled and as_bool(
+            os.environ.get("DD_TRACE_AWS_LAMBDA_ENABLED", "true")
+        ):
+            patch_dd(raise_errors=False, aws_lambda=True)
 
 
 def _patch_for_integration_tests():
