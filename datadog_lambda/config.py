@@ -180,7 +180,9 @@ if (
 if (
     is_extension_present()
     and not os.environ.get("DD_API_KEY")
-    and not os.environ.get("DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL", "").strip()
+    and not os.environ.get(
+        "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL", ""
+    ).strip()
 ):
     os.environ["DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL"] = (
         "http://127.0.0.1:8126"
