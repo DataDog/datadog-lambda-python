@@ -260,3 +260,30 @@ def test__get_env_does_not_log_when_env_not_set(setenv, monkeypatch):
     testing.test_4
 
     assert not logs
+
+
+_ffe_url = "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL"
+
+
+@pytest.mark.parametrize(
+    "extension,env,expected",
+    [
+        (True, {}, "http://127.0.0.1:8126"),
+        (True, {"DD_API_KEY": ""}, "http://127.0.0.1:8126"),
+        (True, {"DD_API_KEY_SECRET_ARN": "arn"}, "http://127.0.0.1:8126"),
+        (True, {"DD_API_KEY": "key"}, None),
+        (True, {_ffe_url: "http://custom"}, "http://custom"),
+        (False, {}, None),
+    ],
+)
+@pytest.mark.filterwarnings("ignore:.*found in sys.modules:RuntimeWarning")
+def test_feature_flags_base_url(extension, env, expected, monkeypatch):
+    import os
+    import runpy
+
+    monkeypatch.setattr(os, "environ", dict(env))
+    monkeypatch.setattr(
+        "datadog_lambda.extension.is_extension_present", lambda: extension
+    )
+    runpy.run_module("datadog_lambda.config")
+    assert os.environ.get(_ffe_url) == expected
