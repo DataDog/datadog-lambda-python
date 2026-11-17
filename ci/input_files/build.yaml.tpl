@@ -109,9 +109,6 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   rules:
-    # Image-maintenance validation has no authorization to deploy Lambda services.
-    - if: '$CI_COMMIT_BRANCH == "ericlim/internal-buildx-modern-docker-20261103" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "ericlim/internal-buildx-modern-docker-20261103"'
-      when: never
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
     - when: on_success
@@ -170,9 +167,6 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   rules:
-    # Image-maintenance validation has no authorization to deploy Lambda services.
-    - if: '$CI_COMMIT_BRANCH == "ericlim/internal-buildx-modern-docker-20261103" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "ericlim/internal-buildx-modern-docker-20261103"'
-      when: never
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
     - if: '"{{ $environment_name }}" == "sandbox" && $REGION == "{{ $e2e_region }}" && "{{ $runtime.arch }}" == "amd64"'
@@ -285,9 +279,6 @@ e2e-test:
     project: DataDog/serverless-e2e-tests
     strategy: depend
   rules:
-    # Image-maintenance validation has no authorization to deploy Lambda services.
-    - if: '$CI_COMMIT_BRANCH == "ericlim/internal-buildx-modern-docker-20261103" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "ericlim/internal-buildx-modern-docker-20261103"'
-      when: never
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
     - when: on_success
@@ -312,9 +303,6 @@ e2e-test-status:
   tags: ["arch:amd64"]
   timeout: 3h
   rules:
-    # Image-maintenance validation has no authorization to deploy Lambda services.
-    - if: '$CI_COMMIT_BRANCH == "ericlim/internal-buildx-modern-docker-20261103" || $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME == "ericlim/internal-buildx-modern-docker-20261103"'
-      when: never
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
     - when: on_success
