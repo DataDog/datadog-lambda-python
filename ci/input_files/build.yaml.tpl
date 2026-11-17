@@ -34,18 +34,6 @@ default:
   - apt-get install nodejs -y
   - npm install --global yarn
 
-validate-python-ci-tools:
-  stage: test
-  tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
-  before_script:
-    - *install-python-tools
-  script:
-    - aws --version
-    - python --version
-    - python -m pip --version
-    - docker buildx version
-
 {{ range $runtime := (ds "runtimes").runtimes }}
 
 # TODO(astuyve) - figure out python build cache
