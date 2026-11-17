@@ -275,6 +275,7 @@ _ffe_url = "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL"
         (True, {"DD_API_KEY_SECRET_ARN": "arn"}, "http://127.0.0.1:8126"),
         (True, {"DD_API_KEY": "key"}, None),
         (True, {_ffe_url: "http://custom"}, "http://custom"),
+        (True, {_ffe_url: ""}, "http://127.0.0.1:8126"),
         (False, {}, None),
     ],
 )
