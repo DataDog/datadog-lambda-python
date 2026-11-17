@@ -21,8 +21,10 @@ def test_config_import_does_not_import_ddtrace(monkeypatch):
     import datadog_lambda
 
     with monkeypatch.context() as mp:
+        # Also evict datadog_lambda submodules so that modules config imports
+        # (e.g. datadog_lambda.extension) run again under the blocker.
         for name in list(sys.modules):
-            if name == "ddtrace" or name.startswith("ddtrace."):
+            if name.startswith(("ddtrace", "datadog_lambda.")):
                 mp.delitem(sys.modules, name, raising=False)
 
         class _BlockDdtrace(importlib.abc.MetaPathFinder):
@@ -35,7 +37,7 @@ def test_config_import_does_not_import_ddtrace(monkeypatch):
         mp.setattr(sys, "meta_path", [blocker] + sys.meta_path, raising=False)
 
         mp.delattr(datadog_lambda, "config", raising=False)
-        mp.delitem(sys.modules, "datadog_lambda.config", raising=False)
+        mp.delattr(datadog_lambda, "extension", raising=False)
         importlib.invalidate_caches()
         importlib.import_module("datadog_lambda.config")
 
