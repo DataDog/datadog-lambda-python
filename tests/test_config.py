@@ -85,6 +85,7 @@ _test_config_from_environ = (
     *_test_as_bool("DD_FLUSH_TO_LOG", "flush_to_log", default=False),
     *_test_as_bool("DD_LOGS_INJECTION", "logs_injection", default=True),
     *_test_as_bool("DD_TRACE_ENABLED", "trace_enabled", default=True),
+    *_test_as_bool("DD_TRACE_AWS_LAMBDA_ENABLED", "aws_lambda_enabled", default=True),
     *_test_as_bool("DD_COLD_START_TRACING", "cold_start_tracing", default=True),
     *_test_as_bool("DD_TRACE_MANAGED_SERVICES", "make_inferred_span", default=True),
     *_test_as_bool(

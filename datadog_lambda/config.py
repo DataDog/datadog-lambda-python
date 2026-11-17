@@ -63,6 +63,7 @@ class Config:
     capture_payload_enabled = _get_env("DD_CAPTURE_LAMBDA_PAYLOAD", "false", as_bool)
 
     trace_enabled = _get_env("DD_TRACE_ENABLED", "true", as_bool)
+    aws_lambda_enabled = _get_env("DD_TRACE_AWS_LAMBDA_ENABLED", "true", as_bool)
     make_inferred_span = _get_env(
         "DD_TRACE_MANAGED_SERVICES", "true", as_bool, depends_on_tracing=True
     )

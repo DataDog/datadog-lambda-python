@@ -4,7 +4,6 @@
 # Copyright 2019 Datadog, Inc.
 
 import sys
-import os
 import logging
 import zlib
 import ujson as json
@@ -14,7 +13,7 @@ from wrapt.importer import when_imported
 from ddtrace import patch_all as patch_all_dd
 from ddtrace import patch as patch_dd
 
-from datadog_lambda.config import config, as_bool
+from datadog_lambda.config import config
 from datadog_lambda.tracing import get_dd_trace_context
 from collections.abc import MutableMapping
 
@@ -54,9 +53,7 @@ def patch_all():
         except Exception:
             logger.debug("Failed to initialize SCA reachability", exc_info=True)
 
-        if config.trace_enabled and as_bool(
-            os.environ.get("DD_TRACE_AWS_LAMBDA_ENABLED", "true")
-        ):
+        if config.trace_enabled and config.aws_lambda_enabled:
             patch_dd(raise_errors=False, aws_lambda=True)
 
 
