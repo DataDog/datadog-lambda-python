@@ -1,4 +1,8 @@
 {{- $e2e_region := "us-west-2" -}}
+{{- $runtimes := coll.Slice -}}
+{{- range $py := (ds "python_versions").versions }}{{ range $arch := coll.Slice "amd64" "arm64" }}
+{{- $runtimes = $runtimes | coll.Append (dict "name" (printf "python%s" ($py.version | strings.ReplaceAll "." "")) "python_version" $py.version "arch" $arch "image" $py.image) }}
+{{- end }}{{ end -}}
 
 stages:
  - build
@@ -26,7 +30,7 @@ default:
   - apt-get install nodejs -y
   - npm install --global yarn
 
-{{ range $runtime := (ds "runtimes").runtimes }}
+{{ range $runtime := $runtimes }}
 
 # TODO(astuyve) - figure out python build cache
 .{{ $runtime.name }}-{{ $runtime.arch }}-cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
@@ -208,7 +212,7 @@ publish-pypi-package:
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   when: manual
-  needs: {{ range $runtime := (ds "runtimes").runtimes }}
+  needs: {{ range $runtime := $runtimes }}
     - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
   {{- end }}
   script:
@@ -219,11 +223,11 @@ layer bundle:
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
   needs:
-    {{ range (ds "runtimes").runtimes }}
+    {{ range $runtimes }}
     - build-layer ({{ .name }}-{{ .arch }})
     {{ end }}
   dependencies:
-    {{ range (ds "runtimes").runtimes }}
+    {{ range $runtimes }}
     - build-layer ({{ .name }}-{{ .arch }})
     {{ end }}
   artifacts:
@@ -243,11 +247,11 @@ signed layer bundle:
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   needs:
-    {{ range (ds "runtimes").runtimes }}
+    {{ range $runtimes }}
     - sign-layer ({{ .name }}-{{ .arch }})
     {{ end }}
   dependencies:
-    {{ range (ds "runtimes").runtimes }}
+    {{ range $runtimes }}
     - sign-layer ({{ .name }}-{{ .arch }})
     {{ end }}
   artifacts:
@@ -272,13 +276,13 @@ e2e-test:
   variables:
       LANGUAGES_SUBSET: python
       # These env vars are inherited from the dotenv reports of the publish-layer jobs
-    {{- range (ds "runtimes").runtimes }}
+    {{- range $runtimes }}
     {{- if eq .arch "amd64" }}
     {{- $version := print (.name | strings.Trim "python") }}
       PYTHON_{{ $version }}_VERSION: $PYTHON_{{ $version }}_VERSION
     {{- end }}
     {{- end }}
-  needs: {{ range (ds "runtimes").runtimes }}
+  needs: {{ range $runtimes }}
     {{- if eq .arch "amd64" }}
       - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
     {{- end }}

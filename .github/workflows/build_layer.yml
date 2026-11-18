@@ -8,14 +8,30 @@ on:
       - "main"
 
 jobs:
+  python-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.load.outputs.versions }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Load Python versions
+        id: load
+        run: |
+          # system_tests: false versions are skipped. dd-trace-py main no longer
+          # publishes wheels for them (currently 3.8).
+          echo "versions=$(yq -o=json -I=0 '[.versions[] | select(.system_tests != false) | .version]' python_versions.yaml)" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: python-versions
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
 
     strategy:
       fail-fast: false
       matrix:
         arch: [arm64, amd64]
-        python_version: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14", "3.15"]
+        python_version: ${{ fromJSON(needs.python-versions.outputs.versions) }}
 
     steps:
       - name: Checkout

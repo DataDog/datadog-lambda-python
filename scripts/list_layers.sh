@@ -10,24 +10,7 @@
 
 set -e
 
-LAYER_NAMES=(
-    "Datadog-Python38"
-    "Datadog-Python38-ARM"
-    "Datadog-Python39"
-    "Datadog-Python39-ARM"
-    "Datadog-Python310"
-    "Datadog-Python310-ARM"
-    "Datadog-Python311"
-    "Datadog-Python311-ARM"
-    "Datadog-Python312"
-    "Datadog-Python312-ARM"
-    "Datadog-Python313"
-    "Datadog-Python313-ARM"
-    "Datadog-Python314"
-    "Datadog-Python314-ARM"
-    "Datadog-Python315"
-    "Datadog-Python315-ARM"
-)
+source "$(dirname "${BASH_SOURCE[0]}")/python_versions.sh"
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 LAYERS_MISSING_REGIONS=()
 

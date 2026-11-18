@@ -35,12 +35,8 @@ set -e
 
 LAYER_DIR=".layers"
 LAYER_FILES_PREFIX="datadog_lambda_py"
-AVAILABLE_PYTHON_VERSIONS=("3.8" "3.9" "3.10" "3.11" "3.12" "3.13" "3.14" "3.15")
-# Preview runtimes. AWS has not published a SAM build image for these, so the
-# Lambda preview base image is used instead. The Dockerfile installs the
-# compiler toolchain that image is missing.
-PREVIEW_PYTHON_VERSIONS=()
-ALL_PYTHON_VERSIONS=("${AVAILABLE_PYTHON_VERSIONS[@]}" "${PREVIEW_PYTHON_VERSIONS[@]}")
+# Versions and the preview flag live in python_versions.yaml.
+source "$(dirname "${BASH_SOURCE[0]}")/python_versions.sh"
 AVAILABLE_ARCHS=("arm64" "amd64")
 
 if [ -n "$ARCH" ]; then
@@ -74,11 +70,11 @@ fi
 # Determine which Python versions to build layers for
 if [ -z "$PYTHON_VERSION" ]; then
     echo "Python version not specified, building layers for all versions."
-    PYTHON_VERSIONS=("${ALL_PYTHON_VERSIONS[@]}")
+    PYTHON_VERSIONS=("${SUPPORTED_PYTHON_VERSIONS[@]}")
 else
     echo "Python version specified: $PYTHON_VERSION"
-    if [[ ! " ${ALL_PYTHON_VERSIONS[@]} " =~ " ${PYTHON_VERSION} " ]]; then
-        echo "Python version $PYTHON_VERSION is not a valid option. Choose from: ${ALL_PYTHON_VERSIONS[@]}"
+    if [[ ! " ${SUPPORTED_PYTHON_VERSIONS[@]} " =~ " ${PYTHON_VERSION} " ]]; then
+        echo "Python version $PYTHON_VERSION is not a valid option. Choose from: ${SUPPORTED_PYTHON_VERSIONS[*]}"
         echo ""
         echo "EXITING SCRIPT."
         exit 1
@@ -108,7 +104,8 @@ function docker_build_zip {
 
     destination=$(make_path_absolute $2)
     arch=$3
-    # Preview runtimes have no SAM build image yet. See PREVIEW_PYTHON_VERSIONS.
+    # Preview runtimes have no SAM build image yet. The Dockerfile installs
+    # the compiler toolchain that the Lambda preview image is missing.
     if [[ " ${PREVIEW_PYTHON_VERSIONS[*]} " =~ " ${1} " ]]; then
         image="public.ecr.aws/lambda/python:${1}-preview"
     else

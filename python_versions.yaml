@@ -1,0 +1,31 @@
+# Supported Python versions for the Lambda library.
+#
+# Layer builds, publish scripts, tests, and CI read this file. Add a version
+# here and those pick it up. The README and the pyproject.toml classifiers are
+# the lists still maintained by hand.
+#
+# version:      CPython minor version.
+# image:        GitLab CI image tag (registry.ddbuild.io/images/mirror/python).
+# preview:      AWS has not published a SAM build image yet. Layer builds use
+#               public.ecr.aws/lambda/python:<version>-preview. Default false.
+# system_tests: Set false to skip the GitHub system-tests layer build. That
+#               job installs a dd-trace-py main-branch wheel, which no longer
+#               publishes 3.8 wheels. Default true.
+versions:
+  - version: "3.8"
+    image: "3.8"
+    system_tests: false
+  - version: "3.9"
+    image: "3.9"
+  - version: "3.10"
+    image: "3.10"
+  - version: "3.11"
+    image: "3.11.6"
+  - version: "3.12"
+    image: "3.12.0"
+  - version: "3.13"
+    image: "3.13.0"
+  - version: "3.14"
+    image: "3.14.0"
+  - version: "3.15"
+    image: "3.15.0"

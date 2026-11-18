@@ -8,24 +8,8 @@
 set -e
 
 LAYER_DIR=".layers"
-LAYER_FILES=(
-    "datadog_lambda_py-amd64-3.8.zip"
-    "datadog_lambda_py-arm64-3.8.zip"
-    "datadog_lambda_py-amd64-3.9.zip"
-    "datadog_lambda_py-arm64-3.9.zip"
-    "datadog_lambda_py-amd64-3.10.zip"
-    "datadog_lambda_py-arm64-3.10.zip"
-    "datadog_lambda_py-amd64-3.11.zip"
-    "datadog_lambda_py-arm64-3.11.zip"
-    "datadog_lambda_py-amd64-3.12.zip"
-    "datadog_lambda_py-arm64-3.12.zip"
-    "datadog_lambda_py-amd64-3.13.zip"
-    "datadog_lambda_py-arm64-3.13.zip"
-    "datadog_lambda_py-amd64-3.14.zip"
-    "datadog_lambda_py-arm64-3.14.zip"
-    "datadog_lambda_py-amd64-3.15.zip"
-    "datadog_lambda_py-arm64-3.15.zip"
-)
+source "$(dirname "${BASH_SOURCE[0]}")/python_versions.sh"
+LAYER_FILES=("${LAYER_ZIPS[@]}")
 SIGNING_PROFILE_NAME="DatadogLambdaSigningProfile"
 
 # Check account parameter
