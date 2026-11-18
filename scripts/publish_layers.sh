@@ -13,60 +13,11 @@ set -e
 # Makes sure any subprocesses will be terminated with this process
 trap "pkill -P $$; exit 1;" INT
 
-PYTHON_VERSIONS_FOR_AWS_CLI=(
-    "python3.8"
-    "python3.8"
-    "python3.9"
-    "python3.9"
-    "python3.10"
-    "python3.10"
-    "python3.11"
-    "python3.11"
-    "python3.12"
-    "python3.12"
-    "python3.13"
-    "python3.13"
-    "python3.14"
-    "python3.14"
-    "python3.15"
-    "python3.15"
-)
-LAYER_PATHS=(
-    ".layers/datadog_lambda_py-amd64-3.8.zip"
-    ".layers/datadog_lambda_py-arm64-3.8.zip"
-    ".layers/datadog_lambda_py-amd64-3.9.zip"
-    ".layers/datadog_lambda_py-arm64-3.9.zip"
-    ".layers/datadog_lambda_py-amd64-3.10.zip"
-    ".layers/datadog_lambda_py-arm64-3.10.zip"
-    ".layers/datadog_lambda_py-amd64-3.11.zip"
-    ".layers/datadog_lambda_py-arm64-3.11.zip"
-    ".layers/datadog_lambda_py-amd64-3.12.zip"
-    ".layers/datadog_lambda_py-arm64-3.12.zip"
-    ".layers/datadog_lambda_py-amd64-3.13.zip"
-    ".layers/datadog_lambda_py-arm64-3.13.zip"
-    ".layers/datadog_lambda_py-amd64-3.14.zip"
-    ".layers/datadog_lambda_py-arm64-3.14.zip"
-    ".layers/datadog_lambda_py-amd64-3.15.zip"
-    ".layers/datadog_lambda_py-arm64-3.15.zip"
-)
-AVAILABLE_LAYERS=(
-    "Datadog-Python38"
-    "Datadog-Python38-ARM"
-    "Datadog-Python39"
-    "Datadog-Python39-ARM"
-    "Datadog-Python310"
-    "Datadog-Python310-ARM"
-    "Datadog-Python311"
-    "Datadog-Python311-ARM"
-    "Datadog-Python312"
-    "Datadog-Python312-ARM"
-    "Datadog-Python313"
-    "Datadog-Python313-ARM"
-    "Datadog-Python314"
-    "Datadog-Python314-ARM"
-    "Datadog-Python315"
-    "Datadog-Python315-ARM"
-)
+source "$(dirname "${BASH_SOURCE[0]}")/python_versions.sh"
+load_python_versions
+load_python_layers
+PYTHON_VERSIONS_FOR_AWS_CLI=("${LAYER_RUNTIMES[@]}")
+AVAILABLE_LAYERS=("${LAYER_NAMES[@]}")
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 
 BATCH_SIZE=60

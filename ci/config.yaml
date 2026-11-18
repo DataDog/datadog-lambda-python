@@ -5,8 +5,8 @@ outputFiles:
   - ci/build-pipeline.yaml
 
 datasources:
-  runtimes:
-    url: ci/datasources/runtimes.yaml
+  python_versions:
+    url: python_versions.yaml
   regions:
     url: ci/datasources/regions.yaml
   environments:

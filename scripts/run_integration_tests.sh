@@ -23,26 +23,29 @@ script_utc_start_time=$(date -u +"%Y%m%dT%H%M%S")
 
 mismatch_found=false
 
-# Format :
+# Format of each python<minor> array:
 # [0]: serverless runtime name
 # [1]: python version
 # [2]: random 8-character ID to avoid collisions with other runs
-python38=("python3.8" "3.8" $(xxd -l 4 -c 4 -p < /dev/random))
-python39=("python3.9" "3.9" $(xxd -l 4 -c 4 -p < /dev/random))
-python310=("python3.10" "3.10" $(xxd -l 4 -c 4 -p < /dev/random))
-python311=("python3.11" "3.11" $(xxd -l 4 -c 4 -p < /dev/random))
-python312=("python3.12" "3.12" $(xxd -l 4 -c 4 -p < /dev/random))
-python313=("python3.13" "3.13" $(xxd -l 4 -c 4 -p < /dev/random))
-python314=("python3.14" "3.14" $(xxd -l 4 -c 4 -p < /dev/random))
-python315=("python3.15" "3.15" $(xxd -l 4 -c 4 -p < /dev/random))
+source "$scripts_dir/python_versions.sh"
+load_python_versions
 
-PARAMETERS_SETS=("python38" "python39" "python310" "python311" "python312" "python313" "python314" "python315")
+PARAMETERS_SETS=()
+for version in "${SUPPORTED_PYTHON_VERSIONS[@]}"; do
+    key="python${version//./}"
+    eval "${key}=(\"python${version}\" \"${version}\" \"$(xxd -l 4 -c 4 -p < /dev/random)\")"
+    PARAMETERS_SETS+=("$key")
+done
 
 if [ -z "$RUNTIME_PARAM" ]; then
     echo "Python version not specified, running for all python versions."
 else
-    RUNTIME_PARAM_NO_DOT=$(echo $RUNTIME_PARAM | sed 's/\.//')
     echo "Python version is specified: $RUNTIME_PARAM"
+    if ! python_version_known "$RUNTIME_PARAM"; then
+        echo "Python version $RUNTIME_PARAM is not a valid option. Choose from: ${SUPPORTED_PYTHON_VERSIONS[*]}"
+        exit 1
+    fi
+    RUNTIME_PARAM_NO_DOT=$(echo $RUNTIME_PARAM | sed 's/\.//')
     PARAMETERS_SETS=(python${RUNTIME_PARAM_NO_DOT})
     BUILD_LAYER_VERSION=python$RUNTIME_PARAM_NO_DOT[1]
 fi

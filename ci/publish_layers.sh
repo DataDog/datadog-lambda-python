@@ -10,78 +10,16 @@
 set -e
 
 # Available runtimes: https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html
-AWS_CLI_PYTHON_VERSIONS=(
-    "python3.8"
-    "python3.8"
-    "python3.9"
-    "python3.9"
-    "python3.10"
-    "python3.10"
-    "python3.11"
-    "python3.11"
-    "python3.12"
-    "python3.12"
-    "python3.13"
-    "python3.13"
-    "python3.14"
-    "python3.14"
-    "python3.15"
-    "python3.15"
-)
-PYTHON_VERSIONS=(
-    "3.8-amd64"
-    "3.8-arm64"
-    "3.9-amd64"
-    "3.9-arm64"
-    "3.10-amd64"
-    "3.10-arm64"
-    "3.11-amd64"
-    "3.11-arm64"
-    "3.12-amd64"
-    "3.12-arm64"
-    "3.13-amd64"
-    "3.13-arm64"
-    "3.14-amd64"
-    "3.14-arm64"
-    "3.15-amd64"
-    "3.15-arm64"
-)
-LAYER_PATHS=(
-    ".layers/datadog_lambda_py-amd64-3.8.zip"
-    ".layers/datadog_lambda_py-arm64-3.8.zip"
-    ".layers/datadog_lambda_py-amd64-3.9.zip"
-    ".layers/datadog_lambda_py-arm64-3.9.zip"
-    ".layers/datadog_lambda_py-amd64-3.10.zip"
-    ".layers/datadog_lambda_py-arm64-3.10.zip"
-    ".layers/datadog_lambda_py-amd64-3.11.zip"
-    ".layers/datadog_lambda_py-arm64-3.11.zip"
-    ".layers/datadog_lambda_py-amd64-3.12.zip"
-    ".layers/datadog_lambda_py-arm64-3.12.zip"
-    ".layers/datadog_lambda_py-amd64-3.13.zip"
-    ".layers/datadog_lambda_py-arm64-3.13.zip"
-    ".layers/datadog_lambda_py-amd64-3.14.zip"
-    ".layers/datadog_lambda_py-arm64-3.14.zip"
-    ".layers/datadog_lambda_py-amd64-3.15.zip"
-    ".layers/datadog_lambda_py-arm64-3.15.zip"
-)
-LAYERS=(
-    "Datadog-Python38"
-    "Datadog-Python38-ARM"
-    "Datadog-Python39"
-    "Datadog-Python39-ARM"
-    "Datadog-Python310"
-    "Datadog-Python310-ARM"
-    "Datadog-Python311"
-    "Datadog-Python311-ARM"
-    "Datadog-Python312"
-    "Datadog-Python312-ARM"
-    "Datadog-Python313"
-    "Datadog-Python313-ARM"
-    "Datadog-Python314"
-    "Datadog-Python314-ARM"
-    "Datadog-Python315"
-    "Datadog-Python315-ARM"
-)
+source "$(dirname "${BASH_SOURCE[0]}")/../scripts/python_versions.sh"
+load_python_versions
+load_python_layers
+AWS_CLI_PYTHON_VERSIONS=("${LAYER_RUNTIMES[@]}")
+LAYERS=("${LAYER_NAMES[@]}")
+PYTHON_VERSIONS=()
+for _i in "${!LAYER_VERSIONS[@]}"; do
+    PYTHON_VERSIONS+=("${LAYER_VERSIONS[$_i]}-${LAYER_ARCHS[$_i]}")
+done
+unset _i
 STAGES=('prod', 'sandbox', 'staging', 'gov-staging', 'gov-prod')
 
 printf "Starting script...\n\n"

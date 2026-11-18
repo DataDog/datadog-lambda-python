@@ -8,9 +8,10 @@
 # Run unit tests in Docker
 set -e
 
-PYTHON_VERSIONS=("3.8" "3.9" "3.10" "3.11" "3.12" "3.13" "3.14" "3.15")
+source "$(dirname "${BASH_SOURCE[0]}")/python_versions.sh"
+load_python_versions
 
-for python_version in "${PYTHON_VERSIONS[@]}"
+for python_version in "${SUPPORTED_PYTHON_VERSIONS[@]}"
 do
     echo "Running tests against python${python_version}"
     docker build -t datadog-lambda-python-test:$python_version \
