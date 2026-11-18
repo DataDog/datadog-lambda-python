@@ -8,8 +8,8 @@ RUN mkdir -p /build/python/lib/$runtime/site-packages
 WORKDIR /build
 
 # AL2 SAM images (Python <= 3.11) ship GCC 7, which is too old to build ddtrace.
-# AL2023 SAM images already include GCC, find, and strip. The Lambda Python 3.15
-# preview image does not, so install that toolchain with dnf.
+# AL2023 SAM images already include GCC, find, and strip. Lambda preview images
+# do not, so install that toolchain with dnf when those tools are missing.
 RUN set -eux; \
     if command -v yum >/dev/null 2>&1; then \
       yum -y install git gcc10 gcc10-c++; \
