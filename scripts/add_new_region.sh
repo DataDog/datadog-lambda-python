@@ -27,6 +27,8 @@ LAYER_NAMES=(
     "Datadog-Python313-ARM"
     "Datadog-Python314"
     "Datadog-Python314-ARM"
+    "Datadog-Python315"
+    "Datadog-Python315-ARM"
 )
 PYTHON_VERSIONS_FOR_AWS_CLI=(
     "python3.8"
@@ -43,6 +45,8 @@ PYTHON_VERSIONS_FOR_AWS_CLI=(
     "python3.13"
     "python3.14"
     "python3.14"
+    "python3.15"
+    "python3.15"
 )
 NEW_REGION=$1
 

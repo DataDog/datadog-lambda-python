@@ -7,7 +7,9 @@ ARG runtime
 RUN mkdir -p /build/python/lib/$runtime/site-packages
 WORKDIR /build
 
-# Install newer version of GCC on AL2
+# AL2 SAM images (Python <= 3.11) ship GCC 7, which is too old to build ddtrace.
+# AL2023 SAM images already include GCC, find, and strip. The Lambda Python 3.15
+# preview image does not, so install that toolchain with dnf.
 RUN set -eux; \
     if command -v yum >/dev/null 2>&1; then \
       yum -y install git gcc10 gcc10-c++; \
@@ -16,6 +18,9 @@ RUN set -eux; \
       rm g++ && ln -s gcc10-g++ g++; \
       rm cc && ln -s gcc10-cc cc; \
       rm c++ && ln -s gcc10-c++ c++; \
+    elif ! command -v gcc >/dev/null 2>&1 || ! command -v strip >/dev/null 2>&1 || ! command -v find >/dev/null 2>&1; then \
+      dnf install -y gcc gcc-c++ make binutils findutils git; \
+      dnf clean all; \
     fi
 
 # Add Rust compiler which is needed to build dd-trace-py from source
