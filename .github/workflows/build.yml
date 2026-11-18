@@ -44,14 +44,12 @@ jobs:
       versions: ${{ steps.load.outputs.versions }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Load Python versions
         id: load
         run: |
-          source ./scripts/python_versions.sh
-          load_python_versions
-          echo "versions=$(python_versions_json)" >> "$GITHUB_OUTPUT"
+          echo "versions=$(yq -o=json -I=0 '[.versions[] | .version]' python_versions.yaml)" >> "$GITHUB_OUTPUT"
 
   unit-test:
     needs: python-versions

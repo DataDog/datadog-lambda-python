@@ -91,7 +91,6 @@ else
 fi
 
 source "$(dirname "${BASH_SOURCE[0]}")/python_versions.sh"
-load_python_versions
 
 for region in $REGIONS
 do

@@ -28,24 +28,23 @@ mismatch_found=false
 # [1]: python version
 # [2]: random 8-character ID to avoid collisions with other runs
 source "$scripts_dir/python_versions.sh"
-load_python_versions
 
 PARAMETERS_SETS=()
 for version in "${SUPPORTED_PYTHON_VERSIONS[@]}"; do
     key="python${version//./}"
-    eval "${key}=(\"python${version}\" \"${version}\" \"$(xxd -l 4 -c 4 -p < /dev/random)\")"
+    declare -a "${key}=(python${version} ${version} $(xxd -l 4 -c 4 -p < /dev/random))"
     PARAMETERS_SETS+=("$key")
 done
 
 if [ -z "$RUNTIME_PARAM" ]; then
     echo "Python version not specified, running for all python versions."
 else
+    RUNTIME_PARAM_NO_DOT=${RUNTIME_PARAM//./}
     echo "Python version is specified: $RUNTIME_PARAM"
-    if ! python_version_known "$RUNTIME_PARAM"; then
+    if [[ ! " ${SUPPORTED_PYTHON_VERSIONS[*]} " =~ " ${RUNTIME_PARAM} " ]]; then
         echo "Python version $RUNTIME_PARAM is not a valid option. Choose from: ${SUPPORTED_PYTHON_VERSIONS[*]}"
         exit 1
     fi
-    RUNTIME_PARAM_NO_DOT=$(echo $RUNTIME_PARAM | sed 's/\.//')
     PARAMETERS_SETS=(python${RUNTIME_PARAM_NO_DOT})
     BUILD_LAYER_VERSION=python$RUNTIME_PARAM_NO_DOT[1]
 fi

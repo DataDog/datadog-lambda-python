@@ -13,8 +13,6 @@ set -e
 OLD_REGION='us-east-1'
 
 source "$(dirname "${BASH_SOURCE[0]}")/python_versions.sh"
-load_python_versions
-load_python_layers
 PYTHON_VERSIONS_FOR_AWS_CLI=("${LAYER_RUNTIMES[@]}")
 NEW_REGION=$1
 

@@ -11,8 +11,6 @@
 set -e
 
 source "$(dirname "${BASH_SOURCE[0]}")/python_versions.sh"
-load_python_versions
-load_python_layers
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')
 LAYERS_MISSING_REGIONS=()
 

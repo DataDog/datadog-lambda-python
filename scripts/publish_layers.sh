@@ -14,8 +14,6 @@ set -e
 trap "pkill -P $$; exit 1;" INT
 
 source "$(dirname "${BASH_SOURCE[0]}")/python_versions.sh"
-load_python_versions
-load_python_layers
 PYTHON_VERSIONS_FOR_AWS_CLI=("${LAYER_RUNTIMES[@]}")
 AVAILABLE_LAYERS=("${LAYER_NAMES[@]}")
 AVAILABLE_REGIONS=$(aws ec2 describe-regions | jq -r '.[] | .[] | .RegionName')

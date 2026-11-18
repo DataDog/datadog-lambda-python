@@ -37,7 +37,6 @@ LAYER_DIR=".layers"
 LAYER_FILES_PREFIX="datadog_lambda_py"
 # Versions and the preview flag live in python_versions.yaml.
 source "$(dirname "${BASH_SOURCE[0]}")/python_versions.sh"
-load_python_versions
 AVAILABLE_ARCHS=("arm64" "amd64")
 
 if [ -n "$ARCH" ]; then
@@ -74,7 +73,7 @@ if [ -z "$PYTHON_VERSION" ]; then
     PYTHON_VERSIONS=("${SUPPORTED_PYTHON_VERSIONS[@]}")
 else
     echo "Python version specified: $PYTHON_VERSION"
-    if ! python_version_known "$PYTHON_VERSION"; then
+    if [[ ! " ${SUPPORTED_PYTHON_VERSIONS[@]} " =~ " ${PYTHON_VERSION} " ]]; then
         echo "Python version $PYTHON_VERSION is not a valid option. Choose from: ${SUPPORTED_PYTHON_VERSIONS[*]}"
         echo ""
         echo "EXITING SCRIPT."
@@ -107,7 +106,7 @@ function docker_build_zip {
     arch=$3
     # Preview runtimes have no SAM build image yet. The Dockerfile installs
     # the compiler toolchain that the Lambda preview image is missing.
-    if python_version_is_preview "$1"; then
+    if [[ " ${PREVIEW_PYTHON_VERSIONS[*]} " =~ " ${1} " ]]; then
         image="public.ecr.aws/lambda/python:${1}-preview"
     else
         image="public.ecr.aws/sam/build-python${1}:1"

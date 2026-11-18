@@ -9,7 +9,6 @@
 set -e
 
 source "$(dirname "${BASH_SOURCE[0]}")/python_versions.sh"
-load_python_versions
 
 for python_version in "${SUPPORTED_PYTHON_VERSIONS[@]}"
 do

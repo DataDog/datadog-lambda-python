@@ -1,6 +1,8 @@
 {{- $e2e_region := "us-west-2" -}}
-{{- $archs := coll.Slice "amd64" "arm64" -}}
-{{- $runtime := dict -}}
+{{- $runtimes := coll.Slice -}}
+{{- range $py := (ds "python_versions").versions }}{{ range $arch := coll.Slice "amd64" "arm64" }}
+{{- $runtimes = $runtimes | coll.Append (dict "name" (printf "python%s" ($py.version | strings.ReplaceAll "." "")) "python_version" $py.version "arch" $arch "image" $py.image) }}
+{{- end }}{{ end -}}
 
 stages:
  - build
@@ -28,9 +30,7 @@ default:
   - apt-get install nodejs -y
   - npm install --global yarn
 
-{{ range $py := (ds "python_versions").versions }}
-{{ range $arch := $archs }}
-{{ $runtime = dict "name" (printf "python%s" ($py.version | strings.ReplaceAll "." "")) "arch" $arch "python_version" $py.version "image" $py.image }}
+{{ range $runtime := $runtimes }}
 
 # TODO(astuyve) - figure out python build cache
 .{{ $runtime.name }}-{{ $runtime.arch }}-cache: &{{ $runtime.name }}-{{ $runtime.arch }}-cache
@@ -201,7 +201,6 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
 {{- end }}
 
 {{- end }}
-{{- end }}
 
 publish-pypi-package:
   stage: publish
@@ -213,12 +212,9 @@ publish-pypi-package:
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   when: manual
-  needs:
-    {{- range $py := (ds "python_versions").versions }}
-    {{- range $arch := $archs }}
-    - sign-layer (python{{ $py.version | strings.ReplaceAll "." "" }}-{{ $arch }})
-    {{- end }}
-    {{- end }}
+  needs: {{ range $runtime := $runtimes }}
+    - sign-layer ({{ $runtime.name }}-{{ $runtime.arch}})
+  {{- end }}
   script:
     - ./ci/publish_pypi.sh
 
@@ -227,17 +223,13 @@ layer bundle:
   tags: ["arch:amd64"]
   image: registry.ddbuild.io/images/docker:20.10
   needs:
-    {{- range $py := (ds "python_versions").versions }}
-    {{- range $arch := $archs }}
-    - build-layer (python{{ $py.version | strings.ReplaceAll "." "" }}-{{ $arch }})
-    {{- end }}
-    {{- end }}
+    {{ range $runtimes }}
+    - build-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
   dependencies:
-    {{- range $py := (ds "python_versions").versions }}
-    {{- range $arch := $archs }}
-    - build-layer (python{{ $py.version | strings.ReplaceAll "." "" }}-{{ $arch }})
-    {{- end }}
-    {{- end }}
+    {{ range $runtimes }}
+    - build-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
   artifacts:
     expire_in: 1 day
     paths:
@@ -255,17 +247,13 @@ signed layer bundle:
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
   needs:
-    {{- range $py := (ds "python_versions").versions }}
-    {{- range $arch := $archs }}
-    - sign-layer (python{{ $py.version | strings.ReplaceAll "." "" }}-{{ $arch }})
-    {{- end }}
-    {{- end }}
+    {{ range $runtimes }}
+    - sign-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
   dependencies:
-    {{- range $py := (ds "python_versions").versions }}
-    {{- range $arch := $archs }}
-    - sign-layer (python{{ $py.version | strings.ReplaceAll "." "" }}-{{ $arch }})
-    {{- end }}
-    {{- end }}
+    {{ range $runtimes }}
+    - sign-layer ({{ .name }}-{{ .arch }})
+    {{ end }}
   artifacts:
     expire_in: 1 day
     paths:
@@ -288,12 +276,16 @@ e2e-test:
   variables:
       LANGUAGES_SUBSET: python
       # These env vars are inherited from the dotenv reports of the publish-layer jobs
-    {{- range $py := (ds "python_versions").versions }}
-      PYTHON_{{ $py.version | strings.ReplaceAll "." "" }}_VERSION: $PYTHON_{{ $py.version | strings.ReplaceAll "." "" }}_VERSION
+    {{- range $runtimes }}
+    {{- if eq .arch "amd64" }}
+    {{- $version := print (.name | strings.Trim "python") }}
+      PYTHON_{{ $version }}_VERSION: $PYTHON_{{ $version }}_VERSION
     {{- end }}
-  needs:
-    {{- range $py := (ds "python_versions").versions }}
-      - "publish-layer-sandbox (python{{ $py.version | strings.ReplaceAll "." "" }}-amd64): [{{ $e2e_region }}]"
+    {{- end }}
+  needs: {{ range $runtimes }}
+    {{- if eq .arch "amd64" }}
+      - "publish-layer-sandbox ({{ .name }}-{{ .arch }}): [{{ $e2e_region }}]"
+    {{- end }}
     {{- end }}
 
 e2e-test-status:

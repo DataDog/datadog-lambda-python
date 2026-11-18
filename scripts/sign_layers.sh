@@ -9,8 +9,6 @@ set -e
 
 LAYER_DIR=".layers"
 source "$(dirname "${BASH_SOURCE[0]}")/python_versions.sh"
-load_python_versions
-load_python_layers
 LAYER_FILES=("${LAYER_ZIPS[@]}")
 SIGNING_PROFILE_NAME="DatadogLambdaSigningProfile"
 

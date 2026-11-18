@@ -11,15 +11,9 @@ set -e
 
 # Available runtimes: https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html
 source "$(dirname "${BASH_SOURCE[0]}")/../scripts/python_versions.sh"
-load_python_versions
-load_python_layers
 AWS_CLI_PYTHON_VERSIONS=("${LAYER_RUNTIMES[@]}")
 LAYERS=("${LAYER_NAMES[@]}")
-PYTHON_VERSIONS=()
-for _i in "${!LAYER_VERSIONS[@]}"; do
-    PYTHON_VERSIONS+=("${LAYER_VERSIONS[$_i]}-${LAYER_ARCHS[$_i]}")
-done
-unset _i
+PYTHON_VERSIONS=("${LAYER_KEYS[@]}")
 STAGES=('prod', 'sandbox', 'staging', 'gov-staging', 'gov-prod')
 
 printf "Starting script...\n\n"

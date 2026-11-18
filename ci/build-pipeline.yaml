@@ -1,0 +1,4333 @@
+stages:
+ - build
+ - test
+ - sign
+ - publish
+ - e2e
+
+default:
+  retry:
+    max: 1
+    when:
+      # Retry when the runner fails to start
+      - runner_system_failure
+
+# This is for serverless framework
+.install-node: &install-node
+  - apt-get update
+  - apt-get install -y ca-certificates curl gnupg xxd
+  - mkdir -p /etc/apt/keyrings
+  - curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg
+  # We are explicitly setting the node_20.x version for the installation
+  - echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_20.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+  - apt-get update
+  - apt-get install nodejs -y
+  - npm install --global yarn
+
+
+
+
+
+# TODO(astuyve) - figure out python build cache
+.python38-amd64-cache: &python38-amd64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python38-amd64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.8.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.8 ARCH=amd64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python38-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python38-amd64)
+  dependencies:
+    - build-layer (python38-amd64)
+  script:
+    - PYTHON_VERSION=3.8 ARCH=amd64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.8
+  cache: &python38-amd64-cache
+  before_script:
+    - PYTHON_VERSION=3.8 ARCH=amd64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python38-amd64):
+  stage: test
+  tags:
+  
+      - "arch:amd64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.8
+  cache: &python38-amd64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.8,arch:amd64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.8 ARCH=amd64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python38-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python38-amd64)
+  dependencies:
+    - build-layer (python38-amd64)
+  cache: &python38-amd64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.8 ARCH=amd64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python38-amd64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python38-amd64)
+    - check-layer-size (python38-amd64)
+    - lint python
+    - unit-test (python38-amd64)
+    - integration-test (python38-amd64)
+  dependencies:
+    - build-layer (python38-amd64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.8.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-amd64-3.8.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python38-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python38_amd64_prod.env
+  needs:
+
+      - sign-layer (python38-amd64)
+
+  dependencies:
+
+      - sign-layer (python38-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.8 ARCH=amd64 DOTENV=python38_amd64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python38-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python38_amd64_sandbox.env
+  needs:
+
+      - build-layer (python38-amd64)
+      - check-layer-size (python38-amd64)
+      - lint python
+      - unit-test (python38-amd64)
+      - integration-test (python38-amd64)
+
+  dependencies:
+
+      - build-layer (python38-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.8 ARCH=amd64 DOTENV=python38_amd64_sandbox.env ./ci/publish_layers.sh
+
+
+# TODO(astuyve) - figure out python build cache
+.python38-arm64-cache: &python38-arm64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python38-arm64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.8.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.8 ARCH=arm64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python38-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python38-arm64)
+  dependencies:
+    - build-layer (python38-arm64)
+  script:
+    - PYTHON_VERSION=3.8 ARCH=arm64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.8
+  cache: &python38-arm64-cache
+  before_script:
+    - PYTHON_VERSION=3.8 ARCH=arm64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python38-arm64):
+  stage: test
+  tags:
+  
+      - "arch:arm64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.8
+  cache: &python38-arm64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.8,arch:arm64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.8 ARCH=arm64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python38-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python38-arm64)
+  dependencies:
+    - build-layer (python38-arm64)
+  cache: &python38-arm64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.8 ARCH=arm64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python38-arm64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python38-arm64)
+    - check-layer-size (python38-arm64)
+    - lint python
+    - unit-test (python38-arm64)
+    - integration-test (python38-arm64)
+  dependencies:
+    - build-layer (python38-arm64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.8.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-arm64-3.8.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python38-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python38_arm64_prod.env
+  needs:
+
+      - sign-layer (python38-arm64)
+
+  dependencies:
+
+      - sign-layer (python38-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.8 ARCH=arm64 DOTENV=python38_arm64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python38-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python38_arm64_sandbox.env
+  needs:
+
+      - build-layer (python38-arm64)
+      - check-layer-size (python38-arm64)
+      - lint python
+      - unit-test (python38-arm64)
+      - integration-test (python38-arm64)
+
+  dependencies:
+
+      - build-layer (python38-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.8 ARCH=arm64 DOTENV=python38_arm64_sandbox.env ./ci/publish_layers.sh
+
+
+
+# TODO(astuyve) - figure out python build cache
+.python39-amd64-cache: &python39-amd64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python39-amd64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.9.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.9 ARCH=amd64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python39-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python39-amd64)
+  dependencies:
+    - build-layer (python39-amd64)
+  script:
+    - PYTHON_VERSION=3.9 ARCH=amd64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.9
+  cache: &python39-amd64-cache
+  before_script:
+    - PYTHON_VERSION=3.9 ARCH=amd64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python39-amd64):
+  stage: test
+  tags:
+  
+      - "arch:amd64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.9
+  cache: &python39-amd64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.9,arch:amd64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.9 ARCH=amd64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python39-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python39-amd64)
+  dependencies:
+    - build-layer (python39-amd64)
+  cache: &python39-amd64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.9 ARCH=amd64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python39-amd64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python39-amd64)
+    - check-layer-size (python39-amd64)
+    - lint python
+    - unit-test (python39-amd64)
+    - integration-test (python39-amd64)
+  dependencies:
+    - build-layer (python39-amd64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.9.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-amd64-3.9.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python39-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python39_amd64_prod.env
+  needs:
+
+      - sign-layer (python39-amd64)
+
+  dependencies:
+
+      - sign-layer (python39-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.9 ARCH=amd64 DOTENV=python39_amd64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python39-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python39_amd64_sandbox.env
+  needs:
+
+      - build-layer (python39-amd64)
+      - check-layer-size (python39-amd64)
+      - lint python
+      - unit-test (python39-amd64)
+      - integration-test (python39-amd64)
+
+  dependencies:
+
+      - build-layer (python39-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.9 ARCH=amd64 DOTENV=python39_amd64_sandbox.env ./ci/publish_layers.sh
+
+
+# TODO(astuyve) - figure out python build cache
+.python39-arm64-cache: &python39-arm64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python39-arm64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.9.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.9 ARCH=arm64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python39-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python39-arm64)
+  dependencies:
+    - build-layer (python39-arm64)
+  script:
+    - PYTHON_VERSION=3.9 ARCH=arm64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.9
+  cache: &python39-arm64-cache
+  before_script:
+    - PYTHON_VERSION=3.9 ARCH=arm64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python39-arm64):
+  stage: test
+  tags:
+  
+      - "arch:arm64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.9
+  cache: &python39-arm64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.9,arch:arm64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.9 ARCH=arm64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python39-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python39-arm64)
+  dependencies:
+    - build-layer (python39-arm64)
+  cache: &python39-arm64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.9 ARCH=arm64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python39-arm64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python39-arm64)
+    - check-layer-size (python39-arm64)
+    - lint python
+    - unit-test (python39-arm64)
+    - integration-test (python39-arm64)
+  dependencies:
+    - build-layer (python39-arm64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.9.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-arm64-3.9.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python39-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python39_arm64_prod.env
+  needs:
+
+      - sign-layer (python39-arm64)
+
+  dependencies:
+
+      - sign-layer (python39-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.9 ARCH=arm64 DOTENV=python39_arm64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python39-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python39_arm64_sandbox.env
+  needs:
+
+      - build-layer (python39-arm64)
+      - check-layer-size (python39-arm64)
+      - lint python
+      - unit-test (python39-arm64)
+      - integration-test (python39-arm64)
+
+  dependencies:
+
+      - build-layer (python39-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.9 ARCH=arm64 DOTENV=python39_arm64_sandbox.env ./ci/publish_layers.sh
+
+
+
+# TODO(astuyve) - figure out python build cache
+.python310-amd64-cache: &python310-amd64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python310-amd64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.10.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.10 ARCH=amd64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python310-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python310-amd64)
+  dependencies:
+    - build-layer (python310-amd64)
+  script:
+    - PYTHON_VERSION=3.10 ARCH=amd64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.10
+  cache: &python310-amd64-cache
+  before_script:
+    - PYTHON_VERSION=3.10 ARCH=amd64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python310-amd64):
+  stage: test
+  tags:
+  
+      - "arch:amd64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.10
+  cache: &python310-amd64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.10,arch:amd64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.10 ARCH=amd64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python310-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python310-amd64)
+  dependencies:
+    - build-layer (python310-amd64)
+  cache: &python310-amd64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.10 ARCH=amd64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python310-amd64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python310-amd64)
+    - check-layer-size (python310-amd64)
+    - lint python
+    - unit-test (python310-amd64)
+    - integration-test (python310-amd64)
+  dependencies:
+    - build-layer (python310-amd64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.10.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-amd64-3.10.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python310-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python310_amd64_prod.env
+  needs:
+
+      - sign-layer (python310-amd64)
+
+  dependencies:
+
+      - sign-layer (python310-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.10 ARCH=amd64 DOTENV=python310_amd64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python310-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python310_amd64_sandbox.env
+  needs:
+
+      - build-layer (python310-amd64)
+      - check-layer-size (python310-amd64)
+      - lint python
+      - unit-test (python310-amd64)
+      - integration-test (python310-amd64)
+
+  dependencies:
+
+      - build-layer (python310-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.10 ARCH=amd64 DOTENV=python310_amd64_sandbox.env ./ci/publish_layers.sh
+
+
+# TODO(astuyve) - figure out python build cache
+.python310-arm64-cache: &python310-arm64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python310-arm64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.10.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.10 ARCH=arm64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python310-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python310-arm64)
+  dependencies:
+    - build-layer (python310-arm64)
+  script:
+    - PYTHON_VERSION=3.10 ARCH=arm64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.10
+  cache: &python310-arm64-cache
+  before_script:
+    - PYTHON_VERSION=3.10 ARCH=arm64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python310-arm64):
+  stage: test
+  tags:
+  
+      - "arch:arm64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.10
+  cache: &python310-arm64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.10,arch:arm64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.10 ARCH=arm64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python310-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python310-arm64)
+  dependencies:
+    - build-layer (python310-arm64)
+  cache: &python310-arm64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.10 ARCH=arm64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python310-arm64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python310-arm64)
+    - check-layer-size (python310-arm64)
+    - lint python
+    - unit-test (python310-arm64)
+    - integration-test (python310-arm64)
+  dependencies:
+    - build-layer (python310-arm64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.10.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-arm64-3.10.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python310-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python310_arm64_prod.env
+  needs:
+
+      - sign-layer (python310-arm64)
+
+  dependencies:
+
+      - sign-layer (python310-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.10 ARCH=arm64 DOTENV=python310_arm64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python310-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python310_arm64_sandbox.env
+  needs:
+
+      - build-layer (python310-arm64)
+      - check-layer-size (python310-arm64)
+      - lint python
+      - unit-test (python310-arm64)
+      - integration-test (python310-arm64)
+
+  dependencies:
+
+      - build-layer (python310-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.10 ARCH=arm64 DOTENV=python310_arm64_sandbox.env ./ci/publish_layers.sh
+
+
+
+# TODO(astuyve) - figure out python build cache
+.python311-amd64-cache: &python311-amd64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python311-amd64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.11.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.11 ARCH=amd64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python311-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python311-amd64)
+  dependencies:
+    - build-layer (python311-amd64)
+  script:
+    - PYTHON_VERSION=3.11 ARCH=amd64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.11.6
+  cache: &python311-amd64-cache
+  before_script:
+    - PYTHON_VERSION=3.11 ARCH=amd64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python311-amd64):
+  stage: test
+  tags:
+  
+      - "arch:amd64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.11.6
+  cache: &python311-amd64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.11,arch:amd64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.11 ARCH=amd64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python311-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python311-amd64)
+  dependencies:
+    - build-layer (python311-amd64)
+  cache: &python311-amd64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.11 ARCH=amd64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python311-amd64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python311-amd64)
+    - check-layer-size (python311-amd64)
+    - lint python
+    - unit-test (python311-amd64)
+    - integration-test (python311-amd64)
+  dependencies:
+    - build-layer (python311-amd64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.11.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-amd64-3.11.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python311-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python311_amd64_prod.env
+  needs:
+
+      - sign-layer (python311-amd64)
+
+  dependencies:
+
+      - sign-layer (python311-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.11 ARCH=amd64 DOTENV=python311_amd64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python311-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python311_amd64_sandbox.env
+  needs:
+
+      - build-layer (python311-amd64)
+      - check-layer-size (python311-amd64)
+      - lint python
+      - unit-test (python311-amd64)
+      - integration-test (python311-amd64)
+
+  dependencies:
+
+      - build-layer (python311-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.11 ARCH=amd64 DOTENV=python311_amd64_sandbox.env ./ci/publish_layers.sh
+
+
+# TODO(astuyve) - figure out python build cache
+.python311-arm64-cache: &python311-arm64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python311-arm64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.11.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.11 ARCH=arm64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python311-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python311-arm64)
+  dependencies:
+    - build-layer (python311-arm64)
+  script:
+    - PYTHON_VERSION=3.11 ARCH=arm64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.11.6
+  cache: &python311-arm64-cache
+  before_script:
+    - PYTHON_VERSION=3.11 ARCH=arm64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python311-arm64):
+  stage: test
+  tags:
+  
+      - "arch:arm64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.11.6
+  cache: &python311-arm64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.11,arch:arm64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.11 ARCH=arm64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python311-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python311-arm64)
+  dependencies:
+    - build-layer (python311-arm64)
+  cache: &python311-arm64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.11 ARCH=arm64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python311-arm64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python311-arm64)
+    - check-layer-size (python311-arm64)
+    - lint python
+    - unit-test (python311-arm64)
+    - integration-test (python311-arm64)
+  dependencies:
+    - build-layer (python311-arm64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.11.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-arm64-3.11.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python311-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python311_arm64_prod.env
+  needs:
+
+      - sign-layer (python311-arm64)
+
+  dependencies:
+
+      - sign-layer (python311-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.11 ARCH=arm64 DOTENV=python311_arm64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python311-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python311_arm64_sandbox.env
+  needs:
+
+      - build-layer (python311-arm64)
+      - check-layer-size (python311-arm64)
+      - lint python
+      - unit-test (python311-arm64)
+      - integration-test (python311-arm64)
+
+  dependencies:
+
+      - build-layer (python311-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.11 ARCH=arm64 DOTENV=python311_arm64_sandbox.env ./ci/publish_layers.sh
+
+
+
+# TODO(astuyve) - figure out python build cache
+.python312-amd64-cache: &python312-amd64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python312-amd64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.12.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.12 ARCH=amd64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python312-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python312-amd64)
+  dependencies:
+    - build-layer (python312-amd64)
+  script:
+    - PYTHON_VERSION=3.12 ARCH=amd64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.12.0
+  cache: &python312-amd64-cache
+  before_script:
+    - PYTHON_VERSION=3.12 ARCH=amd64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python312-amd64):
+  stage: test
+  tags:
+  
+      - "arch:amd64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.12.0
+  cache: &python312-amd64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.12,arch:amd64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.12 ARCH=amd64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python312-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python312-amd64)
+  dependencies:
+    - build-layer (python312-amd64)
+  cache: &python312-amd64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.12 ARCH=amd64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python312-amd64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python312-amd64)
+    - check-layer-size (python312-amd64)
+    - lint python
+    - unit-test (python312-amd64)
+    - integration-test (python312-amd64)
+  dependencies:
+    - build-layer (python312-amd64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.12.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-amd64-3.12.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python312-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python312_amd64_prod.env
+  needs:
+
+      - sign-layer (python312-amd64)
+
+  dependencies:
+
+      - sign-layer (python312-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.12 ARCH=amd64 DOTENV=python312_amd64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python312-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python312_amd64_sandbox.env
+  needs:
+
+      - build-layer (python312-amd64)
+      - check-layer-size (python312-amd64)
+      - lint python
+      - unit-test (python312-amd64)
+      - integration-test (python312-amd64)
+
+  dependencies:
+
+      - build-layer (python312-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.12 ARCH=amd64 DOTENV=python312_amd64_sandbox.env ./ci/publish_layers.sh
+
+
+# TODO(astuyve) - figure out python build cache
+.python312-arm64-cache: &python312-arm64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python312-arm64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.12.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.12 ARCH=arm64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python312-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python312-arm64)
+  dependencies:
+    - build-layer (python312-arm64)
+  script:
+    - PYTHON_VERSION=3.12 ARCH=arm64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.12.0
+  cache: &python312-arm64-cache
+  before_script:
+    - PYTHON_VERSION=3.12 ARCH=arm64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python312-arm64):
+  stage: test
+  tags:
+  
+      - "arch:arm64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.12.0
+  cache: &python312-arm64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.12,arch:arm64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.12 ARCH=arm64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python312-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python312-arm64)
+  dependencies:
+    - build-layer (python312-arm64)
+  cache: &python312-arm64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.12 ARCH=arm64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python312-arm64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python312-arm64)
+    - check-layer-size (python312-arm64)
+    - lint python
+    - unit-test (python312-arm64)
+    - integration-test (python312-arm64)
+  dependencies:
+    - build-layer (python312-arm64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.12.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-arm64-3.12.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python312-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python312_arm64_prod.env
+  needs:
+
+      - sign-layer (python312-arm64)
+
+  dependencies:
+
+      - sign-layer (python312-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.12 ARCH=arm64 DOTENV=python312_arm64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python312-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python312_arm64_sandbox.env
+  needs:
+
+      - build-layer (python312-arm64)
+      - check-layer-size (python312-arm64)
+      - lint python
+      - unit-test (python312-arm64)
+      - integration-test (python312-arm64)
+
+  dependencies:
+
+      - build-layer (python312-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.12 ARCH=arm64 DOTENV=python312_arm64_sandbox.env ./ci/publish_layers.sh
+
+
+
+# TODO(astuyve) - figure out python build cache
+.python313-amd64-cache: &python313-amd64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python313-amd64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.13.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.13 ARCH=amd64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python313-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python313-amd64)
+  dependencies:
+    - build-layer (python313-amd64)
+  script:
+    - PYTHON_VERSION=3.13 ARCH=amd64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.13.0
+  cache: &python313-amd64-cache
+  before_script:
+    - PYTHON_VERSION=3.13 ARCH=amd64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python313-amd64):
+  stage: test
+  tags:
+  
+      - "arch:amd64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.13.0
+  cache: &python313-amd64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.13,arch:amd64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.13 ARCH=amd64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python313-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python313-amd64)
+  dependencies:
+    - build-layer (python313-amd64)
+  cache: &python313-amd64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.13 ARCH=amd64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python313-amd64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python313-amd64)
+    - check-layer-size (python313-amd64)
+    - lint python
+    - unit-test (python313-amd64)
+    - integration-test (python313-amd64)
+  dependencies:
+    - build-layer (python313-amd64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.13.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-amd64-3.13.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python313-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python313_amd64_prod.env
+  needs:
+
+      - sign-layer (python313-amd64)
+
+  dependencies:
+
+      - sign-layer (python313-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.13 ARCH=amd64 DOTENV=python313_amd64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python313-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python313_amd64_sandbox.env
+  needs:
+
+      - build-layer (python313-amd64)
+      - check-layer-size (python313-amd64)
+      - lint python
+      - unit-test (python313-amd64)
+      - integration-test (python313-amd64)
+
+  dependencies:
+
+      - build-layer (python313-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.13 ARCH=amd64 DOTENV=python313_amd64_sandbox.env ./ci/publish_layers.sh
+
+
+# TODO(astuyve) - figure out python build cache
+.python313-arm64-cache: &python313-arm64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python313-arm64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.13.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.13 ARCH=arm64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python313-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python313-arm64)
+  dependencies:
+    - build-layer (python313-arm64)
+  script:
+    - PYTHON_VERSION=3.13 ARCH=arm64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.13.0
+  cache: &python313-arm64-cache
+  before_script:
+    - PYTHON_VERSION=3.13 ARCH=arm64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python313-arm64):
+  stage: test
+  tags:
+  
+      - "arch:arm64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.13.0
+  cache: &python313-arm64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.13,arch:arm64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.13 ARCH=arm64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python313-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python313-arm64)
+  dependencies:
+    - build-layer (python313-arm64)
+  cache: &python313-arm64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.13 ARCH=arm64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python313-arm64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python313-arm64)
+    - check-layer-size (python313-arm64)
+    - lint python
+    - unit-test (python313-arm64)
+    - integration-test (python313-arm64)
+  dependencies:
+    - build-layer (python313-arm64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.13.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-arm64-3.13.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python313-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python313_arm64_prod.env
+  needs:
+
+      - sign-layer (python313-arm64)
+
+  dependencies:
+
+      - sign-layer (python313-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.13 ARCH=arm64 DOTENV=python313_arm64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python313-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python313_arm64_sandbox.env
+  needs:
+
+      - build-layer (python313-arm64)
+      - check-layer-size (python313-arm64)
+      - lint python
+      - unit-test (python313-arm64)
+      - integration-test (python313-arm64)
+
+  dependencies:
+
+      - build-layer (python313-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.13 ARCH=arm64 DOTENV=python313_arm64_sandbox.env ./ci/publish_layers.sh
+
+
+
+# TODO(astuyve) - figure out python build cache
+.python314-amd64-cache: &python314-amd64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python314-amd64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.14.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.14 ARCH=amd64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python314-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python314-amd64)
+  dependencies:
+    - build-layer (python314-amd64)
+  script:
+    - PYTHON_VERSION=3.14 ARCH=amd64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.14.0
+  cache: &python314-amd64-cache
+  before_script:
+    - PYTHON_VERSION=3.14 ARCH=amd64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python314-amd64):
+  stage: test
+  tags:
+  
+      - "arch:amd64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.14.0
+  cache: &python314-amd64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.14,arch:amd64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.14 ARCH=amd64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python314-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python314-amd64)
+  dependencies:
+    - build-layer (python314-amd64)
+  cache: &python314-amd64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.14 ARCH=amd64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python314-amd64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python314-amd64)
+    - check-layer-size (python314-amd64)
+    - lint python
+    - unit-test (python314-amd64)
+    - integration-test (python314-amd64)
+  dependencies:
+    - build-layer (python314-amd64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.14.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-amd64-3.14.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python314-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python314_amd64_prod.env
+  needs:
+
+      - sign-layer (python314-amd64)
+
+  dependencies:
+
+      - sign-layer (python314-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.14 ARCH=amd64 DOTENV=python314_amd64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python314-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python314_amd64_sandbox.env
+  needs:
+
+      - build-layer (python314-amd64)
+      - check-layer-size (python314-amd64)
+      - lint python
+      - unit-test (python314-amd64)
+      - integration-test (python314-amd64)
+
+  dependencies:
+
+      - build-layer (python314-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.14 ARCH=amd64 DOTENV=python314_amd64_sandbox.env ./ci/publish_layers.sh
+
+
+# TODO(astuyve) - figure out python build cache
+.python314-arm64-cache: &python314-arm64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python314-arm64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.14.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.14 ARCH=arm64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python314-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python314-arm64)
+  dependencies:
+    - build-layer (python314-arm64)
+  script:
+    - PYTHON_VERSION=3.14 ARCH=arm64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.14.0
+  cache: &python314-arm64-cache
+  before_script:
+    - PYTHON_VERSION=3.14 ARCH=arm64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python314-arm64):
+  stage: test
+  tags:
+  
+      - "arch:arm64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.14.0
+  cache: &python314-arm64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.14,arch:arm64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.14 ARCH=arm64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python314-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python314-arm64)
+  dependencies:
+    - build-layer (python314-arm64)
+  cache: &python314-arm64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.14 ARCH=arm64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python314-arm64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python314-arm64)
+    - check-layer-size (python314-arm64)
+    - lint python
+    - unit-test (python314-arm64)
+    - integration-test (python314-arm64)
+  dependencies:
+    - build-layer (python314-arm64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.14.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-arm64-3.14.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python314-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python314_arm64_prod.env
+  needs:
+
+      - sign-layer (python314-arm64)
+
+  dependencies:
+
+      - sign-layer (python314-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.14 ARCH=arm64 DOTENV=python314_arm64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python314-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python314_arm64_sandbox.env
+  needs:
+
+      - build-layer (python314-arm64)
+      - check-layer-size (python314-arm64)
+      - lint python
+      - unit-test (python314-arm64)
+      - integration-test (python314-arm64)
+
+  dependencies:
+
+      - build-layer (python314-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.14 ARCH=arm64 DOTENV=python314_arm64_sandbox.env ./ci/publish_layers.sh
+
+
+
+# TODO(astuyve) - figure out python build cache
+.python315-amd64-cache: &python315-amd64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python315-amd64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.15.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.15 ARCH=amd64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python315-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python315-amd64)
+  dependencies:
+    - build-layer (python315-amd64)
+  script:
+    - PYTHON_VERSION=3.15 ARCH=amd64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.15.0
+  cache: &python315-amd64-cache
+  before_script:
+    - PYTHON_VERSION=3.15 ARCH=amd64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python315-amd64):
+  stage: test
+  tags:
+  
+      - "arch:amd64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.15.0
+  cache: &python315-amd64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.15,arch:amd64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.15 ARCH=amd64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python315-amd64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python315-amd64)
+  dependencies:
+    - build-layer (python315-amd64)
+  cache: &python315-amd64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.15 ARCH=amd64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python315-amd64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python315-amd64)
+    - check-layer-size (python315-amd64)
+    - lint python
+    - unit-test (python315-amd64)
+    - integration-test (python315-amd64)
+  dependencies:
+    - build-layer (python315-amd64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-amd64-3.15.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-amd64-3.15.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python315-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python315_amd64_prod.env
+  needs:
+
+      - sign-layer (python315-amd64)
+
+  dependencies:
+
+      - sign-layer (python315-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.15 ARCH=amd64 DOTENV=python315_amd64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python315-amd64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "amd64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python315_amd64_sandbox.env
+  needs:
+
+      - build-layer (python315-amd64)
+      - check-layer-size (python315-amd64)
+      - lint python
+      - unit-test (python315-amd64)
+      - integration-test (python315-amd64)
+
+  dependencies:
+
+      - build-layer (python315-amd64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.15 ARCH=amd64 DOTENV=python315_amd64_sandbox.env ./ci/publish_layers.sh
+
+
+# TODO(astuyve) - figure out python build cache
+.python315-arm64-cache: &python315-arm64-cache
+  key: "$CI_JOB_STAGE-$CI_COMMIT_REF_SLUG"
+  paths:
+    - $CI_PROJECT_DIR/.yarn-cache
+  policy: pull
+
+build-layer (python315-arm64):
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  artifacts:
+    expire_in: 1 day # Unsigned zips expire in 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.15.zip
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  script:
+    - PYTHON_VERSION=3.15 ARCH=arm64 ./scripts/build_layers.sh
+  timeout: 15m
+  retry: 2
+
+check-layer-size (python315-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python315-arm64)
+  dependencies:
+    - build-layer (python315-arm64)
+  script:
+    - PYTHON_VERSION=3.15 ARCH=arm64 ./scripts/check_layer_size.sh
+
+lint python:
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/mirror/python:3.15.0
+  cache: &python315-arm64-cache
+  before_script:
+    - PYTHON_VERSION=3.15 ARCH=arm64 IS_LINT="1" ./scripts/setup_python_env.sh
+  script:
+    - source venv/bin/activate
+    - ./scripts/check_format.sh
+
+unit-test (python315-arm64):
+  stage: test
+  tags:
+  
+      - "arch:arm64"
+  
+  image: registry.ddbuild.io/images/mirror/python:3.15.0
+  cache: &python315-arm64-cache
+  variables:
+    DD_CIVISIBILITY_AGENTLESS_ENABLED: "true"
+    DD_SERVICE: "datadog-lambda-python"
+    DD_ENV: "ci"
+    DD_TAGS: "python_version:3.15,arch:arm64"
+  before_script:
+    - GET_SECRETS_API_KEY_ONLY=1 source ./ci/get_secrets.sh
+    - PYTHON_VERSION=3.15 ARCH=arm64 ./scripts/setup_python_env.sh
+  script:
+    - set -e
+    - source venv/bin/activate
+    - pytest -vv --ddtrace
+  retry: 2
+
+integration-test (python315-arm64):
+  stage: test
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  needs:
+    - build-layer (python315-arm64)
+  dependencies:
+    - build-layer (python315-arm64)
+  cache: &python315-arm64-cache
+  variables:
+    CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
+  before_script:
+    - *install-node
+    - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+    - yarn global add serverless@^3.38.0 --prefix /usr/local
+    - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
+    - cd integration_tests && yarn install && cd ..
+  script:
+    - RUNTIME_PARAM=3.15 ARCH=arm64 ./scripts/run_integration_tests.sh
+  retry: 2
+
+sign-layer (python315-arm64):
+  stage: sign
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+      when: manual
+  needs:
+    - build-layer (python315-arm64)
+    - check-layer-size (python315-arm64)
+    - lint python
+    - unit-test (python315-arm64)
+    - integration-test (python315-arm64)
+  dependencies:
+    - build-layer (python315-arm64)
+  artifacts: # Re specify artifacts so the modified signed file is passed
+    expire_in: 1 day # Signed layers should expire after 1 day
+    paths:
+      - .layers/datadog_lambda_py-arm64-3.15.zip
+  before_script:
+    - apt-get update
+    - apt-get install -y uuid-runtime
+    
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+    
+  script:
+    - LAYER_FILE=datadog_lambda_py-arm64-3.15.zip ./scripts/sign_layers.sh prod
+
+
+
+
+publish-layer-prod (python315-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"prod" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"prod" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python315_arm64_prod.env
+  needs:
+
+      - sign-layer (python315-arm64)
+
+  dependencies:
+
+      - sign-layer (python315-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=prod-publish-externalid ROLE_TO_ASSUME=dd-serverless-layer-deployer-role AWS_ACCOUNT=464622532012 source ./ci/get_secrets.sh
+  script:
+    - STAGE=prod PYTHON_VERSION=3.15 ARCH=arm64 DOTENV=python315_arm64_prod.env ./ci/publish_layers.sh
+
+
+publish-layer-sandbox (python315-arm64):
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - if: '"sandbox" == "sandbox" && $REGION == "us-west-2" && "arm64" == "amd64"'
+      when: on_success
+    - if: '"sandbox" == "sandbox"'
+      when: manual
+      allow_failure: true
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  artifacts:
+    reports:
+      dotenv: python315_arm64_sandbox.env
+  needs:
+
+      - build-layer (python315-arm64)
+      - check-layer-size (python315-arm64)
+      - lint python
+      - unit-test (python315-arm64)
+      - integration-test (python315-arm64)
+
+  dependencies:
+
+      - build-layer (python315-arm64)
+
+  parallel:
+    matrix:
+      - REGION: 
+          - us-east-1
+          - us-east-2
+          - us-west-1
+          - us-west-2
+          - af-south-1
+          - ap-east-1
+          - ap-east-2
+          - ap-south-1
+          - ap-south-2
+          - ap-southeast-1
+          - ap-southeast-2
+          - ap-southeast-3
+          - ap-southeast-4
+          - ap-southeast-5
+          - ap-southeast-6
+          - ap-southeast-7
+          - ap-northeast-1
+          - ap-northeast-2
+          - ap-northeast-3
+          - ca-central-1
+          - ca-west-1
+          - eu-central-1
+          - eu-central-2
+          - eu-north-1
+          - eu-west-1
+          - eu-west-2
+          - eu-west-3
+          - eu-south-1
+          - eu-south-2
+          - il-central-1
+          - me-central-1
+          - mx-central-1
+          - sa-east-1
+  before_script:
+    - EXTERNAL_ID_NAME=sandbox-publish-externalid ROLE_TO_ASSUME=sandbox-layer-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
+  script:
+    - STAGE=sandbox PYTHON_VERSION=3.15 ARCH=arm64 DOTENV=python315_arm64_sandbox.env ./ci/publish_layers.sh
+
+publish-pypi-package:
+  stage: publish
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  before_script:
+    - ./scripts/setup_python_env.sh
+  cache: []
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  when: manual
+  needs:
+    - sign-layer (python38-amd64)
+    - sign-layer (python38-arm64)
+    - sign-layer (python39-amd64)
+    - sign-layer (python39-arm64)
+    - sign-layer (python310-amd64)
+    - sign-layer (python310-arm64)
+    - sign-layer (python311-amd64)
+    - sign-layer (python311-arm64)
+    - sign-layer (python312-amd64)
+    - sign-layer (python312-arm64)
+    - sign-layer (python313-amd64)
+    - sign-layer (python313-arm64)
+    - sign-layer (python314-amd64)
+    - sign-layer (python314-arm64)
+    - sign-layer (python315-amd64)
+    - sign-layer (python315-arm64)
+  script:
+    - ./ci/publish_pypi.sh
+
+layer bundle:
+  stage: build
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/images/docker:20.10
+  needs:
+    - build-layer (python38-amd64)
+    - build-layer (python38-arm64)
+    - build-layer (python39-amd64)
+    - build-layer (python39-arm64)
+    - build-layer (python310-amd64)
+    - build-layer (python310-arm64)
+    - build-layer (python311-amd64)
+    - build-layer (python311-arm64)
+    - build-layer (python312-amd64)
+    - build-layer (python312-arm64)
+    - build-layer (python313-amd64)
+    - build-layer (python313-arm64)
+    - build-layer (python314-amd64)
+    - build-layer (python314-arm64)
+    - build-layer (python315-amd64)
+    - build-layer (python315-arm64)
+  dependencies:
+    - build-layer (python38-amd64)
+    - build-layer (python38-arm64)
+    - build-layer (python39-amd64)
+    - build-layer (python39-arm64)
+    - build-layer (python310-amd64)
+    - build-layer (python310-arm64)
+    - build-layer (python311-amd64)
+    - build-layer (python311-arm64)
+    - build-layer (python312-amd64)
+    - build-layer (python312-arm64)
+    - build-layer (python313-amd64)
+    - build-layer (python313-arm64)
+    - build-layer (python314-amd64)
+    - build-layer (python314-arm64)
+    - build-layer (python315-amd64)
+    - build-layer (python315-arm64)
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - datadog_lambda_py-bundle-${CI_JOB_ID}/
+    name: datadog_lambda_py-bundle-${CI_JOB_ID}
+  script:
+    - rm -rf datadog_lambda_py-bundle-${CI_JOB_ID}
+    - mkdir -p datadog_lambda_py-bundle-${CI_JOB_ID}
+    - cp .layers/datadog_lambda_py-*.zip datadog_lambda_py-bundle-${CI_JOB_ID}
+
+signed layer bundle:
+  stage: sign
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  tags: ["arch:amd64"]
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v.*/'
+  needs:
+    - sign-layer (python38-amd64)
+    - sign-layer (python38-arm64)
+    - sign-layer (python39-amd64)
+    - sign-layer (python39-arm64)
+    - sign-layer (python310-amd64)
+    - sign-layer (python310-arm64)
+    - sign-layer (python311-amd64)
+    - sign-layer (python311-arm64)
+    - sign-layer (python312-amd64)
+    - sign-layer (python312-arm64)
+    - sign-layer (python313-amd64)
+    - sign-layer (python313-arm64)
+    - sign-layer (python314-amd64)
+    - sign-layer (python314-arm64)
+    - sign-layer (python315-amd64)
+    - sign-layer (python315-arm64)
+  dependencies:
+    - sign-layer (python38-amd64)
+    - sign-layer (python38-arm64)
+    - sign-layer (python39-amd64)
+    - sign-layer (python39-arm64)
+    - sign-layer (python310-amd64)
+    - sign-layer (python310-arm64)
+    - sign-layer (python311-amd64)
+    - sign-layer (python311-arm64)
+    - sign-layer (python312-amd64)
+    - sign-layer (python312-arm64)
+    - sign-layer (python313-amd64)
+    - sign-layer (python313-arm64)
+    - sign-layer (python314-amd64)
+    - sign-layer (python314-arm64)
+    - sign-layer (python315-amd64)
+    - sign-layer (python315-arm64)
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - datadog_lambda_py-signed-bundle-${CI_JOB_ID}/
+    name: datadog_lambda_py-signed-bundle-${CI_JOB_ID}
+  script:
+    - rm -rf datadog_lambda_py-signed-bundle-${CI_JOB_ID}
+    - mkdir -p datadog_lambda_py-signed-bundle-${CI_JOB_ID}
+    - cp .layers/datadog_lambda_py-*.zip datadog_lambda_py-signed-bundle-${CI_JOB_ID}
+
+e2e-test:
+  stage: e2e
+  trigger:
+    project: DataDog/serverless-e2e-tests
+    strategy: depend
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  variables:
+      LANGUAGES_SUBSET: python
+      # These env vars are inherited from the dotenv reports of the publish-layer jobs
+      PYTHON_38_VERSION: $PYTHON_38_VERSION
+      PYTHON_39_VERSION: $PYTHON_39_VERSION
+      PYTHON_310_VERSION: $PYTHON_310_VERSION
+      PYTHON_311_VERSION: $PYTHON_311_VERSION
+      PYTHON_312_VERSION: $PYTHON_312_VERSION
+      PYTHON_313_VERSION: $PYTHON_313_VERSION
+      PYTHON_314_VERSION: $PYTHON_314_VERSION
+      PYTHON_315_VERSION: $PYTHON_315_VERSION
+  needs:
+      - "publish-layer-sandbox (python38-amd64): [us-west-2]"
+      - "publish-layer-sandbox (python39-amd64): [us-west-2]"
+      - "publish-layer-sandbox (python310-amd64): [us-west-2]"
+      - "publish-layer-sandbox (python311-amd64): [us-west-2]"
+      - "publish-layer-sandbox (python312-amd64): [us-west-2]"
+      - "publish-layer-sandbox (python313-amd64): [us-west-2]"
+      - "publish-layer-sandbox (python314-amd64): [us-west-2]"
+      - "publish-layer-sandbox (python315-amd64): [us-west-2]"
+
+e2e-test-status:
+  stage: e2e
+  image: registry.ddbuild.io/images/docker:20.10-py3
+  tags: ["arch:amd64"]
+  timeout: 3h
+  rules:
+    - if: '$SKIP_E2E_TESTS == "true"'
+      when: never
+    - when: on_success
+  script: 
+      - ci/poll_e2e.sh
