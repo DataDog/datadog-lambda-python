@@ -78,7 +78,7 @@ LAYERS=(
     "Datadog-Python313"
     "Datadog-Python313-ARM"
     "Datadog-Python314"
-    "Datadog-Python314-ARM" 
+    "Datadog-Python314-ARM"
     "Datadog-Python315"
     "Datadog-Python315-ARM"
 )
