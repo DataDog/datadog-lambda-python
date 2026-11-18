@@ -35,11 +35,11 @@ set -e
 
 LAYER_DIR=".layers"
 LAYER_FILES_PREFIX="datadog_lambda_py"
-AVAILABLE_PYTHON_VERSIONS=("3.8" "3.9" "3.10" "3.11" "3.12" "3.13" "3.14")
+AVAILABLE_PYTHON_VERSIONS=("3.8" "3.9" "3.10" "3.11" "3.12" "3.13" "3.14" "3.15")
 # Preview runtimes. AWS has not published a SAM build image for these, so the
 # Lambda preview base image is used instead. The Dockerfile installs the
-# compiler toolchain that image is missing. 
-PREVIEW_PYTHON_VERSIONS=("3.15")
+# compiler toolchain that image is missing.
+PREVIEW_PYTHON_VERSIONS=()
 ALL_PYTHON_VERSIONS=("${AVAILABLE_PYTHON_VERSIONS[@]}" "${PREVIEW_PYTHON_VERSIONS[@]}")
 AVAILABLE_ARCHS=("arm64" "amd64")
 
