@@ -31,10 +31,43 @@ replace_ddtrace_dep() {
     perl -i -0777 -pe "s|ddtrace = \[[^\]]*\]|$1|gs" pyproject.toml
 }
 
+# Return 0 if Python $1 (e.g. "3.15") satisfies the Requires-Python of wheel $2.
+# Handles the >=, >, <=, < and == bounds on major.minor; other clauses are
+# ignored. A wheel without Requires-Python is accepted.
+_wheel_supports_python() {
+    local python_version=$1
+    local wheel=$2
+    local requires
+    requires=$(unzip -p "$wheel" '*.dist-info/METADATA' 2>/dev/null \
+        | sed -n 's/^Requires-Python: *//p' | head -n 1 | tr -d ' \r')
+    [ -z "$requires" ] && return 0
+    local want=$(( ${python_version%%.*} * 1000 + ${python_version#*.} ))
+    local clause op ver major minor have
+    IFS=',' read -ra clauses <<< "$requires"
+    for clause in "${clauses[@]}"; do
+        op=$(sed -E 's/^([<>=!~]+).*/\1/' <<< "$clause")
+        ver=$(sed -E 's/^[<>=!~]+//' <<< "$clause")
+        major=${ver%%.*}
+        minor=$(cut -d. -f2 <<< "$ver.0")
+        [[ "$major" =~ ^[0-9]+$ && "$minor" =~ ^[0-9]+$ ]] || continue
+        have=$(( major * 1000 + minor ))
+        case "$op" in
+            ">=") [ "$want" -ge "$have" ] || return 1 ;;
+            ">")  [ "$want" -gt "$have" ] || return 1 ;;
+            "<=") [ "$want" -le "$have" ] || return 1 ;;
+            "<")  [ "$want" -lt "$have" ] || return 1 ;;
+            "==") [ "$want" -eq "$have" ] || return 1 ;;
+        esac
+    done
+    return 0
+}
+
 # Search S3 for a wheel matching basename + index, then rewrite the ddtrace
 # dep to point at the downloaded file. Globals required:
-#   S3_BASE, PY_TAG, PLATFORM
-# Returns 0 on success, 1 if no matching wheel was found at the index.
+#   S3_BASE, PY_TAG, PLATFORM, PYTHON_VERSION
+# Returns 0 on success, 1 if no matching wheel was found at the index, or if
+# the wheel doesn't support PYTHON_VERSION (e.g. a dd-trace-py release branch
+# older than the runtime): the caller then keeps the released ddtrace.
 _search_and_spec_s3_wheel() {
     local basename=$1
     local index=$2
@@ -47,6 +80,11 @@ _search_and_spec_s3_wheel() {
         return 1
     fi
     curl -sSfL "${S3_BASE}/${wheel_file}" -o "${wheel_file}"
+    if ! _wheel_supports_python "${PYTHON_VERSION}" "${wheel_file}"; then
+        echo "S3 wheel ${wheel_file} does not support Python ${PYTHON_VERSION}, not using it"
+        rm -f "${wheel_file}"
+        return 1
+    fi
     echo "Using S3 wheel: ${wheel_file}"
     replace_ddtrace_dep "${basename} = { file = \"${wheel_file}\" }"
 }
