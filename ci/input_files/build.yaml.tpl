@@ -18,6 +18,14 @@ default:
       # Retry when the runner fails to start
       - runner_system_failure
 
+# The Noble Python image uses managed system Python and does not include AWS CLI.
+.install-python-tools: &install-python-tools
+  - apt-get update
+  - apt-get install -y --no-install-recommends python3-venv python-is-python3
+  - python3 -m venv /opt/ci-python-tools
+  - /opt/ci-python-tools/bin/pip install awscli
+  - export PATH="/opt/ci-python-tools/bin:$PATH"
+
 # This is for serverless framework
 .install-node: &install-node
   - apt-get update
@@ -42,7 +50,7 @@ default:
 build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: build
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10
+  image: registry.ddbuild.io/images/docker:27.3.1
   artifacts:
     expire_in: 1 day # Unsigned zips expire in 1 day
     paths:
@@ -57,7 +65,7 @@ build-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
 check-layer-size ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10
+  image: registry.ddbuild.io/images/docker:27.3.1
   needs:
     - build-layer ({{ $runtime.name }}-{{ $runtime.arch }})
   dependencies:
@@ -103,7 +111,7 @@ unit-test ({{ $runtime.name }}-{{ $runtime.arch }}):
 integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: test
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10-py3
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   rules:
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
@@ -116,11 +124,12 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
   variables:
     CI_ENABLE_CONTAINER_IMAGE_BUILDS: "true"
   before_script:
+    - *install-python-tools
     - *install-node
     - EXTERNAL_ID_NAME=integration-test-externalid ROLE_TO_ASSUME=sandbox-integration-test-deployer AWS_ACCOUNT=425362996713 source ./ci/get_secrets.sh
     - yarn global add serverless@^3.38.0 --prefix /usr/local
     - yarn global add serverless-python-requirements@^6.1.1 --prefix /usr/local
-    - cd integration_tests && yarn install && cd ..
+    - yarn --cwd tests/integration install
   script:
     - RUNTIME_PARAM={{ $runtime.python_version }} ARCH={{ $runtime.arch }} ./scripts/run_integration_tests.sh
   retry: 2
@@ -128,7 +137,7 @@ integration-test ({{ $runtime.name }}-{{ $runtime.arch }}):
 sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: sign
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10-py3
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
       when: manual
@@ -145,6 +154,7 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
     paths:
       - .layers/datadog_lambda_py-{{ $runtime.arch }}-{{ $runtime.python_version }}.zip
   before_script:
+    - *install-python-tools
     - apt-get update
     - apt-get install -y uuid-runtime
     {{ with $environment := (ds "environments").environments.prod }}
@@ -159,7 +169,7 @@ sign-layer ({{ $runtime.name }}-{{ $runtime.arch }}):
 publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
   stage: publish
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10-py3
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   rules:
     - if: '$SKIP_E2E_TESTS == "true"'
       when: never
@@ -194,6 +204,8 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
           - {{ .code }}
         {{- end}}
   before_script:
+    - *install-python-tools
+    - export SKIP_PIP_INSTALL=true
     - EXTERNAL_ID_NAME={{ $environment.external_id }} ROLE_TO_ASSUME={{ $environment.role_to_assume }} AWS_ACCOUNT={{ $environment.account }} source ./ci/get_secrets.sh
   script:
     - STAGE={{ $environment_name }} PYTHON_VERSION={{ $runtime.python_version }} ARCH={{ $runtime.arch }} DOTENV={{ $dotenv }} ./ci/publish_layers.sh
@@ -205,8 +217,9 @@ publish-layer-{{ $environment_name }} ({{ $runtime.name }}-{{ $runtime.arch }}):
 publish-pypi-package:
   stage: publish
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10-py3
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   before_script:
+    - *install-python-tools
     - ./scripts/setup_python_env.sh
   cache: []
   rules:
@@ -221,7 +234,7 @@ publish-pypi-package:
 layer bundle:
   stage: build
   tags: ["arch:amd64"]
-  image: registry.ddbuild.io/images/docker:20.10
+  image: registry.ddbuild.io/images/docker:27.3.1
   needs:
     {{ range $runtimes }}
     - build-layer ({{ .name }}-{{ .arch }})
@@ -242,7 +255,7 @@ layer bundle:
 
 signed layer bundle:
   stage: sign
-  image: registry.ddbuild.io/images/docker:20.10-py3
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   tags: ["arch:amd64"]
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v.*/'
@@ -290,7 +303,7 @@ e2e-test:
 
 e2e-test-status:
   stage: e2e
-  image: registry.ddbuild.io/images/docker:20.10-py3
+  image: registry.ddbuild.io/images/docker:29.4.0-noble-py3
   tags: ["arch:amd64"]
   timeout: 3h
   rules:
