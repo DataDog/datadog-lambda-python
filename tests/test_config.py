@@ -21,8 +21,10 @@ def test_config_import_does_not_import_ddtrace(monkeypatch):
     import datadog_lambda
 
     with monkeypatch.context() as mp:
+        # Also evict datadog_lambda submodules so that modules config imports
+        # (e.g. datadog_lambda.extension) run again under the blocker.
         for name in list(sys.modules):
-            if name == "ddtrace" or name.startswith("ddtrace."):
+            if name.startswith(("ddtrace", "datadog_lambda.")):
                 mp.delitem(sys.modules, name, raising=False)
 
         class _BlockDdtrace(importlib.abc.MetaPathFinder):
@@ -35,7 +37,7 @@ def test_config_import_does_not_import_ddtrace(monkeypatch):
         mp.setattr(sys, "meta_path", [blocker] + sys.meta_path, raising=False)
 
         mp.delattr(datadog_lambda, "config", raising=False)
-        mp.delitem(sys.modules, "datadog_lambda.config", raising=False)
+        mp.delattr(datadog_lambda, "extension", raising=False)
         importlib.invalidate_caches()
         importlib.import_module("datadog_lambda.config")
 
@@ -260,3 +262,32 @@ def test__get_env_does_not_log_when_env_not_set(setenv, monkeypatch):
     testing.test_4
 
     assert not logs
+
+
+_ffe_url = "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL"
+
+
+@pytest.mark.parametrize(
+    "extension,env,expected",
+    [
+        (True, {}, "http://127.0.0.1:8126"),
+        (True, {"DD_API_KEY": ""}, "http://127.0.0.1:8126"),
+        (True, {"DD_API_KEY_SECRET_ARN": "arn"}, "http://127.0.0.1:8126"),
+        (True, {"DD_API_KEY": "key"}, None),
+        (True, {_ffe_url: "http://custom"}, "http://custom"),
+        (True, {_ffe_url: ""}, "http://127.0.0.1:8126"),
+        (True, {_ffe_url: "  "}, "http://127.0.0.1:8126"),
+        (False, {}, None),
+    ],
+)
+@pytest.mark.filterwarnings("ignore:.*found in sys.modules:RuntimeWarning")
+def test_feature_flags_base_url(extension, env, expected, monkeypatch):
+    import os
+    import runpy
+
+    monkeypatch.setattr(os, "environ", dict(env))
+    monkeypatch.setattr(
+        "datadog_lambda.extension.is_extension_present", lambda: extension
+    )
+    runpy.run_module("datadog_lambda.config")
+    assert os.environ.get(_ffe_url) == expected

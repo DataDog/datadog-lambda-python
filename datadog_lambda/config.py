@@ -6,6 +6,8 @@
 import logging
 import os
 
+from datadog_lambda.extension import is_extension_present
+
 logger = logging.getLogger(__name__)
 
 
@@ -170,3 +172,18 @@ if (
     and not config.appsec_enabled
 ):
     os.environ["DD_INSTRUMENTATION_TELEMETRY_ENABLED"] = "false"
+
+# The extension forwards feature flag config requests with the API key it
+# resolved (e.g. from DD_API_KEY_SECRET_ARN). Only use it when DD_API_KEY is
+# unset: an extension without that route returns 404, and the tracer does not
+# fall back to the default endpoint.
+if (
+    is_extension_present()
+    and not os.environ.get("DD_API_KEY")
+    and not os.environ.get(
+        "DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL", ""
+    ).strip()
+):
+    os.environ["DD_FEATURE_FLAGS_CONFIGURATION_SOURCE_AGENTLESS_BASE_URL"] = (
+        "http://127.0.0.1:8126"
+    )
