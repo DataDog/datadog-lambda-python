@@ -101,6 +101,7 @@ _test_config_from_environ = (
     *_test_as_bool("DD_MERGE_XRAY_TRACES", "merge_xray_traces", default=False),
     *_test_as_bool("DD_PROFILING_ENABLED", "profiling_enabled", default=False),
     *_test_as_bool("DD_LLMOBS_ENABLED", "llmobs_enabled", default=False),
+    *_test_as_bool("DD_FEATURE_FLAGS_ENABLED", "feature_flags_enabled", default=True),
     *_test_as_bool(
         "DD_EXCEPTION_REPLAY_ENABLED", "exception_replay_enabled", default=False
     ),
