@@ -102,6 +102,9 @@ class Config:
     dsm_exchange_name = _get_env("DD_DSM_EXCHANGE_NAME")
     appsec_enabled = _get_env("DD_APPSEC_ENABLED", "false", as_bool)
     sca_enabled = _get_env("DD_APPSEC_SCA_ENABLED", "false", as_bool)
+    appsec_aws_access_key_id_tag_enabled = _get_env(
+        "DD_APPSEC_AWS_ACCESS_KEY_ID_TAG_ENABLED", "false", as_bool
+    )
 
     is_gov_region = _get_env("AWS_REGION", "", lambda x: x.startswith("us-gov-"))
 

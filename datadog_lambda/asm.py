@@ -1,4 +1,6 @@
 import logging
+import os
+import re
 import urllib.parse
 from copy import deepcopy
 from typing import Any, Dict, List, Optional, Union
@@ -9,6 +11,7 @@ from ddtrace.internal.utils import get_blocked
 from ddtrace.internal.utils import http as http_utils
 from ddtrace.trace import Span
 
+from datadog_lambda.config import config
 from datadog_lambda.trigger import (
     EventSubtypes,
     EventTypes,
@@ -17,6 +20,32 @@ from datadog_lambda.trigger import (
 )
 
 logger = logging.getLogger(__name__)
+
+AWS_ACCESS_KEY_ID_TAG = "aws.lambda.access_key_id"
+_AWS_ACCESS_KEY_ID_PATTERN = re.compile(r"(ASIA|AKIA)[A-Z0-9]{16}")
+_UNSET = object()
+_aws_access_key_id: Any = _UNSET
+
+
+def _get_aws_access_key_id() -> Optional[str]:
+    """Return the execution environment's AWS access key ID, read once.
+
+    Only AWS_ACCESS_KEY_ID is read: the secret key and the session token are
+    never touched. The read happens at the first monitored invocation, so on
+    SnapStart it runs after restore, never before the snapshot.
+    """
+    global _aws_access_key_id
+    if _aws_access_key_id is _UNSET:
+        value = os.environ.get("AWS_ACCESS_KEY_ID", "")
+        if _AWS_ACCESS_KEY_ID_PATTERN.fullmatch(value):
+            _aws_access_key_id = value
+        else:
+            _aws_access_key_id = None
+            logger.debug(
+                "AWS_ACCESS_KEY_ID is empty or malformed, %s is not set",
+                AWS_ACCESS_KEY_ID_TAG,
+            )
+    return _aws_access_key_id
 
 
 def _to_single_value_headers(headers: Dict[str, List[str]]) -> Dict[str, str]:
@@ -120,6 +149,11 @@ def asm_start_request(
 
     else:
         return
+
+    if config.appsec_aws_access_key_id_tag_enabled:
+        access_key_id = _get_aws_access_key_id()
+        if access_key_id:
+            span.set_tag(AWS_ACCESS_KEY_ID_TAG, access_key_id)
 
     body = event.get("body")
     is_base64_encoded = event.get("isBase64Encoded", False)
