@@ -65,7 +65,8 @@ if [ -z "${IS_LINT:-}" ] || [ "${IS_LINT}" = "0" ] || [ "${IS_LINT}" = "false" ]
     spec_ddtrace_dep
 fi
 
-python3 -m venv venv
+pip install virtualenv
+virtualenv venv
 source venv/bin/activate
 pip install .[dev]
 pip install poetry
